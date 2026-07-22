@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ! -x /usr/local/bin/blog-playwright-cli ]]; then
+  echo "Missing required browser wrapper: /usr/local/bin/blog-playwright-cli" >&2
+  exit 2
+fi
+
+exec npx playwright test "$@"

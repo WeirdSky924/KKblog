@@ -1,0 +1,44 @@
+x-production-environment: &production-environment
+  DJANGO_SETTINGS_MODULE: config.settings.production
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+  KAJ_PUBLIC_URL: ${KAJ_PUBLIC_URL:?KAJ_PUBLIC_URL is required}
+  KAJ_ADMIN_EMAIL: ${KAJ_ADMIN_EMAIL:?KAJ_ADMIN_EMAIL is required}
+  RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?RESEND_FROM_EMAIL is required}
+  RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+  REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+  KAJ_MEDIA_ROOT: ${KAJ_MEDIA_ROOT:?KAJ_MEDIA_ROOT is required}
+  KAJ_INITIAL_ADMIN_PASSWORD: ${KAJ_INITIAL_ADMIN_PASSWORD:?KAJ_INITIAL_ADMIN_PASSWORD is required}
+
+services:
+  web:
+    environment: *production-environment
+
+  worker:
+    environment: *production-environment
+
+  beat:
+    environment: *production-environment
+
+  caddy:
+    environment:
+      KAJ_RUNTIME_ENV: production
+      KAJ_PUBLIC_HOST: ${KAJ_PUBLIC_HOST:?KAJ_PUBLIC_HOST is required}
+      KAJ_PUBLIC_URL: ${KAJ_PUBLIC_URL:?KAJ_PUBLIC_URL is required}
+      KAJ_CADDY_UPSTREAM: web:8000
+    ports: !override
+      - name: public-http
+        target: 80
+        published: 80
+        host_ip: 0.0.0.0
+        protocol: tcp
+      - name: public-https
+        target: 443
+        published: 443
+        host_ip: 0.0.0.0
+        protocol: tcp
+
+  umami:
+    environment:
+      DATABASE_URL: ${KAJ_UMAMI_DATABASE_URL:?KAJ_UMAMI_DATABASE_URL is required}
+      APP_SECRET: ${KAJ_UMAMI_APP_SECRET:?KAJ_UMAMI_APP_SECRET is required}

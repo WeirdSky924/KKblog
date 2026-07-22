@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+{% block title %}正在维护 | Kaj 的小房间{% endblock %}
+{% block body_class %}status-shell{% endblock %}
+{% block main_class %}status-page{% endblock %}
+
+{% block content %}
+  <section class="status-layout" aria-labelledby="status-title">
+    <div class="status-axis status-axis--maintenance" aria-hidden="true">
+      <span class="status-code">503</span>
+      <span class="status-line"></span>
+    </div>
+    <div class="status-copy">
+      <h1 id="status-title">正在维护</h1>
+      <p class="status-message">
+        网站正在进行维护。维护完成并通过健康检查后，页面会恢复访问。
+      </p>
+      <div class="status-actions">
+        <button
+          class="button button--primary"
+          type="button"
+          data-maintenance-retry
+        >
+          <i data-lucide="rotate-cw"></i>
+          <span>重新检查</span>
+        </button>
+      </div>
+    </div>
+  </section>
+{% endblock %}

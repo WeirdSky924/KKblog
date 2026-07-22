@@ -1,0 +1,1 @@
+"""Kaj blog application owners."""

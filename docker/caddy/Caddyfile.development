@@ -1,0 +1,27 @@
+{
+	admin off
+	auto_https off
+}
+
+import /etc/caddy/media-delivery.caddy
+
+http://localhost {
+	encode gzip
+	route {
+		import media_delivery
+		handle_path /static/* {
+			root * /srv/static
+			header Cache-Control "no-cache"
+			file_server
+		}
+
+		@private path /media/* /exports/* /backups/* /var/*
+		respond @private 404
+
+		reverse_proxy {$KAJ_CADDY_UPSTREAM:web:8000}
+	}
+}
+
+:80 {
+	respond 421
+}

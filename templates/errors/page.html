@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+{% block title %}{{ status }} | Kaj 的小房间{% endblock %}
+{% block body_class %}status-shell{% endblock %}
+{% block main_class %}status-page{% endblock %}
+
+{% block content %}
+  <section class="status-layout" aria-labelledby="status-title">
+    <div class="status-axis" aria-hidden="true">
+      <span class="status-code">{{ status }}</span>
+      <span class="status-line"></span>
+    </div>
+    <div class="status-copy">
+      <h1 id="status-title">{{ error_title }}</h1>
+      <p class="status-message">{{ safe_message }}</p>
+      <p class="status-trace">
+        <span>错误编号</span>
+        <code data-trace-code>{{ trace_code }}</code>
+      </p>
+      <div class="status-actions">
+        <button class="button button--primary" type="button" data-error-back>
+          <i data-lucide="arrow-left"></i>
+          <span>返回上一页</span>
+        </button>
+        {% if retryable %}
+          <button class="button button--secondary" type="button" data-error-retry>
+            <i data-lucide="rotate-cw"></i>
+            <span>重新加载</span>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

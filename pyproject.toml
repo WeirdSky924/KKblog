@@ -1,0 +1,41 @@
+[project]
+name = "kaj-blog"
+version = "0.1.0"
+description = "Kaj's private, server-rendered blog"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "celery[redis]>=5.5,<6",
+    "django>=5.2,<5.3",
+    "gunicorn>=23,<27",
+    "psycopg[binary]>=3.2,<4",
+    "python-ulid>=4,<5",
+    "redis>=6.4,<8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<10",
+    "pytest-django>=4.11,<5",
+    "ruff>=0.11,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests", "apps"]
+python_files = ["test_*.py"]
+markers = [
+    "contract: stable cross-module and configuration contracts",
+    "integration: requires isolated real infrastructure",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = ["static/dist"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]

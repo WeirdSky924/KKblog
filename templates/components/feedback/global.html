@@ -1,0 +1,12 @@
+<section
+  id="global-feedback"
+  class="global-feedback"
+  aria-label="操作反馈"
+  aria-live="polite"
+  aria-relevant="additions text"
+  tabindex="-1"
+>
+  {% for feedback in feedback_items %}
+    {% include "components/feedback/item.html" with feedback=feedback only %}
+  {% endfor %}
+</section>

@@ -1,0 +1,9 @@
+@import "@fontsource-variable/noto-sans-sc";
+@import "tailwindcss";
+@import "./theme.css";
+@import "./foundation.css";
+@import "./feedback.css";
+@import "./status-pages.css";
+
+@source "../../templates";
+@source "../../apps";

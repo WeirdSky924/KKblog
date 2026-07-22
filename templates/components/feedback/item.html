@@ -1,0 +1,27 @@
+<div
+  class="feedback-item{% if feedback.level == 'success' %} feedback-item--success{% elif feedback.level == 'warning' %} feedback-item--warning{% elif feedback.level == 'error' %} feedback-item--error{% endif %}"
+  data-feedback-item
+  {% if feedback.level == 'error' %}role="alert"{% else %}role="status"{% endif %}
+>
+  <span class="feedback-icon" aria-hidden="true">
+    {% if feedback.level == 'success' %}
+      <i data-lucide="circle-check"></i>
+    {% elif feedback.level == 'warning' %}
+      <i data-lucide="triangle-alert"></i>
+    {% elif feedback.level == 'error' %}
+      <i data-lucide="circle-x"></i>
+    {% else %}
+      <i data-lucide="info"></i>
+    {% endif %}
+  </span>
+  <p>{{ feedback.message }}</p>
+  <button
+    class="icon-button feedback-dismiss"
+    type="button"
+    aria-label="关闭这条反馈"
+    title="关闭"
+    data-feedback-dismiss
+  >
+    <i data-lucide="x"></i>
+  </button>
+</div>

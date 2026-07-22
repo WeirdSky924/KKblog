@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+uv_bin="${UV_BIN:-}"
+if [[ -z "${uv_bin}" ]]; then
+  if command -v uv >/dev/null 2>&1; then
+    uv_bin="$(command -v uv)"
+  elif [[ -x /root/.local/bin/uv ]]; then
+    uv_bin=/root/.local/bin/uv
+  else
+    echo "Missing uv; set UV_BIN or install uv on PATH" >&2
+    exit 2
+  fi
+fi
+
+exec "${uv_bin}" run python tests/e2e/server.py

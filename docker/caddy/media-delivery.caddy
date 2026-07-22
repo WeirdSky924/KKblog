@@ -1,0 +1,21 @@
+(media_delivery) {
+	@media_delivery path /_kaj/media/*
+	handle @media_delivery {
+		route {
+			request_header -X-Kaj-Storage-Key
+			forward_auth {$KAJ_CADDY_UPSTREAM:web:8000} {
+				uri /internal/media/authorize
+				copy_headers X-Kaj-Storage-Key
+			}
+
+			@authorized header X-Kaj-Storage-Key *
+			handle @authorized {
+				root * /srv/media
+				rewrite * /{http.request.header.X-Kaj-Storage-Key}
+				file_server
+			}
+
+			respond 403
+		}
+	}
+}

@@ -1,0 +1,26 @@
+<section
+  class="error-inline"
+  role="alert"
+  tabindex="-1"
+  data-error-focus
+  data-error-status="{{ status }}"
+>
+  <h2>{{ error_title }}</h2>
+  <p>{{ safe_message }}</p>
+  <p class="status-trace">
+    <span>错误编号</span>
+    <code data-trace-code>{{ trace_code }}</code>
+  </p>
+  <div class="status-actions">
+    <button class="button button--primary" type="button" data-error-back>
+      <i data-lucide="arrow-left"></i>
+      <span>返回上一页</span>
+    </button>
+    {% if retryable %}
+      <button class="button button--secondary" type="button" data-error-retry>
+        <i data-lucide="rotate-cw"></i>
+        <span>重新加载</span>
+      </button>
+    {% endif %}
+  </div>
+</section>
