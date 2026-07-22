@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}操作审计 · Kaj 的小房间{% endblock %}
+
+{% block content %}
+  <section class="space-y-6" aria-labelledby="audit-title">
+    <header>
+      <p class="text-sm text-[var(--text-secondary)]">管理 · 安全记录</p>
+      <h1 id="audit-title" class="text-3xl font-semibold">操作审计</h1>
+      <p>只记录管理员写操作；列表中的网络地址已掩码。</p>
+    </header>
+    <form method="get" class="grid gap-3 md:grid-cols-3" aria-label="审计筛选">
+      <label>关键字<input name="q" value="{{ request.GET.q }}"></label>
+      <label>动作<input name="action" value="{{ request.GET.action }}"></label>
+      <label>目标类型<input name="target_type" value="{{ request.GET.target_type }}"></label>
+      <label>目标 ID<input name="target_id" value="{{ request.GET.target_id }}"></label>
+      <label>开始日期<input type="date" name="start" value="{{ request.GET.start }}"></label>
+      <label>结束日期<input type="date" name="end" value="{{ request.GET.end }}"></label>
+      <button class="button button--primary" type="submit">筛选</button>
+    </form>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    {% if rows %}
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead><tr><th>时间</th><th>动作</th><th>目标</th><th>网络</th><th></th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>{{ row.created_at }}</td><td>{{ row.action }}</td>
+                <td>{{ row.target_type }} · {{ row.target_id }}</td><td>{{ row.client_ip }}</td>
+                <td><a href="?detail={{ row.id }}">查看详情</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>当前没有符合条件的审计记录。</p>
+    {% endif %}
+    {% if detail %}
+      <aside aria-labelledby="audit-detail-title" class="space-y-3">
+        <h2 id="audit-detail-title">审计详情</h2>
+        <p>完整网络地址：{{ detail.client_ip }}</p>
+        <p>Trace：{{ detail.trace_code }}</p>
+        <h3>变更前</h3><pre>{{ detail.before_json }}</pre>
+        <h3>变更后</h3><pre>{{ detail.after_json }}</pre>
+      </aside>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -81,10 +81,62 @@
   color: var(--text-primary);
 }
 
+.confirm-dialog {
+  width: min(calc(100% - 2rem), 32rem);
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+}
+
+.confirm-dialog::backdrop {
+  background: rgb(0 0 0 / 58%);
+}
+
+.confirm-dialog__content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.confirm-dialog__content h2,
+.confirm-dialog__content p {
+  margin: 0;
+}
+
+.confirm-dialog__content p {
+  color: var(--text-secondary);
+}
+
+.confirm-dialog__content .errorlist {
+  margin: 0;
+  padding: 0;
+  color: var(--danger);
+  list-style: none;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-block-start: 0.5rem;
+}
+
 @media (max-width: 30rem) {
   .global-feedback {
     inset-block-start: 0.5rem;
     inset-inline: 0.5rem;
     width: auto;
+  }
+
+  .confirm-dialog__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .confirm-dialog__actions .button {
+    width: 100%;
   }
 }

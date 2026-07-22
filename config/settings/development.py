@@ -6,6 +6,7 @@ from config.environment import (
     load_development_database,
     load_development_mailpit,
     load_development_redis,
+    load_trusted_proxy_cidrs,
 )
 
 from .base import *
@@ -14,6 +15,7 @@ SECRET_KEY = secrets.token_urlsafe(64)
 DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 SITE_BASE_URL = "http://localhost"
+TRUSTED_PROXY_CIDRS = load_trusted_proxy_cidrs(os.environ)
 
 DATABASES = {
     "default": load_development_database(os.environ)

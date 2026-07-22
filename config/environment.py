@@ -28,6 +28,7 @@ class ProductionEnvironment:
     redis_url: str = field(repr=False)
     media_root: Path
     initial_admin_password: str = field(repr=False)
+    trusted_proxy_cidrs: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,6 +212,32 @@ def load_development_mailpit(
     return DevelopmentMailpitEndpoint(host=host, port=port)
 
 
+def load_trusted_proxy_cidrs(
+    values: Mapping[str, str], *, required: bool = False
+) -> tuple[str, ...]:
+    name = "KAJ_TRUSTED_PROXY_CIDRS"
+    raw = values.get(name, "").strip()
+    if not raw:
+        if required:
+            raise _missing(name)
+        return ()
+    items = [item.strip() for item in raw.split(",")]
+    if not 1 <= len(items) <= 16 or any(not item for item in items):
+        raise _invalid(name)
+    result: list[str] = []
+    for item in items:
+        try:
+            network = ipaddress.ip_network(item, strict=False)
+        except ValueError:
+            raise _invalid(name) from None
+        if network.prefixlen == 0:
+            raise _invalid(name)
+        normalized = str(network)
+        if normalized not in result:
+            result.append(normalized)
+    return tuple(result)
+
+
 def load_isolated_test_database(values: Mapping[str, str]) -> dict[str, object] | None:
     value = values.get("KAJ_TEST_DATABASE_URL", "").strip()
     if not value:
@@ -370,6 +397,7 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
     initial_password = _initial_password(
         _required(values, "KAJ_INITIAL_ADMIN_PASSWORD")
     )
+    trusted_proxy_cidrs = load_trusted_proxy_cidrs(values, required=True)
     return ProductionEnvironment(
         secret_key=secret_key,
         public_url=public_url,
@@ -381,4 +409,5 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
         redis_url=redis_url,
         media_root=media_root,
         initial_admin_password=initial_password,
+        trusted_proxy_cidrs=trusted_proxy_cidrs,
     )

@@ -11,6 +11,7 @@ class ErrorCode(StrEnum):
     CONFLICT = "core.conflict.v1"
     RATE_LIMITED = "core.rate_limited.v1"
     SERVICE_UNAVAILABLE = "core.service_unavailable.v1"
+    NETWORK_RESTRICTED = "accounts.network_restricted.v1"
     IMAGE_CREATION_BLOCKED = "operations.image_creation_blocked.v1"
     CONTENT_CREATION_BLOCKED = "operations.content_creation_blocked.v1"
     INTERNAL_ERROR = "core.internal_error.v1"
@@ -43,6 +44,9 @@ _SPECS = MappingProxyType(
         ),
         ErrorCode.SERVICE_UNAVAILABLE: ErrorSpec(
             ErrorCode.SERVICE_UNAVAILABLE, 503, "服务暂时不可用，请稍后重试。"
+        ),
+        ErrorCode.NETWORK_RESTRICTED: ErrorSpec(
+            ErrorCode.NETWORK_RESTRICTED, 403, "当前网络暂时受限"
         ),
         ErrorCode.IMAGE_CREATION_BLOCKED: ErrorSpec(
             ErrorCode.IMAGE_CREATION_BLOCKED, 503, "暂时不支持上传图片。"

@@ -57,6 +57,16 @@ function restoreErrorOriginFocus() {
   }
 }
 
+function restoreSubmitState() {
+  document.querySelectorAll("form[data-submit-once]").forEach((form) => {
+    delete form.dataset.submitting;
+    form.removeAttribute("aria-busy");
+    form
+      .querySelectorAll("button[type='submit'], input[type='submit']")
+      .forEach((control) => control.removeAttribute("aria-disabled"));
+  });
+}
+
 function initializeIcons(root = document) {
   createIcons({
     root,
@@ -67,6 +77,53 @@ function initializeIcons(root = document) {
       width: "24",
       height: "24",
     },
+  });
+}
+
+function initializeConfirmDialogs(root = document) {
+  root.querySelectorAll?.("[data-confirm-dialog]").forEach((dialog) => {
+    if (!(dialog instanceof HTMLDialogElement)) {
+      return;
+    }
+    if (dialog.dataset.bound !== "true") {
+      dialog.dataset.bound = "true";
+      dialog.querySelector("[data-dialog-cancel]")?.addEventListener("click", () => {
+        dialog.close("cancel");
+      });
+      dialog.addEventListener("close", () => {
+        const trigger = dialog.id
+          ? document.querySelector(
+              `[data-dialog-trigger][aria-controls="${dialog.id}"]`,
+            )
+          : document.querySelector("[data-dialog-trigger]");
+        if (dialog.returnValue === "cancel") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("confirm");
+          url.hash =
+            trigger instanceof HTMLElement
+              ? trigger.dataset.dialogReturnHash || ""
+              : "";
+          window.history.replaceState(null, "", url);
+        }
+        if (trigger instanceof HTMLElement) {
+          requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
+        }
+      });
+    }
+    if (dialog.hasAttribute("data-auto-modal")) {
+      if (dialog.open) {
+        dialog.removeAttribute("open");
+      }
+      dialog.showModal();
+      const cancel = dialog.querySelector("[data-dialog-cancel]");
+      if (cancel instanceof HTMLElement) {
+        window.requestAnimationFrame(() => {
+          if (dialog.open) {
+            cancel.focus({ preventScroll: true });
+          }
+        });
+      }
+    }
   });
 }
 
@@ -153,16 +210,39 @@ document.addEventListener("kaj:theme-request", (event) => {
   applyTheme(event.detail?.theme);
 });
 
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.hasAttribute("data-submit-once")) {
+    return;
+  }
+  if (form.dataset.submitting === "true") {
+    event.preventDefault();
+    return;
+  }
+  form.dataset.submitting = "true";
+  form.setAttribute("aria-busy", "true");
+  requestAnimationFrame(() => {
+    form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((control) => {
+      control.setAttribute("aria-disabled", "true");
+    });
+  });
+});
+
 document.addEventListener("htmx:afterSwap", (event) => {
   const root = event.detail?.target ?? document;
   initializeIcons(root);
+  initializeConfirmDialogs(root);
   focusInsertedError(root);
 });
 
-window.addEventListener("pageshow", restoreErrorOriginFocus);
+window.addEventListener("pageshow", () => {
+  restoreSubmitState();
+  restoreErrorOriginFocus();
+});
 
 window.Alpine = Alpine;
 Alpine.start();
 initializeIcons();
+initializeConfirmDialogs();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

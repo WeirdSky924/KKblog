@@ -4,6 +4,7 @@
 @import "./foundation.css";
 @import "./feedback.css";
 @import "./status-pages.css";
+@import "./accounts.css";
 
 @source "../../templates";
 @source "../../apps";

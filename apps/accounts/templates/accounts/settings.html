@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}账号设置 · Kaj 的小房间{% endblock %}
+
+{% block content %}
+  <section class="account-page account-page--wide" aria-labelledby="settings-title">
+    <header class="account-header">
+      <p class="account-kicker">个人 · 安全</p>
+      <h1 id="settings-title">账号设置</h1>
+      <p>当前邮箱：{{ account.email }}</p>
+      {% if credentials_saved %}<p class="account-status" role="status">账号凭证已更新。</p>{% endif %}
+    </header>
+    <div class="account-panels">
+      <section class="account-panel" aria-labelledby="password-title">
+        <h2 id="password-title">修改密码</h2>
+        <p class="account-panel__description">需要当前密码；成功后保留本设备并退出其他设备。</p>
+        <form method="post" data-submit-once class="account-form">
+          {% csrf_token %}<input type="hidden" name="action" value="change_password">
+          {{ password_form.as_div }}
+          <button class="button button--primary" type="submit">修改密码</button>
+        </form>
+      </section>
+      <section class="account-panel" aria-labelledby="email-title">
+        <h2 id="email-title">修改邮箱</h2>
+        <p class="account-panel__description">只需验证新邮箱，不需要旧邮箱或当前密码。</p>
+        <form method="post" data-submit-once class="account-form">
+          {% csrf_token %}<input type="hidden" name="action" value="send_email_code">
+          {{ email_code_form.as_div }}
+          <button class="button button--secondary" type="submit">向新邮箱发送验证码</button>
+        </form>
+        {% if code_sent %}
+          <p class="account-status" role="status">验证码已发送到新邮箱。</p>
+          <form method="post" data-submit-once class="account-form">
+            {% csrf_token %}<input type="hidden" name="action" value="change_email">
+            {{ email_form.as_div }}
+            <button class="button button--primary" type="submit">确认新邮箱</button>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+  </section>
+{% endblock %}

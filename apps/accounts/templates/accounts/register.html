@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}注册 · Kaj 的小房间{% endblock %}
+
+{% block content %}
+  <section class="mx-auto max-w-2xl space-y-8" aria-labelledby="register-title">
+    <header>
+      <p class="text-sm text-[var(--text-secondary)]">欢迎来到 Kaj 的小房间</p>
+      <h1 id="register-title" class="text-3xl font-semibold">创建账号</h1>
+      {% if direct_enabled %}
+        <p>可以直接注册，也可以使用邀请码。</p>
+      {% else %}
+        <p>当前仅开放邀请码注册；有效邀请码可继续完成注册。</p>
+      {% endif %}
+    </header>
+    <form method="post" data-submit-once class="space-y-4" aria-labelledby="send-code-title">
+      {% csrf_token %}<input type="hidden" name="action" value="send_code">
+      <h2 id="send-code-title" class="text-xl font-semibold">1. 验证邮箱</h2>
+      {{ code_form.as_div }}
+      <button class="button button--secondary" type="submit">发送验证码</button>
+    </form>
+    {% if code_sent %}
+      <p role="status" tabindex="-1">验证码已发送，请在 10 分钟内完成注册。</p>
+    {% endif %}
+    <form method="post" data-submit-once class="space-y-4" aria-labelledby="finish-title">
+      {% csrf_token %}<input type="hidden" name="action" value="register">
+      <h2 id="finish-title" class="text-xl font-semibold">2. 设置密码并完成</h2>
+      {{ registration_form.as_div }}
+      <button class="button button--primary" type="submit">完成注册</button>
+    </form>
+  </section>
+{% endblock %}

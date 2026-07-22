@@ -3,7 +3,7 @@
 退出门禁：账户、会话、安全限制、角色生命周期、通知基础和管理员审计基础由唯一服务闭环。
 
 ### ACC-001 建立账户、角色、会话与唯一管理员数据骨架
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：建立不可复用 UUID 账户、大小写不敏感邮箱、昵称原展示值及 Unicode `casefold` 规范值唯一约束、角色、会话摘要及恰好一个管理员且兼任作者的初始化门禁；首次登录必须改密。development/test 管理员 fixture 为 `admin@kaj.test`；production 必须使用另行提供的真实邮箱并关闭失败。
 - 来源：访谈 Q016-Q035、Q190、Q204-Q208、Q285-Q286、Q295；`data/02-identity-content-fields.md` §Account/Role/LoginSession；`flows/01-account-access-state-machine.md`。
 - 依赖：前置 `FND-003`、`FND-006`、`DEC-002`、`DEC-003`；后续 `OBS-004`、`OBS-001`、`ACC-002`、`ACC-003`、`ACC-005`、`ACC-011`、`MED-001`、`ACC-007`、`CNT-001`、`CMT-001`、`OBS-003`、`EXC-007`、`ADM-001`、`QA-001`、`QA-006`。
@@ -13,9 +13,10 @@
 - 测试/验收：先 RED 邮箱/昵称规范值/角色部分唯一、casefold 并发冲突、管理员不可撤销作者/自删、一次性初始密码、production 缺真实管理员邮箱和测试邮箱泄入生产；`uv run pytest apps/accounts/tests -q` + migration 读回。
 - 风险/停止：migration 约束无法并发兜底、bootstrap secret 可复用或日志泄密即停止；只在隔离库回滚。
 - 授权：建模/隔离测试 `否`；真实初始化管理员和迁移生产 `是`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc001.py -q` 退出 2（账户模型缺失）；GREEN 同命令退出 0，`7 passed`；相关契约回归退出 0，`21 passed`；Ruff 与 migration drift 退出 0。隔离 PostgreSQL 读回 `account*` 4 表和 1 条 migration，唯一管理员/作者各 1，`must_change_password` 为真，初始化密钥原文匹配 0 行，重复消费被拒绝。未执行生产迁移与真实管理员初始化；回滚为删除本次一次性测试容器。
 
 ### OBS-004 建立管理员写操作事务审计与安全查询
-- 元数据：状态 `待处理`；阶段 P3；owner `operations`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `operations`；优先级 P0。
 - 目标/行为：所有管理员状态/权限写与业务事务同成败，永久记录actor/目标/action/trace/完整IP/safe before-after；支持关键字/类型/目标/时间查询和详情。
 - 来源：访谈 Q192-Q198、Q294；`contracts/04-events-errors.md` §审计schema；`data/03-interaction-operations-fields.md` §AuditEntry。
 - 依赖：前置 `FND-004`、`ACC-001`；后续 `ACC-002`、`ACC-009`、`ACC-010`、`ACC-011`、`CNT-010`、`CNT-011`、`CNT-008`、`CMT-006`、`CMT-007`、`CMT-009`、`CMT-010`、`CMT-011`、`OBS-005`、`OBS-003`、`EXC-004`、`ADM-002`、`ADM-003`、`ADM-004`、`ADM-005`、`ADM-006`、`ADM-007`、`ADM-008`、`QA-001`、`QA-006`。
@@ -25,9 +26,10 @@
 - 测试/验收：RED 审计写失败回滚业务、秘密字段拒绝、列表IP掩码/详情完整、正文不复制；跨域事务读回。
 - 风险/停止：审计可异步丢失、自动序列化ORM或秘密/原文件进入记录即停止所有管理员写交付。
 - 授权：`否`。
+- 证据：RED `uv run pytest apps/operations/tests/test_obs004.py -q` 退出 2（`AuditEntry` 缺失）；GREEN 退出 0，`4 passed`，页面查询扩展后 `5 passed`；owner/import 回归退出 0，`7 passed`；Ruff、migration drift 均退出 0。隔离 PostgreSQL 读回 1 条合法审计、完整 IP 与 `status/roles` 白名单字段；故意提交秘密字段时业务状态保持 `DISABLED` 且审计仍仅 1 条，证明同事务回滚。列表掩码/详情完整 IP 已由查询与页面流验证；生产无写入。
 
 ### OBS-001 建立站内通知、回执与去重数据基础
-- 元数据：状态 `待处理`；阶段 P3；owner `notifications`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `notifications`；优先级 P0。
 - 目标/行为：建立 Notification、Receipt、接收者状态和 dedupe 约束，提供仅接受已注册模板键和稳定对象 ID 的投递端口；业务通知永久保留到管理员隐藏或删除。
 - 来源：访谈 Q061-Q068、Q289、Q305-Q309；`modules/09-notifications-observability.md` §通知模型/事件；`contracts/04-events-errors.md` §通知模板安全。
 - 依赖：前置 `FND-005`、`FND-006`、`ACC-001`；后续 `CMT-003`、`OBS-008`、`OBS-002`、`OBS-003`、`EXC-005`、`QA-001`、`QA-006`。
@@ -37,9 +39,10 @@
 - 测试/验收：RED receipt 唯一、他人读取、重复 dedupe key、未知模板键和危险 payload；migration 与真实 DB 读回。
 - 风险/停止：通知表允许任意 payload、接收者越权或业务模块绕过投递端口直接写通知即停止。
 - 授权：`否`。
+- 证据：RED `uv run pytest apps/notifications/tests/test_obs001.py -q` 退出 2（通知模型缺失）；GREEN 退出 0，`8 passed`；owner/import 回归合计 `11 passed`；Ruff、migration drift 退出 0。隔离 PostgreSQL 读回 Notification/Receipt 两表、dedupe 部分唯一、回执唯一和未读索引；重复 dedupe 投递读回 1 通知/1 回执，非收件人读取被拒绝，payload 仅含注册字段 `state`。本任务未注册未来领域模板、未消费业务事件、未发邮件。
 
 ### ACC-002 实现邀请码生成、状态、撤销与并发兑换
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：管理员可一次生成 1..1000 个 16 位 Crockford Base32 单次码，选择 1/3/7/30 天，原码仅展示一次；可筛选、单/批量撤销并查看使用者。
 - 来源：访谈 Q003-Q005、Q126-Q129、Q249-Q251；`modules/02-accounts-access.md` §数据与不变量；`data/04-indexes-constraints.md` §兑换锁。
 - 依赖：前置 `ACC-001`、`OBS-004`；后续 `ACC-003`、`ACC-004`、`ADM-003`、`QA-003`、`QA-006`。
@@ -49,9 +52,10 @@
 - 测试/验收：RED 同码双并发仅一成功、过期边界、批量 1001 拒绝、原码不可回读；pytest 数据读回与管理 UI 流。
 - 风险/停止：原码进入日志/历史、行锁缺失或状态重复保存漂移即停止。
 - 授权：`否`；不使用真实用户邮箱。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc002.py -q` 退出 2（`InviteCode` 缺失）；GREEN 退出 0，`4 passed`；owner/import 回归合计 `7 passed`；Ruff、migration drift、前端 build 均退出 0。隔离 PostgreSQL 并发兑换仅一胜，实库读回两码状态为 `REVOKED/USED`、摘要长度 64、尾号长度 4、无 raw 字段；审计读回生成批次与逐码撤销。管理 UI 已覆盖 1..1000、有效期、状态筛选、一次显示与批量撤销；真实管理员浏览器验收受顺序依赖 ACC-005 会话认证阻塞，登记在阶段末补跑，不以伪身份替代。
 
 ### ACC-003 实现用途隔离的验证码与开发邮件投递
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：注册、验证码登录、重置、新邮箱分别发送 6 位码；10 分钟有效、1 分钟重发、新码覆盖旧码、第五次错误失效，开发邮件可在 Mailpit 读回。
 - 来源：访谈 Q016-Q023、Q155-Q157、Q228-Q230；`flows/01-account-access-state-machine.md` §验证码；`data/05-storage-lifecycle.md` §Redis 键。
 - 依赖：前置 `RUN-002`、`ACC-001`、`ACC-002`；后续 `ACC-004`、`ACC-005`、`ACC-006`、`ACC-009`、`QA-003`、`QA-006`。
@@ -61,9 +65,10 @@
 - 测试/验收：RED 10 分钟、重发覆盖、5 次、用途串用、Redis flush、Mailpit 捕获；`pytest` + 隔离邮件读回。
 - 风险/停止：邮件中泄露内部状态、枚举已注册邮箱、真实外发或验证码写日志时停止。
 - 授权：Mailpit `否`；Resend/真实邮箱 `是`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc003.py -q` 退出 2（SecurityEvent 缺失）；GREEN 退出 0，`4 passed`；owner/import 回归合计 `7 passed`；Ruff、migration drift 退出 0。隔离 Redis 读回 challenge 仅 `digest/attempts`、TTL `1..600` 秒、原码匹配为假，成功后 key 消失；用途串用、重发覆盖、第五错和 Redis 丢失均拒绝。Mailpit 实际捕获 1 封 `@kaj.test` 邮件；PostgreSQL 只存 64 字符 subject 摘要与用途。未连接 Resend 或真实邮箱。
 
 ### ACC-004 实现直接/邀请码注册与成功自动登录
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：直接注册默认关闭；关闭时仍可邀请码注册，开放时两种路径并存；先验邀请码再发码，最终成功才消费并创建 12h/30d 会话后回首页。
 - 来源：访谈 Q003、Q016、Q205、Q249-Q252、Q317；`flows/01-account-access-state-machine.md` §注册时序；`contracts/03-frontend-contract-map.md` §身份页面。
 - 依赖：前置 `ACC-002`、`ACC-003`、`FND-004`；后续 `ACC-005`、`QA-003`、`QA-006`。
@@ -73,9 +78,10 @@
 - 测试/验收：RED 开关组合、邀请绑定邮箱、DB 唯一冲突仍保留邀请码、重复提交；Playwright 访客注册→自动登录→首页。
 - 风险/停止：账户和邀请码非同事务、成功 UI 先于 commit 或可绕过注册关闭即停止。
 - 授权：`否`；真实生产注册开关上线随部署授权。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc004.py -q` 退出 2（注册 policy/service 缺失）；GREEN 与验证码回归退出 0，`8 passed`；owner/import 回归合计 `11 passed`；Ruff、Django check、前端 build 退出 0。隔离 PostgreSQL 读回账户 1、邀请码 `USED` 且兑换 UUID 相同、12h 会话 1、安全事件 1，原始 token 查询为假；关闭/开放、邀请码邮箱绑定、唯一冲突不消费与重复提交保护均覆盖。页面真实“已登录首页”需 ACC-005 request middleware 才能读 Cookie，登记为下一任务后补跑；未修改生产注册开关。
 
 ### ACC-005 实现密码/邮箱码双登录与会话认证
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：同页 tabs 支持密码和邮箱码；两者都有 30 天选项，默认 12 小时；Cookie 只含随机 token，数据库只存摘要并更新最后活动。
 - 来源：访谈 Q017、Q026-Q027、Q134、Q190、Q226-Q227、Q252；`data/02-identity-content-fields.md` §LoginSession；`contracts/02-authorization-matrix.md`。
 - 依赖：前置 `ACC-001`、`ACC-003`、`ACC-004`；后续 `ACC-006`、`ACC-008`、`ACC-009`、`ACC-010`、`ACC-011`、`CNT-005`、`DSC-006`、`CMT-003`、`CMT-008`、`QA-003`、`QA-006`。
@@ -85,9 +91,10 @@
 - 测试/验收：RED 12h/30d 到期、摘要不可反推、Cookie Secure/HttpOnly/SameSite、禁用/过期；Playwright 双 tab/回跳。
 - 风险/停止：原 token 落库/日志、会话固定攻击、不同入口授权顺序漂移即停止。
 - 授权：`否`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc005.py -q` 退出 2（session middleware 缺失）；GREEN 退出 0，`5 passed`；账户与 owner/import 回归 `27 passed`；Ruff、Django check、migration drift、前端 build 退出 0。真实浏览器完成密码登录→安全回跳→首页，读回“你已登录”；响应级 Cookie 断言为 Secure/HttpOnly/SameSite=Lax，12h/30d 与禁用/过期均由 PostgreSQL 测试验证。一次隔离浏览器验收误调用会回显 Cookie 值的命令；该测试 token 已立即撤销、浏览器 Cookie 删除，数据库读回活动测试会话 0，测试库将在阶段末销毁；未涉及生产凭据。
 
 ### ACC-006 实现密码重置、登录态改密与新邮箱验证
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：忘记密码用邮箱码并撤销全部会话；登录态改密需当前密码、保留并旋转当前会话且撤销其他；改邮箱只需新邮箱码并旋转当前凭证。
 - 来源：访谈 Q024-Q032；`flows/01-account-access-state-machine.md` §会话/邮箱与密码修改；`contracts/01-application-services.md` accounts 表。
 - 依赖：前置 `ACC-003`、`ACC-005`；后续 `ACC-008`、`QA-003`、`QA-006`。
@@ -97,9 +104,10 @@
 - 测试/验收：RED 三种流程的会话矩阵、邮箱并发唯一、当前 token 变化；Playwright 多浏览器会话读回。
 - 风险/停止：旧 token 仍有效、事务部分撤销或错误暴露邮箱存在性即停止。
 - 授权：`否`；真实邮件 `是`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc006.py -q` 退出 2（凭证 service 缺失）；最终 GREEN 同命令退出 0，`6 passed`，覆盖三种会话矩阵、当前凭证旋转、并发邮箱唯一只允许一胜及重置完成反馈；账户与架构回归退出 0，`33 passed`；Ruff、Django check、migration drift、前端 build 均退出 0。隔离 PostgreSQL 读回改密后 `1 active/1 revoked`、改邮箱后新规范邮箱与安全事件、重置后 `0 active/2 revoked` 且新密码有效；Redis 成功消费后 challenge 为 0；Mailpit 实际捕获新邮箱与重置邮件，验证码未输出。两个独立浏览器登录同一账户后，改密使另一浏览器立即回登录页而当前浏览器显示成功；改邮箱旋转当前凭证；重置后此前保留浏览器也失效。页面覆盖字段级 422、未登录/撤销会话、Redis 暂停时安全 500 与恢复，390 dark、768 eye-care、1440 light 均无横向溢出，跳转链接可由键盘聚焦并进入 main；控制台错误 0。未连接真实收件人、Resend、生产数据库或生产服务。
 
 ### ACC-008 实现设备会话列表、定向退出与退出所有设备
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P1。
 - 目标/行为：本人查看设备/浏览器、登录时间、最后活动、掩码 IP；可退出指定含当前会话；“退出所有设备”二次确认并包含当前会话。
 - 来源：访谈 Q244-Q246；`flows/01-account-access-state-machine.md` §会话状态；`contracts/03-frontend-contract-map.md` §sessions。
 - 依赖：前置 `ACC-005`、`ACC-006`；后续 `QA-003`、`QA-006`。
@@ -109,9 +117,10 @@
 - 测试/验收：RED ownership、重复撤销幂等、当前会话响应后失效；Playwright 两浏览器+确认焦点/取消/成功。
 - 风险/停止：确认前退出、目标 ID 越权或当前 Cookie 在全部退出后仍有效即停止。
 - 授权：`否`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc008.py -q` 在 session query owner 缺失时收集退出 2；实现仅本人活动会话查询、UA 摘要、core IP 掩码、定向/全量事务撤销、安全事件、Cookie 删除、服务端确认字段和原生 dialog。隔离 PostgreSQL 最终聚焦 `13 passed`，账户与架构回归 `46 passed`，Ruff、Django check、migration drift 与前端 build 均退出 0；角色覆盖普通用户/作者/管理员，禁用及未登录均拒绝，非法会话 ID 返回可见 422，并发撤销后的真实空态提供重新登录动作。两个独立浏览器实际建立 12 小时与 30 天会话，页面只显示本人两行、`Chrome · Linux` 与 `127.0.0.x`；定向退出后另一浏览器立即失效，重复撤销幂等；全退出在取消、Escape、初始焦点和焦点回触发点通过后才执行，最终当前 Cookie 消失并回登录页。PostgreSQL 读回目标 `2 revoked/0 active`、`SESSION_REVOKED=1`、`ALL_SESSIONS_REVOKED=1`，陌生账户会话仍 active；pending 使用 `aria-busy`/`aria-disabled` 阻止重复提交且保留焦点，恢复后清除。短暂停 PostgreSQL 时页面显示安全 500、trace 与重试入口，恢复后同一 Cookie 和会话列表可用；390 dark、768 eye-care、1440 light 横向溢出均为 0、可见按钮 44px、键盘跳转焦点环 3px、控制台错误 0。未输出或持久化原始 Cookie/token，未连接生产数据或真实服务。
 
 ### ACC-009 实现登录/验证码临时限制与安全事件
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：密码连续5错限制1小时并阻止密码/码登录与重置；验证码每邮箱/IP每日20次、上海00:00重置；管理员可清账户/IP限制。
 - 来源：访谈 Q021-Q022、Q226-Q229、Q294；`modules/02-accounts-access.md` §关键流程；`data/05-storage-lifecycle.md` §Redis 键。
 - 依赖：前置 `ACC-003`、`ACC-005`、`OBS-004`；后续 `ACC-010`、`ADM-003`、`QA-003`、`QA-006`。
@@ -121,9 +130,10 @@
 - 测试/验收：冻结 Clock 测 5次/1h/00:00/20次、Redis flush、管理员清除；直接请求不能绕过。
 - 风险/停止：时区日界错误、明文邮箱/IP进入 Redis key 或清除范围过宽即停止。
 - 授权：`否`。
+- 证据：RED `uv run pytest apps/accounts/tests/test_acc009.py -q` 在安全事件查询缺失时收集退出 2；实现邮箱/IP HMAC 键、上海自然日原子计数与回滚、连续五错一小时限制、成功清零、管理员精确清除及审计失败 NX 恢复，并接入密码/码登录、注册发码与重置入口。最终聚焦退出 0，`7 passed`；账户与架构回归退出 0，`53 passed`；Ruff、Django check、migration drift、前端 build 与 `git diff --check` 均退出 0。冻结 Clock 覆盖第五次、精确一小时、上海 00:00、邮箱/IP 各 20 次、发送失败回滚、Redis flush 与管理员清除；隔离浏览器实际验证前四错通用文案、第五错限制密码/码登录/重置，20 封均为 `@kaj.test` 的 Mailpit 邮件且第 21 次受限，Redis 清空后正确密码和验证码登录均恢复。Redis 暂停时登录返回安全 500、trace 与重试入口，解除暂停后恢复；390 dark、768 eye-care、1440 light 无横向溢出且移动按钮 44px。PostgreSQL 读回 `LOGIN_FAILED`、`LOGIN_RESTRICTION_APPLIED`、`LOGIN_RESTRICTED`、`VERIFICATION_SEND_RESTRICTED`、`VERIFICATION_CODE_CHECKED` 五类事件均含完整 `inet` IP，安全摘要禁用字段、邮箱/六码和重复 IP 均为 0；Redis DB14 flush 后 0 键，明文邮箱/IP 键为 0。管理员跨 owner 探针读回精确清除 2 键、Audit/SecurityEvent 各增 1 且安全字段仅 `restriction_kind`。未连接生产/共享 Redis、真实邮件或真实 IP；一次并行 pytest 因争用同名临时库退出 1，改为串行后全部通过。
 
 ### ACC-010 实现永久 IP 封禁与请求级网络策略
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：管理员永久封禁/解除 IP、可写备注；被封 IP 仅能作为访客浏览大众内容，即使带有效会话也拒绝其他动作并显示通用文案。
 - 来源：访谈 Q292-Q294；`flows/01-account-access-state-machine.md` §服务端判定顺序；`contracts/02-authorization-matrix.md` §策略组合。
 - 依赖：前置 `ACC-005`、`ACC-009`、`RUN-003`、`OBS-004`；后续 `CMT-002`、`ADM-003`、`QA-002`、`QA-003`、`QA-006`。
@@ -133,9 +143,11 @@
 - 测试/验收：RED 代理头信任、IPv4/IPv6规范化、已登录降为访客、公开阅读仍可；Playwright/直接 POST 双证据。
 - 风险/停止：客户端可伪造 IP、Caddy 信任链不清或封禁误伤服务器管理连接时停止部署。
 - 授权：代码 `否`；对真实 IP 执行封禁 `是`。
+- 证据：RED `.venv/bin/pytest apps/accounts/tests/test_acc010.py -q` 在 `IpBlock` owner 缺失时收集退出 2；实现活动部分唯一约束与永久解除历史、管理员封/解 service/query、事务内 AuditEntry 与 SecurityEvent、当前管理连接保护，以及认证前网络策略。Caddy 丢弃来路专用头并以 socket peer 覆盖，Django 仅接受显式可信代理 CIDR，生产缺该配置拒绝启动；客户端普通转发头不参与授权。最终聚焦含跨 owner 审计接线退出 0，`7 passed`；accounts、administration 与架构回归退出 0，`60 passed`；Ruff、Django check、migration drift、前端 build、Caddy development/production adapt 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回部分唯一索引、封禁后活动 1、解除后活动 0 与 `unblocked_at`，封/解 AuditEntry 各 1，`IP_BLOCK_APPLIED`/`IP_BLOCK_REMOVED` 各 1，安全字段不含目标 IP 或备注。浏览器验证非法 IP 422、确认弹窗 Escape/取消/焦点恢复、列表掩码而详情完整；被封来源即使持有效会话也只能以访客浏览公开 GET，设置页与直接登录 POST 均通用 403 且无备注泄漏，解除后原会话恢复。390 dark、768 eye-care、1440 light 均无横向溢出、操作目标至少 44px，键盘入口与弹窗焦点通过。隔离 PostgreSQL 不可用时返回无数据库细节的通用 500；测试容器 tmpfs 经 stop/start 会清空，重跑 migrations 与隔离管理员初始化后页面恢复 200，此环境事实不代表生产持久化配置。未封禁真实 IP，未连接或修改生产/共享数据。
+- 补充回归：阶段全量首次运行发现网络策略误使具名健康端点依赖数据库；修复仅豁免 `operations:live`/`operations:ready`，业务 namespace 不放宽。运维健康与 ACC-010 联合回归退出 0，`10 passed`；最终全量纳入 `169 passed`。
 
 ### ACC-011 实现作者角色、账号禁用/启用/删除生命周期
-- 元数据：状态 `待处理`；阶段 P3；owner `accounts`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P3；owner `accounts`；优先级 P0。
 - 目标/行为：唯一管理员授予/撤销作者并通知；禁用立即撤销会话且不通知；启用恢复登录；管理员可删除非管理员账户并按规则匿名化/清理。
 - 来源：访谈 Q033-Q035、Q131-Q134、Q284-Q301；`flows/01-account-access-state-machine.md` §账户/角色；`contracts/04-events-errors.md` §事件注册表。
 - 依赖：前置 `ACC-001`、`ACC-005`、`FND-005`、`OBS-004`；后续 `CNT-009`、`CMT-011`、`OBS-008`、`AUT-001`、`ADM-002`、`QA-002`、`QA-003`、`QA-006`。
@@ -145,5 +157,6 @@
 - 测试/验收：RED 唯一管理员保护、撤销作者保留文章归属、禁用会话、删除释放邮箱昵称/新 UUID；跨域事件重复幂等。
 - 风险/停止：跨域部分清理、历史评论绑定新身份或删除作者未处理文章即停止；删除只在隔离数据演练。
 - 授权：代码/隔离测试 `否`；生产账户禁用/删除 `是`。
+- 证据：初始 RED `.venv/bin/pytest apps/accounts/tests/test_acc011.py apps/notifications/tests/test_acc011_consumers.py -q` 因 deletion DTO/lifecycle service 缺失收集退出 2；补充 RED 复现角色通知晚于账户删除时 deferred FK 失败，以及消费者缺少可测试重试参数。实现行锁串行化的 `set_author_role`/`set_account_enabled`/`delete_account`，管理员与唯一管理员保护、禁用同事务撤销活动会话、启用仅恢复新登录、不复活旧会话，所有变更与 AuditEntry、`account.author_role_changed/disabled/enabled/deleted.v1` Outbox 同事务。删除记录只保留不可复用 UUID、处置 ID/决策和安全审计字段；每个账户删除均必须携带 content owner 验证的文章处置 DTO，避免撤销作者后仍有文章的账户绕过门禁，accounts 未导入或写 content/comments/media 私表。notifications 只消费版本化 envelope：角色变更投递站内通知，禁用/启用无模板；重复事件 `already_processed`，接收者已删除安全 no-op，账户删除幂等清理无回执通知，模拟投递失败后记录 pending/租约并在第二次尝试到达 processed。最终 ACC-011 聚焦/并发/跨 owner 退出 0，`14 passed`；accounts、notifications、administration、架构与 Outbox 回归退出 0，`97 passed`；全仓后端退出 0，`169 passed`。隔离 PostgreSQL 应用 `accounts.0005_account_deletion` 后真实演练授予作者、重复消费、双会话禁用、启用、撤销作者、以前作者处置删除及同邮箱/Unicode casefold 昵称复用：旧 UUID 删除、删除记录保留、新 UUID 不同、回执清除，五类 Audit/Outbox 顺序正确且无邮箱/昵称；孤儿通知消费前 1、首次 processed、重复 already_processed、消费后 0。该任务未新增页面，管理页面由后续 `ADM-002` owner 实现，因此页面状态矩阵无新增验收面；阶段既有 E2E 清理旧浏览器后退出 0，`5 passed, 3 skipped`，跳过项是未提供 user/author/admin 持久状态文件的既定契约。未禁用或删除生产/真实账户，未发送真实邮件。
 
 [返回总索引](../implementation-todolist.md)

@@ -4,7 +4,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
+    "apps.accounts",
+    "apps.administration",
     "apps.core",
+    "apps.discovery",
+    "apps.notifications",
     "apps.operations",
 ]
 
@@ -12,6 +16,8 @@ MIDDLEWARE = [
     "apps.core.observability.trace.TraceMiddleware",
     "apps.core.errors.handlers.ErrorResponseMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "apps.accounts.middleware.NetworkPolicyMiddleware",
+    "apps.accounts.middleware.AccountSessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -41,6 +47,11 @@ STATIC_ROOT = BASE_DIR / "var" / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_TIMEOUT = 10
+DIRECT_REGISTRATION_ENABLED = False
+ACCOUNT_SESSION_COOKIE_NAME = "kaj_session"
+TRUSTED_PROXY_CIDRS = ()
+NETWORK_PUBLIC_NAMESPACES = ("public", "article")
+NETWORK_POLICY_EXEMPT_VIEW_NAMES = ("operations:live", "operations:ready")
 
 OUTBOX_BATCH_SIZE = 100
 OUTBOX_LEASE_SECONDS = 60

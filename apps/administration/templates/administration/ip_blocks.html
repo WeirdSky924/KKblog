@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}IP 封禁 · Kaj 的小房间{% endblock %}
+
+{% block content %}
+  <section class="account-page account-page--wide" aria-labelledby="ip-block-title">
+    <header class="account-header">
+      <p class="account-kicker">管理 · 账号安全</p>
+      <h1 id="ip-block-title">IP 封禁</h1>
+      <p>永久限制指定网络地址的登录和写操作；列表隐藏末段，详情才显示完整地址。</p>
+      {% if saved == "blocked" %}<p class="account-status" role="status">IP 已封禁。</p>{% endif %}
+      {% if saved == "unblocked" %}<p class="account-status" role="status">IP 封禁已解除。</p>{% endif %}
+    </header>
+
+    <section class="account-panel" aria-labelledby="block-address-title">
+      <div>
+        <h2 id="block-address-title">新增封禁</h2>
+        <p>备注仅供管理员查看，不会展示给受限访问者。</p>
+      </div>
+      <form method="post" data-submit-once class="account-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="preview_block">
+        {{ block_form.as_div }}
+        <button
+          class="button button--primary"
+          type="submit"
+          data-dialog-trigger
+          aria-controls="block-ip-dialog"
+        >继续确认</button>
+      </form>
+    </section>
+
+    <section class="account-panel" aria-labelledby="block-list-title">
+      <div>
+        <h2 id="block-list-title">当前封禁</h2>
+        <p>可按完整 IP 或备注搜索；搜索结果仍只显示掩码地址。</p>
+      </div>
+      <form method="get" class="account-form account-form--inline" role="search">
+        <label for="ip-block-search">搜索</label>
+        <input id="ip-block-search" name="q" value="{{ keyword }}" maxlength="500">
+        <button class="button button--secondary" type="submit">搜索</button>
+      </form>
+      {% if rows %}
+        <div class="overflow-x-auto" tabindex="0" aria-label="IP 封禁列表">
+          <table class="w-full">
+            <thead>
+              <tr><th>网络地址</th><th>创建时间</th><th>备注</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td><code>{{ row.masked_address }}</code></td>
+                  <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                  <td>{{ row.note|default:"—" }}</td>
+                  <td>
+                    <span class="flex flex-wrap gap-3">
+                      <a href="?detail={{ row.id }}{% if keyword %}&amp;q={{ keyword|urlencode }}{% endif %}">查看详情</a>
+                      <a
+                        href="?confirm={{ row.id }}#block-list-title"
+                        data-dialog-trigger
+                        data-dialog-return-hash="block-list-title"
+                        aria-controls="unblock-ip-dialog"
+                      >解除封禁</a>
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="session-empty">
+          <h3>当前没有封禁记录</h3>
+          <p>{% if keyword %}没有找到匹配项，可以调整搜索条件。{% else %}新增封禁后会在这里显示掩码地址和创建时间。{% endif %}</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if detail %}
+      <aside class="account-panel" aria-labelledby="ip-block-detail-title">
+        <div>
+          <p class="account-kicker">仅管理员可见</p>
+          <h2 id="ip-block-detail-title">封禁详情</h2>
+        </div>
+        <dl class="session-meta">
+          <div><dt>完整 IP</dt><dd><code>{{ detail.address }}</code></dd></div>
+          <div><dt>创建时间</dt><dd>{{ detail.created_at|date:"Y-m-d H:i:s" }}</dd></div>
+          <div><dt>备注</dt><dd>{{ detail.note|default:"—" }}</dd></div>
+        </dl>
+        <a href="{% url 'admin:ip-blocks' %}">关闭详情</a>
+      </aside>
+    {% endif %}
+  </section>
+
+  {% include "components/feedback/confirm_dialog.html" with dialog_id="block-ip-dialog" dialog_open=confirm_block dialog_title="确认封禁这个 IP？" dialog_description="该地址之后只能以访客身份浏览大众内容，登录与其他操作都会被拒绝。" action_value="block" confirmation_form=block_confirmation confirm_label="确认封禁" %}
+  {% include "components/feedback/confirm_dialog.html" with dialog_id="unblock-ip-dialog" dialog_open=unblock_dialog_open dialog_title="确认解除 IP 封禁？" dialog_description="解除后，来自该地址的请求会重新按照账户、角色与业务规则裁决。" action_value="unblock" confirmation_form=unblock_confirmation confirm_label="确认解除" %}
+{% endblock %}

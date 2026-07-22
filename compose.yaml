@@ -6,6 +6,7 @@ x-app-environment: &app-environment
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   EMAIL_HOST: ${EMAIL_HOST:-mailpit}
   EMAIL_PORT: ${EMAIL_PORT:-1025}
+  KAJ_TRUSTED_PROXY_CIDRS: ${KAJ_TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
 
 x-app-service: &app-service
   image: ${KAJ_WEB_IMAGE:-kaj-blog-web:local}

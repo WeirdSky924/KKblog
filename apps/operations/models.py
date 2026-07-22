@@ -2,6 +2,35 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.ids import new_ulid
+
+
+class AuditEntry(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    trace_code = models.CharField(max_length=30, editable=False)
+    actor_id = models.UUIDField(editable=False)
+    action = models.CharField(max_length=96, editable=False)
+    target_type = models.CharField(max_length=64, editable=False)
+    target_id = models.CharField(max_length=128, editable=False)
+    client_ip = models.GenericIPAddressField(
+        protocol="both", unpack_ipv4=True, editable=False
+    )
+    summary = models.CharField(max_length=255, blank=True, editable=False)
+    before_safe = models.JSONField(default=dict, editable=False)
+    after_safe = models.JSONField(default=dict, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+
+    class Meta:
+        db_table = "operations_audit_entry"
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=("created_at",), name="audit_created_idx"),
+            models.Index(fields=("action", "created_at"), name="audit_action_idx"),
+            models.Index(fields=("target_type", "target_id"), name="audit_target_idx"),
+        ]
+
 
 class TaskRunStatus(models.TextChoices):
     PENDING = "pending", "Pending"

@@ -1,0 +1,22 @@
+<dialog
+  id="{{ dialog_id }}"
+  class="confirm-dialog"
+  data-confirm-dialog
+  {% if dialog_open %}open data-auto-modal{% endif %}
+  aria-labelledby="{{ dialog_id }}-title"
+  aria-describedby="{{ dialog_id }}-description"
+>
+  <form method="post" data-submit-once class="confirm-dialog__content">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action_value }}">
+    {% for hidden in confirmation_form.hidden_fields %}{{ hidden }}{% endfor %}
+    <h2 id="{{ dialog_id }}-title">{{ dialog_title }}</h2>
+    <p id="{{ dialog_id }}-description">{{ dialog_description }}</p>
+    {{ confirmation_form.confirm.errors }}
+    {{ confirmation_form.non_field_errors }}
+    <div class="confirm-dialog__actions">
+      <button class="button button--secondary" type="button" data-dialog-cancel autofocus>取消</button>
+      <button class="button button--primary" type="submit">{{ confirm_label }}</button>
+    </div>
+  </form>
+</dialog>

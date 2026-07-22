@@ -17,6 +17,7 @@ DATABASES = {"default": _environment.database}
 REDIS_URL = _environment.redis_url
 MEDIA_ROOT = _environment.media_root
 INITIAL_ADMIN_PASSWORD = _environment.initial_admin_password
+TRUSTED_PROXY_CIDRS = _environment.trusted_proxy_cidrs
 
 STORAGES = {
     "default": {

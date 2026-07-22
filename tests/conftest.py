@@ -1,8 +1,3 @@
-pytest_plugins = [
-    "tests.fixtures.runtime",
-]
-
-
 def pytest_collection_modifyitems(items) -> None:
     import pytest
 

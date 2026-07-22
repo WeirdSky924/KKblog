@@ -9,6 +9,7 @@ x-production-environment: &production-environment
   REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
   KAJ_MEDIA_ROOT: ${KAJ_MEDIA_ROOT:?KAJ_MEDIA_ROOT is required}
   KAJ_INITIAL_ADMIN_PASSWORD: ${KAJ_INITIAL_ADMIN_PASSWORD:?KAJ_INITIAL_ADMIN_PASSWORD is required}
+  KAJ_TRUSTED_PROXY_CIDRS: ${KAJ_TRUSTED_PROXY_CIDRS:?KAJ_TRUSTED_PROXY_CIDRS is required}
 
 services:
   web:
