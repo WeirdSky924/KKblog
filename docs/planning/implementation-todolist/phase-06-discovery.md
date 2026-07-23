@@ -81,7 +81,7 @@
 - 授权：`否`。
 
 ### DSC-007 实现公开用户主页与空态
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：评论昵称/头像可进入公开主页；页面仅展示调用者可见的已发布文章，无文章仍可访问空态，不展示邮箱、角色、安全资料或收藏。
 - 来源：访谈 Q101-Q103；`modules/05-discovery-reading.md` §查询；`contracts/02-authorization-matrix.md` §账户与个人数据。
 - 依赖：前置 `ACC-007`、`DSC-002`、`CNT-005`；后续 `QA-003`、`QA-006`。
@@ -90,10 +90,11 @@
 - 影响：数据：只读账户+发布文章；权限：可见性；缓存：仅公开安全投影；媒体：头像；审计/异步/通知无。
 - 测试/验收：RED 空主页、AUTH文章按调用者差异、禁用作者、已删账户；Playwright从评论进入及直接URL。
 - 风险/停止：公开DTO包含邮箱/内部UUID或缓存把登录可见列表给访客即停止。
+- 证据：一次性聚焦 RED `.venv/bin/pytest -q apps/discovery/tests/test_dsc007.py` 收集退出 2，准确报告 `profile_article_page` 缺失；实现 content owner 的 `visible_articles_by_author`，在统一 reader scope 内先按调用者裁决 PUBLIC、AUTH 和本人 PRIVATE，再由 discovery 组装共享 `ArticleIndexItem` 与分页，公开资料 DTO 只含账户 UUID、显示名、头像和稳定 `profile_url`，禁用/删除账户统一 404。初次 GREEN 退出 0，`2 passed`；当前分支重新建立正式发布数据后，资料页聚焦、ACC-007 空主页与 CNT-005 可见性联合回归退出 0，`6 passed`，临时测试及缓存随后删除。HTTP 读回访客仅 PUBLIC、普通用户增加 AUTH、作者增加本人 PRIVATE，资料页和 HTMX partial 均为 `private, no-store`，局部分页只保留一个 `#article-index` 并把焦点恢复到替换区域；空主页保留真实身份但不暴露邮箱、角色、安全资料或收藏，并提供“浏览最新文章”动作。`/usr/local/bin/blog-playwright-cli` 在当前代码独立服务器上读回访客 30 篇、作者 33 篇且含 AUTH/PRIVATE，1440/light、768/eye-care、390/dark 的 document/body/index 均无横向溢出，移动主动作 44px，原尺寸截图无重叠，正常控制台 0 error/0 warning。评论实体和链接 presenter 由后续 `CMT-003` 明确拥有；本任务提供其稳定 `profile_url`，未提前建立平行评论 UI。未执行生产数据、部署或本任务后的 Git 交付。
 - 授权：`否`。
 
 ### DSC-008 实现 SEO、sitemap 与公开缓存失效
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：PUBLIC文章可索引并进入 sitemap；标题为SEO标题、正文纯文本前100字为描述；AUTH/PRIVATE/个人/管理 noindex；只缓存公开清洗正文/列表。
 - 来源：访谈 Q135-Q138、Q255、Q273；`modules/05-discovery-reading.md` §缓存/SEO；`data/05-storage-lifecycle.md` §缓存边界。
 - 依赖：前置 `DSC-002`、`DSC-003`、`DSC-004`、`DSC-005`、`CNT-009`；后续 `QA-003`、`QA-004`、`QA-006`。
