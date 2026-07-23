@@ -735,6 +735,13 @@ document.addEventListener("htmx:afterSwap", (event) => {
   focusSwappedRegion(root);
 });
 
+document.addEventListener("htmx:beforeSwap", (event) => {
+  if (event.detail.xhr.status === 422 || event.detail.xhr.status === 409) {
+    event.detail.shouldSwap = true;
+    event.detail.isError = false;
+  }
+});
+
 window.addEventListener("pageshow", () => {
   restoreSubmitState();
   restoreErrorOriginFocus();

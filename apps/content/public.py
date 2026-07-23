@@ -27,6 +27,8 @@ from .queries import (
     tag_reference,
     tags_for_article,
     visible_article_page,
+    visible_articles_by_author,
+    visible_articles_by_ids,
     visible_filter_tags,
 )
 from .services import (
@@ -185,5 +187,7 @@ __all__ = [
     "register_article_comment_purge",
     "register_article_reader_scope",
     "visible_article_page",
+    "visible_articles_by_author",
+    "visible_articles_by_ids",
     "visible_filter_tags",
 ]

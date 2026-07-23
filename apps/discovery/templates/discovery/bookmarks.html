@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+{% block title %}我的收藏 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="bookmark-page" aria-labelledby="bookmark-page-title">
+    <header class="bookmark-page__header">
+      <p>仅自己可见</p>
+      <h1 id="bookmark-page-title">我的收藏</h1>
+    </header>
+    {% include "discovery/partials/bookmark_list.html" %}
+  </section>
+{% endblock %}

@@ -22,7 +22,7 @@ handler404 = not_found
 handler500 = server_error
 
 urlpatterns = [
-    path("accounts/", include("apps.accounts.urls")),
+    path("accounts/", include("config.account_urls")),
     path("admin/", include("apps.administration.urls")),
     path("", include("apps.media.urls")),
     path("", include("apps.operations.urls")),

@@ -13,6 +13,8 @@ from .discovery import (
     VisibleArticleTag,
     search_visible_titles,
     visible_article_page,
+    visible_articles_by_author,
+    visible_articles_by_ids,
     visible_filter_tags,
 )
 from .publication import PublishedRevision, published_revision
@@ -39,6 +41,8 @@ __all__ = [
     "tags_for_article",
     "search_visible_titles",
     "visible_article_page",
+    "visible_articles_by_author",
+    "visible_articles_by_ids",
     "visible_filter_tags",
     "published_revision",
     "revision_timeline",

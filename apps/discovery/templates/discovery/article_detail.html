@@ -18,18 +18,21 @@
           </div>
         </dl>
       </div>
-      <div class="article-reader__share">
-        <button
-          class="button button--secondary"
-          type="button"
-          data-copy-link
-          data-copy-url="{{ permalink }}"
-          title="复制文章永久链接"
-        >
-          <i data-lucide="copy"></i>
-          <span data-copy-label>复制链接</span>
-        </button>
-        <span class="article-reader__copy-status" data-copy-status aria-live="polite"></span>
+      <div class="article-reader__actions">
+        {% include "discovery/partials/bookmark_control.html" %}
+        <div class="article-reader__share">
+          <button
+            class="button button--secondary"
+            type="button"
+            data-copy-link
+            data-copy-url="{{ permalink }}"
+            title="复制文章永久链接"
+          >
+            <i data-lucide="copy"></i>
+            <span data-copy-label>复制链接</span>
+          </button>
+          <span class="article-reader__copy-status" data-copy-status aria-live="polite"></span>
+        </div>
       </div>
     </header>
 

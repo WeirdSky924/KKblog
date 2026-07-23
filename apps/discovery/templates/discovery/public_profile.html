@@ -12,13 +12,11 @@
       </div>
     </header>
     <section class="public-profile__articles" aria-labelledby="articles-title">
-      <div>
+      <header>
         <p class="account-kicker">文章</p>
-        <h2 id="articles-title">公开发布</h2>
-      </div>
-      <div class="public-profile__empty">
-        <p>此处还没有公开文章。</p>
-      </div>
+        <h2 id="articles-title">发布文章</h2>
+      </header>
+      {% include "discovery/partials/article_index.html" %}
     </section>
   </section>
 {% endblock %}

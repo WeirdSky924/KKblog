@@ -1,0 +1,30 @@
+{% if bookmark_login_url %}
+  <a class="button button--secondary" href="{{ bookmark_login_url }}">
+    <i data-lucide="bookmark"></i>
+    <span>登录后收藏</span>
+  </a>
+{% else %}
+  <form
+    class="bookmark-control"
+    method="post"
+    action="{% url 'article:bookmark' bookmark_article_id %}"
+    hx-post="{% url 'article:bookmark' bookmark_article_id %}"
+    hx-target="this"
+    hx-swap="outerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    <input type="hidden" name="source" value="article">
+    <input type="hidden" name="target_state" value="{% if bookmark_is_saved %}removed{% else %}saved{% endif %}">
+    <button
+      class="button button--secondary"
+      type="submit"
+      aria-pressed="{% if bookmark_is_saved %}true{% else %}false{% endif %}"
+      title="{% if bookmark_is_saved %}从收藏中移除{% else %}收藏这篇文章{% endif %}"
+    >
+      <i data-lucide="bookmark"></i>
+      <span>{% if bookmark_is_saved %}移除收藏{% else %}收藏{% endif %}</span>
+    </button>
+    <span class="bookmark-control__status{% if bookmark_error %} bookmark-control__status--error{% endif %}" {% if bookmark_error %}role="alert"{% else %}aria-live="polite"{% endif %}>{% if bookmark_error %}{{ bookmark_error }}{% else %}{{ bookmark_message }}{% endif %}</span>
+  </form>
+{% endif %}

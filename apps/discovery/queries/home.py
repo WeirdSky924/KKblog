@@ -75,7 +75,7 @@ class ArticleCollectionPage:
     index_page: ArticleIndexPage
 
 
-def _page_window(current: int, total: int) -> tuple[int | None, ...]:
+def page_window(current: int, total: int) -> tuple[int | None, ...]:
     visible = {1, total, *(range(max(1, current - 2), min(total, current + 2) + 1))}
     ordered = sorted(number for number in visible if 1 <= number <= total)
     result: list[int | None] = []
@@ -97,7 +97,7 @@ def home_article_page(
         page_size=page_size,
         tag_ids=tag_ids,
     )
-    return _index_page(source)
+    return article_index_page(source)
 
 
 def search_article_page(
@@ -109,7 +109,7 @@ def search_article_page(
         page=page,
         page_size=page_size,
     )
-    return _index_page(source)
+    return article_index_page(source)
 
 
 def discovery_filters(*, actor_id) -> DiscoveryFilters:
@@ -136,7 +136,7 @@ def section_article_page(
         page_size=page_size,
         section_id=section.section_id,
     )
-    return ArticleCollectionPage(section.name, None, _index_page(source))
+    return ArticleCollectionPage(section.name, None, article_index_page(source))
 
 
 def tag_article_page(
@@ -157,15 +157,15 @@ def tag_article_page(
         page_size=page_size,
         tag_ids=(tag.tag_id,),
     )
-    return ArticleCollectionPage(tag.name, tag.state, _index_page(source))
+    return ArticleCollectionPage(tag.name, tag.state, article_index_page(source))
 
 
-def _index_page(source) -> ArticleIndexPage:
+def article_index_page(source) -> ArticleIndexPage:
     view_counts = article_view_counts(
         article_ids=(item.article_id for item in source.items)
     )
     items = tuple(
-        _index_item(item, view_count=view_counts.get(item.article_id, 0))
+        article_index_item(item, view_count=view_counts.get(item.article_id, 0))
         for item in source.items
     )
     return ArticleIndexPage(
@@ -176,11 +176,11 @@ def _index_page(source) -> ArticleIndexPage:
         total_pages=source.total_pages,
         has_previous=source.has_previous,
         has_next=source.has_next,
-        page_window=_page_window(source.page_number, source.total_pages),
+        page_window=page_window(source.page_number, source.total_pages),
     )
 
 
-def _index_item(source, *, view_count: int) -> ArticleIndexItem:
+def article_index_item(source, *, view_count: int) -> ArticleIndexItem:
     published = to_shanghai(source.published_at)
     return ArticleIndexItem(
         article_id=source.article_id,

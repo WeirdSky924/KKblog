@@ -1,0 +1,77 @@
+<div id="article-index" class="bookmark-index" data-focus-after-swap tabindex="-1">
+  <p id="bookmark-index-loading" class="bookmark-index__loading htmx-indicator" role="status">正在更新收藏列表…</p>
+  {% if pagination_form.errors %}
+    <div class="bookmark-index__error" data-error-focus tabindex="-1" role="alert">
+      <h2>分页条件需要修改</h2>
+      {{ pagination_form.page.errors }}
+      {{ pagination_form.per_page.errors }}
+    </div>
+  {% elif bookmark_page.items %}
+    <p class="bookmark-index__count" aria-live="polite">共 {{ bookmark_page.total_items }} 篇</p>
+    <div class="bookmark-list">
+      {% for item in bookmark_page.items %}
+        <div class="bookmark-entry">
+          {% if item.article %}
+            {% include "discovery/partials/article_index_row.html" with item=item.article only %}
+          {% else %}
+            <article class="article-index-row article-index-row--unavailable">
+              <figure class="article-index-row__cover">
+                <img src="{{ item.unavailable.cover_url }}" width="800" height="450" alt="文章已不可用" loading="lazy">
+              </figure>
+              <div class="article-index-row__body">
+                <div class="article-index-row__title-line">
+                  <h3>{{ item.unavailable.label }}</h3>
+                </div>
+                <p class="article-index-row__summary">文章当前不可访问，收藏关系仍由你保留。</p>
+                <dl class="article-index-row__meta">
+                  <div>
+                    <dt class="visually-hidden">收藏时间</dt>
+                    <dd><time datetime="{{ item.created_at|date:'c' }}">收藏于 {{ item.created_label }}</time></dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          {% endif %}
+          <div class="bookmark-entry__actions">
+            <form method="post" action="{% url 'article:bookmark' item.article_id %}" data-submit-once>
+              {% csrf_token %}
+              <input type="hidden" name="source" value="bookmarks">
+              <input type="hidden" name="target_state" value="removed">
+              <button class="button button--secondary" type="submit">
+                <i data-lucide="trash-2"></i>
+                <span>移除收藏</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <footer class="bookmark-index__footer">
+      {% include "components/navigation/pagination.html" %}
+      <form
+        class="page-size-control"
+        action="{{ index_action }}"
+        method="get"
+        hx-get="{{ index_action }}"
+        hx-target="#article-index"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-indicator="#bookmark-index-loading"
+      >
+        <label for="bookmark-page-size">每页</label>
+        <select id="bookmark-page-size" name="per_page">
+          {% for value, label in pagination_form.fields.per_page.choices %}
+            <option value="{{ value }}"{% if value == bookmark_page.page_size %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button class="button button--secondary" type="submit">应用</button>
+      </form>
+      <p>第 {{ bookmark_page.page_number }} / {{ bookmark_page.total_pages }} 页</p>
+    </footer>
+  {% else %}
+    <div class="bookmark-index__empty">
+      <h2>还没有收藏的文章</h2>
+      <a class="button button--secondary" href="{% url 'public:search' %}">搜索文章</a>
+    </div>
+  {% endif %}
+</div>

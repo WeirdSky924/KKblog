@@ -13,6 +13,7 @@ from django.db import connection, transaction
 from django.db.models import Count, Prefetch, Q
 
 from apps.accounts.public import is_active_account, is_active_author
+from apps.core.ids import normalize_ulid
 from apps.media.public import render_markdown, render_tiptap
 
 from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, Tag
@@ -198,6 +199,38 @@ def visible_article_page(
     else:
         queryset = queryset.order_by("-published_at", "-id")
     return _visible_page(queryset, page=page, page_size=page_size)
+
+
+def visible_articles_by_author(
+    *, actor_id, author_id, page: int = 1, page_size: int = 20
+) -> VisibleArticlePage:
+    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
+        raise ValueError("page size must be 10, 20, or 50")
+    try:
+        author = UUID(str(author_id))
+    except (TypeError, ValueError):
+        raise ValueError("author id must be a UUID") from None
+    queryset = _visible_articles(actor_id=actor_id).filter(author_id=author)
+    return _visible_page(
+        queryset.order_by("-published_at", "-id"),
+        page=page,
+        page_size=page_size,
+    )
+
+
+def visible_articles_by_ids(*, actor_id, article_ids) -> tuple[VisibleArticleItem, ...]:
+    if isinstance(article_ids, (str, bytes)):
+        raise ValueError("article ids must be a collection")
+    try:
+        identities = tuple(
+            dict.fromkeys(normalize_ulid(article_id) for article_id in article_ids)
+        )
+    except (TypeError, ValueError):
+        raise ValueError("article ids must be valid ULIDs") from None
+    queryset = _index_projection(
+        _visible_articles(actor_id=actor_id).filter(pk__in=identities)
+    )
+    return tuple(_visible_item(article) for article in queryset)
 
 
 def _search_query(value) -> str:

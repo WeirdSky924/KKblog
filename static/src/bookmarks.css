@@ -1,0 +1,149 @@
+.article-reader__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.bookmark-control,
+.article-reader__share {
+  display: grid;
+  justify-items: end;
+  gap: 0.375rem;
+}
+
+.bookmark-control__status {
+  min-height: 1.4em;
+  color: var(--success);
+  font-size: 0.8125rem;
+}
+
+.bookmark-control__status--error {
+  color: var(--danger);
+}
+
+.bookmark-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.bookmark-page__header {
+  display: grid;
+  gap: 0.25rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.bookmark-page__header h1,
+.bookmark-page__header p,
+.bookmark-index__count,
+.bookmark-index__loading,
+.bookmark-index__footer p {
+  margin: 0;
+}
+
+.bookmark-page__header h1 {
+  overflow-wrap: anywhere;
+  font-size: 1.75rem;
+  line-height: 1.35;
+}
+
+.bookmark-page__header p,
+.bookmark-index__count,
+.bookmark-index__footer p {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.bookmark-index,
+.bookmark-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.bookmark-entry {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bookmark-entry__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bookmark-entry__actions form {
+  margin: 0;
+}
+
+.article-index-row--unavailable .article-index-row__cover {
+  margin: 0;
+}
+
+.article-index-row--unavailable .article-index-row__title-line h3 {
+  margin: 0;
+}
+
+.bookmark-index__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.bookmark-index__footer .pagination {
+  grid-column: 1 / -1;
+}
+
+.bookmark-index__footer p {
+  justify-self: end;
+}
+
+.bookmark-index__empty,
+.bookmark-index__error {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  padding-block: 2rem;
+  border-block: 1px solid var(--line);
+}
+
+.bookmark-index__empty h2,
+.bookmark-index__error h2,
+.bookmark-index__error ul {
+  margin: 0;
+}
+
+.bookmark-index__error {
+  color: var(--danger);
+}
+
+@media (max-width: 48rem) {
+  .article-reader__actions {
+    justify-content: flex-start;
+  }
+
+  .bookmark-control,
+  .article-reader__share {
+    justify-items: start;
+  }
+
+  .bookmark-index__footer {
+    grid-template-columns: 1fr;
+  }
+
+  .bookmark-index__footer p,
+  .bookmark-entry__actions {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 36rem) {
+  .bookmark-entry__actions,
+  .bookmark-entry__actions form,
+  .bookmark-entry__actions .button {
+    width: 100%;
+  }
+}

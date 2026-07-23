@@ -401,8 +401,8 @@
 .public-profile__header h1 {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: clamp(2rem, 7vw, 3.25rem);
-  line-height: 1.15;
+  font-size: 1.75rem;
+  line-height: 1.35;
 }
 
 .public-profile__articles {
@@ -410,18 +410,6 @@
   grid-template-columns: minmax(10rem, 0.65fr) minmax(0, 1.35fr);
   gap: 2rem;
   padding-block: 2rem;
-}
-
-.public-profile__empty {
-  min-height: 10rem;
-  padding: 1.5rem;
-  border-inline-start: 3px solid var(--line);
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-}
-
-.public-profile__empty p {
-  margin: 0;
 }
 
 @media (max-width: 48rem) {

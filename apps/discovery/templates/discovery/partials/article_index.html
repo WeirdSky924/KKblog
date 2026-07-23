@@ -87,8 +87,12 @@
   {% else %}
     {% if index_page %}<p class="article-index__count" aria-live="polite">共 0 篇</p>{% endif %}
     <div class="article-index__empty">
-      <h3>还没有可阅读的文章</h3>
-      <a class="button button--secondary" href="{% url 'public:search' %}">搜索文章</a>
+      <h3>{% if index_empty_title %}{{ index_empty_title }}{% else %}还没有可阅读的文章{% endif %}</h3>
+      {% if index_empty_action_url %}
+        <a class="button button--secondary" href="{{ index_empty_action_url }}">{{ index_empty_action_label }}</a>
+      {% else %}
+        <a class="button button--secondary" href="{% url 'public:search' %}">搜索文章</a>
+      {% endif %}
     </div>
   {% endif %}
 </div>

@@ -12,7 +12,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:search` | `discovery/search.html` | `search_visible_titles` | 结果/页码 | 模糊、相关度+时间、权限过滤 |
 | `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view` | 评论区、收藏状态 | 登录提醒、私人/草稿 404、目录 H2 |
 | `article:bookmark` | partial action | `toggle_bookmark` | 收藏按钮 | 登录要求、重复点击幂等 |
-| `public:profile` | `accounts/public_profile.html` | `published_articles_by_author` | 文章列表 | 空主页、不同调用者可见性 |
+| `public:profile` | `discovery/public_profile.html` | `visible_articles_by_author` | 文章列表 | 空主页、不同调用者可见性 |
 | `public:about` | `navigation/static_page.html` | `published_static_page` | 无 | 无内容 404/隐藏入口 |
 | `public:friend-links` | `navigation/friend_links.html` | `visible_friend_links` | 无 | 安全新标签、缺图 |
 | `public:guestbook` | `comments/thread_page.html` | `guestbook_thread` | 评论列表/表单 | 开关、访客、登录、举报 |

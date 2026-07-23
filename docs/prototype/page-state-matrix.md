@@ -33,7 +33,7 @@
 | `public:search` | discovery | 全部 | S0,S1,S2,S3,S4,S5；空查询/分页 | home |
 | `article:detail` | discovery | 全部 | S0,S1,S2,S4,S5；登录提醒/404/目录 | article |
 | `article:bookmark` | discovery | 用户/作者/管理员 | S0,S1,S3,S4,S5；重复点击 | account |
-| `public:profile` | accounts | 全部 | S0,S1,S2,S4,S5；禁用/删除账户 | account |
+| `public:profile` | discovery | 全部 | S0,S1,S2,S4,S5；禁用/删除账户 | account |
 | `public:about` | navigation | 全部 | S1,S2,S4,S5；空页隐藏入口 | publicstates |
 | `public:friend-links` | navigation | 全部 | S0,S1,S2,S4；缺图/恶意 URL | publicstates |
 | `public:guestbook` | comments | 全部 | S0,S1,S2,S3,S4,S5,S6,S7；关闭/登录要求 | publicstates |

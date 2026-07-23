@@ -58,3 +58,36 @@ class SearchPageForm(PaginationForm):
             attrs={"autocomplete": "off", "placeholder": "搜索文章标题"}
         ),
     )
+
+
+class BookmarkStateForm(forms.Form):
+    class TargetState:
+        SAVED = "saved"
+        REMOVED = "removed"
+
+    class Source:
+        ARTICLE = "article"
+        BOOKMARKS = "bookmarks"
+
+    target_state = forms.ChoiceField(
+        choices=(
+            (TargetState.SAVED, "收藏"),
+            (TargetState.REMOVED, "移除收藏"),
+        ),
+        widget=forms.HiddenInput,
+        error_messages={
+            "required": "请选择收藏状态。",
+            "invalid_choice": "收藏状态无效。",
+        },
+    )
+    source = forms.ChoiceField(
+        choices=(
+            (Source.ARTICLE, "文章"),
+            (Source.BOOKMARKS, "收藏列表"),
+        ),
+        widget=forms.HiddenInput,
+        error_messages={
+            "required": "收藏来源无效。",
+            "invalid_choice": "收藏来源无效。",
+        },
+    )

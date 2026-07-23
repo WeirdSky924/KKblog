@@ -68,7 +68,7 @@
 - 授权：`否`。
 
 ### DSC-006 实现私人收藏与失效文章占位
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：登录用户幂等收藏/移除；列表仅本人；文章变私人/删除/不可访问仍保留关系，显示“该文章已丢失”及仓库自有 `800x450` 统一失效图，由用户手动移除；恢复可访问后恢复正常。
 - 来源：访谈 Q070、Q073-Q075；`modules/05-discovery-reading.md` §收藏；DEC-005。
 - 依赖：前置 `ACC-005`、`CNT-005`、`DEC-005`、`DSC-002`；后续 `AUT-001`、`QA-002`、`QA-003`、`QA-006`。
@@ -77,10 +77,11 @@
 - 影响：数据：Bookmark；权限：本人；审计无；缓存：状态实时；异步无；媒体：统一失效图；通知无。
 - 测试/验收：RED 重复收藏、他人列表、可见性/删除/恢复、账户删除重用身份；资产尺寸/引用检查；Playwright 正常/失效/移除并确认不泄露或复用原封面。
 - 风险/停止：占位泄露旧标题/封面、自动删收藏或缓存越权即停止。
+- 证据：一次性聚焦 RED `.venv/bin/pytest -q apps/discovery/tests/test_dsc006.py` 收集退出 2，准确报告 `Bookmark` 缺失；实现 discovery 自有 Bookmark、显式期望状态 `bookmarked=True/False` 的幂等 service、本人分页 query 与有效/失效分离 DTO，聚焦 GREEN 退出 0，`4 passed`，临时测试随后删除。保存前复用 content owner 的当前 reader scope，列表批量复用统一 `ArticleIndexItem`；不可访问项只含文章 ULID、收藏时间、固定“该文章已丢失”和仓库自有 `800x450` 失效图，不保存或渲染旧标题/旧封面。Bookmark 对文章不建 FK，文章 PRIVATE、软删除、恢复和物理删除均保留关系；Account 使用显式 `discovery_bookmark_account_fk ON DELETE CASCADE DEFERRABLE`，账户删除后同邮箱新 UUID 读回 0 条。隔离 migration `0001 -> 0002 -> 0001 -> 0002` 全部退出 0；PostgreSQL catalog 读回唯一约束、分页索引、唯一外键只指向 `account` 且 `confdeltype='c'`，无 Article FK。文章详情接入 `article:bookmark` HTMX 原位控件，`accounts:bookmarks` 由 config 组合 accounts 与 discovery 路由，个人菜单改用 `reverse`；匿名普通/HX 请求分别安全登录跳转，422 可交换且动态状态均 `private, no-store`。最终 content 删除/权限、accounts 会话/删除、media 品牌资产、架构与前端回归退出 0，`43 passed`；Ruff lint/325 文件格式、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。`/usr/local/bin/blog-playwright-cli` 以独立普通读者真实完成登录回原文、收藏、本人列表、PUBLIC→PRIVATE 失效且原标题不出现、PUBLIC 恢复、Space 键移除和空态；亮/暗/护眼与 1440/768/390 原尺寸视觉检查无重叠，三视口 `scrollWidth == innerWidth` 且目标容器无溢出，控制台 0 error/0 warning。未执行生产 migration、生产数据、部署或 Git 交付。
 - 授权：`否`。
 
 ### DSC-007 实现公开用户主页与空态
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：评论昵称/头像可进入公开主页；页面仅展示调用者可见的已发布文章，无文章仍可访问空态，不展示邮箱、角色、安全资料或收藏。
 - 来源：访谈 Q101-Q103；`modules/05-discovery-reading.md` §查询；`contracts/02-authorization-matrix.md` §账户与个人数据。
 - 依赖：前置 `ACC-007`、`DSC-002`、`CNT-005`；后续 `QA-003`、`QA-006`。
