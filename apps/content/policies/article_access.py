@@ -1,4 +1,7 @@
 from collections.abc import Callable
+from uuid import UUID
+
+from ..models import AuthorContentMask
 
 ArticleReaderMask = Callable[[str], bool]
 
@@ -22,3 +25,11 @@ def article_is_reader_masked(article_id: str) -> bool:
     if type(result) is not bool:
         raise TypeError("article reader mask must return a boolean")
     return result
+
+
+def author_is_content_masked(author_id) -> bool:
+    try:
+        identity = UUID(str(author_id))
+    except (TypeError, ValueError):
+        return True
+    return AuthorContentMask.objects.filter(author_id=identity, masked=True).exists()

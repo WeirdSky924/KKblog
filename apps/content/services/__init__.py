@@ -8,6 +8,17 @@ from .classification import (
     rename_section,
     validate_publication_section,
 )
+from .deletion import (
+    ArticleDeletionError,
+    ArticleDeletionResult,
+    ArticlePurgeOutcome,
+    ArticlePurgeResult,
+    ArticleRestorationResult,
+    delete_article,
+    due_deleted_articles,
+    purge_deleted_article,
+    restore_deleted_article,
+)
 from .editing import (
     EditConflict,
     EditConflictError,
@@ -58,6 +69,11 @@ from .visibility import VisibilityChangeResult, change_visibility
 
 __all__ = [
     "ContentCommandError",
+    "ArticleDeletionError",
+    "ArticleDeletionResult",
+    "ArticlePurgeOutcome",
+    "ArticlePurgeResult",
+    "ArticleRestorationResult",
     "EditConflict",
     "EditConflictError",
     "EditSaveResult",
@@ -87,6 +103,7 @@ __all__ = [
     "create_section",
     "create_tag",
     "delete_section",
+    "delete_article",
     "delete_tag",
     "propose_tag",
     "prepare_publication",
@@ -95,6 +112,7 @@ __all__ = [
     "publish_scheduled_article",
     "rename_section",
     "restore_tag",
+    "restore_deleted_article",
     "restore_revision",
     "republish_saved_revision",
     "resolve_edit_conflict",
@@ -103,6 +121,8 @@ __all__ = [
     "save_revision_with_token",
     "schedule_article",
     "due_scheduled_articles",
+    "due_deleted_articles",
+    "purge_deleted_article",
     "open_edit_session",
     "validate_publication_section",
 ]

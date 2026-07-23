@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from django.db import transaction
+from django.db.models import Q
 
 from apps.accounts.public import (
     is_active_account,
@@ -19,7 +20,7 @@ from apps.core.time.shanghai import shanghai_business_date
 
 from ..events import ARTICLE_ADMIN_VIEWED
 from ..models import AdminArticleViewReceipt, Article, ArticleRevision
-from ..policies import article_is_reader_masked
+from ..policies import article_is_reader_masked, author_is_content_masked
 
 
 class ArticleNotFound(LookupError):
@@ -109,6 +110,7 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     if (
         revision is None
         or not is_active_account(article.author_id)
+        or author_is_content_masked(article.author_id)
         or article_is_reader_masked(article.id)
     ):
         raise ArticleNotFound
@@ -127,13 +129,20 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     return _view(article, revision, can_edit=owner, admin_read_only=False)
 
 
-def article_for_author(*, actor_id, article_id: str) -> ArticleView:
+def article_for_author(
+    *,
+    actor_id,
+    article_id: str,
+    clock: Clock | None = None,
+) -> ArticleView:
     identity = _article_id(article_id)
     actor = _actor_id(actor_id, required=True)
-    if not is_active_author(actor):
+    if not is_active_author(actor) or author_is_content_masked(actor):
         raise ArticleNotFound
+    now = (clock or SystemClock()).now()
     try:
         article = Article.objects.select_related("working_revision").get(
+            Q(deleted_at__isnull=True) | Q(purge_after__gt=now),
             pk=identity,
             author_id=actor,
             working_revision__isnull=False,

@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from datetime import datetime
 from uuid import UUID
 
 from apps.core.events import EventDefinition, EventValidationError
@@ -123,4 +124,70 @@ def _article_visibility_changed(payload: Mapping[str, object]) -> None:
 ARTICLE_ADMIN_VIEWED = EventDefinition("article.admin_viewed.v1", _article_admin_viewed)
 ARTICLE_VISIBILITY_CHANGED = EventDefinition(
     "article.visibility_changed.v1", _article_visibility_changed
+)
+
+
+def _aware_datetime(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None and parsed.utcoffset() is not None
+
+
+def _article_deleted(payload: Mapping[str, object]) -> None:
+    if (
+        set(payload) != {"recipient_id", "administrative", "purge_after"}
+        or not _recipient(payload["recipient_id"])
+        or type(payload["administrative"]) is not bool
+        or not _aware_datetime(payload["purge_after"])
+    ):
+        raise EventValidationError("Article deletion event payload shape is invalid")
+
+
+def _article_restored(payload: Mapping[str, object]) -> None:
+    if (
+        set(payload) != {"recipient_id", "administrative"}
+        or not _recipient(payload["recipient_id"])
+        or type(payload["administrative"]) is not bool
+    ):
+        raise EventValidationError("Article restore event payload shape is invalid")
+
+
+def _article_purge_requested(payload: Mapping[str, object]) -> None:
+    if set(payload) != {"asset_count", "comment_count"} or any(
+        isinstance(payload[field], bool)
+        or not isinstance(payload[field], int)
+        or payload[field] < 0
+        for field in ("asset_count", "comment_count")
+    ):
+        raise EventValidationError("Article purge event payload shape is invalid")
+
+
+ARTICLE_DELETED = EventDefinition("article.deleted.v1", _article_deleted)
+ARTICLE_RESTORED = EventDefinition("article.restored.v1", _article_restored)
+ARTICLE_PURGE_REQUESTED = EventDefinition(
+    "article.purge_requested.v1",
+    _article_purge_requested,
+)
+
+
+def _author_mask_changed(payload: Mapping[str, object]) -> None:
+    if set(payload) != {"masked", "article_count", "cancelled_count"} or (
+        type(payload["masked"]) is not bool
+        or any(
+            isinstance(payload[field], bool)
+            or not isinstance(payload[field], int)
+            or payload[field] < 0
+            for field in ("article_count", "cancelled_count")
+        )
+    ):
+        raise EventValidationError("Author mask event payload shape is invalid")
+
+
+AUTHOR_MASK_CHANGED = EventDefinition(
+    "article.author_mask_changed.v1",
+    _author_mask_changed,
 )

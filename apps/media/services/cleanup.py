@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
-from apps.media.models import MediaAsset, MediaBinding, MediaState
+from apps.media.models import MediaAsset, MediaBinding, MediaState, MediaTargetType
 from apps.media.storage import (
     FilesystemMediaStorage,
     MediaStorage,
@@ -39,6 +39,13 @@ class MediaCleanupRetryable(RuntimeError):
 class MediaCleanupResult:
     asset_id: str
     outcome: CleanupOutcome
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseTargetAssetsResult:
+    asset_ids: tuple[str, ...]
+    pending_asset_ids: tuple[str, ...]
+    retained_asset_ids: tuple[str, ...]
 
 
 def _asset_id(value: str) -> str:
@@ -120,6 +127,79 @@ def release_owner_assets(
         ).update(state=MediaState.DELETE_PENDING)
         schedule_pending_cleanup(asset_ids, storage=storage)
     return asset_ids
+
+
+def release_target_assets(
+    *,
+    target_type: MediaTargetType | str,
+    target_ids: tuple[str, ...],
+    storage: MediaStorage | None = None,
+) -> ReleaseTargetAssetsResult:
+    try:
+        normalized_type = MediaTargetType(target_type)
+    except (TypeError, ValueError):
+        raise ValueError("Invalid media target type") from None
+    if not isinstance(target_ids, tuple) or not 1 <= len(target_ids) <= 10_000:
+        raise ValueError("target_ids must contain between 1 and 10000 items")
+    normalized_targets = tuple(dict.fromkeys(target_ids))
+    if any(
+        not isinstance(target_id, str) or not 1 <= len(target_id) <= 128
+        for target_id in normalized_targets
+    ):
+        raise ValueError("Invalid media target ID")
+
+    with transaction.atomic():
+        asset_ids = tuple(
+            MediaBinding.objects.filter(
+                target_type=normalized_type,
+                target_id__in=normalized_targets,
+            )
+            .order_by("asset_id")
+            .values_list("asset_id", flat=True)
+            .distinct()
+        )
+        if not asset_ids:
+            return ReleaseTargetAssetsResult((), (), ())
+        assets = list(
+            MediaAsset.objects.select_for_update()
+            .filter(pk__in=asset_ids)
+            .order_by("id")
+        )
+        bindings = list(
+            MediaBinding.objects.select_for_update()
+            .filter(
+                target_type=normalized_type,
+                target_id__in=normalized_targets,
+                asset_id__in=asset_ids,
+            )
+            .order_by("asset_id", "id")
+        )
+        MediaBinding.objects.filter(
+            id__in=[binding.id for binding in bindings]
+        ).delete()
+        retained_ids = frozenset(
+            MediaBinding.objects.filter(asset_id__in=asset_ids).values_list(
+                "asset_id",
+                flat=True,
+            )
+        )
+        pending_ids = tuple(
+            asset.id
+            for asset in assets
+            if asset.id not in retained_ids
+            and asset.state
+            in (MediaState.STAGED, MediaState.ACTIVE, MediaState.DELETE_PENDING)
+        )
+        MediaAsset.objects.filter(
+            id__in=pending_ids,
+            state__in=(MediaState.STAGED, MediaState.ACTIVE),
+        ).update(state=MediaState.DELETE_PENDING)
+        schedule_pending_cleanup(pending_ids, storage=storage)
+    return ReleaseTargetAssetsResult(
+        tuple(asset.id for asset in assets),
+        pending_ids,
+        tuple(asset.id for asset in assets if asset.id in retained_ids),
+    )
 
 
 def expire_unbound_asset(

@@ -14,6 +14,7 @@ from apps.core.time.clock import Clock, SystemClock
 
 from ..events import ARTICLE_SCHEDULE_CANCELLED, ARTICLE_SCHEDULED
 from ..models import Article, ArticleRevision, PublicationReviewGrant
+from ..policies import author_is_content_masked
 from .publication import (
     PublicationCommandError,
     _actor,
@@ -123,11 +124,13 @@ def schedule_article(
         article.publication_state = Article.PublicationState.SCHEDULED
         article.scheduled_revision = revision
         article.scheduled_for = scheduled_for
+        article.scheduled_at = now
         article.save(
             update_fields=(
                 "publication_state",
                 "scheduled_revision",
                 "scheduled_for",
+                "scheduled_at",
                 "updated_at",
             )
         )
@@ -158,11 +161,13 @@ def _cancel_locked(
     revision_id = article.scheduled_revision_id or article.working_revision_id or ""
     article.scheduled_revision = None
     article.scheduled_for = None
+    article.scheduled_at = None
     article.publication_state = Article.PublicationState.DRAFT
     article.save(
         update_fields=(
             "scheduled_revision",
             "scheduled_for",
+            "scheduled_at",
             "publication_state",
             "updated_at",
         )
@@ -249,7 +254,9 @@ def publish_scheduled_article(
             return ScheduledExecutionResult(identity, revision_key, "stale")
         if article.scheduled_for is None or article.scheduled_for > now:
             return ScheduledExecutionResult(identity, revision_key, "not_due")
-        if not is_active_author(article.author_id):
+        if is_active_author(article.author_id) is False or author_is_content_masked(
+            article.author_id
+        ):
             return _cancel_locked(
                 article=article,
                 trace_code=active_trace,
@@ -257,11 +264,10 @@ def publish_scheduled_article(
                 outcome="cancelled_author",
             )
         if article.deleted_at is not None:
-            return _cancel_locked(
-                article=article,
-                trace_code=active_trace,
-                clock=active_clock,
-                outcome="cancelled_deleted",
+            return ScheduledExecutionResult(
+                article.id,
+                revision_key,
+                "deferred_deleted",
             )
         if publication_blocker(article.id):
             return _cancel_locked(

@@ -17,6 +17,7 @@ from apps.content.public import (
     create_article,
     create_section,
     create_tag,
+    delete_tag,
     prepare_publication,
     prepare_restore_revision,
     publish_article,
@@ -70,8 +71,9 @@ def _asset(owner, root: Path, purpose: MediaPurpose, article_id: str):
 def _snapshot(
     *,
     section_id,
-    body: str,
+    body: str | dict[str, object],
     title: str = "恢复文章",
+    content_format=ContentFormat.MARKDOWN,
     tag_ids=(),
     cover_asset_id=None,
     body_asset_ids=(),
@@ -83,7 +85,7 @@ def _snapshot(
     comments_post_login=False,
 ):
     return ArticleSnapshot(
-        content_format=ContentFormat.MARKDOWN,
+        content_format=content_format,
         title=title,
         body=body,
         section_id=section_id,
@@ -273,3 +275,143 @@ def test_restore_token_detects_conflict_and_timeline_contains_no_body() -> None:
     assert "版本一" not in repr(timeline)
     assert "版本二" not in repr(timeline)
     assert "版本三" not in repr(timeline)
+
+
+def test_restore_recovers_historical_tiptap_format_after_markdown_import() -> None:
+    admin = _admin("restore-format")
+    section = create_section(actor_id=admin.id, name="格式恢复", **_context())
+    rich_body = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "原始富文本"}],
+            }
+        ],
+    }
+    article = create_article(
+        actor_id=admin.id,
+        snapshot=_snapshot(
+            section_id=section.section_id,
+            body=rich_body,
+            content_format=ContentFormat.TIPTAP_JSON,
+        ),
+        capacity_check=lambda: None,
+    )
+    aggregate = Article.objects.get(pk=article.article_id)
+    source = ArticleRevision.objects.get(pk=article.revision_id)
+    imported = ArticleRevision.objects.create(
+        article=aggregate,
+        sequence=2,
+        based_on=source,
+        created_by=admin,
+        content_format=ContentFormat.MARKDOWN,
+        title="导入后的 Markdown",
+        body_markdown="导入正文",
+        summary_mode=SummaryMode.AUTO,
+        visibility=Visibility.PUBLIC,
+        section_id=section.section_id,
+        comments_enabled=True,
+        comments_view_login=False,
+        comments_post_login=False,
+    )
+    aggregate.working_revision = imported
+    aggregate.row_version += 1
+    aggregate.save(update_fields=("working_revision", "row_version", "updated_at"))
+
+    preview = prepare_restore_revision(
+        actor_id=admin.id,
+        article_id=aggregate.id,
+        source_revision_id=source.id,
+    )
+    restored = restore_revision(
+        actor_id=admin.id,
+        article_id=aggregate.id,
+        source_revision_id=source.id,
+        expected_row_version=aggregate.row_version,
+        restore_token=preview.token,
+    )
+
+    revision = ArticleRevision.objects.get(pk=restored.revision_id)
+    assert revision.content_format == ContentFormat.TIPTAP_JSON
+    assert revision.body_tiptap == rich_body
+    assert revision.body_markdown is None
+    assert revision.based_on_id == imported.id
+    assert revision.restore_source_id == source.id
+    assert "body" in preview.changed_fields
+
+
+@pytest.mark.parametrize(
+    ("unavailable", "expected_code"),
+    [
+        ("tag", "content.restore_tag_unavailable.v1"),
+        ("media", "content.restore_media_unavailable.v1"),
+    ],
+)
+def test_restore_rejects_unavailable_historical_dependencies(
+    unavailable: str,
+    expected_code: str,
+    isolated_media_root: Path,
+) -> None:
+    admin = _admin(f"restore-unavailable-{unavailable}")
+    section = create_section(
+        actor_id=admin.id,
+        name=f"失效依赖-{unavailable}",
+        **_context(),
+    )
+    tag = create_tag(actor_id=admin.id, name=f"历史标签-{unavailable}", **_context())
+    article = create_article(
+        actor_id=admin.id,
+        snapshot=_snapshot(section_id=section.section_id, body="初始正文"),
+        capacity_check=lambda: None,
+    )
+    asset = _asset(
+        admin,
+        isolated_media_root,
+        MediaPurpose.BODY,
+        article.article_id,
+    )
+    source = save_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        expected_row_version=article.row_version,
+        snapshot=_snapshot(
+            section_id=section.section_id,
+            body=f"![历史图片](media:{asset.id})",
+            tag_ids=(tag.tag_id,),
+            body_asset_ids=(asset.id,),
+        ),
+        capacity_check=lambda: None,
+    )
+    current = save_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        expected_row_version=source.row_version,
+        snapshot=_snapshot(section_id=section.section_id, body="当前正文"),
+        capacity_check=lambda: None,
+    )
+    if unavailable == "tag":
+        delete_tag(actor_id=admin.id, tag_id=tag.tag_id, **_context())
+    else:
+        media_asset = apps.get_model("media", "MediaAsset")
+        media_asset.objects.filter(pk=asset.id).update(state="DELETE_PENDING")
+
+    preview = prepare_restore_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        source_revision_id=source.revision_id,
+    )
+    with pytest.raises(RestoreCommandError) as captured:
+        restore_revision(
+            actor_id=admin.id,
+            article_id=article.article_id,
+            source_revision_id=source.revision_id,
+            expected_row_version=current.row_version,
+            restore_token=preview.token,
+        )
+
+    assert captured.value.code == expected_code
+    aggregate = Article.objects.get(pk=article.article_id)
+    assert aggregate.working_revision_id == current.revision_id
+    assert aggregate.revisions.count() == 3
+    assert ArticleRestoreGrant.objects.get(pk=preview.grant_id).consumed_at is None

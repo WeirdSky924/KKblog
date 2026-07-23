@@ -13,9 +13,11 @@ from .cleanup import (
     CleanupOutcome,
     MediaCleanupResult,
     MediaCleanupRetryable,
+    ReleaseTargetAssetsResult,
     delete_pending_asset,
     expire_unbound_asset,
     release_owner_assets,
+    release_target_assets,
 )
 from .uploads import MediaUploadError, stage_upload
 
@@ -27,6 +29,7 @@ __all__ = [
     "MediaBindingError",
     "MediaCleanupResult",
     "MediaCleanupRetryable",
+    "ReleaseTargetAssetsResult",
     "MediaUploadError",
     "ReplaceBindingsResult",
     "TargetBindingSnapshot",
@@ -36,6 +39,7 @@ __all__ = [
     "delete_pending_asset",
     "expire_unbound_asset",
     "release_owner_assets",
+    "release_target_assets",
     "replace_bindings",
     "target_binding_snapshot",
     "stage_upload",

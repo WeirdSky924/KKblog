@@ -107,7 +107,7 @@
 - 授权：`否`。
 
 ### CNT-007 实现完整版本时间线与历史恢复
-- 元数据：状态 `进行中`；阶段 P5；owner `content`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P5；owner `content`；优先级 P1。
 - 目标/行为：作者查看全部版本元数据/安全差异，恢复标题、正文、格式、封面、可见性、分区、标签、评论设置；恢复生成新工作修订并再走终稿发布。
 - 来源：访谈 Q052-Q053、Q298、Q321；`flows/02-article-state-machine.md` §版本恢复；`data/02-identity-content-fields.md` §ArticleRevision。
 - 依赖：前置 `CNT-003`、`CNT-006`；后续 `EXC-003`、`AUT-005`、`QA-003`、`QA-006`。
@@ -116,10 +116,11 @@
 - 影响：数据：新Revision/restore_source；权限：作者；审计：版本ID；缓存：发布后；异步无；媒体：完整绑定快照；通知无。
 - 测试/验收：RED 全字段恢复、历史来源保留、冲突令牌、富文本↔Markdown历史；DB指针/媒体读回。
 - 风险/停止：恢复直接切 published、丢恢复前状态或恢复已删除媒体无明确错误时停止。
+- 证据：交付前聚焦 RED `pytest apps/content/tests/test_cnt007.py -q` 退出 1，`2 failed` 精确暴露 `ArticleRestoreGrant` 模型已存在但 `0007` 持久化表缺失。补齐 15 分钟一次性恢复 grant，原 token 只返回作者、数据库仅存 SHA-256 摘要，并以 `(article_id, source_revision_id)` 复合 FK 保证历史来源属于同一文章；作者时间线只返回 sequence/时间/格式/可见性/来源和三指针标记，不返回标题或正文。prepare/confirm 均锁 Article 并重判启用作者、owner、row version、未解决编辑冲突、标签与媒体状态；确认后复制标题、正文、原格式、封面、可见性、分区、标签、摘要和评论设置，创建 `based_on=恢复前工作版`、`restore_source=历史来源` 的新不可变 Revision，只移动 working 指针并消费 grant，published 指针保持旧版，自动重发明确返回 `content.final_review_required.v1`。真实 PostgreSQL 聚焦 GREEN 退出 0，`5 passed`：全字段/标签/媒体快照、发布指针稳定、冲突 token、正文不进入时间线、Q321 导入后的 Markdown 当前版恢复原 TipTap 格式，以及历史标签/媒体失效的明确错误与事务回滚均读回；全部 content 与架构回归退出 0，`60 passed`。隔离 migration `0007 -> 0006 -> 0007` 反向/重放均退出 0，catalog 读回摘要形状、唯一摘要、expires-after-create、actor/article/source FK 和来源同文章复合 FK；migration drift、Ruff lint/format 与 `git diff --check` 均退出 0。HTTP 时间线/终稿确认页面由 P10 authoring 消费稳定 query/service，本卡未提前创建第二页面 owner；未执行生产 migration、生产数据或 Git 交付。
 - 授权：`否`。
 
 ### CNT-008 实现文章 7 天软删除、恢复与物理清理 Saga
-- 元数据：状态 `待处理`；阶段 P5；owner `content`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P5；owner `content`；优先级 P0。
 - 目标/行为：作者/管理员删除进入7天冷静期并404；期限内恢复原状态；到期删除正文/版本/媒体/评论，保留举报/申诉/审计稳定引用。
 - 来源：访谈 Q046-Q047、Q284、Q290、Q315；`flows/02-article-state-machine.md` §删除；`contracts/05-background-tasks.md` §文章物理删除 Saga。
 - 依赖：前置 `CNT-001`、`MED-006`、`FND-005`、`OBS-004`、`OBS-006`；后续 `CMT-011`、`EXC-004`、`AUT-001`、`QA-002`、`QA-003`、`QA-004`、`QA-006`。
@@ -128,10 +129,11 @@
 - 影响：数据：deleted/purge字段与级联；权限：作者/管理员；审计：动作；缓存：即时失效；异步：小时扫描/Saga；媒体：到期删；通知：管理员他人动作。
 - 测试/验收：RED 7天边界、恢复、双Worker、DB提交后文件失败、案件保留；真实DB+临时媒体读回。
 - 风险/停止：级联误删案件/审计、先删文件或恢复算法覆盖管理员隐藏即停止。
+- 证据：RED `pytest apps/content/tests/test_cnt008.py -q` 收集期退出 2，准确报告永久 `ArticleTombstone` 与删除契约不存在。新增正交软删除/恢复服务：作者只能操作自己文章，管理员删除他人文章后只有管理员可直接恢复；服务锁 Article、校验 row version，设置精确 7 天 `deleted_at/purge_after`，不改 working/published/scheduled 三指针，并把原发布状态、三指针、排期/发布时间、作者、删除 actor 与管理员动作标记写入不含标题/正文且无 Article FK 的安全墓碑。恢复期限为左闭右开，严格在 deadline 前从墓碑恢复原状态并清除墓碑；读者冷静期始终 404，作者可在期限内只读并恢复，deadline 起作者和时间线也 404；管理员隐藏投影未被读写。删除/恢复同事务写永久 AuditEntry 与 `article.deleted/restored.v1`，管理员动作携带作者 recipient，最终 Notification Receipt 由 `OBS-008` 消费。物理清理锁 Article 和墓碑并校验任务 deadline，先调用 comments owner 事务端口，再由 media owner 批量解除全部历史 Revision Binding、仅把无其他引用资产标 `DELETE_PENDING`，写 `article.purge_requested.v1` 与 `purged_at` 后删除数据库聚合；文件删除只注册 `on_commit`，失败保留待删事实，由既有每分钟媒体任务重试。comments app 尚未在 P5 存在，当前无评论数据时返回 0；未来 app 一旦安装却未由 `CMT-011` 注册清理端口会 fail closed，测试替身证明评论端口失败会回滚文章、Binding、资产状态与文件。新增每小时扫描、`article:{id}:purge:{deadline-us}` TaskRun 幂等任务；双 Worker 读回仅 `purged/already_purged`。真实 PostgreSQL 聚焦 GREEN 退出 0，`6 passed`，覆盖发布版隐藏/恢复、7 天边界、删除期间排期不被旧任务取消、管理员权限/审计/事件、多历史 Revision 共享媒体只释放一次、数据库提交后文件删除失败及后续成功重试、comments 失败全回滚、双 Worker、TaskRun 与 Beat；content/media/operations/架构相关回归退出 0，`148 passed`。隔离 migration `0008 -> 0007 -> 0008` 反向/重放均退出 0，catalog 读回 publication/schedule/deadline/purged-at CHECK、永久主键与 0 个 FK。真实隔离 Redis solo Worker 经 broker 投递后读回 TaskRun `succeeded/attempt=1/result_ref=...:purged`、Article 0、已清理墓碑 1、purge 事件 1；Worker 随后温和停止且进程读回为空。主机 root Worker 仅用于隔离 smoke 并输出非生产 superuser 警告；部署仍须容器非特权用户。migration drift、Django 架构契约、Ruff lint/format 与 `git diff --check` 均退出 0；未提前创建 P7 comments/P10/P11 页面，未执行生产物理清理、生产 migration 或 Git 交付。
 - 授权：隔离测试 `否`；生产物理清理 `是`。
 
 ### CNT-009 收敛作者禁用/启用与文章排期生命周期
-- 元数据：状态 `待处理`；阶段 P5；owner `content`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P5；owner `content`；优先级 P0。
 - 目标/行为：消费账户事件：禁用作者隐藏全部已发布并取消定时转草稿；启用只恢复因禁用遮罩的文章，不恢复排期；历史评论不受影响。
 - 来源：访谈 Q299-Q301；`flows/02-article-state-machine.md` §作者禁用遮罩；`contracts/04-events-errors.md` account事件。
 - 依赖：前置 `ACC-011`、`CNT-004`、`CNT-005`、`FND-005`；后续 `DSC-008`、`ADM-002`、`QA-002`、`QA-003`、`QA-006`。
@@ -140,6 +142,15 @@
 - 影响：数据：遮罩/排期转草稿；权限：读/写；审计：账户动作关联；缓存：全相关失效；异步：outbox消费；通知：角色通知由OBS；媒体无删。
 - 测试/验收：RED 禁用/启用组合、重复事件、排期到点竞态、缓存命中；跨域读回。
 - 风险/停止：简单 visible=true 恢复、排期仍自动发布或事件顺序导致文章泄露即停止。
+- 证据：RED `pytest apps/content/tests/test_cnt009.py -q` 收集期退出 2，准确报告 content account-status consumer 不存在。新增无 Account FK 的 `AuthorContentMask` 投影，保存 masked、最后 `occurred_at/event_id/event_type` 并以 `(occurred_at,event_id)` 裁决乱序；`consume_account_status_event` 复用 core `event_id + consumer_name` 持久去重，只接受 schema v1、空 payload 的 account disabled/enabled 信封。禁用事件把遮罩设为 true，并锁定/取消该事件时刻之前建立的全部 SCHEDULED Article：清三项排期事实、转 DRAFT、递增 row version、逐篇写 `article.schedule_cancelled.v1`；同事务同步未清理 ArticleTombstone 的原排期快照，保证冷静期恢复也不复活排期。启用事件只在顺序更新时把遮罩设为 false，不改 visibility、发布指针、管理员隐藏、软删除或任何排期；较旧禁用事件仍只取消其发生时已存在的旧排期，不会取消较新启用后建立的排期。Article 新增 `scheduled_at` PostgreSQL 事实，schedule/publish/cancel/删除恢复全链路写清；reader、published query、author timeline、发布/排期命令和 article media access 均读取持久遮罩，因此 Account 已启用但 enabled 事件尚未消费时仍 fail closed。投影变化写 `article.author_mask_changed.v1` 供 discovery 缓存/索引按作者失效，事件注册表已同步；历史评论 owner 未被读取或修改。真实 PostgreSQL 聚焦 GREEN 退出 0，`5 passed`：真实 accounts disabled/enabled Outbox、重复消费、已发布可见性与媒体、管理员独立遮罩、启用事件滞后、普通与冷静期排期取消、不自动恢复、乱序旧/新排期裁决，以及到点发布 Worker 与 consumer 双线程竞态最终只有一次取消均读回；accounts/content/media/Outbox/架构相关回归退出 0，`165 passed`。`0009` 在隔离 `0008` schema 下先插入缺 `scheduled_at` 的真实旧 SCHEDULED Article 与墓碑，应用时分别从 `updated_at/deleted_at` 正确回填，再执行 `0009 -> 0008 -> 0009` 反向/重放均退出 0；catalog 读回 Article/Tombstone schedule CHECK、mask event type/ULID CHECK 与主键，旧事实每次回填均为 true，验证夹具随后定向清理并读回 Article/Revision/Tombstone 均为 0。migration drift、Django check、Ruff lint/format 与 `git diff --check` 均退出 0。最终 discovery 缓存消费者与 HTTP 页面分别由 P6/P10/P11 消费稳定投影/事件/服务，本卡未提前创建平行 owner；未执行生产事件、生产 migration、生产缓存动作或 Git 交付。
 - 授权：`否`。
+
+## 阶段总审计（2026-07-23）
+
+- 状态与拓扑：结构化读回 P5 精确 11 张 `CNT` 任务卡、11 条 `完成`、11 条证据和 11 条授权，`进行中/待处理/阻塞/待确认` 为 0；所有前置 `FND/ACC/MED/OBS/RUN` 均在所属阶段为完成。总索引已从过期的 P2 状态修正为 P0-P5 共 50/102 项完成，下一项只指向 P6 `DSC-001`，未提前建立 P6/P10/P11 页面。架构契约检查覆盖 owner 与依赖方向，content 只依赖 accounts/media/operations 公共端口和 core 协议；comments 清理由 P5 注册端口留给其后置 owner，安装 comments 却未注册时关闭失败。
+- 数据与回归：全新 loopback PostgreSQL 测试库从零应用全部 migration 后，全仓 `pytest --create-db -q` 与最终代码后的 `pytest -q` 均退出 0，`328 passed`；P5 聚焦恢复、删除和作者状态分别为 `5/6/5 passed`。真实 PostgreSQL 并发覆盖标签上限、编辑冲突、双 Worker 发布/清理与禁用到点竞态；临时媒体覆盖跨修订共享、事务回滚、提交后文件失败及待删重试；Outbox consumer 读回重复/乱序事件终态。Ruff lint、299 文件 format check、compileall、Django check、`uv lock --check`、migration drift、架构/Outbox/task-entry 合约 20 项和 `git diff --check` 均退出 0。
+- Migration 与 catalog：隔离基库最终读回 `content.0001..0009` 全部应用。各任务卡记录 `0001..0006` 的反向/重放；本阶段收口又完成 `0007 -> 0006 -> 0007`、`0008 -> 0007 -> 0008` 与 `0009 -> 0008 -> 0009`。`0009` 在旧 schema 真实插入缺排期建立时间的 SCHEDULED Article/墓碑，应用和重放均正确回填后再建立 CHECK，验证夹具定向清理为 0。最终 catalog 读回 9 条 content migration、Article 排期三事实 CHECK、Revision 不可变 trigger、恢复来源复合 FK、墓碑 0 FK 与作者遮罩主键/事件约束；全新测试库同时证明零基线向前迁移。
+- 运行时与清理：排期和物理清理分别完成真实隔离 Redis broker + solo Worker smoke，读回 Article 指针/删除终态和 TaskRun `succeeded/attempt=1`；Worker 均温和停止且进程为空。主机 root Worker 只用于隔离 smoke 并产生 Celery 非生产 superuser 警告，生产仍须容器非特权用户。专用 `kaj-p5-postgres/redis/mailpit` 最终执行定向停止，`docker ps -a` 对三个名称读回为空；未终止其他项目进程。P5 没有用户可见页面，HTTP/Playwright 状态矩阵由明确后置 P6/P10/P11 消费，本阶段未用静态截图冒充页面验收。
+- 未执行与残余边界：未执行生产 migration/数据清理、生产事件消费、生产缓存、真实通知/邮件、部署、服务重启或新的 Git add/commit/push。全域 `OUTBOX_TRANSPORT` 按 P1 基础设计继续默认关闭失败，P5 交付的是可由后续 P8 全域注册表路由的持久幂等 content consumer，未用只识别账户事件的局部 transport 吞掉其他领域事件。当前改动保留在 `codex/p5-content-finalize` 工作树，等待新的 Git 交付授权。
 
 [返回总索引](../implementation-todolist.md)

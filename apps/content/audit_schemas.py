@@ -27,3 +27,17 @@ def register_content_audit_schemas() -> None:
         "content.tag.restore",
     ):
         register_audit_schema(AuditSchema(action, "tag", tag_fields))
+    article_deletion_fields = frozenset(
+        {
+            "administrative",
+            "deleted_at",
+            "publication_state",
+            "purge_after",
+            "restored",
+        }
+    )
+    for action in (
+        "content.article.delete",
+        "content.article.restore",
+    ):
+        register_audit_schema(AuditSchema(action, "article", article_deletion_fields))

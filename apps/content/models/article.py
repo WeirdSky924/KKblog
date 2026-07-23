@@ -61,6 +61,7 @@ class Article(models.Model):
         blank=True,
     )
     scheduled_for = models.DateTimeField(null=True, blank=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     last_published_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -107,12 +108,14 @@ class Article(models.Model):
                         publication_state="SCHEDULED",
                         scheduled_revision__isnull=False,
                         scheduled_for__isnull=False,
+                        scheduled_at__isnull=False,
                     )
                     | (
                         ~models.Q(publication_state="SCHEDULED")
                         & models.Q(
                             scheduled_revision__isnull=True,
                             scheduled_for__isnull=True,
+                            scheduled_at__isnull=True,
                         )
                     )
                 ),

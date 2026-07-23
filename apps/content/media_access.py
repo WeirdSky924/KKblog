@@ -1,4 +1,4 @@
-from apps.accounts.public import is_active_author
+from apps.accounts.public import is_active_account, is_active_author
 from apps.media.public import (
     MediaTargetType,
     TargetAccessDecision,
@@ -7,6 +7,7 @@ from apps.media.public import (
 )
 
 from .models import ArticleRevision
+from .policies import author_is_content_masked
 
 
 def article_revision_media_access(
@@ -19,12 +20,18 @@ def article_revision_media_access(
     except ArticleRevision.DoesNotExist:
         return TargetAccessDecision(False, False, False, False)
     article = revision.article
-    author_active = is_active_author(article.author_id)
-    owner = author_active and request.actor_id == article.author_id
+    account_visible = is_active_account(
+        article.author_id
+    ) and not author_is_content_masked(article.author_id)
+    owner = (
+        account_visible
+        and is_active_author(article.author_id)
+        and request.actor_id == article.author_id
+    )
     is_published = (
         article.published_revision_id == revision.id
         and article.deleted_at is None
-        and author_active
+        and account_visible
     )
     if revision.visibility == ArticleRevision.Visibility.PUBLIC:
         reader = is_published

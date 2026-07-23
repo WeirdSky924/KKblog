@@ -30,6 +30,7 @@ payload 由每个版本的 schema 校验，不放正文、密码、验证码、�
 | `account.deleted.v1` | accounts | comments 匿名化、moderation 结案、media 清理 |
 | `article.published.v1` | content | discovery 缓存/索引失效、审计 |
 | `article.visibility_changed.v1` | content | 搜索/sitemap/缓存立即失效 |
+| `article.author_mask_changed.v1` | content account-status consumer | discovery 按作者失效缓存/索引，media 与 reader query 直接读取遮罩投影 |
 | `article.admin_viewed.v1` | content policy | notifications 按文章/日聚合 |
 | `article.hidden/restored/deleted.v1` | content/moderation | 作者通知、缓存失效、审计 |
 | `article.purge_requested.v1` | content | comments/media 清理，审计保留 |

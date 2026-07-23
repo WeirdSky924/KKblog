@@ -26,6 +26,7 @@ from apps.media.public import (
 
 from ..events import ARTICLE_PUBLISHED
 from ..models import Article, ArticleRevision, PublicationReviewGrant, Tag
+from ..policies import author_is_content_masked
 
 REVIEW_LIFETIME = timedelta(minutes=15)
 
@@ -71,7 +72,7 @@ def _actor(value) -> UUID:
         raise PublicationCommandError(
             "content.article_not_editable.v1", "文章不存在或不可发布。"
         ) from None
-    if not is_active_author(actor_id):
+    if not is_active_author(actor_id) or author_is_content_masked(actor_id):
         raise PublicationCommandError(
             "content.article_not_editable.v1", "文章不存在或不可发布。"
         )
@@ -301,6 +302,7 @@ def _apply_publication(
     article.publication_state = Article.PublicationState.PUBLISHED
     article.scheduled_revision = None
     article.scheduled_for = None
+    article.scheduled_at = None
     if first:
         article.published_at = now
     article.last_published_at = now
@@ -310,6 +312,7 @@ def _apply_publication(
             "publication_state",
             "scheduled_revision",
             "scheduled_for",
+            "scheduled_at",
             "published_at",
             "last_published_at",
             "updated_at",

@@ -1,5 +1,7 @@
 from .access import AdminArticleViewReceipt
 from .article import Article
+from .author_state import AuthorContentMask
+from .deletion import ArticleTombstone
 from .editing import ArticleEditGrant
 from .publication import PublicationReviewGrant
 from .restoration import ArticleRestoreGrant
@@ -15,6 +17,8 @@ from .tag import (
 
 __all__ = [
     "Article",
+    "ArticleTombstone",
+    "AuthorContentMask",
     "ArticleEditGrant",
     "AdminArticleViewReceipt",
     "ArticleRevision",

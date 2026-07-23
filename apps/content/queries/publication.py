@@ -6,6 +6,7 @@ from apps.accounts.public import is_active_account, is_active_author
 from apps.core.ids import normalize_ulid
 
 from ..models import Article, ArticleRevision
+from ..policies import author_is_content_masked
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +36,11 @@ def published_revision(
     except Article.DoesNotExist:
         return None
     revision = article.published_revision
-    if revision is None or not is_active_account(article.author_id):
+    if (
+        revision is None
+        or not is_active_account(article.author_id)
+        or author_is_content_masked(article.author_id)
+    ):
         return None
     if revision.visibility == ArticleRevision.Visibility.PUBLIC:
         allowed = True
