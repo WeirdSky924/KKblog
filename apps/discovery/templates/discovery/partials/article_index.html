@@ -1,4 +1,4 @@
-<div id="article-index" class="article-index" data-article-index tabindex="-1">
+<div id="article-index" class="article-index" data-article-index data-focus-after-swap tabindex="-1">
   {% if pagination_form.errors %}
     <div class="article-index__error" data-error-focus tabindex="-1" role="alert">
       <h3>筛选条件需要修改</h3>
@@ -19,6 +19,7 @@
         method="get"
         hx-get="{% url 'public:home' %}"
         hx-target="#article-index"
+        hx-swap="outerHTML"
         hx-push-url="true"
         hx-indicator="#article-index-loading"
       >

@@ -529,6 +529,14 @@ function focusInsertedError(root) {
   }
 }
 
+function focusSwappedRegion(root) {
+  if (!(root instanceof HTMLElement) || !root.matches("[data-focus-after-swap]")) {
+    return;
+  }
+  const current = root.id ? document.getElementById(root.id) : root;
+  requestAnimationFrame(() => current?.focus({ preventScroll: true }));
+}
+
 document.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof Element)) {
@@ -641,6 +649,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeConfirmDialogs(root);
   initializeMediaPickers(root);
   focusInsertedError(root);
+  focusSwappedRegion(root);
 });
 
 window.addEventListener("pageshow", () => {
