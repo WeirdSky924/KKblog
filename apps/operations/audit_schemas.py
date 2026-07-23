@@ -43,6 +43,11 @@ def register_builtin_audit_schemas() -> None:
             "account",
             frozenset({"status", "roles", "deletion_id", "disposition"}),
         ),
+        AuditSchema(
+            "accounts.profile.change",
+            "account",
+            frozenset({"nickname_present", "theme", "avatar_present"}),
+        ),
     )
     for schema in schemas:
         register_audit_schema(schema)

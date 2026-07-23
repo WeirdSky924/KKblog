@@ -8,6 +8,7 @@ INSTALLED_APPS = [
     "apps.administration",
     "apps.core",
     "apps.discovery",
+    "apps.media",
     "apps.notifications",
     "apps.operations",
 ]
@@ -32,7 +33,11 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
-        "OPTIONS": {},
+        "OPTIONS": {
+            "context_processors": [
+                "apps.accounts.presentation.context.account_theme",
+            ]
+        },
     }
 ]
 
@@ -44,6 +49,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [("dist", BASE_DIR / "static" / "dist")]
 STATIC_ROOT = BASE_DIR / "var" / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "var" / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_TIMEOUT = 10
@@ -68,6 +74,19 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 300
 CELERY_TASK_IGNORE_RESULT = True
+CELERY_BEAT_SCHEDULE = {
+    "media-delete-pending": {
+        "task": "apps.media.dispatch_pending_media",
+        "schedule": 60.0,
+    },
+    "media-cleanup-staged": {
+        "task": "apps.media.dispatch_staged_media",
+        "schedule": 3_600.0,
+    },
+}
+
+MEDIA_STAGED_EXPIRY_SECONDS = 86_400
+MEDIA_CLEANUP_BATCH_SIZE = 100
 
 LOGGING = {
     "version": 1,

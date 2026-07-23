@@ -6,6 +6,11 @@ from apps.accounts.deletion import (
 )
 from apps.accounts.models import RoleAssignment
 from apps.accounts.queries.ip_blocks import ip_block_detail, ip_block_list
+from apps.accounts.queries.profile import (
+    PublicAccountIdentity,
+    PublicAccountNotFound,
+    public_account_identity,
+)
 from apps.accounts.queries.security_events import (
     security_event_detail,
     security_event_list,
@@ -39,6 +44,8 @@ __all__ = [
     "AccountDeletionDisposition",
     "AccountLifecycleError",
     "AuthorArticleDecision",
+    "PublicAccountIdentity",
+    "PublicAccountNotFound",
     "clear_account_restrictions",
     "clear_ip_send_restriction",
     "default_restriction_store",
@@ -46,6 +53,7 @@ __all__ = [
     "ip_block_detail",
     "ip_block_list",
     "is_administrator",
+    "public_account_identity",
     "security_event_detail",
     "security_event_list",
     "set_account_enabled",

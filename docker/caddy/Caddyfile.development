@@ -17,6 +17,8 @@ http://localhost {
 
 		@private path /media/* /exports/* /backups/* /var/*
 		respond @private 404
+		@internal path /internal/*
+		respond @internal 404
 
 		reverse_proxy {$KAJ_CADDY_UPSTREAM:web:8000} {
 			header_up -X-Kaj-Client-IP

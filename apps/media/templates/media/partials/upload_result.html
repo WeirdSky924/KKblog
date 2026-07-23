@@ -1,0 +1,15 @@
+<div
+  class="media-upload-result"
+  role="status"
+  aria-live="polite"
+  data-media-upload-result="{% if upload_error %}error{% else %}success{% endif %}"
+  {% if asset %}data-asset-id="{{ asset.id }}" data-input-name="{{ input_name|default:'avatar_asset_id' }}"{% endif %}
+>
+  {% if upload_error %}
+    <p class="field-error">{{ upload_error }}</p>
+    {% if original_name %}<p class="media-upload-result__name">未上传：{{ original_name }}</p>{% endif %}
+  {% else %}
+    <p>图片已安全处理，可以继续保存。</p>
+    <input type="hidden" name="{{ input_name|default:'avatar_asset_id' }}" value="{{ asset.id }}">
+  {% endif %}
+</div>

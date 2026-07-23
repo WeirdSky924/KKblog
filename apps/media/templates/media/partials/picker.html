@@ -1,0 +1,86 @@
+{% load static %}
+<div
+  class="media-picker"
+  data-media-picker="{{ adapter }}"
+  data-media-upload-url="{% url 'media:upload' adapter=adapter %}"
+  data-media-input-name="{{ input_name }}"
+  data-media-favicon="{% if favicon_preview %}true{% else %}false{% endif %}"
+  data-media-state="{% if current_asset_id %}ready{% else %}empty{% endif %}"
+>
+  <div class="media-picker__header">
+    <div>
+      <p class="media-picker__kicker">媒体 · {{ label }}</p>
+      <h3>{{ label }}</h3>
+    </div>
+    <ol class="media-picker__track" aria-label="上传状态">
+      <li data-media-step="select">01 选择</li>
+      <li data-media-step="validate">02 校验</li>
+      <li data-media-step="ready">03 可用</li>
+    </ol>
+  </div>
+
+  <div class="media-picker__body">
+    <div class="media-picker__preview" data-media-preview-frame>
+      <img
+        data-media-preview
+        {% if current_preview_url %}src="{{ current_preview_url }}" alt="当前{{ label }}"{% else %}alt="" hidden{% endif %}
+      >
+      <div class="media-picker__empty" data-media-empty {% if current_preview_url %}hidden{% endif %}>
+        <i data-lucide="image-up"></i>
+        <span>尚未选择{{ label }}</span>
+      </div>
+    </div>
+
+    <div class="media-picker__controls">
+      {% csrf_token %}
+      <div class="media-picker__dropzone" data-media-dropzone>
+        <input
+          class="visually-hidden"
+          id="{{ picker_id }}-file"
+          type="file"
+          data-media-file
+          tabindex="-1"
+          aria-hidden="true"
+          {% if adapter == "site-logo" %}
+            accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon"
+          {% else %}
+            accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp"
+          {% endif %}
+        >
+        <button class="button button--secondary" type="button" data-media-choose>
+          <i data-lucide="image-up"></i>
+          选择或拖放{{ label }}
+        </button>
+      </div>
+
+      <div class="media-picker__progress" data-media-progress-wrap hidden>
+        <span>正在校验</span>
+        <progress data-media-progress max="100" value="0">0%</progress>
+      </div>
+
+      <div class="media-picker__result" data-media-result aria-live="polite"></div>
+      <input
+        type="hidden"
+        name="{{ input_name }}"
+        value="{{ current_asset_id|default:'' }}"
+        data-media-value
+      >
+      <div class="media-picker__actions">
+        <button class="button button--secondary" type="button" data-media-retry hidden>
+          <i data-lucide="rotate-cw"></i>
+          重试
+        </button>
+        <button
+          class="icon-button"
+          type="button"
+          data-media-remove
+          aria-label="移除{{ label }}"
+          title="移除{{ label }}"
+          {% if not current_asset_id %}hidden{% endif %}
+        >
+          <i data-lucide="trash-2"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

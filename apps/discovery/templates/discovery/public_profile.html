@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.display_name }} · Kaj 的小房间{% endblock %}
+
+{% block content %}
+  <section class="public-profile" aria-labelledby="profile-title">
+    <header class="public-profile__header">
+      {% include "accounts/partials/avatar.html" with identity=profile only %}
+      <div>
+        <p class="account-kicker">公开主页</p>
+        <h1 id="profile-title">{{ profile.display_name }}</h1>
+      </div>
+    </header>
+    <section class="public-profile__articles" aria-labelledby="articles-title">
+      <div>
+        <p class="account-kicker">文章</p>
+        <h2 id="articles-title">公开发布</h2>
+      </div>
+      <div class="public-profile__empty">
+        <p>此处还没有公开文章。</p>
+      </div>
+    </section>
+  </section>
+{% endblock %}

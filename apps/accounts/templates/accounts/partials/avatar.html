@@ -1,0 +1,15 @@
+{% if identity.avatar_url %}
+  <img
+    class="profile-avatar profile-avatar--image"
+    src="{{ identity.avatar_url }}"
+    alt="{{ identity.display_name }}的头像"
+    width="96"
+    height="96"
+  >
+{% else %}
+  <span
+    class="profile-avatar profile-avatar--generated"
+    role="img"
+    aria-label="{{ identity.display_name }}的头像"
+  ><span aria-hidden="true">{{ identity.avatar_initial }}</span></span>
+{% endif %}

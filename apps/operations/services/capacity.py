@@ -4,6 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
+from shutil import disk_usage
 
 from apps.core.errors import DomainError, ErrorCode
 from apps.core.time.clock import require_aware
@@ -122,3 +124,17 @@ def capacity_health_snapshot(gate: CapacityGate) -> CapacityDecision:
     if not isinstance(gate, CapacityGate):
         raise TypeError("gate must be a CapacityGate")
     return gate.evaluate()
+
+
+def filesystem_capacity_gate(path: Path | str) -> CapacityGate:
+    root = Path(path)
+
+    def sample() -> CapacitySample:
+        usage = disk_usage(root)
+        return CapacitySample(
+            total_bytes=usage.total,
+            free_bytes=usage.free,
+            observed_at=datetime.now(UTC),
+        )
+
+    return CapacityGate(sample)

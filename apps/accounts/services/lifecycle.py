@@ -22,6 +22,7 @@ from apps.accounts.models import (
     RoleAssignment,
 )
 from apps.core.events import enqueue_event
+from apps.media.public import release_owner_assets
 
 AuditWriter = Callable[..., object]
 DispositionVerifier = Callable[[AccountDeletionDisposition], bool]
@@ -285,5 +286,6 @@ def delete_account(
                 "article_count": article_count,
             },
         )
+        release_owner_assets(owner_id=target.id)
         target.delete()
         return deletion

@@ -1,6 +1,10 @@
 {% load static %}
 <!doctype html>
-<html lang="zh-Hans" data-theme="{{ initial_theme|default:'light' }}">
+<html
+  lang="zh-Hans"
+  data-theme="{{ initial_theme|default:'light' }}"
+  data-theme-source="{{ theme_source|default:'visitor' }}"
+>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +14,12 @@
     >
     {% block meta %}{% endblock %}
     <title>{% block title %}Kaj 的小房间{% endblock %}</title>
-    <link rel="icon" href="data:,">
+    <link
+      rel="icon"
+      data-site-favicon
+      data-default-href="{% static 'media/brand/k-mark.svg' %}"
+      href="{% static 'media/brand/k-mark.svg' %}"
+    >
     <script src="{% static 'dist/theme.js' %}"></script>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
     <script type="module" src="{% static 'dist/app.js' %}"></script>

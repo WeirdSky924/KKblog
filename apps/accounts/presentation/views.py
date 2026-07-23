@@ -4,6 +4,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.accounts.audit import record_profile_audit
 from apps.accounts.policies.registration import RegistrationPolicy
 from apps.accounts.presentation.cookies import delete_session_cookie, set_session_cookie
 from apps.accounts.presentation.forms import (
@@ -15,11 +16,14 @@ from apps.accounts.presentation.forms import (
     PasswordLoginForm,
     PasswordResetCodeForm,
     PasswordResetForm,
+    ProfileForm,
     RegistrationCodeForm,
     RegistrationForm,
     RevokeAllSessionsForm,
     RevokeSessionForm,
+    ThemeForm,
 )
+from apps.accounts.queries.profile import public_account_identity
 from apps.accounts.queries.sessions import session_list
 from apps.accounts.services.authentication import (
     AuthenticationError,
@@ -35,6 +39,7 @@ from apps.accounts.services.credentials import (
     request_password_reset_code,
     reset_password,
 )
+from apps.accounts.services.profile import ProfileError, change_profile
 from apps.accounts.services.registration import (
     RegistrationError,
     register_account,
@@ -325,9 +330,27 @@ def _render_settings(
     password_form=None,
     email_code_form=None,
     email_form=None,
+    profile_form=None,
+    theme_form=None,
     code_sent=False,
+    active_tab=None,
     status=200,
 ):
+    account = request.account
+    selected_tab = active_tab or request.GET.get("tab", "profile")
+    if selected_tab not in {"profile", "credentials", "theme"}:
+        selected_tab = "profile"
+    profile_form = profile_form or ProfileForm(
+        initial={
+            "nickname": account.nickname or "",
+            "avatar_asset_id": account.avatar_asset_id or "",
+        }
+    )
+    theme_form = theme_form or ThemeForm(
+        initial={"theme": account.theme.casefold().replace("_", "-")}
+    )
+    submitted_avatar_id = profile_form["avatar_asset_id"].value() or None
+    identity = public_account_identity(account.id)
     return render(
         request,
         "accounts/settings.html",
@@ -335,16 +358,28 @@ def _render_settings(
             "password_form": password_form or ChangePasswordForm(),
             "email_code_form": email_code_form or NewEmailCodeForm(),
             "email_form": email_form or ChangeEmailForm(),
+            "profile_form": profile_form,
+            "theme_form": theme_form,
             "code_sent": code_sent,
-            "account": request.account,
+            "account": account,
+            "active_tab": selected_tab,
+            "profile_identity": identity,
+            "profile_avatar_asset_id": submitted_avatar_id,
+            "profile_avatar_preview_url": (
+                identity.avatar_url
+                if submitted_avatar_id == account.avatar_asset_id
+                else None
+            ),
             "credentials_saved": request.GET.get("saved") == "1",
+            "profile_saved": request.GET.get("profile_saved") == "1",
+            "theme_saved": request.GET.get("theme_saved") == "1",
         },
         status=status,
     )
 
 
 def _rotated_response(request, result):
-    response = redirect(f"{reverse('accounts:settings')}?saved=1")
+    response = redirect(f"{reverse('accounts:settings')}?tab=credentials&saved=1")
     remaining = max(
         1, int((result.session.expires_at - timezone.now()).total_seconds())
     )
@@ -365,10 +400,59 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         return _render_settings(request)
     client_ip, trace_code = _request_meta(request)
     action = request.POST.get("action", "")
+    if action == "change_profile":
+        form = ProfileForm(request.POST)
+        if not form.is_valid():
+            return _render_settings(
+                request, profile_form=form, active_tab="profile", status=422
+            )
+        try:
+            change_profile(
+                account_id=request.account_id,
+                nickname=form.cleaned_data["nickname"],
+                theme=request.account.theme,
+                avatar_asset_id=form.cleaned_data["avatar_asset_id"],
+                client_ip=client_ip,
+                trace_code=trace_code,
+                audit_writer=record_profile_audit,
+            )
+        except ProfileError as exc:
+            form.add_error(exc.field, str(exc))
+            return _render_settings(
+                request, profile_form=form, active_tab="profile", status=422
+            )
+        return redirect(f"{reverse('accounts:settings')}?tab=profile&profile_saved=1")
+    if action == "change_theme":
+        form = ThemeForm(request.POST)
+        if not form.is_valid():
+            return _render_settings(
+                request, theme_form=form, active_tab="theme", status=422
+            )
+        try:
+            change_profile(
+                account_id=request.account_id,
+                nickname=request.account.nickname,
+                theme=form.cleaned_data["theme"],
+                avatar_asset_id=request.account.avatar_asset_id,
+                client_ip=client_ip,
+                trace_code=trace_code,
+                audit_writer=record_profile_audit,
+            )
+        except ProfileError as exc:
+            form.add_error(exc.field, str(exc))
+            return _render_settings(
+                request, theme_form=form, active_tab="theme", status=422
+            )
+        return redirect(f"{reverse('accounts:settings')}?tab=theme&theme_saved=1")
     if action == "send_email_code":
         form = NewEmailCodeForm(request.POST)
         if not form.is_valid():
-            return _render_settings(request, email_code_form=form, status=422)
+            return _render_settings(
+                request,
+                email_code_form=form,
+                active_tab="credentials",
+                status=422,
+            )
         try:
             request_new_email_code(
                 account_id=request.account_id,
@@ -379,7 +463,12 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             )
         except CredentialError as exc:
             form.add_error(exc.field, str(exc))
-            return _render_settings(request, email_code_form=form, status=422)
+            return _render_settings(
+                request,
+                email_code_form=form,
+                active_tab="credentials",
+                status=422,
+            )
         return _render_settings(
             request,
             email_code_form=form,
@@ -387,11 +476,14 @@ def settings_view(request: HttpRequest) -> HttpResponse:
                 initial={"new_email": form.cleaned_data["new_email"]}
             ),
             code_sent=True,
+            active_tab="credentials",
         )
     if action == "change_email":
         form = ChangeEmailForm(request.POST)
         if not form.is_valid():
-            return _render_settings(request, email_form=form, status=422)
+            return _render_settings(
+                request, email_form=form, active_tab="credentials", status=422
+            )
         try:
             result = change_email(
                 account_id=request.account_id,
@@ -404,11 +496,15 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             )
         except CredentialError as exc:
             form.add_error(exc.field, str(exc))
-            return _render_settings(request, email_form=form, status=422)
+            return _render_settings(
+                request, email_form=form, active_tab="credentials", status=422
+            )
         return _rotated_response(request, result)
     form = ChangePasswordForm(request.POST)
     if action != "change_password" or not form.is_valid():
-        return _render_settings(request, password_form=form, status=422)
+        return _render_settings(
+            request, password_form=form, active_tab="credentials", status=422
+        )
     try:
         result = change_password(
             account_id=request.account_id,
@@ -420,7 +516,9 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         )
     except CredentialError as exc:
         form.add_error(exc.field, str(exc))
-        return _render_settings(request, password_form=form, status=422)
+        return _render_settings(
+            request, password_form=form, active_tab="credentials", status=422
+        )
     return _rotated_response(request, result)
 
 

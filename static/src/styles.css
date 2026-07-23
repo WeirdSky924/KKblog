@@ -5,6 +5,7 @@
 @import "./feedback.css";
 @import "./status-pages.css";
 @import "./accounts.css";
+@import "./media.css";
 
 @source "../../templates";
 @source "../../apps";

@@ -1,6 +1,9 @@
 from django import forms
+from django.core.exceptions import ValidationError
 
+from apps.accounts.profile_rules import validate_nickname
 from apps.accounts.services.credentials import validate_password_strength
+from apps.core.ids import normalize_ulid
 
 
 class RegistrationCodeForm(forms.Form):
@@ -128,4 +131,53 @@ class RevokeAllSessionsForm(forms.Form):
     confirm = forms.ChoiceField(
         choices=(("all_devices", "退出所有设备"),),
         widget=forms.HiddenInput,
+    )
+
+
+class ProfileForm(forms.Form):
+    nickname = forms.CharField(
+        label="昵称",
+        max_length=16,
+        required=False,
+        help_text="中文每个计 2，其他文字每个计 1，总计不超过 16。",
+        widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
+    )
+    avatar_asset_id = forms.CharField(
+        required=False,
+        max_length=26,
+        widget=forms.HiddenInput,
+    )
+
+    def clean_nickname(self):
+        try:
+            return validate_nickname(self.cleaned_data["nickname"]).display
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages) from None
+
+    def clean_avatar_asset_id(self):
+        value = self.cleaned_data["avatar_asset_id"]
+        if not value:
+            return None
+        try:
+            return normalize_ulid(value)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("头像引用无效，请重新上传。") from None
+
+
+class ThemeRadioSelect(forms.RadioSelect):
+    def create_option(self, name, value, *args, **kwargs):
+        option = super().create_option(name, value, *args, **kwargs)
+        option["attrs"]["data-theme-value"] = str(value)
+        return option
+
+
+class ThemeForm(forms.Form):
+    theme = forms.ChoiceField(
+        label="账户主题",
+        choices=(
+            ("light", "浅色"),
+            ("dark", "深色"),
+            ("eye-care", "护眼"),
+        ),
+        widget=ThemeRadioSelect,
     )

@@ -3,40 +3,114 @@
 {% block title %}账号设置 · Kaj 的小房间{% endblock %}
 
 {% block content %}
-  <section class="account-page account-page--wide" aria-labelledby="settings-title">
-    <header class="account-header">
-      <p class="account-kicker">个人 · 安全</p>
-      <h1 id="settings-title">账号设置</h1>
-      <p>当前邮箱：{{ account.email }}</p>
-      {% if credentials_saved %}<p class="account-status" role="status">账号凭证已更新。</p>{% endif %}
+  <section class="account-page account-page--wide settings-page" aria-labelledby="settings-title">
+    <header class="account-header settings-header">
+      <div class="settings-header__identity">
+        {% include "accounts/partials/avatar.html" with identity=profile_identity only %}
+        <div>
+          <p class="account-kicker">个人 · 安全</p>
+          <h1 id="settings-title">账号设置</h1>
+          <p>当前邮箱：{{ account.email }}</p>
+        </div>
+      </div>
     </header>
-    <div class="account-panels">
-      <section class="account-panel" aria-labelledby="password-title">
-        <h2 id="password-title">修改密码</h2>
-        <p class="account-panel__description">需要当前密码；成功后保留本设备并退出其他设备。</p>
-        <form method="post" data-submit-once class="account-form">
-          {% csrf_token %}<input type="hidden" name="action" value="change_password">
-          {{ password_form.as_div }}
-          <button class="button button--primary" type="submit">修改密码</button>
+
+    <nav class="settings-tabs" role="tablist" aria-label="设置分类">
+      <a
+        role="tab"
+        href="{% url 'accounts:settings' %}?tab=profile"
+        aria-selected="{% if active_tab == 'profile' %}true{% else %}false{% endif %}"
+      >个人资料</a>
+      <a
+        role="tab"
+        href="{% url 'accounts:settings' %}?tab=credentials"
+        aria-selected="{% if active_tab == 'credentials' %}true{% else %}false{% endif %}"
+      >邮箱与密码</a>
+      <a
+        role="tab"
+        href="{% url 'accounts:settings' %}?tab=theme"
+        aria-selected="{% if active_tab == 'theme' %}true{% else %}false{% endif %}"
+      >主题</a>
+    </nav>
+
+    {% if active_tab == "profile" %}
+      <section class="settings-section" role="tabpanel" aria-labelledby="profile-settings-title">
+        <div class="settings-section__heading">
+          <p class="account-kicker">公开身份</p>
+          <h2 id="profile-settings-title">昵称与头像</h2>
+          <p>昵称修改后需要等待 7 天；未上传头像时使用首字符。</p>
+          <a class="settings-section__link" href="{{ profile_identity.profile_url }}">查看公开主页</a>
+        </div>
+        {% if profile_saved %}<p class="account-status" role="status">个人资料已更新。</p>{% endif %}
+        <form method="post" data-submit-once class="account-form settings-form">
+          {% csrf_token %}<input type="hidden" name="action" value="change_profile">
+          {{ profile_form.non_field_errors }}
+          <div>
+            {{ profile_form.nickname.label_tag }}
+            {{ profile_form.nickname }}
+            {% if profile_form.nickname.help_text %}<p class="field-help">{{ profile_form.nickname.help_text }}</p>{% endif %}
+            {{ profile_form.nickname.errors }}
+          </div>
+          {% include "media/partials/picker.html" with adapter="avatar" input_name="avatar_asset_id" label="头像" picker_id="account-avatar" current_asset_id=profile_avatar_asset_id current_preview_url=profile_avatar_preview_url favicon_preview=False %}
+          {{ profile_form.avatar_asset_id.errors }}
+          <button class="button button--primary" type="submit">保存个人资料</button>
         </form>
       </section>
-      <section class="account-panel" aria-labelledby="email-title">
-        <h2 id="email-title">修改邮箱</h2>
-        <p class="account-panel__description">只需验证新邮箱，不需要旧邮箱或当前密码。</p>
-        <form method="post" data-submit-once class="account-form">
-          {% csrf_token %}<input type="hidden" name="action" value="send_email_code">
-          {{ email_code_form.as_div }}
-          <button class="button button--secondary" type="submit">向新邮箱发送验证码</button>
-        </form>
-        {% if code_sent %}
-          <p class="account-status" role="status">验证码已发送到新邮箱。</p>
-          <form method="post" data-submit-once class="account-form">
-            {% csrf_token %}<input type="hidden" name="action" value="change_email">
-            {{ email_form.as_div }}
-            <button class="button button--primary" type="submit">确认新邮箱</button>
-          </form>
-        {% endif %}
+    {% elif active_tab == "credentials" %}
+      <section class="settings-section" role="tabpanel" aria-labelledby="credential-settings-title">
+        <div class="settings-section__heading">
+          <p class="account-kicker">账户安全</p>
+          <h2 id="credential-settings-title">邮箱与密码</h2>
+        </div>
+        {% if credentials_saved %}<p class="account-status" role="status">账号凭证已更新。</p>{% endif %}
+        <div class="account-panels">
+          <section class="account-panel" aria-labelledby="password-title">
+            <h2 id="password-title">修改密码</h2>
+            <p class="account-panel__description">需要当前密码；成功后保留本设备并退出其他设备。</p>
+            <form method="post" data-submit-once class="account-form">
+              {% csrf_token %}<input type="hidden" name="action" value="change_password">
+              {{ password_form.as_div }}
+              <button class="button button--primary" type="submit">修改密码</button>
+            </form>
+          </section>
+          <section class="account-panel" aria-labelledby="email-title">
+            <h2 id="email-title">修改邮箱</h2>
+            <p class="account-panel__description">只需验证新邮箱，不需要旧邮箱或当前密码。</p>
+            <form method="post" data-submit-once class="account-form">
+              {% csrf_token %}<input type="hidden" name="action" value="send_email_code">
+              {{ email_code_form.as_div }}
+              <button class="button button--secondary" type="submit">向新邮箱发送验证码</button>
+            </form>
+            {% if code_sent %}
+              <p class="account-status" role="status">验证码已发送到新邮箱。</p>
+              <form method="post" data-submit-once class="account-form">
+                {% csrf_token %}<input type="hidden" name="action" value="change_email">
+                {{ email_form.as_div }}
+                <button class="button button--primary" type="submit">确认新邮箱</button>
+              </form>
+            {% endif %}
+          </section>
+        </div>
       </section>
-    </div>
+    {% else %}
+      <section class="settings-section" role="tabpanel" aria-labelledby="theme-settings-title">
+        <div class="settings-section__heading">
+          <p class="account-kicker">跨设备偏好</p>
+          <h2 id="theme-settings-title">阅读主题</h2>
+          <p>登录后以账户偏好为准，并同步到当前浏览器。</p>
+        </div>
+        {% if theme_saved %}<p class="account-status" role="status">主题偏好已保存。</p>{% endif %}
+        <form method="post" data-submit-once class="account-form settings-form settings-form--theme">
+          {% csrf_token %}<input type="hidden" name="action" value="change_theme">
+          {{ theme_form.non_field_errors }}
+          <fieldset>
+            <legend>{{ theme_form.theme.label }}</legend>
+            <div class="theme-selector">{{ theme_form.theme }}</div>
+            {{ theme_form.theme.errors }}
+          </fieldset>
+          <button class="button button--primary" type="submit">保存主题</button>
+        </form>
+      </section>
+    {% endif %}
   </section>
 {% endblock %}

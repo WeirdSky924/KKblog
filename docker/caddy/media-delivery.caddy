@@ -2,20 +2,29 @@
 	@media_delivery path /_kaj/media/*
 	handle @media_delivery {
 		route {
+			request_header -X-Kaj-Internal-Auth
 			request_header -X-Kaj-Storage-Key
+			request_header -X-Kaj-Cache-Control
+			request_header -X-Kaj-Public
 			forward_auth {$KAJ_CADDY_UPSTREAM:web:8000} {
 				uri /internal/media/authorize
-				copy_headers X-Kaj-Storage-Key
+				header_up X-Kaj-Internal-Auth "1"
+				copy_headers X-Kaj-Storage-Key X-Kaj-Cache-Control X-Kaj-Public
 			}
 
 			@authorized header X-Kaj-Storage-Key *
 			handle @authorized {
 				root * /srv/media
 				rewrite * /{http.request.header.X-Kaj-Storage-Key}
+				header Cache-Control "{http.request.header.X-Kaj-Cache-Control}"
+				header X-Content-Type-Options "nosniff"
+				header -X-Kaj-Storage-Key
+				header -X-Kaj-Cache-Control
+				header -X-Kaj-Public
 				file_server
 			}
 
-			respond 403
+			respond 404
 		}
 	}
 }

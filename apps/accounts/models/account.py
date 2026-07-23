@@ -1,4 +1,3 @@
-import unicodedata
 import uuid
 
 from django.contrib.auth.hashers import check_password, make_password
@@ -6,6 +5,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models
 from django.db.models.functions import Lower
+
+from apps.accounts.profile_rules import validate_nickname
+from apps.core.ids import normalize_ulid
 
 
 def normalize_email(value: str) -> str:
@@ -15,12 +17,7 @@ def normalize_email(value: str) -> str:
 
 
 def normalize_nickname(value: str | None) -> str | None:
-    if value is None:
-        return None
-    display = value.strip()
-    if not display:
-        return None
-    return unicodedata.normalize("NFKC", display).casefold()
+    return validate_nickname(value).normalized
 
 
 class AccountManager(models.Manager):
@@ -83,8 +80,16 @@ class Account(models.Model):
 
     def clean(self) -> None:
         self.email = normalize_email(self.email)
-        self.nickname = self.nickname.strip() if self.nickname else None
-        self.normalized_nickname = normalize_nickname(self.nickname)
+        nickname = validate_nickname(self.nickname)
+        self.nickname = nickname.display
+        self.normalized_nickname = nickname.normalized
+        if self.avatar_asset_id:
+            try:
+                self.avatar_asset_id = normalize_ulid(self.avatar_asset_id)
+            except (TypeError, ValueError):
+                raise ValidationError({"avatar_asset_id": "头像引用无效。"}) from None
+        else:
+            self.avatar_asset_id = None
 
     def save(self, *args, **kwargs) -> None:
         self.clean()
