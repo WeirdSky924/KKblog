@@ -4,7 +4,14 @@ from uuid import UUID
 
 from django.templatetags.static import static
 
-from apps.content.public import visible_article_page
+from apps.content.public import (
+    search_visible_titles,
+    section_by_id,
+    section_list,
+    tag_reference,
+    visible_article_page,
+    visible_filter_tags,
+)
 from apps.core.time import to_shanghai
 
 
@@ -46,6 +53,26 @@ class ArticleIndexPage:
     page_window: tuple[int | None, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class DiscoveryFilterOption:
+    filter_id: UUID
+    name: str
+    state: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveryFilters:
+    sections: tuple[DiscoveryFilterOption, ...]
+    tags: tuple[DiscoveryFilterOption, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ArticleCollectionPage:
+    name: str
+    state: str | None
+    index_page: ArticleIndexPage
+
+
 def _page_window(current: int, total: int) -> tuple[int | None, ...]:
     visible = {1, total, *(range(max(1, current - 2), min(total, current + 2) + 1))}
     ordered = sorted(number for number in visible if 1 <= number <= total)
@@ -60,13 +87,78 @@ def _page_window(current: int, total: int) -> tuple[int | None, ...]:
 
 
 def home_article_page(
-    *, actor_id, page: int = 1, page_size: int = 20
+    *, actor_id, page: int = 1, page_size: int = 20, tag_ids=()
 ) -> ArticleIndexPage:
     source = visible_article_page(
         actor_id=actor_id,
         page=page,
         page_size=page_size,
+        tag_ids=tag_ids,
     )
+    return _index_page(source)
+
+
+def search_article_page(
+    *, actor_id, query: str, page: int = 1, page_size: int = 20
+) -> ArticleIndexPage:
+    source = search_visible_titles(
+        actor_id=actor_id,
+        query=query,
+        page=page,
+        page_size=page_size,
+    )
+    return _index_page(source)
+
+
+def discovery_filters(*, actor_id) -> DiscoveryFilters:
+    return DiscoveryFilters(
+        sections=tuple(
+            DiscoveryFilterOption(item.section_id, item.name) for item in section_list()
+        ),
+        tags=tuple(
+            DiscoveryFilterOption(item.tag_id, item.name, item.state)
+            for item in visible_filter_tags(actor_id=actor_id)
+        ),
+    )
+
+
+def section_article_page(
+    *, actor_id, section_id, page: int = 1, page_size: int = 20
+) -> ArticleCollectionPage | None:
+    section = section_by_id(section_id)
+    if section is None:
+        return None
+    source = visible_article_page(
+        actor_id=actor_id,
+        page=page,
+        page_size=page_size,
+        section_id=section.section_id,
+    )
+    return ArticleCollectionPage(section.name, None, _index_page(source))
+
+
+def tag_article_page(
+    *, actor_id, tag_id, page: int = 1, page_size: int = 20
+) -> ArticleCollectionPage | None:
+    tag = tag_reference(tag_id)
+    if tag is None:
+        return None
+    if tag.state == "REJECTED":
+        return None
+    if tag.state == "PENDING" and tag.tag_id not in {
+        item.tag_id for item in visible_filter_tags(actor_id=actor_id)
+    }:
+        return None
+    source = visible_article_page(
+        actor_id=actor_id,
+        page=page,
+        page_size=page_size,
+        tag_ids=(tag.tag_id,),
+    )
+    return ArticleCollectionPage(tag.name, tag.state, _index_page(source))
+
+
+def _index_page(source) -> ArticleIndexPage:
     items = tuple(_index_item(item) for item in source.items)
     return ArticleIndexPage(
         items=items,

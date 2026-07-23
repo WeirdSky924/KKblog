@@ -21,9 +21,13 @@ from .queries import (
     article_for_reader,
     published_revision,
     revision_timeline,
+    search_visible_titles,
+    section_by_id,
     section_list,
+    tag_reference,
     tags_for_article,
     visible_article_page,
+    visible_filter_tags,
 )
 from .services import (
     ArticleDeletionError,
@@ -167,8 +171,11 @@ __all__ = [
     "save_revision",
     "save_revision_with_token",
     "schedule_article",
+    "search_visible_titles",
     "due_deleted_articles",
+    "section_by_id",
     "section_list",
+    "tag_reference",
     "active_tag",
     "article_for_admin",
     "article_for_author",
@@ -178,4 +185,5 @@ __all__ = [
     "register_article_comment_purge",
     "register_article_reader_scope",
     "visible_article_page",
+    "visible_filter_tags",
 ]

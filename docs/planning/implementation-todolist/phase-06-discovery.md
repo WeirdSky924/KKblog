@@ -16,7 +16,7 @@
 - 授权：`否`。
 
 ### DSC-002 实现首页文章索引、卡片 DTO 与传统分页
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：首页只列当前调用者可见发布文章，按首次实际发布时间倒序；默认20，可选10/20/50，传统页码；卡片含封面/标题/摘要/分区/标签/时间/浏览/评论。
 - 来源：访谈 Q069、Q079-Q082、Q234-Q235；`modules/05-discovery-reading.md` §查询与排序；`contracts/03-frontend-contract-map.md` §public:home。
 - 依赖：前置 `CNT-003`、`CNT-005`、`DSC-001`；后续 `DSC-003`、`DSC-004`、`DSC-006`、`DSC-007`、`DSC-008`、`QA-003`、`QA-006`。
@@ -25,10 +25,11 @@
 - 影响：数据：发布投影查询；权限：actor过滤；审计无；缓存：公开静态片段；异步无；媒体：封面；通知无。
 - 测试/验收：RED 顺序/稳定二级键/页码边界/空态；Playwright 10/20/50、空/错误/长标题、1440/390。
 - 风险/停止：先分页再授权导致漏/泄露、缓存串 AUTH 或动态计数陈旧覆盖即停止。
+- 证据：本地聚焦 RED 覆盖可见性先于计数/分页、发布时间与 ULID 稳定二级排序、页边界、10/20/50、AUTO/CUSTOM/NONE 摘要和发布修订分类快照；真实浏览器 RED 在 HTMX 页码切换后观察到两个 `#article-index` 且焦点停留 `BODY`，根因为目标内部默认替换。实现由 content owner 的 `visible_article_page` 统一执行 actor 可见性、遮罩、排序和分页，discovery 只转换共享 `ArticleIndexItem`，局部页码和每页数量改为 `outerHTML` 替换并在交换后聚焦新索引；当前浏览/评论 owner 尚未实施，卡片诚实显示 0，留待 DSC-005/P7 接入动态事实。隔离 PostgreSQL 查询断言退出 0：访客/登录总数 `21/22`，访客 10 条分页为 `10/10/1`、登录第三页为 2，第二页首项“阅读与发现文章 11”，相同发布时间按 ULID 倒序，21 条发布修订的分区/标签快照与 DTO 一致，非法 11 条页宽抛出稳定错误。content 发布/权限/作者遮罩及架构/前端契约回归退出 0，`27 passed`；Ruff lint/format、Django check、migration drift、npm build 和 `git diff --check` 均退出 0。`/usr/local/bin/blog-playwright-cli` 以真实 21 PUBLIC + 1 AUTH 数据验证访客不泄露 AUTH 标题、10/20/50、空态、422、安全 500、长标题两行、HTMX URL/数据/键盘焦点，并在 1440/768/390 与亮/暗/护眼主题检查无重叠或横向溢出；最终读回单一索引、焦点 `article-index`、控制台 0 error/0 warning。未执行生产配置、生产迁移、部署或当前进度后的 Git 交付。
 - 授权：`否`。
 
 ### DSC-003 实现分区页、标签页与最多五标签 OR 筛选
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：分区入口只展示有效分区；首页最多选五标签，OR 匹配，匹配数优先再按发布时间；删除标签旧链接为空、恢复后关联重现。
 - 来源：访谈 Q054-Q060、Q082-Q084、Q256-Q258；`modules/05-discovery-reading.md`；`data/04-indexes-constraints.md` §标签/分区索引。
 - 依赖：前置 `CNT-010`、`CNT-011`、`DSC-002`；后续 `DSC-008`、`ADM-006`、`QA-003`、`QA-006`。
@@ -37,10 +38,11 @@
 - 影响：数据：ArticleTag/发布投影只读；权限：内容过滤；缓存：query generation；审计/异步/媒体/通知无。
 - 测试/验收：RED 0/1/5/6标签、OR计数/稳定排序、删除/恢复、未知分区；Playwright 多选换行/移动端筛选。
 - 风险/停止：AND误实现、排序不稳定或已删标签缓存继续展示即停止。
+- 证据：临时聚焦 RED `.venv/bin/pytest -q apps/discovery/tests/test_dsc003.py` 首次收集退出 2，准确报告 `discovery_filters` 等查询能力缺失；补充权限 RED 退出 1，证明仅私人文章使用的待审标签可被猜测 UUID 泄露名称。content owner 在同一 reader-scoped QuerySet 上增加分区条件、最多五个唯一标签的 OR 过滤与 `matched_tag_count DESC, published_at DESC, id DESC` 稳定排序，筛选选项也只从调用者可见的发布修订生成；discovery 只组装筛选 DTO、分页表单和页面，ACTIVE/公开待审标签可导航、私人待审/REJECTED 对无权者统一 404、DELETED 旧标签链接保持 200 空态并在恢复后重现。聚焦 GREEN 退出 0，`3 passed`，临时测试及生成缓存随后清理；正式内容发布/权限/作者遮罩/分区/标签与架构/前端契约回归退出 0，`34 passed`。隔离 PostgreSQL 最终读回退出 0：1 个有效分区、7 个访客可筛标签、首页 27 篇，三标签 OR 命中 23 篇且三项命中文章排在两项命中之前，分区页 27 篇，标签服务删除 1 条关联后旧链接为 0、恢复 1 条且冲突 0 后页面回到 1 篇；0/1/5 接受、6 返回稳定 422，重复同一标签参数规范化为 1。`/usr/local/bin/blog-playwright-cli` 真实操作复选框、HTMX 筛选、传统分页、分区/标签卡片链接、未知分区 404、标签删除空态与恢复读回；三标签参数跨键盘分页保留，交换后单一索引且焦点正确，六标签错误保留输入并聚焦错误。浏览器验收还修复原生 checkbox 被文字层拦截、选择计数不更新、HTMX 旧 target 覆盖错误焦点及 fieldset 4rem 断词；亮/暗/护眼与 1440/768/390 原尺寸截图无重叠，三视口横向溢出 0，移动触控目标 44px，最终干净会话控制台 0 error/0 warning。Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0；现有 FK/标签文章索引满足该只读切片，无 schema 变更。未执行生产配置、生产迁移、部署或本轮 Git 交付。
 - 授权：`否`。
 
 ### DSC-004 实现仅标题的模糊搜索与权限安全排序
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：只搜索标题，使用 PostgreSQL pg_trgm 相关度一级、发布时间二级；在相关度计算前限制调用者可见发布修订，不索引正文。
 - 来源：访谈 Q058、Q076-Q078、Q135-Q137；`data/04-indexes-constraints.md` §标题相关度；`contracts/03-frontend-contract-map.md` §public:search。
 - 依赖：前置 `CNT-005`、`DSC-002`；后续 `DSC-008`、`QA-002`、`QA-003`、`QA-006`。

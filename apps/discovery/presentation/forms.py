@@ -1,7 +1,9 @@
+from uuid import UUID
+
 from django import forms
 
 
-class HomePageForm(forms.Form):
+class PaginationForm(forms.Form):
     page = forms.IntegerField(
         required=False,
         min_value=1,
@@ -17,3 +19,42 @@ class HomePageForm(forms.Form):
 
     def clean_page(self) -> int:
         return self.cleaned_data.get("page") or 1
+
+
+class HomePageForm(PaginationForm):
+    tags = forms.MultipleChoiceField(
+        required=False,
+        choices=(),
+        widget=forms.CheckboxSelectMultiple,
+        error_messages={"invalid_choice": "所选标签已不可用。"},
+    )
+
+    def __init__(self, *args, tag_choices=(), **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["tags"].choices = tuple(tag_choices)
+
+    def clean_tags(self) -> tuple[UUID, ...]:
+        values = self.cleaned_data.get("tags") or ()
+        return tuple(dict.fromkeys(UUID(value) for value in values))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        raw_tags = self.data.getlist("tags") if hasattr(self.data, "getlist") else ()
+        if len(set(raw_tags)) > 5:
+            self.add_error("tags", "最多选择 5 个标签。")
+        return cleaned_data
+
+
+class SearchPageForm(PaginationForm):
+    q = forms.CharField(
+        required=True,
+        max_length=100,
+        strip=True,
+        error_messages={
+            "required": "请输入文章标题。",
+            "max_length": "搜索内容不能超过 100 个字符。",
+        },
+        widget=forms.SearchInput(
+            attrs={"autocomplete": "off", "placeholder": "搜索文章标题"}
+        ),
+    )

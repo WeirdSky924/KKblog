@@ -10,8 +10,8 @@
     {% if item.summary %}<p class="article-index-row__summary">{{ item.summary }}</p>{% endif %}
     {% if item.section_name or item.tags %}
       <div class="article-index-row__taxonomy">
-        {% if item.section_name %}<span class="article-section">{{ item.section_name }}</span>{% endif %}
-        {% for tag in item.tags %}<span class="article-tag">{{ tag.name }}</span>{% endfor %}
+        {% if item.section_name %}<a class="article-section" href="{% url 'public:section' item.section_id %}">{{ item.section_name }}</a>{% endif %}
+        {% for tag in item.tags %}<a class="article-tag" href="{% url 'public:tag' tag.tag_id %}">{{ tag.name }}</a>{% endfor %}
       </div>
     {% endif %}
     <dl class="article-index-row__meta">

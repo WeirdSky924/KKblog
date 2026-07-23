@@ -334,6 +334,11 @@
 }
 
 .search-entry {
+  display: grid;
+  gap: 2rem;
+}
+
+.search-page-form {
   max-width: 45rem;
 }
 

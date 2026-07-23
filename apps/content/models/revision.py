@@ -1,3 +1,4 @@
+from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -97,6 +98,13 @@ class ArticleRevision(models.Model):
     class Meta:
         db_table = "article_revision"
         ordering = ("article_id", "sequence")
+        indexes = [
+            GinIndex(
+                fields=("title",),
+                name="article_rev_title_trgm_gin",
+                opclasses=("gin_trgm_ops",),
+            )
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("article", "sequence"),

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from html.parser import HTMLParser
 from uuid import UUID
 
+from django.conf import settings
+from django.contrib.postgres.search import TrigramSimilarity
 from django.core.paginator import Paginator
-from django.db.models import Prefetch, Q
+from django.db import connection, transaction
+from django.db.models import Count, Prefetch, Q
 
 from apps.accounts.public import is_active_account, is_active_author
 from apps.media.public import render_markdown, render_tiptap
@@ -15,6 +19,7 @@ from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, T
 from ..policies import apply_article_reader_scope
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
+FILTERABLE_TAG_STATES = (Tag.State.ACTIVE, Tag.State.PENDING)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,29 +74,41 @@ def _page_number(value) -> int:
     return max(1, number)
 
 
-def visible_article_page(
-    *, actor_id, page: int = 1, page_size: int = 20
-) -> VisibleArticlePage:
-    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
-        raise ValueError("page size must be 10, 20, or 50")
+def _tag_ids(values) -> tuple[UUID, ...]:
+    if values is None:
+        return ()
+    if isinstance(values, (str, bytes)):
+        raise ValueError("tag ids must be UUID values")
+    try:
+        raw_values = tuple(values)
+    except TypeError:
+        raise ValueError("tag ids must be UUID values") from None
+    normalized: list[UUID] = []
+    for value in raw_values:
+        try:
+            identity = UUID(str(value))
+        except (TypeError, ValueError):
+            raise ValueError("tag ids must be UUID values") from None
+        if identity not in normalized:
+            normalized.append(identity)
+    if len(normalized) > 5:
+        raise ValueError("at most five tag ids may be selected")
+    return tuple(normalized)
+
+
+def _visible_articles(*, actor_id):
     actor = _actor_id(actor_id)
     authenticated = actor is not None and is_active_account(actor)
     visibility = Q(published_revision__visibility=ArticleRevision.Visibility.PUBLIC)
     if authenticated:
         visibility |= Q(
-            published_revision__visibility=(ArticleRevision.Visibility.AUTHENTICATED)
+            published_revision__visibility=ArticleRevision.Visibility.AUTHENTICATED
         )
         if is_active_author(actor):
             visibility |= Q(
                 author_id=actor,
                 published_revision__visibility=ArticleRevision.Visibility.PRIVATE,
             )
-
-    tag_rows = (
-        RevisionTag.objects.select_related("tag")
-        .exclude(tag__state__in=(Tag.State.REJECTED, Tag.State.DELETED))
-        .order_by("tag__normalized_name", "tag_id")
-    )
     queryset = Article.objects.filter(
         visibility,
         publication_state=Article.PublicationState.PUBLISHED,
@@ -102,15 +119,39 @@ def visible_article_page(
     ).exclude(
         author_id__in=AuthorContentMask.objects.filter(masked=True).values("author_id")
     )
-    queryset = apply_article_reader_scope(queryset).order_by("-published_at", "-id")
-    queryset = queryset.select_related("published_revision__section").prefetch_related(
+    return apply_article_reader_scope(queryset)
+
+
+def visible_filter_tags(*, actor_id) -> tuple[VisibleArticleTag, ...]:
+    revision_ids = _visible_articles(actor_id=actor_id).values("published_revision_id")
+    tags = (
+        Tag.objects.filter(
+            state__in=FILTERABLE_TAG_STATES,
+            revision_snapshots__revision_id__in=revision_ids,
+        )
+        .distinct()
+        .order_by("normalized_name", "id")
+    )
+    return tuple(VisibleArticleTag(tag.id, tag.name, tag.state) for tag in tags)
+
+
+def _index_projection(queryset):
+    tag_rows = (
+        RevisionTag.objects.select_related("tag")
+        .exclude(tag__state__in=(Tag.State.REJECTED, Tag.State.DELETED))
+        .order_by("tag__normalized_name", "tag_id")
+    )
+    return queryset.select_related("published_revision__section").prefetch_related(
         Prefetch(
             "published_revision__tag_snapshots",
             queryset=tag_rows,
             to_attr="visible_index_tags",
         )
     )
-    paginator = Paginator(queryset, page_size)
+
+
+def _visible_page(queryset, *, page, page_size: int) -> VisibleArticlePage:
+    paginator = Paginator(_index_projection(queryset), page_size)
     selected = paginator.get_page(_page_number(page))
     return VisibleArticlePage(
         items=tuple(_visible_item(article) for article in selected.object_list),
@@ -121,6 +162,99 @@ def visible_article_page(
         has_previous=selected.has_previous(),
         has_next=selected.has_next(),
     )
+
+
+def visible_article_page(
+    *,
+    actor_id,
+    page: int = 1,
+    page_size: int = 20,
+    section_id=None,
+    tag_ids=(),
+) -> VisibleArticlePage:
+    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
+        raise ValueError("page size must be 10, 20, or 50")
+    selected_tag_ids = _tag_ids(tag_ids)
+    queryset = _visible_articles(actor_id=actor_id)
+    if section_id is not None:
+        try:
+            section_identity = UUID(str(section_id))
+        except (TypeError, ValueError):
+            raise ValueError("section_id must be a UUID or None") from None
+        queryset = queryset.filter(published_revision__section_id=section_identity)
+    if selected_tag_ids:
+        match_filter = Q(
+            published_revision__tag_snapshots__tag_id__in=selected_tag_ids,
+            published_revision__tag_snapshots__tag__state__in=(FILTERABLE_TAG_STATES),
+        )
+        queryset = queryset.filter(match_filter).annotate(
+            matched_tag_count=Count(
+                "published_revision__tag_snapshots__tag_id",
+                filter=match_filter,
+                distinct=True,
+            )
+        )
+        queryset = queryset.order_by("-matched_tag_count", "-published_at", "-id")
+    else:
+        queryset = queryset.order_by("-published_at", "-id")
+    return _visible_page(queryset, page=page, page_size=page_size)
+
+
+def _search_query(value) -> str:
+    if not isinstance(value, str):
+        raise ValueError("query is required")
+    normalized = unicodedata.normalize("NFKC", value).strip()
+    if not normalized:
+        raise ValueError("query is required")
+    if len(normalized) > 100:
+        raise ValueError("query must not exceed 100 characters")
+    return normalized
+
+
+def _search_threshold(value) -> float:
+    if isinstance(value, bool):
+        raise ValueError("search threshold must be between 0 and 1")
+    try:
+        threshold = float(value)
+    except (TypeError, ValueError):
+        raise ValueError("search threshold must be between 0 and 1") from None
+    if not 0 < threshold <= 1:
+        raise ValueError("search threshold must be between 0 and 1")
+    return threshold
+
+
+def search_visible_titles(
+    *,
+    actor_id,
+    query: str,
+    page: int = 1,
+    page_size: int = 20,
+    threshold=None,
+) -> VisibleArticlePage:
+    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
+        raise ValueError("page size must be 10, 20, or 50")
+    normalized = _search_query(query)
+    active_threshold = _search_threshold(
+        settings.DISCOVERY_TITLE_SEARCH_THRESHOLD if threshold is None else threshold
+    )
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT set_config('pg_trgm.similarity_threshold', %s, true)",
+                [str(active_threshold)],
+            )
+        queryset = (
+            _visible_articles(actor_id=actor_id)
+            .filter(
+                Q(published_revision__title__trigram_similar=normalized)
+                | Q(published_revision__title__icontains=normalized)
+            )
+            .annotate(
+                relevance=TrigramSimilarity("published_revision__title", normalized)
+            )
+            .order_by("-relevance", "-published_at", "-id")
+        )
+        return _visible_page(queryset, page=page, page_size=page_size)
 
 
 def _visible_item(article: Article) -> VisibleArticleItem:

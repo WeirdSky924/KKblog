@@ -1,11 +1,60 @@
 <div id="article-index" class="article-index" data-article-index data-focus-after-swap tabindex="-1">
-  {% if pagination_form.errors %}
+  <p id="article-index-loading" class="article-index__loading htmx-indicator" role="status">正在更新文章列表…</p>
+  {% if filter_options.sections or filter_options.tags %}
+    <div class="discovery-filters">
+      {% if filter_options.sections %}
+        <nav class="section-filter" aria-label="文章分区">
+          <span class="discovery-filters__label">分区</span>
+          <div class="section-filter__links">
+            {% for section in filter_options.sections %}
+              <a href="{% url 'public:section' section.filter_id %}">{{ section.name }}</a>
+            {% endfor %}
+          </div>
+        </nav>
+      {% endif %}
+      <form
+        class="tag-filter"
+        data-tag-filter
+        action="{{ index_action }}"
+        method="get"
+        hx-get="{{ index_action }}"
+        hx-target="#article-index"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-indicator="#article-index-loading"
+      >
+        <fieldset>
+          <legend>标签筛选</legend>
+          <div class="tag-filter__options">
+            {% for checkbox in pagination_form.tags %}
+              <label class="tag-filter__option">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+            {% empty %}
+              <p>暂无可筛选标签</p>
+            {% endfor %}
+          </div>
+          <div class="tag-filter__actions">
+            <span data-tag-selection-count aria-live="polite">已选择 {{ selected_tag_ids|length }} / 5</span>
+            <button class="button button--primary" type="submit">筛选</button>
+            {% if selected_tag_ids %}<a class="button button--secondary" href="{{ clear_filter_url }}">清除</a>{% endif %}
+          </div>
+        </fieldset>
+      </form>
+    </div>
+  {% endif %}
+  {% if index_initial_prompt %}
+    <div class="article-index__empty">
+      <h3>{{ index_initial_prompt }}</h3>
+    </div>
+  {% elif pagination_form.errors %}
     <div class="article-index__error" data-error-focus tabindex="-1" role="alert">
       <h3>筛选条件需要修改</h3>
       {{ pagination_form.page.errors }}
       {{ pagination_form.per_page.errors }}
+      {{ pagination_form.tags.errors }}
+      {{ pagination_form.q.errors }}
     </div>
   {% elif index_page.items %}
+    <p class="article-index__count" aria-live="polite">共 {{ index_page.total_items }} 篇</p>
     <div class="article-index__list">
       {% for item in index_page.items %}
         {% include "discovery/partials/article_index_row.html" with item=item only %}
@@ -15,14 +64,16 @@
       {% include "components/navigation/pagination.html" %}
       <form
         class="page-size-control"
-        action="{% url 'public:home' %}"
+        action="{{ index_action }}"
         method="get"
-        hx-get="{% url 'public:home' %}"
+        hx-get="{{ index_action }}"
         hx-target="#article-index"
         hx-swap="outerHTML"
         hx-push-url="true"
         hx-indicator="#article-index-loading"
       >
+        {% for tag_id in selected_tag_ids %}<input type="hidden" name="tags" value="{{ tag_id }}">{% endfor %}
+        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
         <label for="article-page-size">每页</label>
         <select id="article-page-size" name="per_page">
           {% for value, label in pagination_form.fields.per_page.choices %}
@@ -31,10 +82,10 @@
         </select>
         <button class="button button--secondary" type="submit">应用</button>
       </form>
-      <p id="article-index-loading" class="article-index__loading htmx-indicator" role="status">正在更新文章列表…</p>
       <p class="article-index__page-state">第 {{ index_page.page_number }} / {{ index_page.total_pages }} 页</p>
     </footer>
   {% else %}
+    {% if index_page %}<p class="article-index__count" aria-live="polite">共 0 篇</p>{% endif %}
     <div class="article-index__empty">
       <h3>还没有可阅读的文章</h3>
       <a class="button button--secondary" href="{% url 'public:search' %}">搜索文章</a>

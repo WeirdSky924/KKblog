@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{{ collection.name }} | {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <div class="collection-layout">
+    <header class="collection-heading">
+      <a href="{% url 'public:home' %}"><i data-lucide="arrow-left"></i><span>返回首页</span></a>
+      <h1>{{ collection.name }}</h1>
+    </header>
+    <section aria-label="{{ collection.name }}文章">
+      {% include "discovery/partials/article_index.html" %}
+    </section>
+  </div>
+{% endblock %}

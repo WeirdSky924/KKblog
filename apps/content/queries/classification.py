@@ -17,6 +17,14 @@ def section_list() -> tuple[SectionItem, ...]:
     )
 
 
+def section_by_id(section_id) -> SectionItem | None:
+    try:
+        section = Section.objects.get(pk=section_id)
+    except (Section.DoesNotExist, ValueError, TypeError):
+        return None
+    return SectionItem(section.id, section.name)
+
+
 @dataclass(frozen=True, slots=True)
 class TagItem:
     tag_id: UUID
@@ -36,6 +44,14 @@ def tags_for_article(article_id: str) -> tuple[TagItem, ...]:
 def active_tag(tag_id) -> TagItem | None:
     try:
         tag = Tag.objects.get(pk=tag_id, state=Tag.State.ACTIVE)
+    except (Tag.DoesNotExist, ValueError, TypeError):
+        return None
+    return TagItem(tag.id, tag.name, tag.state)
+
+
+def tag_reference(tag_id) -> TagItem | None:
+    try:
+        tag = Tag.objects.get(pk=tag_id)
     except (Tag.DoesNotExist, ValueError, TypeError):
         return None
     return TagItem(tag.id, tag.name, tag.state)

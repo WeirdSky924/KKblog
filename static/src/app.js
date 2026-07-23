@@ -522,20 +522,57 @@ async function syncAccountTheme(form, submitter) {
   }
 }
 
+function currentSwapRoot(root) {
+  if (root instanceof HTMLElement && root.id) {
+    return document.getElementById(root.id) ?? root;
+  }
+  return root;
+}
+
 function focusInsertedError(root) {
-  const error = root.querySelector?.("[data-error-focus]");
+  const current = currentSwapRoot(root);
+  const error = current.querySelector?.("[data-error-focus]");
   if (error instanceof HTMLElement) {
     requestAnimationFrame(() => error.focus());
   }
 }
 
 function focusSwappedRegion(root) {
-  if (!(root instanceof HTMLElement) || !root.matches("[data-focus-after-swap]")) {
+  const current = currentSwapRoot(root);
+  if (
+    !(root instanceof HTMLElement) ||
+    !root.matches("[data-focus-after-swap]") ||
+    current.querySelector("[data-error-focus]")
+  ) {
     return;
   }
-  const current = root.id ? document.getElementById(root.id) : root;
   requestAnimationFrame(() => current?.focus({ preventScroll: true }));
 }
+
+function updateTagSelectionCount(form) {
+  const status = form.querySelector("[data-tag-selection-count]");
+  if (!(status instanceof HTMLElement)) {
+    return;
+  }
+  const count = form.querySelectorAll("input[name='tags']:checked").length;
+  status.textContent = `已选择 ${count} / 5`;
+  if (count > 5) {
+    status.dataset.overLimit = "true";
+  } else {
+    delete status.dataset.overLimit;
+  }
+}
+
+document.addEventListener("change", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || target.name !== "tags") {
+    return;
+  }
+  const form = target.closest("[data-tag-filter]");
+  if (form instanceof HTMLFormElement) {
+    updateTagSelectionCount(form);
+  }
+});
 
 document.addEventListener("click", (event) => {
   const target = event.target;
