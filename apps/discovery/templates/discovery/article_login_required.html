@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+{% block title %}登录后阅读 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="article-login-gate" aria-labelledby="login-required-title">
+    <p>登录可见文章</p>
+    <h1 id="login-required-title">登录后阅读</h1>
+    <p>这篇文章需要登录后查看。</p>
+    <div>
+      <a class="button button--primary" href="{{ login_url }}">
+        <i data-lucide="log-in"></i>
+        <span>登录并返回文章</span>
+      </a>
+      <a class="button button--secondary" href="{% url 'public:home' %}">
+        <i data-lucide="arrow-left"></i>
+        <span>返回首页</span>
+      </a>
+    </div>
+  </section>
+{% endblock %}

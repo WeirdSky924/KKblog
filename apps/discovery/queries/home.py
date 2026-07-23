@@ -14,6 +14,8 @@ from apps.content.public import (
 )
 from apps.core.time import to_shanghai
 
+from .view_counts import article_view_counts
+
 
 @dataclass(frozen=True, slots=True)
 class ArticleIndexTag:
@@ -159,7 +161,13 @@ def tag_article_page(
 
 
 def _index_page(source) -> ArticleIndexPage:
-    items = tuple(_index_item(item) for item in source.items)
+    view_counts = article_view_counts(
+        article_ids=(item.article_id for item in source.items)
+    )
+    items = tuple(
+        _index_item(item, view_count=view_counts.get(item.article_id, 0))
+        for item in source.items
+    )
     return ArticleIndexPage(
         items=items,
         page_number=source.page_number,
@@ -172,7 +180,7 @@ def _index_page(source) -> ArticleIndexPage:
     )
 
 
-def _index_item(source) -> ArticleIndexItem:
+def _index_item(source, *, view_count: int) -> ArticleIndexItem:
     published = to_shanghai(source.published_at)
     return ArticleIndexItem(
         article_id=source.article_id,
@@ -194,6 +202,6 @@ def _index_item(source) -> ArticleIndexItem:
         published_at=source.published_at,
         published_label=published.strftime("%Y-%m-%d %H:%M"),
         visibility=source.visibility,
-        view_count=0,
+        view_count=view_count,
         comment_count=0,
     )

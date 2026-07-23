@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleCheck,
   CircleX,
+  Copy,
   Eye,
   ExternalLink,
   ImageUp,
@@ -43,6 +44,7 @@ const availableIcons = {
   ChevronRight,
   CircleCheck,
   CircleX,
+  Copy,
   Eye,
   ExternalLink,
   ImageUp,
@@ -119,6 +121,49 @@ function initializeIcons(root = document) {
       width: "24",
       height: "24",
     },
+  });
+}
+
+function initializeCopyLinks(root = document) {
+  root.querySelectorAll?.("[data-copy-link]").forEach((button) => {
+    if (
+      !(button instanceof HTMLButtonElement) ||
+      button.dataset.copyBound === "true"
+    ) {
+      return;
+    }
+    button.dataset.copyBound = "true";
+    button.addEventListener("click", async () => {
+      const url = button.dataset.copyUrl;
+      const label = button.querySelector("[data-copy-label]");
+      const status = button.parentElement?.querySelector("[data-copy-status]");
+      if (!url || !(label instanceof HTMLElement)) {
+        return;
+      }
+      button.disabled = true;
+      try {
+        if (!navigator.clipboard) {
+          throw new Error("clipboard unavailable");
+        }
+        await navigator.clipboard.writeText(url);
+        label.textContent = "已复制";
+        if (status instanceof HTMLElement) {
+          status.textContent = "文章链接已复制。";
+        }
+        window.setTimeout(() => {
+          label.textContent = "复制链接";
+          if (status instanceof HTMLElement) {
+            status.textContent = "";
+          }
+        }, 2000);
+      } catch {
+        if (status instanceof HTMLElement) {
+          status.textContent = "未能复制，请使用地址栏链接。";
+        }
+      } finally {
+        button.disabled = false;
+      }
+    });
   });
 }
 
@@ -684,6 +729,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeIcons(root);
   initializePersonalMenus(root);
   initializeConfirmDialogs(root);
+  initializeCopyLinks(root);
   initializeMediaPickers(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
@@ -699,6 +745,7 @@ Alpine.start();
 initializeIcons();
 initializePersonalMenus();
 initializeConfirmDialogs();
+initializeCopyLinks();
 initializeMediaPickers();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

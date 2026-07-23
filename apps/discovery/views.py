@@ -1,7 +1,11 @@
+from urllib.parse import urlencode
+
 from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 
+from apps.content.public import ArticleLoginRequired, ArticleNotFound
 from apps.discovery.presentation.forms import (
     HomePageForm,
     PaginationForm,
@@ -9,12 +13,14 @@ from apps.discovery.presentation.forms import (
 )
 from apps.discovery.profile_identity import resolve_profile_identity
 from apps.discovery.queries import (
+    article_detail_page,
     discovery_filters,
     home_article_page,
     search_article_page,
     section_article_page,
     tag_article_page,
 )
+from apps.discovery.services import record_article_view
 
 
 def _actor_id(request):
@@ -169,9 +175,34 @@ def search(request):
     )
 
 
-def article_placeholder(request, article_id):
-    del request, article_id
-    raise Http404 from None
+@require_GET
+def article_detail(request, article_id):
+    article_path = reverse("article:detail", kwargs={"article_id": article_id})
+    try:
+        page = article_detail_page(actor_id=_actor_id(request), article_id=article_id)
+    except ArticleLoginRequired:
+        login_url = f"{reverse('accounts:login')}?{urlencode({'next': article_path})}"
+        response = render(
+            request,
+            "discovery/article_login_required.html",
+            {"login_url": login_url},
+        )
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+    except ArticleNotFound:
+        raise Http404 from None
+    view_count = record_article_view(article_id=page.article_id)
+    response = render(
+        request,
+        "discovery/article_detail.html",
+        {
+            "article": page,
+            "view_count": view_count,
+            "permalink": request.build_absolute_uri(article_path),
+        },
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 def public_profile(request, account_id):

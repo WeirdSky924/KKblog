@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <article class="article-reader" aria-labelledby="article-title">
+    <header class="article-reader__header">
+      <div>
+        <h1 id="article-title">{{ article.title }}</h1>
+        <dl class="article-reader__meta">
+          <div>
+            <dt>发布时间</dt>
+            <dd><time datetime="{{ article.published_at|date:'c' }}">{{ article.published_label }}</time></dd>
+          </div>
+          <div>
+            <dt><i data-lucide="eye"></i><span class="sr-only">浏览量</span></dt>
+            <dd>{{ view_count }}</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="article-reader__share">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-copy-link
+          data-copy-url="{{ permalink }}"
+          title="复制文章永久链接"
+        >
+          <i data-lucide="copy"></i>
+          <span data-copy-label>复制链接</span>
+        </button>
+        <span class="article-reader__copy-status" data-copy-status aria-live="polite"></span>
+      </div>
+    </header>
+
+    <figure class="article-reader__cover">
+      <img src="{{ article.cover_url }}" width="1600" height="900" alt="《{{ article.title }}》封面">
+    </figure>
+
+    {% if article.toc %}
+      <details class="article-toc article-toc--mobile">
+        <summary>文章目录</summary>
+        <ol>
+          {% for item in article.toc %}<li><a href="#{{ item.anchor }}">{{ item.label }}</a></li>{% endfor %}
+        </ol>
+      </details>
+    {% endif %}
+
+    <div class="article-reader__grid">
+      <section class="article-prose" aria-label="文章正文">{{ article.body_html }}</section>
+      {% if article.toc %}
+        <aside class="article-toc article-toc--desktop" aria-label="文章目录">
+          <h2>文章目录</h2>
+          <ol>
+            {% for item in article.toc %}<li><a href="#{{ item.anchor }}">{{ item.label }}</a></li>{% endfor %}
+          </ol>
+        </aside>
+      {% endif %}
+    </div>
+  </article>
+{% endblock %}

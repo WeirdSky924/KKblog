@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -17,6 +17,13 @@ from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.core.time.shanghai import shanghai_business_date
+from apps.media.public import (
+    MediaPurpose,
+    MediaTargetType,
+    render_markdown,
+    render_tiptap,
+    target_binding_snapshot,
+)
 
 from ..events import ARTICLE_ADMIN_VIEWED
 from ..models import AdminArticleViewReceipt, Article, ArticleRevision
@@ -50,9 +57,13 @@ class ArticleView:
     visibility: str
     publication_state: str
     deleted_at: datetime | None
+    cover_asset_id: str | None
+    published_at: datetime | None
     can_edit: bool
     can_publish: bool
     admin_read_only: bool
+    rendered_body_html: str | None = None
+    readable_cover_asset_id: str | None = None
 
 
 def _article_id(value) -> str:
@@ -89,6 +100,8 @@ def _view(
         revision.visibility,
         article.publication_state,
         article.deleted_at,
+        revision.cover_asset_id,
+        article.published_at,
         can_edit,
         can_edit,
         admin_read_only,
@@ -126,7 +139,41 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     if not allowed:
         raise ArticleNotFound
     owner = actor == article.author_id and is_active_author(actor)
-    return _view(article, revision, can_edit=owner, admin_read_only=False)
+    rendered_body_html, readable_cover_asset_id = _reader_media(revision)
+    return replace(
+        _view(article, revision, can_edit=owner, admin_read_only=False),
+        rendered_body_html=rendered_body_html,
+        readable_cover_asset_id=readable_cover_asset_id,
+    )
+
+
+def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
+    bindings = target_binding_snapshot(
+        target_type=MediaTargetType.ARTICLE_REVISION,
+        target_id=revision.id,
+    )
+    active_body_ids = {
+        item.asset_id
+        for item in bindings
+        if item.purpose == MediaPurpose.BODY and item.state == "ACTIVE"
+    }
+    active_cover_ids = {
+        item.asset_id
+        for item in bindings
+        if item.purpose == MediaPurpose.COVER and item.state == "ACTIVE"
+    }
+    if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
+        rendered = render_markdown(
+            revision.body_markdown or "", allowed_media_ids=active_body_ids
+        )
+    else:
+        rendered = render_tiptap(
+            revision.body_tiptap or {}, allowed_media_ids=active_body_ids
+        )
+    readable_cover_asset_id = (
+        revision.cover_asset_id if revision.cover_asset_id in active_cover_ids else None
+    )
+    return rendered.html, readable_cover_asset_id
 
 
 def article_for_author(

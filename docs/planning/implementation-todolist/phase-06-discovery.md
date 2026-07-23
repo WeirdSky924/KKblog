@@ -42,7 +42,7 @@
 - 授权：`否`。
 
 ### DSC-004 实现仅标题的模糊搜索与权限安全排序
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：只搜索标题，使用 PostgreSQL pg_trgm 相关度一级、发布时间二级；在相关度计算前限制调用者可见发布修订，不索引正文。
 - 来源：访谈 Q058、Q076-Q078、Q135-Q137；`data/04-indexes-constraints.md` §标题相关度；`contracts/03-frontend-contract-map.md` §public:search。
 - 依赖：前置 `CNT-005`、`DSC-002`；后续 `DSC-008`、`QA-002`、`QA-003`、`QA-006`。
@@ -51,10 +51,11 @@
 - 影响：数据：trigram索引；权限：先过滤；缓存：公开搜索可短TTL；审计/异步/媒体/通知无。
 - 测试/验收：RED 相似标题/并列时间/PRIVATE-AUTH泄露/空查询；EXPLAIN与真实PostgreSQL结果；Playwright搜索/分页/空态。
 - 风险/停止：查询先算全站相似度再过滤、正文命中或阈值无中文样本校准即停止。
+- 证据：临时聚焦 RED `.venv/bin/pytest -q apps/discovery/tests/test_dsc004.py` 首次收集退出 2，准确报告 `search_article_page` 缺失；首次实现因未安装 `django.contrib.postgres` 暴露配置缺口，补齐后聚焦 GREEN 退出 0，`3 passed`，临时测试及缓存随后清理。content owner 先复用统一 reader scope，再以事务局部 `pg_trgm.similarity_threshold`、标题 `trigram_similar` 与短中文 `icontains` 补充匹配，按 `similarity DESC, published_at DESC, id DESC` 排序；正文不参与，访客查询“星云关键词”只返回 PUBLIC 标题，不返回正文命中、AUTH 或 PRIVATE 标题。真实中文/混合样本把阈值从 `0.3` 校准至 `0.2`，`PostgreS` 命中“PostgreSQL 标签文章”，`筛选`命中两条标题；PostgreSQL migration 应用退出 0，catalog 读回 `pg_trgm` 与 `article_rev_title_trgm_gin`，强制 planner 使用 GIN。最终参数化数据读回退出 0；首次 catalog 脚本仅因 shell 引号失配退出 1，搜索断言已执行，改参数化 SQL 后成功。相关发布/权限/遮罩/分区/标签与架构/前端回归退出 0，`34 passed`；Django check、migration drift、Ruff lint/format、npm build 与 `git diff --check` 均退出 0。`/usr/local/bin/blog-playwright-cli` 验证初始提示、键盘模糊搜索、空态、25 条分页、10/20/50 参数保留、HTMX 单一索引与焦点；空白查询返回 422、保留三个空格并聚焦 alert，常驻 loading indicator 无缺失错误，控制台只有浏览器对预期 422 的资源记录，正常流 0 error/0 warning。浏览器 RED 另读回搜索页 H1 仅 `16px`，补齐共享页面标题规则后为 `28px/1.35`；亮/暗/护眼及 1440/768/390 原尺寸截图无重叠，横向溢出 0。未执行生产 migration、生产缓存、部署或本任务后的 Git 交付。
 - 授权：`否`。
 
 ### DSC-005 实现文章阅读、H2 目录、复制链接与浏览计数
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：文章页组装安全发布正文、真实封面、仅H2目录、复制ULID链接；每次进入详情原子+1含作者；访客读AUTH先看提醒页并登录回跳，其他无权状态404。
 - 来源：访谈 Q070-Q072、Q085-Q087、Q137、Q290；`modules/05-discovery-reading.md` §文章阅读；原型 article。
 - 依赖：前置 `CNT-005`、`MED-004`、`MED-007`、`DSC-001`；后续 `DSC-008`、`QA-002`、`QA-003`、`QA-006`。
@@ -63,10 +64,11 @@
 - 影响：数据：原子浏览计数；权限：读取矩阵/安全next；缓存：正文静态+动态计数分离；媒体：封面/正文；审计/异步/通知无。
 - 测试/验收：RED 四身份×状态、并发计数、恶意next、H2解析；Playwright 登录提醒→登录→回原文、复制链接/移动目录。
 - 风险/停止：浏览计数被页面缓存覆盖、open redirect、404差异或未清洗正文即停止。
+- 证据：临时聚焦 RED `.venv/bin/pytest -q apps/discovery/tests/test_dsc005.py` 收集退出 2，准确报告 `apps.discovery.queries.article` 缺失。新增 discovery 自有 `ArticleViewCounter` 一对一事实与 PostgreSQL `INSERT ... ON CONFLICT ... count + 1 RETURNING` 原子服务，不保存访问者、IP 或窗口；40 线程 GREEN 精确返回 `1..40`，详情每次成功进入递增，登录提醒与 404 均不计数，首页同批动态读回 40。首次 GREEN 为 `1 passed, 2 failed`，失败仅因测试把 publish 时钟放在审查 token 过期后；统一 prepare/publish 时钟后聚焦退出 0，`3 passed`。content reader query 在权限成功后通过 media owner 的修订绑定快照与统一 sanitizer 生成安全 HTML/可读封面，discovery 只做 H2 结构解析、稳定锚点与页面组装；一次架构回归暴露 discovery 直接导入 media 的反向依赖后下沉 owner，最终 0 违规。migration 仅应用隔离库并完成 `0001 -> zero -> 0001`；首次 catalog 读回发现 Django ORM CASCADE 的数据库 FK 实为 NO ACTION，修正为显式 `discovery_view_article_fk` 后重新读回 `ON DELETE CASCADE DEFERRABLE`、文章主键一对一与非负 CHECK。聚焦及 content/media 联合回归退出 0，`32 passed`；删除临时测试后 accounts 回跳、content 读取/删除/遮罩、media 授权/渲染及架构/前端正式回归退出 0，`58 passed`，Django check、migration drift、Ruff lint/format、npm build 与 `git diff --check` 均退出 0。`/usr/local/bin/blog-playwright-cli` 验证公开详情安全正文、默认封面、H2 两项目录且 H1/H3 排除、复制链接、刷新计数 `2 -> 3` 与首页实时读回 3；访客 AUTH 提醒不泄露标题，登录链接只带 canonical 同源 next，键盘密码登录后回原 ULID，PRIVATE 访客统一 404。手机目录可用 Space 开合并保持焦点；亮/暗/护眼与 1440/768/390 原尺寸截图无重叠，横向溢出 0，当前代码干净会话控制台 0 error/0 warning。未执行生产 migration、生产数据、部署或本任务后的 Git 交付。
 - 授权：`否`。
 
 ### DSC-006 实现私人收藏与失效文章占位
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：登录用户幂等收藏/移除；列表仅本人；文章变私人/删除/不可访问仍保留关系，显示“该文章已丢失”及仓库自有 `800x450` 统一失效图，由用户手动移除；恢复可访问后恢复正常。
 - 来源：访谈 Q070、Q073-Q075；`modules/05-discovery-reading.md` §收藏；DEC-005。
 - 依赖：前置 `ACC-005`、`CNT-005`、`DEC-005`、`DSC-002`；后续 `AUT-001`、`QA-002`、`QA-003`、`QA-006`。
