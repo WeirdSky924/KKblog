@@ -1,5 +1,7 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -520,6 +522,35 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             request, password_form=form, active_tab="credentials", status=422
         )
     return _rotated_response(request, result)
+
+
+def theme_view(request: HttpRequest) -> HttpResponse:
+    return_path = _safe_next(request)
+    if not getattr(request, "account_id", None):
+        query = urlencode({"next": return_path})
+        return redirect(f"{reverse('accounts:login')}?{query}")
+    if request.method != "POST":
+        return HttpResponseNotAllowed(("POST",))
+
+    form = ThemeForm(request.POST)
+    if not form.is_valid():
+        return HttpResponse("请选择有效的主题。", status=422)
+    client_ip, trace_code = _request_meta(request)
+    try:
+        change_profile(
+            account_id=request.account_id,
+            nickname=request.account.nickname,
+            theme=form.cleaned_data["theme"],
+            avatar_asset_id=request.account.avatar_asset_id,
+            client_ip=client_ip,
+            trace_code=trace_code,
+            audit_writer=record_profile_audit,
+        )
+    except ProfileError as exc:
+        return HttpResponse(str(exc), status=422)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return HttpResponse(status=204)
+    return redirect(return_path)
 
 
 def _render_sessions(

@@ -10,6 +10,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.discovery",
     "apps.media",
+    "apps.navigation",
     "apps.notifications",
     "apps.operations",
 ]
@@ -37,6 +38,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "apps.accounts.presentation.context.account_theme",
+                "apps.navigation.presentation.context.site_shell",
             ]
         },
     }
@@ -99,6 +101,9 @@ MEDIA_CLEANUP_BATCH_SIZE = 100
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
+NAVIGATION_SITE_PRESENTATION_PROVIDER = (
+    "apps.navigation.public.default_site_presentation"
+)
 
 LOGGING = {
     "version": 1,

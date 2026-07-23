@@ -27,4 +27,5 @@ urlpatterns = [
     path("", include("apps.media.urls")),
     path("", include("apps.operations.urls")),
     path("", include("apps.discovery.urls")),
+    path("articles/", include("apps.discovery.article_urls")),
 ]

@@ -13,12 +13,12 @@
       content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"409|422","swap":true,"error":false},{"code":"[45]..","swap":false,"error":true}]}'
     >
     {% block meta %}{% endblock %}
-    <title>{% block title %}Kaj 的小房间{% endblock %}</title>
+    <title>{% block title %}{{ site_presentation.site_name|default:"Kaj的小房间" }}{% endblock %}</title>
     <link
       rel="icon"
       data-site-favicon
-      data-default-href="{% static 'media/brand/k-mark.svg' %}"
-      href="{% static 'media/brand/k-mark.svg' %}"
+      data-default-href="{% if site_presentation.logo_url %}{{ site_presentation.logo_url }}{% else %}{% static 'media/brand/k-mark.svg' %}{% endif %}"
+      href="{% if site_presentation.logo_url %}{{ site_presentation.logo_url }}{% else %}{% static 'media/brand/k-mark.svg' %}{% endif %}"
     >
     <script src="{% static 'dist/theme.js' %}"></script>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
@@ -27,7 +27,7 @@
   </head>
   <body class="{% block body_class %}site-shell{% endblock %}">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
-    {% block site_header %}{% endblock %}
+    {% block site_header %}{% include "components/navigation/site_header.html" %}{% endblock %}
     {% include "components/feedback/global.html" %}
     <main
       id="main-content"
@@ -36,7 +36,7 @@
     >
       {% block content %}{% endblock %}
     </main>
-    {% block site_footer %}{% endblock %}
+    {% block site_footer %}{% include "components/navigation/site_footer.html" %}{% endblock %}
     <div id="modal-layer"></div>
   </body>
 </html>

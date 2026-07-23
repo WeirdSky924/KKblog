@@ -3,7 +3,7 @@
 退出门禁：首页、阅读、搜索、标签、分区、收藏、主页、主题、SEO 和公开缓存完成。
 
 ### DSC-001 实现全站 Header、Footer、主题与身份导航外壳
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：全站显示默认 K/自定义 Logo、站名、动态公开导航、搜索、主题、登录/注册或头像菜单；通知控件预留；Footer 显示站名/年份/可选版权与法律链接。
 - 来源：访谈 Q088-Q092、Q158-Q173、Q236、Q241-Q243；`03-frontend-design-system.md` §页面骨架；原型首页/个人页。
 - 依赖：前置 `RUN-005`、`MED-005`、`ACC-007`；后续 `DSC-002`、`DSC-005`、`OBS-002`、`ADM-006`、`QA-003`、`QA-006`。
@@ -12,10 +12,11 @@
 - 影响：数据：Account theme/站点DTO只读；权限：身份菜单；审计无；缓存：静态shell谨慎；异步无；媒体：Logo/avatar；通知：占位接入。
 - 测试/验收：Playwright 亮/暗/护眼、未登录→登录偏好覆盖、键盘/hover/触控、1440/390/768、长站名无重叠。
 - 风险/停止：重复主题 source、Header 缓存串用户、移动导航遮挡或按钮只靠文字圆角替代熟悉图标即停止。
+- 证据：RED `.venv/bin/pytest apps/discovery/tests/test_dsc001.py -q` 收集期退出 2，准确报告 `apps.navigation` 公开站点投影缺失。新增 navigation owner 的只读 `SitePresentation`/三层 `NavigationItem` 契约与默认 K/站名投影，不提前建立 P11 的树/设置模型；全站 Header/Footer 组装动态导航、搜索入口、三主题、访客/登录身份、通知槽、个人菜单、上海年份、可选版权/法律链接和站内 Logo/favicon，accounts 主题入口继续调用唯一 `change_profile` 服务并保留非 JS 回跳。真实 PostgreSQL/Redis/Mailpit 聚焦 GREEN 与账户资料、并发、前端基础、架构回归退出 0，`32 passed`；登录态 Header 切换后 PostgreSQL 读回 `DARK`，访客本地 `DARK` 登录后由账户 `LIGHT` 覆盖且页面无邮箱。`/usr/local/bin/blog-playwright-cli` 在 1440/768/390 对长站名、亮/暗/护眼、桌面 hover、触控导航、Escape 焦点恢复和 skip-link 实际操作，控制台 0 error、三视口横向溢出 0，原尺寸截图检查无重叠/遮挡；首次静态 404 验收无效后以 `--insecure` 项目测试入口重启并重验，首次 CSS hover 面板 0 尺寸缺陷也修复后重验为 208x255。Ruff lint/format、Django check、migration drift、完整 npm build 与 `git diff --check` 均退出 0。搜索结果属于 DSC-004、收藏页属于 DSC-006、通知浮层属于 P8、导航/站点管理写服务属于 ADM-006/007；当前只提供诚实入口/槽位，未执行生产配置、生产迁移、Git 交付或部署。
 - 授权：`否`。
 
 ### DSC-002 实现首页文章索引、卡片 DTO 与传统分页
-- 元数据：状态 `待处理`；阶段 P6；owner `discovery`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P1。
 - 目标/行为：首页只列当前调用者可见发布文章，按首次实际发布时间倒序；默认20，可选10/20/50，传统页码；卡片含封面/标题/摘要/分区/标签/时间/浏览/评论。
 - 来源：访谈 Q069、Q079-Q082、Q234-Q235；`modules/05-discovery-reading.md` §查询与排序；`contracts/03-frontend-contract-map.md` §public:home。
 - 依赖：前置 `CNT-003`、`CNT-005`、`DSC-001`；后续 `DSC-003`、`DSC-004`、`DSC-006`、`DSC-007`、`DSC-008`、`QA-003`、`QA-006`。

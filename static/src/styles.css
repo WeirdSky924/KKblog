@@ -2,6 +2,8 @@
 @import "tailwindcss";
 @import "./theme.css";
 @import "./foundation.css";
+@import "./navigation.css";
+@import "./discovery.css";
 @import "./feedback.css";
 @import "./status-pages.css";
 @import "./accounts.css";

@@ -1,4 +1,5 @@
 from .consumers import consume_account_status_event
+from .policies import register_article_reader_scope
 from .purge_ports import (
     ArticleCommentPurgeResult,
     register_article_comment_purge,
@@ -11,6 +12,9 @@ from .queries import (
     RevisionTimelineItem,
     SectionItem,
     TagItem,
+    VisibleArticleItem,
+    VisibleArticlePage,
+    VisibleArticleTag,
     active_tag,
     article_for_admin,
     article_for_author,
@@ -19,6 +23,7 @@ from .queries import (
     revision_timeline,
     section_list,
     tags_for_article,
+    visible_article_page,
 )
 from .services import (
     ArticleDeletionError,
@@ -127,6 +132,9 @@ __all__ = [
     "TagDeleteResult",
     "SummaryMode",
     "TagItem",
+    "VisibleArticleItem",
+    "VisibleArticlePage",
+    "VisibleArticleTag",
     "TagRestoreResult",
     "TagResult",
     "Visibility",
@@ -168,4 +176,6 @@ __all__ = [
     "tags_for_article",
     "validate_publication_section",
     "register_article_comment_purge",
+    "register_article_reader_scope",
+    "visible_article_page",
 ]

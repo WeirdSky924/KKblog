@@ -1,0 +1,16 @@
+<footer class="site-footer" data-site-footer>
+  <div class="site-footer__inner">
+    <p>
+      <strong>{{ site_presentation.site_name|default:"Kaj的小房间" }}</strong>
+      <span aria-hidden="true">/</span>
+      <span>© <time data-footer-year datetime="{{ site_year }}">{{ site_year }}</time></span>
+    </p>
+    {% if site_presentation.copyright_text %}<p>{{ site_presentation.copyright_text }}</p>{% endif %}
+    {% if site_presentation.privacy_url or site_presentation.terms_url %}
+      <nav aria-label="法律信息">
+        {% if site_presentation.privacy_url %}<a href="{{ site_presentation.privacy_url }}">隐私政策</a>{% endif %}
+        {% if site_presentation.terms_url %}<a href="{{ site_presentation.terms_url }}">使用条款</a>{% endif %}
+      </nav>
+    {% endif %}
+  </div>
+</footer>

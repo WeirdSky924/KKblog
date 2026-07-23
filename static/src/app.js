@@ -2,13 +2,32 @@ import Alpine from "alpinejs";
 import "htmx.org";
 import {
   ArrowLeft,
+  Bell,
+  Bookmark,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleCheck,
   CircleX,
+  Eye,
+  ExternalLink,
   ImageUp,
   Info,
+  LogIn,
+  LogOut,
+  Menu,
+  MessageCircle,
+  MonitorSmartphone,
+  Moon,
   RotateCw,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sun,
   Trash2,
   TriangleAlert,
+  UserPlus,
+  UserRound,
   X,
   createIcons,
 } from "lucide";
@@ -17,13 +36,32 @@ import { normalizeTheme, storeTheme } from "./theme-values.js";
 
 const availableIcons = {
   ArrowLeft,
+  Bell,
+  Bookmark,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleCheck,
   CircleX,
+  Eye,
+  ExternalLink,
   ImageUp,
   Info,
+  LogIn,
+  LogOut,
+  Menu,
+  MessageCircle,
+  MonitorSmartphone,
+  Moon,
   RotateCw,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sun,
   Trash2,
   TriangleAlert,
+  UserPlus,
+  UserRound,
   X,
 };
 const RETURN_FOCUS_KEY = "kaj.error-return-focus";
@@ -81,6 +119,26 @@ function initializeIcons(root = document) {
       width: "24",
       height: "24",
     },
+  });
+}
+
+function initializePersonalMenus(root = document) {
+  if (!window.matchMedia("(hover: hover)").matches) {
+    return;
+  }
+  root.querySelectorAll?.("[data-personal-menu]").forEach((menu) => {
+    if (!(menu instanceof HTMLDetailsElement) || menu.dataset.hoverBound === "true") {
+      return;
+    }
+    menu.dataset.hoverBound = "true";
+    menu.addEventListener("pointerenter", () => {
+      menu.open = true;
+    });
+    menu.addEventListener("pointerleave", () => {
+      if (!menu.contains(document.activeElement)) {
+        menu.open = false;
+      }
+    });
   });
 }
 
@@ -397,6 +455,73 @@ function applyTheme(value, { persist = true } = {}) {
   return true;
 }
 
+function announceShellError(message) {
+  const region = document.getElementById("global-feedback");
+  if (!(region instanceof HTMLElement)) {
+    return;
+  }
+  const item = document.createElement("div");
+  item.className = "feedback-item feedback-item--error";
+  item.dataset.feedbackItem = "";
+  item.setAttribute("role", "alert");
+  const icon = document.createElement("span");
+  icon.className = "feedback-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.innerHTML = '<i data-lucide="circle-x"></i>';
+  const text = document.createElement("p");
+  text.textContent = message;
+  const close = document.createElement("button");
+  close.className = "icon-button feedback-dismiss";
+  close.type = "button";
+  close.dataset.feedbackDismiss = "";
+  close.setAttribute("aria-label", "关闭这条反馈");
+  close.title = "关闭";
+  close.innerHTML = '<i data-lucide="x"></i>';
+  item.append(icon, text, close);
+  region.append(item);
+  initializeIcons(item);
+}
+
+async function syncAccountTheme(form, submitter) {
+  if (!(submitter instanceof HTMLButtonElement) || form.dataset.syncing === "true") {
+    return;
+  }
+  const selectedTheme = normalizeTheme(submitter.value);
+  const previousTheme = normalizeTheme(form.dataset.currentTheme) ?? "light";
+  const syncUrl = form.dataset.themeSyncUrl;
+  if (!selectedTheme || !syncUrl) {
+    return;
+  }
+  form.dataset.syncing = "true";
+  form.setAttribute("aria-busy", "true");
+  form.querySelectorAll("button").forEach((button) => {
+    button.disabled = true;
+  });
+  const body = new FormData(form);
+  body.set("theme", selectedTheme);
+  try {
+    const response = await fetch(syncUrl, {
+      method: "POST",
+      body,
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (!response.ok) {
+      throw new Error("theme sync failed");
+    }
+    form.dataset.currentTheme = selectedTheme;
+  } catch {
+    applyTheme(previousTheme);
+    announceShellError("主题偏好未能保存，请重试。");
+  } finally {
+    delete form.dataset.syncing;
+    form.removeAttribute("aria-busy");
+    form.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+  }
+}
+
 function focusInsertedError(root) {
   const error = root.querySelector?.("[data-error-focus]");
   if (error instanceof HTMLElement) {
@@ -458,6 +583,13 @@ document.addEventListener("kaj:theme-request", (event) => {
 
 document.addEventListener("submit", (event) => {
   const form = event.target;
+  if (form instanceof HTMLFormElement && form.matches("[data-theme-bridge]")) {
+    if (form.dataset.themeSyncUrl) {
+      event.preventDefault();
+      syncAccountTheme(form, event.submitter);
+    }
+    return;
+  }
   if (
     event.defaultPrevented ||
     !(form instanceof HTMLFormElement) ||
@@ -478,9 +610,34 @@ document.addEventListener("submit", (event) => {
   });
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") {
+    return;
+  }
+  const disclosure = document.querySelector(
+    ".site-header details[open]:focus-within",
+  );
+  if (disclosure instanceof HTMLDetailsElement) {
+    disclosure.open = false;
+    disclosure.querySelector("summary")?.focus();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (!(event.target instanceof Node)) {
+    return;
+  }
+  document.querySelectorAll(".site-header details[open]").forEach((disclosure) => {
+    if (!disclosure.contains(event.target)) {
+      disclosure.removeAttribute("open");
+    }
+  });
+});
+
 document.addEventListener("htmx:afterSwap", (event) => {
   const root = event.detail?.target ?? document;
   initializeIcons(root);
+  initializePersonalMenus(root);
   initializeConfirmDialogs(root);
   initializeMediaPickers(root);
   focusInsertedError(root);
@@ -494,6 +651,7 @@ window.addEventListener("pageshow", () => {
 window.Alpine = Alpine;
 Alpine.start();
 initializeIcons();
+initializePersonalMenus();
 initializeConfirmDialogs();
 initializeMediaPickers();
 focusInsertedError(document);

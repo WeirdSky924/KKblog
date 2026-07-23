@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}搜索 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="search-entry" aria-labelledby="search-title">
+    <header class="page-heading">
+      <h1 id="search-title">搜索文章</h1>
+    </header>
+    <form class="search-page-form" action="{% url 'public:search' %}" method="get" role="search">
+      <label for="search-page-query">文章标题</label>
+      <div>
+        <input id="search-page-query" name="q" type="search" value="{{ query }}" maxlength="100" required>
+        <button class="button button--primary" type="submit">搜索</button>
+      </div>
+    </form>
+    {% if search_pending %}
+      <p class="system-state" role="alert">暂时无法完成搜索，请稍后重试。</p>
+    {% else %}
+      <p class="empty-state">输入文章标题开始搜索。</p>
+    {% endif %}
+  </section>
+{% endblock %}

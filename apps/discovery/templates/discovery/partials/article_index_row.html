@@ -1,0 +1,32 @@
+<article class="article-index-row" data-article-index-item>
+  <a class="article-index-row__cover" href="{% url 'article:detail' item.article_id %}" aria-label="阅读《{{ item.title }}》">
+    <img src="{{ item.cover_url }}" width="1600" height="900" alt="" loading="lazy">
+  </a>
+  <div class="article-index-row__body">
+    <div class="article-index-row__title-line">
+      <h3><a href="{% url 'article:detail' item.article_id %}">{{ item.title }}</a></h3>
+      {% if item.visibility == "AUTHENTICATED" %}<span class="article-visibility">登录可见</span>{% elif item.visibility == "PRIVATE" %}<span class="article-visibility">仅自己</span>{% endif %}
+    </div>
+    {% if item.summary %}<p class="article-index-row__summary">{{ item.summary }}</p>{% endif %}
+    {% if item.section_name or item.tags %}
+      <div class="article-index-row__taxonomy">
+        {% if item.section_name %}<span class="article-section">{{ item.section_name }}</span>{% endif %}
+        {% for tag in item.tags %}<span class="article-tag">{{ tag.name }}</span>{% endfor %}
+      </div>
+    {% endif %}
+    <dl class="article-index-row__meta">
+      <div>
+        <dt class="visually-hidden">发布时间</dt>
+        <dd><time datetime="{{ item.published_at|date:'c' }}">{{ item.published_label }}</time></dd>
+      </div>
+      <div>
+        <dt><i data-lucide="eye"></i><span class="visually-hidden">浏览量</span></dt>
+        <dd>{{ item.view_count }}</dd>
+      </div>
+      <div>
+        <dt><i data-lucide="message-circle"></i><span class="visually-hidden">评论数</span></dt>
+        <dd>{{ item.comment_count }}</dd>
+      </div>
+    </dl>
+  </div>
+</article>

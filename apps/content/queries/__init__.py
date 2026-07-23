@@ -5,6 +5,12 @@ from .classification import (
     section_list,
     tags_for_article,
 )
+from .discovery import (
+    VisibleArticleItem,
+    VisibleArticlePage,
+    VisibleArticleTag,
+    visible_article_page,
+)
 from .publication import PublishedRevision, published_revision
 from .revisions import RevisionTimelineItem, revision_timeline
 
@@ -14,6 +20,9 @@ __all__ = [
     "ArticleView",
     "SectionItem",
     "TagItem",
+    "VisibleArticleItem",
+    "VisibleArticlePage",
+    "VisibleArticleTag",
     "PublishedRevision",
     "RevisionTimelineItem",
     "active_tag",
@@ -22,6 +31,7 @@ __all__ = [
     "article_for_reader",
     "section_list",
     "tags_for_article",
+    "visible_article_page",
     "published_revision",
     "revision_timeline",
 ]

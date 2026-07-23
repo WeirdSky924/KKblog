@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 
+{% block title %}{{ site_presentation.site_name }}{% endblock %}
+
 {% block content %}
-  <section class="mx-auto max-w-3xl space-y-6" aria-labelledby="home-title">
-    <header>
-      <p class="text-sm text-[var(--text-secondary)]">一个安静记录与分享的地方</p>
-      <h1 id="home-title" class="text-4xl font-semibold">Kaj 的小房间</h1>
+  <div class="home-layout">
+    <header class="home-heading">
+      <h1 id="home-title">{{ site_presentation.site_name }}</h1>
+      {% if site_presentation.site_description %}<p>{{ site_presentation.site_description }}</p>{% endif %}
     </header>
-    {% if signed_in %}
-      <p role="status">你已登录。这里还没有公开文章。</p>
-      <a class="button button--secondary" href="/accounts/settings/">个人设置</a>
-    {% else %}
-      <p>这里还没有公开文章。你可以先登录，或使用邀请码注册。</p>
-      <div class="flex gap-3">
-        <a class="button button--primary" href="{% url 'accounts:login' %}">登录</a>
-        <a class="button button--secondary" href="{% url 'accounts:register' %}">注册</a>
-      </div>
-    {% endif %}
-  </section>
+    <section class="home-articles" aria-labelledby="latest-articles-title">
+      <header class="section-heading">
+        <div>
+          <h2 id="latest-articles-title">最新文章</h2>
+          {% if index_page %}<p>共 {{ index_page.total_items }} 篇</p>{% endif %}
+        </div>
+      </header>
+      {% include "discovery/partials/article_index.html" %}
+    </section>
+  </div>
 {% endblock %}

@@ -1,0 +1,24 @@
+<details class="personal-menu" data-personal-menu>
+  <summary aria-label="打开个人菜单">
+    {% include "accounts/partials/avatar.html" with identity=shell_account only %}
+    <span class="personal-menu__name">{{ shell_account.display_name }}</span>
+    <i data-lucide="chevron-down"></i>
+  </summary>
+  <div class="personal-menu__panel">
+    <nav aria-label="个人管理">
+      <a href="{{ shell_account.profile_url }}"><i data-lucide="user-round"></i><span>公开主页</span></a>
+      <a href="{% url 'accounts:settings' %}"><i data-lucide="settings"></i><span>个人设置</span></a>
+      <a href="/accounts/bookmarks/"><i data-lucide="bookmark"></i><span>我的收藏</span></a>
+      <a href="{% url 'accounts:sessions' %}"><i data-lucide="monitor-smartphone"></i><span>设备会话</span></a>
+      {% if shell_is_administrator %}
+        <a href="{% url 'admin:invites' %}"><i data-lucide="shield-check"></i><span>管理</span></a>
+      {% endif %}
+    </nav>
+    <form method="post" action="{% url 'accounts:sessions' %}" data-submit-once>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="revoke">
+      <input type="hidden" name="session_id" value="{{ shell_session_id }}">
+      <button type="submit"><i data-lucide="log-out"></i><span>退出登录</span></button>
+    </form>
+  </div>
+</details>

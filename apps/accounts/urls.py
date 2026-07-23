@@ -6,6 +6,7 @@ from apps.accounts.presentation.views import (
     register,
     sessions_view,
     settings_view,
+    theme_view,
 )
 
 app_name = "accounts"
@@ -16,4 +17,5 @@ urlpatterns = [
     path("register/", register, name="register"),
     path("sessions/", sessions_view, name="sessions"),
     path("settings/", settings_view, name="settings"),
+    path("theme/", theme_view, name="theme"),
 ]

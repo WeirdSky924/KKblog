@@ -1,0 +1,43 @@
+<form
+  class="theme-control"
+  data-theme-bridge
+  data-theme-source="{{ theme_source }}"
+  data-current-theme="{{ initial_theme }}"
+  {% if shell_account %}data-theme-sync-url="{% url 'accounts:theme' %}" method="post" action="{% url 'accounts:theme' %}"{% endif %}
+  aria-label="阅读主题"
+>
+  {% if shell_account %}
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ shell_return_path }}">
+  {% endif %}
+  <button
+    class="theme-control__option"
+    type="{% if shell_account %}submit{% else %}button{% endif %}"
+    name="theme"
+    value="light"
+    data-theme-value="light"
+    aria-label="浅色主题"
+    title="浅色主题"
+    aria-pressed="{% if initial_theme == 'light' %}true{% else %}false{% endif %}"
+  ><i data-lucide="sun"></i></button>
+  <button
+    class="theme-control__option"
+    type="{% if shell_account %}submit{% else %}button{% endif %}"
+    name="theme"
+    value="dark"
+    data-theme-value="dark"
+    aria-label="深色主题"
+    title="深色主题"
+    aria-pressed="{% if initial_theme == 'dark' %}true{% else %}false{% endif %}"
+  ><i data-lucide="moon"></i></button>
+  <button
+    class="theme-control__option"
+    type="{% if shell_account %}submit{% else %}button{% endif %}"
+    name="theme"
+    value="eye-care"
+    data-theme-value="eye-care"
+    aria-label="护眼主题"
+    title="护眼主题"
+    aria-pressed="{% if initial_theme == 'eye-care' %}true{% else %}false{% endif %}"
+  ><i data-lucide="eye"></i></button>
+</form>

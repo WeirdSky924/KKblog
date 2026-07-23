@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}注册 · Kaj 的小房间{% endblock %}
+{% block title %}注册 · {{ site_presentation.site_name }}{% endblock %}
 
 {% block content %}
   <section class="mx-auto max-w-2xl space-y-8" aria-labelledby="register-title">
     <header>
-      <p class="text-sm text-[var(--text-secondary)]">欢迎来到 Kaj 的小房间</p>
+      <p class="text-sm text-[var(--text-secondary)]">欢迎来到 {{ site_presentation.site_name }}</p>
       <h1 id="register-title" class="text-3xl font-semibold">创建账号</h1>
       {% if direct_enabled %}
         <p>可以直接注册，也可以使用邀请码。</p>

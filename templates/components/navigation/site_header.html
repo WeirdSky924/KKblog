@@ -1,0 +1,59 @@
+{% load static %}
+{% url 'public:home' as shell_home_url %}
+{% url 'public:search' as shell_search_url %}
+{% url 'accounts:login' as shell_login_url %}
+{% url 'accounts:register' as shell_register_url %}
+<header class="site-header" data-site-header>
+  <div class="site-header__inner">
+    <div class="site-header__top">
+      <div class="brand-tools">
+        {% if shell_home_url %}<a class="site-brand" href="{{ shell_home_url }}" aria-label="{{ site_presentation.site_name|default:'Kaj的小房间' }}首页">{% else %}<div class="site-brand">{% endif %}
+          <img
+            src="{% if site_presentation.logo_url %}{{ site_presentation.logo_url }}{% else %}{% static 'media/brand/k-mark.svg' %}{% endif %}"
+            alt=""
+            width="40"
+            height="40"
+          >
+          <span>{{ site_presentation.site_name|default:"Kaj的小房间" }}</span>
+        {% if shell_home_url %}</a>{% else %}</div>{% endif %}
+        {% include "components/navigation/theme_control.html" %}
+      </div>
+      {% if shell_search_url %}<form class="header-search" action="{{ shell_search_url }}" method="get" role="search">
+        <label class="visually-hidden" for="header-search-query">搜索文章标题</label>
+        <input id="header-search-query" name="q" type="search" maxlength="100" placeholder="搜索文章标题" required>
+        <button class="icon-button" type="submit" aria-label="搜索" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+      </form>{% endif %}
+      <div class="identity-controls">
+        {% if shell_account %}
+          <button
+            class="icon-button notification-slot"
+            type="button"
+            data-notification-slot
+            aria-label="通知"
+            title="通知"
+            disabled
+          ><i data-lucide="bell"></i></button>
+          {% include "components/navigation/personal_menu.html" %}
+        {% else %}
+          {% if shell_login_url %}<a class="button button--secondary" href="{{ shell_login_url }}"><i data-lucide="log-in"></i><span>登录</span></a>{% endif %}
+          {% if shell_register_url %}<a class="button button--primary" href="{{ shell_register_url }}"><i data-lucide="user-plus"></i><span>注册</span></a>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% if site_presentation.navigation %}
+      <div class="site-nav site-nav--desktop">
+        <nav aria-label="站点导航">
+          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+        </nav>
+      </div>
+      <details class="site-nav site-nav--mobile">
+        <summary><i data-lucide="menu"></i><span>站点导航</span></summary>
+        <nav aria-label="站点导航">
+          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+        </nav>
+      </details>
+    {% endif %}
+  </div>
+</header>
