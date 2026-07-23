@@ -21,7 +21,7 @@ BUSINESS_APPS = {
 ALLOWED_APP_DEPENDENCIES = {
     "core": set(),
     "accounts": {"core", "media"},
-    "content": {"accounts", "core"},
+    "content": {"accounts", "core", "media", "operations"},
     "media": {"core", "operations"},
     "comments": {"content", "core"},
     "moderation": {"comments", "content", "core"},

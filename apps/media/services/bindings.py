@@ -16,6 +16,7 @@ from apps.media.models import (
 from apps.media.services.cleanup import schedule_pending_cleanup
 from apps.media.storage import MediaStorage
 from apps.media.targets import (
+    TargetAccessDecision,
     TargetAccessOperation,
     TargetAccessRegistry,
     TargetAccessRequest,
@@ -41,6 +42,14 @@ class BindingInput:
 class ReplaceBindingsResult:
     active_asset_ids: tuple[str, ...]
     pending_delete_asset_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TargetBindingSnapshot:
+    asset_id: str
+    purpose: str
+    state: str
+    slot: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +114,7 @@ def _target_decision(
     target_type: MediaTargetType,
     target_id: str,
     purpose: MediaPurpose,
-) -> None:
+) -> TargetAccessDecision:
     try:
         validate_binding_target(purpose, target_type)
         decision = registry.decide(
@@ -125,6 +134,7 @@ def _target_decision(
         raise MediaBindingError("media.target_not_found.v1", "媒体目标不存在。")
     if not decision.can_bind:
         raise MediaBindingError("media.binding_denied.v1", "不能为该目标设置图片。")
+    return decision
 
 
 def _locked_assets(
@@ -253,6 +263,138 @@ def bind_assets(
             existing.append(binding)
             created.append(binding)
     return tuple(created)
+
+
+def bind_revision_snapshot_assets(
+    *,
+    actor_id: UUID,
+    target_id: str,
+    inputs: tuple[BindingInput, ...],
+    registry: TargetAccessRegistry = default_target_access_registry,
+) -> tuple[MediaBinding, ...]:
+    if not isinstance(actor_id, UUID) or not inputs:
+        raise MediaBindingError("media.binding_invalid.v1", "媒体绑定信息不合法。")
+    normalized_inputs = _normalize_inputs(inputs)
+    target_type = MediaTargetType.ARTICLE_REVISION
+    with transaction.atomic():
+        assets = _locked_assets(normalized_inputs, actor_id)
+        rules = _validate_rules(
+            assets=assets,
+            inputs=normalized_inputs,
+            target_type=target_type,
+        )
+        target_decision = _target_decision(
+            registry=registry,
+            actor_id=actor_id,
+            target_type=target_type,
+            target_id=target_id,
+            purpose=MediaPurpose(assets[normalized_inputs[0].asset_id].purpose),
+        )
+        if not target_decision.binding_scope:
+            raise MediaBindingError(
+                "media.binding_scope_invalid.v1", "媒体目标不能建立修订快照。"
+            )
+        for purpose in rules:
+            _target_decision(
+                registry=registry,
+                actor_id=actor_id,
+                target_type=target_type,
+                target_id=target_id,
+                purpose=purpose,
+            )
+
+        current = list(
+            MediaBinding.objects.select_for_update()
+            .select_related("asset")
+            .filter(target_type=target_type, target_id=target_id)
+        )
+        by_slot = {binding.slot: binding for binding in current}
+        created: list[MediaBinding] = []
+        for item in normalized_inputs:
+            current_slot = by_slot.get(item.slot)
+            if current_slot is not None:
+                if current_slot.asset_id != item.asset_id:
+                    raise MediaBindingError(
+                        "media.binding_slot_conflict.v1", "图片槽位已被占用。"
+                    )
+                created.append(current_slot)
+                continue
+
+            asset = assets[item.asset_id]
+            purpose = MediaPurpose(asset.purpose)
+            current_count = sum(binding.asset.purpose == purpose for binding in current)
+            if current_count >= rules[purpose].maximum:
+                raise MediaBindingError(
+                    "media.binding_limit_exceeded.v1", "图片数量超过此用途的上限。"
+                )
+            for binding in asset.bindings.select_for_update().exclude(
+                target_type=target_type,
+                target_id=target_id,
+            ):
+                if binding.target_type != target_type:
+                    raise MediaBindingError(
+                        "media.asset_already_bound.v1", "图片已绑定到其他目标。"
+                    )
+                try:
+                    source = registry.decide(
+                        target_type,
+                        TargetAccessRequest(
+                            actor_id=actor_id,
+                            target_id=binding.target_id,
+                            purpose=purpose,
+                            operation=TargetAccessOperation.BIND,
+                        ),
+                    )
+                except ValidationError:
+                    raise MediaBindingError(
+                        "media.asset_already_bound.v1", "图片已绑定到其他目标。"
+                    ) from None
+                if (
+                    not source.exists
+                    or source.binding_scope != target_decision.binding_scope
+                ):
+                    raise MediaBindingError(
+                        "media.asset_already_bound.v1", "图片已绑定到其他目标。"
+                    )
+            try:
+                binding = MediaBinding.objects.bind(
+                    asset=asset,
+                    target_type=target_type,
+                    target_id=target_id,
+                    slot=item.slot,
+                )
+            except (IntegrityError, ValidationError):
+                raise MediaBindingError(
+                    "media.binding_conflict.v1", "图片绑定发生冲突，请重试。"
+                ) from None
+            current.append(binding)
+            by_slot[binding.slot] = binding
+            created.append(binding)
+    return tuple(created)
+
+
+def target_binding_snapshot(
+    *, target_type: MediaTargetType | str, target_id: str
+) -> tuple[TargetBindingSnapshot, ...]:
+    try:
+        normalized_target = MediaTargetType(target_type)
+    except (TypeError, ValueError):
+        raise MediaBindingError(
+            "media.target_unavailable.v1", "媒体目标不可用。"
+        ) from None
+    if not isinstance(target_id, str) or not 1 <= len(target_id) <= 128:
+        raise MediaBindingError("media.target_unavailable.v1", "媒体目标不可用。")
+    return tuple(
+        TargetBindingSnapshot(
+            binding.asset_id,
+            binding.asset.purpose,
+            binding.asset.state,
+            binding.slot,
+        )
+        for binding in MediaBinding.objects.select_related("asset")
+        .filter(target_type=normalized_target, target_id=target_id)
+        .order_by("slot", "asset_id")
+    )
 
 
 def replace_bindings(

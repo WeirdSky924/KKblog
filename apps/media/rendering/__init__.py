@@ -13,6 +13,7 @@ from .html_policy import (
     render_cache_key,
 )
 from .markdown import render_markdown
+from .references import markdown_media_ids, tiptap_media_ids
 from .tiptap import render_tiptap
 
 
@@ -66,4 +67,6 @@ __all__ = [
     "render_import_preview",
     "render_markdown",
     "render_tiptap",
+    "markdown_media_ids",
+    "tiptap_media_ids",
 ]

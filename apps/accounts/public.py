@@ -4,7 +4,7 @@ from apps.accounts.deletion import (
     AccountDeletionDisposition,
     AuthorArticleDecision,
 )
-from apps.accounts.models import RoleAssignment
+from apps.accounts.models import Account, RoleAssignment
 from apps.accounts.queries.ip_blocks import ip_block_detail, ip_block_list
 from apps.accounts.queries.profile import (
     PublicAccountIdentity,
@@ -39,6 +39,22 @@ def is_administrator(account_id: UUID | str | None) -> bool:
     ).exists()
 
 
+def is_active_author(account_id: UUID | str | None) -> bool:
+    if account_id is None:
+        return False
+    return RoleAssignment.objects.filter(
+        account_id=account_id,
+        role=RoleAssignment.Role.AUTHOR,
+        account__status=Account.Status.ACTIVE,
+    ).exists()
+
+
+def is_active_account(account_id: UUID | str | None) -> bool:
+    if account_id is None:
+        return False
+    return Account.objects.filter(pk=account_id, status=Account.Status.ACTIVE).exists()
+
+
 __all__ = [
     "block_ip",
     "AccountDeletionDisposition",
@@ -53,6 +69,8 @@ __all__ = [
     "ip_block_detail",
     "ip_block_list",
     "is_administrator",
+    "is_active_author",
+    "is_active_account",
     "public_account_identity",
     "security_event_detail",
     "security_event_list",

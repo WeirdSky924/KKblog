@@ -17,12 +17,17 @@ def require_image_creation_capacity(path):
     return filesystem_capacity_gate(path).require(CapacityOperation.IMAGE_CREATE)
 
 
+def require_text_creation_capacity(path):
+    return filesystem_capacity_gate(path).require(CapacityOperation.TEXT_CREATE)
+
+
 __all__ = [
     "AuditRejected",
     "AuditSchema",
     "RetryableTaskError",
     "StartOutcome",
     "require_image_creation_capacity",
+    "require_text_creation_capacity",
     "audit_detail",
     "execute_celery_entry",
     "record_audit_entry",

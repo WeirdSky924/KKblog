@@ -70,6 +70,7 @@ presentation (templates/views/htmx)
 authoring --------> content / media / comments / exchange
 administration ---> accounts / content / moderation / notifications / navigation / operations
 discovery --------> content public queries / comments public queries / navigation public queries
+content ----------> accounts public / media public / operations public
 domain app -------> core protocols
 domain event -----> outbox -----> other domain consumer
 ```

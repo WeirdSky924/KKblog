@@ -6,6 +6,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.administration",
+    "apps.content",
     "apps.core",
     "apps.discovery",
     "apps.media",
@@ -75,6 +76,10 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 300
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_BEAT_SCHEDULE = {
+    "content-publish-scheduled": {
+        "task": "apps.content.dispatch_scheduled_articles",
+        "schedule": 60.0,
+    },
     "media-delete-pending": {
         "task": "apps.media.dispatch_pending_media",
         "schedule": 60.0,
@@ -87,6 +92,8 @@ CELERY_BEAT_SCHEDULE = {
 
 MEDIA_STAGED_EXPIRY_SECONDS = 86_400
 MEDIA_CLEANUP_BATCH_SIZE = 100
+CONTENT_SCHEDULE_BATCH_SIZE = 100
+ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
 
 LOGGING = {
     "version": 1,

@@ -27,6 +27,7 @@ class TargetAccessDecision:
     can_bind: bool
     can_read: bool
     public_immutable: bool
+    binding_scope: str | None = None
 
 
 TargetAccessPort = Callable[[TargetAccessRequest], TargetAccessDecision]
