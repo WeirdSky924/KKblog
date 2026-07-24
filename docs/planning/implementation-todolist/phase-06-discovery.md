@@ -94,7 +94,7 @@
 - 授权：`否`。
 
 ### DSC-008 实现 SEO、sitemap 与公开缓存失效
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：PUBLIC文章可索引并进入 sitemap；标题为SEO标题、正文纯文本前100字为描述；AUTH/PRIVATE/个人/管理 noindex；只缓存公开清洗正文/列表。
 - 来源：访谈 Q135-Q138、Q255、Q273；`modules/05-discovery-reading.md` §缓存/SEO；`data/05-storage-lifecycle.md` §缓存边界。
 - 依赖：前置 `DSC-002`、`DSC-003`、`DSC-004`、`DSC-005`、`CNT-009`；后续 `QA-003`、`QA-004`、`QA-006`。
@@ -103,6 +103,7 @@
 - 影响：数据：发布投影读；权限：PUBLIC-only；缓存：发布/重发/可见/分类/隐藏/删除/恢复/禁用全失效；异步：outbox消费者；媒体：渲染引用；审计/通知无。
 - 测试/验收：RED 缓存命中后各遮罩、Redis flush、sitemap/noindex、描述去HTML；真实请求/缓存键读回。
 - 风险/停止：缓存成为事实、私密内容进入搜索引擎或失效事件重复产生错误状态即停止。
+- 证据：历史 RED 以实现前提交 `a82f5b4` 读回：`git cat-file -e a82f5b4:apps/discovery/cache/invalidation.py` 与 `git cat-file -e a82f5b4:apps/discovery/seo/metadata.py` 均退出 128，证明两个目标模块尚不存在；未伪造历史 pytest 结果。实现由 content owner 提供统一 reader/public 查询与清洗纯文本，discovery 生成标题、正文纯文本前 100 字描述和 robots 元数据；仅 PUBLIC 文章进入使用稳定 ULID 链接的 sitemap，AUTH/PRIVATE、登录提醒、个人页、收藏页与管理入口均为 `noindex`，首版未实现 RSS。Redis 文章缓存精确只含 `html/version`，列表缓存只含公开静态投影，不写浏览、评论、收藏、通知、菜单或作者遮罩；命中旧缓存后仍先重判 PostgreSQL 权限，PUBLIC→AUTH 事件尚未消费时访客已得到不泄露标题的登录提醒、旧首页列表也不展示该文，AUTH→PUBLIC 恢复后才重新可见。隔离 PostgreSQL/Redis 审计覆盖 6 个文章生命周期、2 个分类和 1 个作者遮罩事件：列表 generation 递增 10、文章 generation 递增 8，作者事件按 33 篇文章失效；重复投递返回 `already_processed`，注入 Redis 故障后记录 `pending/attempts=1` 与 60 秒重试，61 秒后重入为 `processed/attempts=2`，证明持久去重、退避和最终完成。Redis 独立 namespace 在 flush 后可冷重建并已清理；全仓 pytest、Ruff lint/format、Django check、migration drift、npm build、结构/追踪审计和 `git diff --check` 均退出 0，完整 pytest 为 `328 passed`。`/usr/local/bin/blog-playwright-cli` 在 1440/768/390、亮/暗/护眼和键盘流验证 sitemap/robots、搜索/分区/标签分页焦点、未知分区 404、收藏 PUBLIC→PRIVATE 失效占位→PUBLIC 恢复→Space 移除，正常页面最终控制台 0 error/0 warning且无横向溢出。P6 只交付可由全域注册表路由的持久幂等 consumer；全域 Outbox transport 仍按 P8 边界实现，未建立只识别 discovery 事件并可能吞掉其他领域事件的局部 transport。未执行生产缓存、生产事件、生产 migration、部署或服务重启。
 - 授权：`否`。
 
 [返回总索引](../implementation-todolist.md)

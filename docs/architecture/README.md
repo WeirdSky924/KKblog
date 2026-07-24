@@ -1,6 +1,6 @@
 # Kaj的小房间架构设计总览
 
-状态：需求与施工级架构设计已完成；原型作为视觉基线，路由/身份/状态以 `docs/prototype/page-state-matrix.md` 补齐；P1/P2 技术基础已在未提交工作区实现并隔离验证，P3 及后续业务领域尚未实施。
+状态：需求与施工级架构设计已完成；原型作为视觉基线，路由/身份/状态以 `docs/prototype/page-state-matrix.md` 补齐。实施阶段、完成数量与证据只以 `docs/planning/implementation-todolist.md` 为准，本架构索引不维护第二份进度账。
 
 需求真值：`docs/planning/requirements-interview.md`。前端基线：`docs/prototype/page-state-matrix.md`、`docs/prototype/index.html` 与 `docs/prototype/README.md`。历史决策冲突先看 `reference/01-requirements-resolution.md`。
 
@@ -71,4 +71,4 @@ Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`u
 
 ## 实施门禁
 
-任何模块开始前必须确认：需求来源、唯一所有者、入口身份、服务/query、事务与锁、持久化约束、事件/任务、错误状态、测试层次和原型页面。架构文档完成不等于产品已实现；当前已有 core/outbox/operations migration、Compose 运行契约和 P2 基础代码，但没有生产配置、生产数据、真实备份或部署完成事实。
+任何模块开始前必须确认：需求来源、唯一所有者、入口身份、服务/query、事务与锁、持久化约束、事件/任务、错误状态、测试层次和原型页面。架构文档完成不等于产品已实现；当前实现边界查阅权威实施总清单，且任何阶段完成都不表示已有生产配置、生产数据、真实备份或部署完成事实。
