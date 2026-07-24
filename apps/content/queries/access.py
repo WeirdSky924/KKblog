@@ -18,6 +18,7 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.core.time.shanghai import shanghai_business_date
 from apps.media.public import (
+    SANITIZER_VERSION,
     MediaPurpose,
     MediaTargetType,
     render_markdown,
@@ -66,6 +67,26 @@ class ArticleView:
     readable_cover_asset_id: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class PublicArticleCacheSnapshot:
+    article_id: str
+    revision_id: str
+    author_id: UUID
+    title: str
+    visibility: str
+    published_at: datetime
+    readable_cover_asset_id: str | None
+    sanitizer_version: str
+
+
+@dataclass(frozen=True, slots=True)
+class PublicArticleRender:
+    article_id: str
+    revision_id: str
+    html: str
+    sanitizer_version: str
+
+
 def _article_id(value) -> str:
     try:
         return normalize_ulid(value)
@@ -108,9 +129,7 @@ def _view(
     )
 
 
-def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
-    identity = _article_id(article_id)
-    actor = _actor_id(actor_id, required=False)
+def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
     try:
         article = Article.objects.select_related("published_revision").get(
             pk=identity,
@@ -127,6 +146,13 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
         or article_is_reader_masked(article.id)
     ):
         raise ArticleNotFound
+    return article, revision
+
+
+def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
+    identity = _article_id(article_id)
+    actor = _actor_id(actor_id, required=False)
+    article, revision = _reader_article(identity)
     authenticated = actor is not None and is_active_account(actor)
     if revision.visibility == ArticleRevision.Visibility.PUBLIC:
         allowed = True
@@ -147,7 +173,52 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     )
 
 
-def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
+def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnapshot:
+    identity = _article_id(article_id)
+    article, revision = _reader_article(identity)
+    if revision.visibility != ArticleRevision.Visibility.PUBLIC:
+        raise ArticleNotFound
+    _, readable_cover_asset_id = _reader_media_bindings(revision)
+    if article.published_at is None:
+        raise ArticleNotFound
+    return PublicArticleCacheSnapshot(
+        article_id=article.id,
+        revision_id=revision.id,
+        author_id=article.author_id,
+        title=revision.title,
+        visibility=revision.visibility,
+        published_at=article.published_at,
+        readable_cover_asset_id=readable_cover_asset_id,
+        sanitizer_version=SANITIZER_VERSION,
+    )
+
+
+def render_public_article_body(
+    *, article_id: str, revision_id: str
+) -> PublicArticleRender:
+    identity = _article_id(article_id)
+    try:
+        expected_revision = normalize_ulid(revision_id)
+    except (TypeError, ValueError):
+        raise ArticleNotFound from None
+    article, revision = _reader_article(identity)
+    if (
+        revision.visibility != ArticleRevision.Visibility.PUBLIC
+        or revision.id != expected_revision
+    ):
+        raise ArticleNotFound
+    rendered_body_html, _ = _reader_media(revision)
+    return PublicArticleRender(
+        article_id=article.id,
+        revision_id=revision.id,
+        html=rendered_body_html,
+        sanitizer_version=SANITIZER_VERSION,
+    )
+
+
+def _reader_media_bindings(
+    revision: ArticleRevision,
+) -> tuple[set[str], str | None]:
     bindings = target_binding_snapshot(
         target_type=MediaTargetType.ARTICLE_REVISION,
         target_id=revision.id,
@@ -162,6 +233,14 @@ def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
         for item in bindings
         if item.purpose == MediaPurpose.COVER and item.state == "ACTIVE"
     }
+    readable_cover_asset_id = (
+        revision.cover_asset_id if revision.cover_asset_id in active_cover_ids else None
+    )
+    return active_body_ids, readable_cover_asset_id
+
+
+def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
+    active_body_ids, readable_cover_asset_id = _reader_media_bindings(revision)
     if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
         rendered = render_markdown(
             revision.body_markdown or "", allowed_media_ids=active_body_ids
@@ -170,9 +249,6 @@ def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
         rendered = render_tiptap(
             revision.body_tiptap or {}, allowed_media_ids=active_body_ids
         )
-    readable_cover_asset_id = (
-        revision.cover_asset_id if revision.cover_asset_id in active_cover_ids else None
-    )
     return rendered.html, readable_cover_asset_id
 
 

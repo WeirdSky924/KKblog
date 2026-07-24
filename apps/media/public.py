@@ -1,5 +1,6 @@
 from .models.constants import MediaPurpose, MediaTargetType
 from .rendering import (
+    SANITIZER_VERSION,
     RenderingError,
     markdown_media_ids,
     render_markdown,
@@ -50,6 +51,7 @@ __all__ = [
     "MediaUploadAdapter",
     "MediaTargetType",
     "RenderingError",
+    "SANITIZER_VERSION",
     "ReplaceBindingsResult",
     "ReleaseTargetAssetsResult",
     "TargetBindingSnapshot",

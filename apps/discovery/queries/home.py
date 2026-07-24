@@ -1,10 +1,13 @@
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
 from django.templatetags.static import static
+from redis.exceptions import RedisError
 
 from apps.content.public import (
+    current_public_article_revisions,
     search_visible_titles,
     section_by_id,
     section_list,
@@ -13,6 +16,7 @@ from apps.content.public import (
     visible_filter_tags,
 )
 from apps.core.time import to_shanghai
+from apps.discovery.cache import default_discovery_cache, list_query_hash
 
 from .view_counts import article_view_counts
 
@@ -75,6 +79,41 @@ class ArticleCollectionPage:
     index_page: ArticleIndexPage
 
 
+def _public_cached_source(*, kind: str, parameters: dict[str, object], loader):
+    cache = default_discovery_cache()
+    if cache is None:
+        return loader()
+    query_hash = list_query_hash(kind, parameters)
+    generation = None
+    try:
+        generation = cache.list_generation()
+        cached = cache.get_list(query_hash=query_hash, generation=generation)
+    except RedisError:
+        cached = None
+    if cached is not None:
+        current = {
+            item.article_id: item.revision_id
+            for item in current_public_article_revisions(
+                article_ids=(item.article_id for item in cached.items)
+            )
+        }
+        if len(current) == len(cached.items) and all(
+            current.get(item.article_id) == item.revision_id for item in cached.items
+        ):
+            return cached
+    source = loader()
+    if generation is not None:
+        try:
+            cache.set_list(
+                query_hash=query_hash,
+                page=source,
+                expected_generation=generation,
+            )
+        except RedisError:
+            pass
+    return source
+
+
 def page_window(current: int, total: int) -> tuple[int | None, ...]:
     visible = {1, total, *(range(max(1, current - 2), min(total, current + 2) + 1))}
     ordered = sorted(number for number in visible if 1 <= number <= total)
@@ -91,11 +130,28 @@ def page_window(current: int, total: int) -> tuple[int | None, ...]:
 def home_article_page(
     *, actor_id, page: int = 1, page_size: int = 20, tag_ids=()
 ) -> ArticleIndexPage:
-    source = visible_article_page(
-        actor_id=actor_id,
-        page=page,
-        page_size=page_size,
-        tag_ids=tag_ids,
+    selected_tag_ids = tuple(tag_ids)
+
+    def loader():
+        return visible_article_page(
+            actor_id=actor_id,
+            page=page,
+            page_size=page_size,
+            tag_ids=selected_tag_ids,
+        )
+
+    source = (
+        _public_cached_source(
+            kind="home",
+            parameters={
+                "page": page,
+                "page_size": page_size,
+                "tag_ids": sorted(str(item) for item in selected_tag_ids),
+            },
+            loader=loader,
+        )
+        if actor_id is None
+        else loader()
     )
     return article_index_page(source)
 
@@ -103,11 +159,23 @@ def home_article_page(
 def search_article_page(
     *, actor_id, query: str, page: int = 1, page_size: int = 20
 ) -> ArticleIndexPage:
-    source = search_visible_titles(
-        actor_id=actor_id,
-        query=query,
-        page=page,
-        page_size=page_size,
+    def loader():
+        return search_visible_titles(
+            actor_id=actor_id, query=query, page=page, page_size=page_size
+        )
+
+    source = (
+        _public_cached_source(
+            kind="search",
+            parameters={
+                "query": unicodedata.normalize("NFKC", query).strip(),
+                "page": page,
+                "page_size": page_size,
+            },
+            loader=loader,
+        )
+        if actor_id is None
+        else loader()
     )
     return article_index_page(source)
 
@@ -130,11 +198,27 @@ def section_article_page(
     section = section_by_id(section_id)
     if section is None:
         return None
-    source = visible_article_page(
-        actor_id=actor_id,
-        page=page,
-        page_size=page_size,
-        section_id=section.section_id,
+
+    def loader():
+        return visible_article_page(
+            actor_id=actor_id,
+            page=page,
+            page_size=page_size,
+            section_id=section.section_id,
+        )
+
+    source = (
+        _public_cached_source(
+            kind="section",
+            parameters={
+                "section_id": str(section.section_id),
+                "page": page,
+                "page_size": page_size,
+            },
+            loader=loader,
+        )
+        if actor_id is None
+        else loader()
     )
     return ArticleCollectionPage(section.name, None, article_index_page(source))
 
@@ -151,11 +235,27 @@ def tag_article_page(
         item.tag_id for item in visible_filter_tags(actor_id=actor_id)
     }:
         return None
-    source = visible_article_page(
-        actor_id=actor_id,
-        page=page,
-        page_size=page_size,
-        tag_ids=(tag.tag_id,),
+
+    def loader():
+        return visible_article_page(
+            actor_id=actor_id,
+            page=page,
+            page_size=page_size,
+            tag_ids=(tag.tag_id,),
+        )
+
+    source = (
+        _public_cached_source(
+            kind="tag",
+            parameters={
+                "tag_id": str(tag.tag_id),
+                "page": page,
+                "page_size": page_size,
+            },
+            loader=loader,
+        )
+        if actor_id is None
+        else loader()
     )
     return ArticleCollectionPage(tag.name, tag.state, article_index_page(source))
 

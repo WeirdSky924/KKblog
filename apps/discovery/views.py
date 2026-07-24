@@ -93,6 +93,11 @@ def _page_template(request, page_template: str) -> str:
     return page_template
 
 
+def _no_store(response):
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 def home(request):
     actor_id = _actor_id(request)
     filter_options = discovery_filters(actor_id=actor_id)
@@ -130,11 +135,13 @@ def home(request):
         "clear_filter_url": reverse("public:home"),
         "selected_tag_ids": selected_tag_ids,
     }
-    return render(
-        request,
-        _page_template(request, "discovery/home.html"),
-        context,
-        status=status,
+    return _no_store(
+        render(
+            request,
+            _page_template(request, "discovery/home.html"),
+            context,
+            status=status,
+        )
     )
 
 
@@ -161,11 +168,13 @@ def _collection_page(request, *, identity, loader, route_name, template):
         "index_action": reverse(route_name, kwargs=identity),
         "selected_tag_ids": (),
     }
-    return render(
-        request,
-        _page_template(request, template),
-        context,
-        status=200 if valid else 422,
+    return _no_store(
+        render(
+            request,
+            _page_template(request, template),
+            context,
+            status=200 if valid else 422,
+        )
     )
 
 
@@ -216,11 +225,13 @@ def search(request):
         "search_query": search_query,
         "index_initial_prompt": "输入文章标题开始搜索。" if not requested else None,
     }
-    return render(
-        request,
-        _page_template(request, "discovery/search.html"),
-        context,
-        status=status,
+    return _no_store(
+        render(
+            request,
+            _page_template(request, "discovery/search.html"),
+            context,
+            status=status,
+        )
     )
 
 

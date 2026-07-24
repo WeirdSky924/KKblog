@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}{{ article.title }} · {{ site_presentation.site_name }}{% endblock %}
+{% block meta %}
+  <meta name="robots" content="{{ article.seo.robots }}">
+  <meta name="description" content="{{ article.seo.description }}">
+  <link rel="canonical" href="{{ permalink }}">
+{% endblock %}
+{% block title %}{{ article.seo.title }}{% endblock %}
 
 {% block content %}
   <article class="article-reader" aria-labelledby="article-title">

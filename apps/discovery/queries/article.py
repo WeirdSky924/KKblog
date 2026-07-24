@@ -8,9 +8,17 @@ from uuid import UUID
 
 from django.templatetags.static import static
 from django.utils.safestring import SafeString, mark_safe
+from redis.exceptions import RedisError
 
-from apps.content.public import article_for_reader
+from apps.content.public import (
+    ArticleNotFound,
+    article_for_reader,
+    public_article_cache_snapshot,
+    render_public_article_body,
+)
 from apps.core.time import to_shanghai
+from apps.discovery.cache import default_discovery_cache
+from apps.discovery.seo import ArticleSeoMetadata, article_seo_metadata
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +40,7 @@ class ArticleDetailPage:
     uses_default_cover: bool
     published_at: datetime
     published_label: str
+    seo: ArticleSeoMetadata
 
 
 class _H2TextParser(HTMLParser):
@@ -131,11 +140,72 @@ def _outline(html: str) -> tuple[SafeString, tuple[ArticleTocItem, ...]]:
     return mark_safe(id_parser.html), tuple(toc)
 
 
+def _same_public_revision(left, right) -> bool:
+    return (
+        left.article_id == right.article_id
+        and left.revision_id == right.revision_id
+        and left.sanitizer_version == right.sanitizer_version
+    )
+
+
+def _cached_public_article(article_id: str):
+    cache = default_discovery_cache()
+    for _attempt in range(2):
+        snapshot = public_article_cache_snapshot(article_id=article_id)
+        body_html = None
+        generation = None
+        if cache is not None:
+            try:
+                generation = cache.article_generation(snapshot.article_id)
+                body_html = cache.get_article_body(
+                    article_id=snapshot.article_id,
+                    revision_id=snapshot.revision_id,
+                    sanitizer_version=snapshot.sanitizer_version,
+                    generation=generation,
+                )
+            except RedisError:
+                body_html = None
+        if body_html is not None:
+            verified = public_article_cache_snapshot(article_id=article_id)
+            if _same_public_revision(snapshot, verified):
+                return verified, body_html
+            continue
+
+        rendered = render_public_article_body(
+            article_id=snapshot.article_id,
+            revision_id=snapshot.revision_id,
+        )
+        verified = public_article_cache_snapshot(article_id=article_id)
+        if not _same_public_revision(snapshot, verified):
+            continue
+        if rendered.sanitizer_version != verified.sanitizer_version:
+            raise RuntimeError("article sanitizer version changed during rendering")
+        if cache is not None and generation is not None:
+            try:
+                cache.set_article_body(
+                    article_id=verified.article_id,
+                    revision_id=verified.revision_id,
+                    sanitizer_version=verified.sanitizer_version,
+                    html=rendered.html,
+                    expected_generation=generation,
+                )
+            except RedisError:
+                pass
+        return verified, rendered.html
+    raise ArticleNotFound
+
+
 def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
-    source = article_for_reader(actor_id=actor_id, article_id=article_id)
-    if source.rendered_body_html is None:
-        raise RuntimeError("reader article is missing rendered body")
-    body_html, toc = _outline(source.rendered_body_html)
+    try:
+        source, sanitized_html = _cached_public_article(article_id)
+        indexable = True
+    except ArticleNotFound:
+        source = article_for_reader(actor_id=actor_id, article_id=article_id)
+        if source.rendered_body_html is None:
+            raise RuntimeError("reader article is missing rendered body") from None
+        sanitized_html = source.rendered_body_html
+        indexable = False
+    body_html, toc = _outline(sanitized_html)
     cover_asset_id = source.readable_cover_asset_id
     if source.published_at is None:
         raise RuntimeError("published article is missing publication time")
@@ -156,4 +226,9 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
         uses_default_cover=cover_asset_id is None,
         published_at=source.published_at,
         published_label=published.strftime("%Y-%m-%d %H:%M"),
+        seo=article_seo_metadata(
+            title=source.title,
+            sanitized_body_html=sanitized_html,
+            indexable=indexable,
+        ),
     )

@@ -56,6 +56,18 @@ class VisibleArticlePage:
     has_next: bool
 
 
+@dataclass(frozen=True, slots=True)
+class PublicArticleRevisionIdentity:
+    article_id: str
+    revision_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class PublicArticleSitemapItem:
+    article_id: str
+    last_modified_at: datetime
+
+
 def _actor_id(value) -> UUID | None:
     if value is None:
         return None
@@ -233,6 +245,50 @@ def visible_articles_by_ids(*, actor_id, article_ids) -> tuple[VisibleArticleIte
     return tuple(_visible_item(article) for article in queryset)
 
 
+def current_public_article_revisions(
+    *, article_ids
+) -> tuple[PublicArticleRevisionIdentity, ...]:
+    if isinstance(article_ids, (str, bytes)):
+        raise ValueError("article ids must be a collection")
+    try:
+        identities = tuple(
+            dict.fromkeys(normalize_ulid(article_id) for article_id in article_ids)
+        )
+    except (TypeError, ValueError):
+        raise ValueError("article ids must be valid ULIDs") from None
+    rows = (
+        _visible_articles(actor_id=None)
+        .filter(pk__in=identities)
+        .values_list("id", "published_revision_id")
+        .order_by("id")
+    )
+    return tuple(PublicArticleRevisionIdentity(*row) for row in rows)
+
+
+def public_article_sitemap_items() -> tuple[PublicArticleSitemapItem, ...]:
+    rows = (
+        _visible_articles(actor_id=None)
+        .values_list("id", "last_published_at", "published_at")
+        .order_by("id")
+    )
+    return tuple(
+        PublicArticleSitemapItem(article_id, last_published_at or published_at)
+        for article_id, last_published_at, published_at in rows
+    )
+
+
+def article_ids_by_author_for_cache(*, author_id) -> tuple[str, ...]:
+    try:
+        identity = UUID(str(author_id))
+    except (TypeError, ValueError):
+        raise ValueError("author id must be a UUID") from None
+    return tuple(
+        Article.objects.filter(author_id=identity)
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+
+
 def _search_query(value) -> str:
     if not isinstance(value, str):
         raise ValueError("query is required")
@@ -354,6 +410,15 @@ class _PlainTextParser(HTMLParser):
         self.parts.append(data)
 
 
+def sanitized_article_plain_text(html: str) -> str:
+    if not isinstance(html, str):
+        raise TypeError("sanitized article body must be text")
+    parser = _PlainTextParser()
+    parser.feed(html)
+    parser.close()
+    return " ".join("".join(parser.parts).split())
+
+
 def _card_summary(revision: ArticleRevision) -> str | None:
     if revision.summary_mode == ArticleRevision.SummaryMode.NONE:
         return None
@@ -363,8 +428,4 @@ def _card_summary(revision: ArticleRevision) -> str | None:
         rendered = render_markdown(revision.body_markdown or "")
     else:
         rendered = render_tiptap(revision.body_tiptap or {})
-    parser = _PlainTextParser()
-    parser.feed(rendered.html)
-    parser.close()
-    plain_text = " ".join("".join(parser.parts).split())
-    return plain_text[:100]
+    return sanitized_article_plain_text(rendered.html)[:100]

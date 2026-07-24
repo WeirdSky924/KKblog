@@ -4,6 +4,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
     "django.contrib.postgres",
+    "django.contrib.sitemaps",
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.administration",
@@ -100,6 +101,9 @@ CELERY_BEAT_SCHEDULE = {
 MEDIA_STAGED_EXPIRY_SECONDS = 86_400
 MEDIA_CLEANUP_BATCH_SIZE = 100
 DISCOVERY_TITLE_SEARCH_THRESHOLD = 0.2
+DISCOVERY_CACHE_NAMESPACE = "kaj"
+DISCOVERY_ARTICLE_CACHE_TTL_SECONDS = 3_600
+DISCOVERY_LIST_CACHE_TTL_SECONDS = 60
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
