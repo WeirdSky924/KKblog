@@ -8,6 +8,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.administration",
+    "apps.comments",
     "apps.content",
     "apps.core",
     "apps.discovery",

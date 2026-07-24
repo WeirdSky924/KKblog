@@ -3,7 +3,7 @@
 退出门禁：评论、留言板、缓冲、树、删除、举报、申诉和案件状态均委托唯一领域服务。
 
 ### CMT-001 建立文章/留言板共用讨论线程与评论树 schema
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：每篇文章一个线程、全站一个留言板线程；Comment 保存 parent/root/depth、author kind、BUFFERED/VISIBLE/DELETED、visible_at、reply_count、受限 IP。
 - 来源：访谈 Q006-Q015、Q107-Q110、Q240；`data/03-interaction-operations-fields.md` §DiscussionThread/Comment；`flows/03-comment-moderation-state-machine.md`。
 - 依赖：前置 `CNT-005`、`ACC-001`、`FND-006`；后续 `CMT-002`、`CMT-003`、`CMT-005`、`CMT-006`、`CMT-007`、`QA-001`、`QA-006`。
@@ -12,10 +12,11 @@
 - 影响：数据：Thread/Comment约束；权限：owner/target策略；审计后续；缓存无；异步/媒体/通知后续。
 - 测试/验收：RED 目标唯一、跨线程parent拒绝、author kind、账户SET NULL；migration和真实DB读回。
 - 风险/停止：任意target字符串、树级联错误或账户删除物理删历史评论即停止。
+- 证据：聚焦 RED `pytest apps/comments/tests/test_cmt001.py -q` 收集期退出 2，准确报告 `apps.comments.models` 不存在。新增 comments owner、仅 `ARTICLE/GUESTBOOK` 的封闭 target registry、共用 DiscussionThread 与 Comment 树；数据库约束覆盖目标唯一/形状、Comment ULID、author kind、顶层 `root=self/depth=0`、可见时间、删除正文与状态形状，延迟 constraint trigger 在事务提交时校验 parent/root 同线程及精确 depth。显式 PostgreSQL FK 读回 author `ON DELETE SET NULL`、thread/parent/root `ON DELETE CASCADE` 且全部 deferrable；账户删除前数据库 trigger 与 ORM signal 同步清空 author 并转 `DELETED_ACCOUNT`，raw SQL 删除账户后正文保持，raw SQL 删除线程后节点级联为 0。comments owner 注册 content 公开 purge port，文章物理删除仍由 content 编排但不导入评论模型。聚焦 GREEN 退出 0，`3 passed`；隔离 migration `0001 -> zero -> 0001` 与再次重放均退出 0，catalog 读回树 trigger `tgdeferrable/tginitdeferred=true`、目标 CHECK/唯一和命名 FK；账户删除、双 Worker 文章清理与架构边界回归退出 0，`20 passed`。Ruff lint/format、Django check、migration drift 与 `git diff --check` 均退出 0。未执行生产 migration、生产账户/文章删除、Git 交付或部署。
 - 授权：schema/隔离 migration `否`；生产 migration `是`。
 
 ### CMT-002 实现顶层评论、权限、冷却、缓冲与图片
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：文章/留言允许时，访客无需身份可发顶层且显示“访客”，登录用户可发；正文≤100字、最多3图；访客5分钟、用户1分钟；所有评论缓冲10分钟。
 - 来源：访谈 Q008-Q010、Q111-Q116、Q119、Q191、Q230、Q292；`flows/03-comment-moderation-state-machine.md` §评论提交/创建权限。
 - 依赖：前置 `CMT-001`、`ACC-010`、`MED-003`；后续 `CMT-004`、`CMT-006`、`CMT-007`、`CMT-008`、`QA-003`、`QA-006`。
