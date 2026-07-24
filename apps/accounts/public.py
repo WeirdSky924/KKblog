@@ -13,6 +13,7 @@ from apps.accounts.queries.ip_blocks import (
 from apps.accounts.queries.profile import (
     PublicAccountIdentity,
     PublicAccountNotFound,
+    public_account_identities,
     public_account_identity,
 )
 from apps.accounts.queries.security_events import (
@@ -76,6 +77,7 @@ __all__ = [
     "is_administrator",
     "is_active_author",
     "is_active_account",
+    "public_account_identities",
     "public_account_identity",
     "security_event_detail",
     "security_event_list",

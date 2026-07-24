@@ -1,14 +1,11 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from ..models import Comment
-from ..ports import CommentAccountPolicy, default_comment_account_policy
-
-
-@dataclass(frozen=True, slots=True)
-class CommentAuthorPresentation:
-    label: str
-    profile_url: str | None
+from ..ports import (
+    CommentAccountPolicy,
+    CommentAuthorPresentation,
+    default_comment_account_policy,
+)
 
 
 def comment_author_presentation(

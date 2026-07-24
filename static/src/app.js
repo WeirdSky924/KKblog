@@ -34,6 +34,11 @@ import {
 } from "lucide";
 
 import { normalizeTheme, storeTheme } from "./theme-values.js";
+import {
+  focusLoadedCommentReply,
+  initializeCommentForms,
+  initializeCommentThreads,
+} from "./comments.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -218,15 +223,20 @@ function initializeConfirmDialogs(root = document) {
       });
     }
     if (dialog.hasAttribute("data-auto-modal")) {
+      if (!dialog.isConnected) {
+        return;
+      }
       if (dialog.open) {
         dialog.removeAttribute("open");
       }
       dialog.showModal();
-      const cancel = dialog.querySelector("[data-dialog-cancel]");
-      if (cancel instanceof HTMLElement) {
+      const initialFocus =
+        dialog.querySelector("[data-error-focus]") ||
+        dialog.querySelector("[data-dialog-cancel]");
+      if (initialFocus instanceof HTMLElement) {
         window.requestAnimationFrame(() => {
           if (dialog.open) {
-            cancel.focus({ preventScroll: true });
+            initialFocus.focus({ preventScroll: true });
           }
         });
       }
@@ -476,25 +486,6 @@ function initializeMediaPickers(root = document) {
   });
 }
 
-function initializeCommentForms(root = document) {
-  root.querySelectorAll?.("[data-comment-form]").forEach((form) => {
-    if (!(form instanceof HTMLFormElement) || form.dataset.countBound === "true") {
-      return;
-    }
-    const body = form.querySelector("textarea[name='body']");
-    const count = form.querySelector("[data-comment-count]");
-    if (!(body instanceof HTMLTextAreaElement) || !(count instanceof HTMLElement)) {
-      return;
-    }
-    form.dataset.countBound = "true";
-    const update = () => {
-      count.textContent = `${Array.from(body.value).length} / 100`;
-    };
-    body.addEventListener("input", update);
-    update();
-  });
-}
-
 function applyTheme(value, { persist = true } = {}) {
   const theme = normalizeTheme(value);
   if (!theme) {
@@ -660,6 +651,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (target.closest("[data-comment-reload]")) {
+    window.location.reload();
+    return;
+  }
+
   const dismiss = target.closest("[data-feedback-dismiss]");
   if (dismiss) {
     const item = dismiss.closest("[data-feedback-item]");
@@ -751,8 +747,17 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeCopyLinks(root);
   initializeMediaPickers(root);
   initializeCommentForms(root);
+  initializeCommentThreads(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
+});
+
+document.addEventListener("htmx:load", (event) => {
+  initializeCommentThreads(event.detail?.elt ?? document);
+});
+
+document.addEventListener("htmx:afterSettle", (event) => {
+  focusLoadedCommentReply(event.detail?.target ?? document);
 });
 
 document.addEventListener("htmx:beforeSwap", (event) => {

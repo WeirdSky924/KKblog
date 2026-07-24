@@ -1,0 +1,18 @@
+{% for item in reply_page.items %}
+  {% include "comments/partials/reply_item.html" %}
+{% endfor %}
+{% if reply_page.next_cursor %}
+  <li class="comment-loader comment-loader--replies" data-comment-loader="replies">
+    <button
+      class="button button--secondary"
+      type="button"
+      hx-get="{% url 'article:comment-replies' article_id=comment_article_id root_id=comment_root_id %}?cursor={{ reply_page.next_cursor|urlencode }}"
+      hx-target="closest li"
+      hx-swap="outerHTML"
+    >
+      <i data-lucide="chevron-down"></i>
+      再显示 10 条回复
+    </button>
+    <span class="htmx-indicator" role="status">正在加载回复</span>
+  </li>
+{% endif %}

@@ -397,6 +397,46 @@ def target_binding_snapshot(
     )
 
 
+def target_binding_snapshots(
+    *, target_type: MediaTargetType | str, target_ids: tuple[str, ...]
+) -> dict[str, tuple[TargetBindingSnapshot, ...]]:
+    try:
+        normalized_target = MediaTargetType(target_type)
+    except (TypeError, ValueError):
+        raise MediaBindingError(
+            "media.target_unavailable.v1", "媒体目标不可用。"
+        ) from None
+    if (
+        not isinstance(target_ids, tuple)
+        or len(target_ids) > 1000
+        or any(
+            not isinstance(target_id, str) or not 1 <= len(target_id) <= 128
+            for target_id in target_ids
+        )
+    ):
+        raise MediaBindingError("media.target_unavailable.v1", "媒体目标不可用。")
+    result: dict[str, list[TargetBindingSnapshot]] = {
+        target_id: [] for target_id in dict.fromkeys(target_ids)
+    }
+    if not result:
+        return {}
+    bindings = (
+        MediaBinding.objects.select_related("asset")
+        .filter(target_type=normalized_target, target_id__in=result)
+        .order_by("target_id", "slot", "asset_id")
+    )
+    for binding in bindings:
+        result[binding.target_id].append(
+            TargetBindingSnapshot(
+                binding.asset_id,
+                binding.asset.purpose,
+                binding.asset.state,
+                binding.slot,
+            )
+        )
+    return {target_id: tuple(items) for target_id, items in result.items()}
+
+
 def replace_bindings(
     *,
     actor_id: UUID,

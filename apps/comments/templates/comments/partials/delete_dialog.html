@@ -1,0 +1,44 @@
+<dialog
+  id="comment-delete-dialog-{{ comment.id }}"
+  class="confirm-dialog comment-delete-dialog"
+  data-confirm-dialog
+  data-auto-modal
+  open
+  aria-labelledby="comment-delete-dialog-{{ comment.id }}-title"
+  aria-describedby="comment-delete-dialog-{{ comment.id }}-description"
+>
+  <form
+    class="confirm-dialog__content"
+    action="{{ delete_url }}"
+    method="post"
+    hx-post="{{ delete_url }}"
+    hx-target="#comment-thread"
+    hx-swap="outerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    {{ deletion_form.mode }}
+    <h2 id="comment-delete-dialog-{{ comment.id }}-title">{{ dialog_title }}</h2>
+    <p id="comment-delete-dialog-{{ comment.id }}-description">{{ dialog_description }}</p>
+    {% if deletion_mode == "admin" %}
+      <div class="comment-delete-dialog__field">
+        <label for="{{ deletion_form.reason.id_for_label }}">删除原因（可选）</label>
+        {{ deletion_form.reason }}
+        {% if deletion_form.reason.errors %}
+          <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+            {% for error in deletion_form.reason.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if deletion_form.non_field_errors %}
+      <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+        {% for error in deletion_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    <div class="confirm-dialog__actions">
+      <button class="button button--secondary" type="button" data-dialog-cancel autofocus>取消</button>
+      <button class="button button--primary" type="submit">确认删除</button>
+    </div>
+  </form>
+</dialog>

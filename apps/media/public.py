@@ -29,6 +29,7 @@ from .services import (
     replace_bindings,
     stage_upload,
     target_binding_snapshot,
+    target_binding_snapshots,
 )
 from .targets import (
     TargetAccessDecision,
@@ -72,6 +73,7 @@ __all__ = [
     "render_tiptap",
     "stage_upload",
     "target_binding_snapshot",
+    "target_binding_snapshots",
     "markdown_media_ids",
     "tiptap_media_ids",
 ]

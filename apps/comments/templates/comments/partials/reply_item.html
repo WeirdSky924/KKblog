@@ -1,0 +1,9 @@
+<li
+  id="comment-{{ item.id }}"
+  class="comment-item comment-item--reply comment-item--depth-{{ item.visual_depth }}"
+  data-comment-id="{{ item.id }}"
+  data-comment-depth="{{ item.depth }}"
+  {% if focus_reply_batch and forloop.first %}data-comment-reply-focus tabindex="-1"{% endif %}
+>
+  {% include "comments/partials/comment_content.html" %}
+</li>

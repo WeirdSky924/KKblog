@@ -1,0 +1,11 @@
+{% with comment_page=comment_panel.public_page %}
+  <div id="comment-public-list" data-comment-public-list data-sort="{{ comment_page.sort }}">
+    {% if comment_page.items %}
+      <ol class="comment-root-list">
+        {% include "comments/partials/top_level_batch.html" %}
+      </ol>
+    {% else %}
+      <p class="comment-thread__empty">尚无已公开评论。</p>
+    {% endif %}
+  </div>
+{% endwith %}

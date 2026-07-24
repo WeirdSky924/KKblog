@@ -42,7 +42,7 @@
 - 授权：`否`。
 
 ### CMT-004 实现缓冲公开任务与评论关闭语义
-- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：每分钟小批量领取到期 BUFFERED 并条件更新为VISIBLE；作者关闭评论只阻止新建，已缓冲仍按时公开，删除状态永不公开。
 - 来源：访谈 Q009-Q013、Q224；`contracts/05-background-tasks.md` §评论公开扫描；`flows/03-comment-moderation-state-machine.md`。
 - 依赖：前置 `CMT-002`、`RUN-002`、`OBS-006`；后续 `CMT-007`、`AUT-006`、`QA-003`、`QA-004`、`QA-006`。
@@ -51,10 +51,11 @@
 - 影响：数据：条件状态转换；权限：owner配置；审计：设置变更按owner语义；缓存无；异步：Celery；媒体无；通知：终败后。
 - 测试/验收：RED 双Worker、关闭后到期、缓冲期删除、漏tick补偿；真实 Worker/DB/TaskRun 读回，三次失败事实事件由 `OBS-009` 回归。
 - 风险/停止：重复公开、副作用先于状态或关闭误删/隐藏历史即停止。
+- 证据：聚焦 RED `pytest apps/comments/tests/test_cmt004.py -q` 收集退出 2，准确报告 publication service 缺失。新增 comments owner 的有界到期扫描与单评论条件转换：UTC aware 时间、1..1000 batch 校验、`FOR UPDATE SKIP LOCKED`、`visible_at/id` 稳定顺序及 BUFFERED→VISIBLE 行锁幂等；不读取线程开关，因此关闭只阻止现有 posting/reply service 的新建，既有缓冲仍公开，DELETED 永不恢复。两个薄 Celery 入口只经 `operations.public.execute_celery_entry` 调 owner service，每评论固定 `comment:{id}:visible` 幂等键，dispatcher 使用每次请求唯一键并按 `COMMENTS_PUBLICATION_BATCH_SIZE` 入队；Beat 配置为 60 秒，Celery 自动发现读回两个任务。GREEN 退出 0，`6 passed`，覆盖到期/未来/删除、关闭线程、漏 tick、多批、锁跳过、双 Worker 和 TaskRun 去重；comments/operations/content/media 任务回归 `41 passed`，架构修正后全量回归退出 0，`352 passed`。隔离 Redis broker 的真实 solo Worker 收到两次同一评论任务，依次返回 `published`/`already_succeeded`；PostgreSQL 读回关闭线程 Comment=`VISIBLE`，TaskRun 仅一行、`succeeded/attempt=1/completed/lease cleared`，fixture、TaskRun 与专用 broker binding 已精确清理，Worker 已温和停止。Ruff、format、Django check、migration drift 与差异检查均退出 0；通用 OBS-006 回归覆盖退避、三次终败与租约，后续 OBS-009 消费终败事实。按授权未运行真实 Beat、生产 Worker、生产评论、部署或生产 migration。
 - 授权：代码/隔离worker `否`；运行真实Beat `是`。
 
 ### CMT-005 实现评论排序、游标加载与回复分批展开
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P1。
 - 目标/行为：顶层/回复默认最早；可选最新、最热门按reply_count；顶层先20触底再20，回复链先10再10；排序偏好仅当前浏览器。
 - 来源：访谈 Q259-Q261；`data/04-indexes-constraints.md` §评论索引；`contracts/03-frontend-contract-map.md` §article detail。
 - 依赖：前置 `CMT-001`、`CMT-003`；后续 `CMT-007`、`AUT-006`、`QA-003`、`QA-006`。
@@ -63,10 +64,11 @@
 - 影响：数据：索引/只读投影；权限：评论可见设置；缓存：浏览器偏好；审计/异步/媒体/通知无。
 - 测试/验收：RED 20/40、10/20、并发插入游标、热门并列、删除节点；Playwright滚动/展开/切排序/移动端。
 - 风险/停止：OFFSET导致重复漏项、深树一次全加载或偏好串用户即停止。
+- 证据：查询 RED `pytest apps/comments/tests/test_cmt005_queries.py -q` 收集退出 2，准确报告 thread query owner 缺失；HTTP/模板 RED 在有效 fixture 下退出 1，准确报告评论 page/replies 路由与浏览器排序键缺失。新增 comments owner 的 HMAC 签名 keyset cursor：第一页固定快照时间并绑定 thread/sort/root，最早 `created_at/id`、最新反序、最热门 `reply_count DESC, created_at/id`，顶层固定 20；并发插入不进入旧快照，45 条三批无重复漏项。回复按 root 全链时间序使用 PostgreSQL window 一次批量取每根前 10，后续 cursor 每次 10，任意深度只显示至四级视觉缩进并标真实层数，不递归一次加载；DELETED 在到达原 `visible_at` 后显示占位且保留后代，BUFFERED/无权不投影。账户和媒体 owner 新增各自有界批量公开读端口，单页统一映射作者主页及 ACTIVE 评论图片，避免 20×10 N+1。文章详情复用单一 comments partial：三项 segmented sort、HTMX 原位列表替换、顶层 `revealed` 自动加载、回复按钮每次 10、422 可恢复错误；`kaj.comment-sort` 仅存当前浏览器 localStorage，HTMX 初始 load 后恢复，排序/回复键盘焦点在动态交换后保持。聚焦最终退出 0，`4 passed`；comments/accounts/media/architecture 回归 `66 passed`，全量退出 0，`356 passed`。规定浏览器真实验收：390 dark 从 20→40→45 自动加载、25 层回复 Enter 从 10→20 且焦点落第 11 层；768 eye-care 从 localStorage 恢复最新，键盘切最热门后 25 回复根排首且焦点保留；1440 light 首批 20+10、删除占位和 1024px 工作面正确。三视口横向溢出均为 0、正常流控制台均 0 错误，截图原尺寸检查无重叠/裁切；runserver、浏览器、隔离文章/线程/45+25 评论、账户、分区和截图已精确清理。Ruff、format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0；未执行生产评论/数据、生产 migration、部署或 Git 交付。
 - 授权：`否`。
 
 ### CMT-006 实现自删、作者管理删与管理员直接删除
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：用户可删自己、文章作者可删自己文章任意评论、管理员可直接删全站/留言板；全部保留占位和子回复、立即删图；管理员可填原因且终局无申诉并通知相关注册用户去重。
 - 来源：访谈 Q009、Q107-Q110、Q116、Q308-Q310；`modules/06-interactions-moderation.md` §管理员直接删除。
 - 依赖：前置 `CMT-001`、`CMT-002`、`MED-006`、`FND-005`、`OBS-004`、`OBS-006`；后续 `CMT-009`、`AUT-006`、`ADM-004`、`QA-003`、`QA-006`。

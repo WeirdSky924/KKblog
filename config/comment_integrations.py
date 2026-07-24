@@ -13,6 +13,7 @@ from apps.accounts.public import (
     is_active_account,
     is_administrator,
     is_ip_blocked,
+    public_account_identities,
     public_account_identity,
 )
 from apps.comments.policies import comment_media_access
@@ -31,7 +32,9 @@ from apps.media.public import (
     TargetAccessDecision,
     bind_assets,
     register_target_access,
+    release_target_assets,
     stage_upload,
+    target_binding_snapshots,
 )
 from apps.media.storage import FilesystemMediaStorage
 from apps.operations.public import require_image_creation_capacity
@@ -56,6 +59,19 @@ class _CommentAccountPolicy:
             display_name=identity.display_name,
             profile_url=identity.profile_url,
         )
+
+    @staticmethod
+    def public_identities(
+        account_ids: tuple[UUID, ...],
+    ) -> dict[UUID, CommentAuthorIdentity]:
+        return {
+            identity.account_id: CommentAuthorIdentity(
+                account_id=identity.account_id,
+                display_name=identity.display_name,
+                profile_url=identity.profile_url,
+            )
+            for identity in public_account_identities(account_ids)
+        }
 
 
 def comment_account_policy() -> _CommentAccountPolicy:
@@ -248,6 +264,30 @@ class _CommentMediaGateway:
         except MediaBindingError as exc:
             raise CommentMediaError(exc.code, exc.safe_message) from None
         return tuple(binding.asset_id for binding in bindings)
+
+    @staticmethod
+    def bound_image_ids(comment_ids: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
+        snapshots = target_binding_snapshots(
+            target_type=MediaTargetType.COMMENT,
+            target_ids=comment_ids,
+        )
+        return {
+            comment_id: tuple(
+                item.asset_id
+                for item in items
+                if item.purpose == MediaPurpose.COMMENT and item.state == "ACTIVE"
+            )
+            for comment_id, items in snapshots.items()
+        }
+
+    @staticmethod
+    def release_images(comment_id: str) -> tuple[str, ...]:
+        released = release_target_assets(
+            target_type=MediaTargetType.COMMENT,
+            target_ids=(comment_id,),
+            storage=FilesystemMediaStorage(settings.MEDIA_ROOT),
+        )
+        return released.asset_ids
 
 
 def comment_media_gateway() -> _CommentMediaGateway:

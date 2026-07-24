@@ -8,6 +8,7 @@ from .bindings import (
     bind_revision_snapshot_assets,
     replace_bindings,
     target_binding_snapshot,
+    target_binding_snapshots,
 )
 from .cleanup import (
     CleanupOutcome,
@@ -42,5 +43,6 @@ __all__ = [
     "release_target_assets",
     "replace_bindings",
     "target_binding_snapshot",
+    "target_binding_snapshots",
     "stage_upload",
 ]

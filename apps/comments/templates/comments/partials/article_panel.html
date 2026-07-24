@@ -1,6 +1,8 @@
 <section
   id="comment-thread"
   class="comment-thread"
+  data-comment-thread
+  data-sort="{{ comment_panel.public_page.sort }}"
   aria-labelledby="comment-thread-title"
   data-focus-after-swap
   tabindex="-1"
@@ -88,29 +90,57 @@
     </p>
   {% endif %}
 
-  <div class="comment-thread__list" aria-label="评论列表">
-    {% if comment_panel.buffered_items %}
-      <section class="comment-buffer" aria-labelledby="comment-buffer-title">
-        <h3 id="comment-buffer-title">等待公开</h3>
-        <ol>
-          {% for item in comment_panel.buffered_items %}
-            <li data-comment-id="{{ item.id }}">
-              <div class="comment-buffer__meta">
-                <strong>{{ item.author_label }}</strong>
-                <span>等待公开</span>
-                <time datetime="{{ item.visible_at|date:'c' }}">{{ item.visible_at|date:'H:i' }}</time>
-              </div>
-              <p>{{ item.body }}</p>
-            </li>
-          {% endfor %}
-        </ol>
-      </section>
-    {% endif %}
+  {% if comment_panel.buffered_items %}
+    <section class="comment-buffer" aria-labelledby="comment-buffer-title">
+      <h3 id="comment-buffer-title">等待公开</h3>
+      <ol>
+        {% for item in comment_panel.buffered_items %}
+          <li data-comment-id="{{ item.id }}">
+            <div class="comment-buffer__meta">
+              <strong>{{ item.author_label }}</strong>
+              <span>等待公开</span>
+              <time datetime="{{ item.visible_at|date:'c' }}">{{ item.visible_at|date:'H:i' }}</time>
+            </div>
+            <p>{{ item.body }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
 
-    {% if not comment_panel.can_view %}
-      <p class="comment-thread__empty">登录后可查看评论。</p>
-    {% else %}
-      <p class="comment-thread__empty">尚无已公开评论。</p>
-    {% endif %}
-  </div>
+  {% if not comment_panel.can_view %}
+    <p class="comment-thread__empty">登录后可查看评论。</p>
+  {% else %}
+    <div class="comment-sort" aria-label="评论排序">
+      <span>排序</span>
+      <div class="comment-sort__controls" role="group" aria-label="选择评论排序方式">
+        <button
+          type="button"
+          data-comment-sort-control="earliest"
+          aria-pressed="{% if comment_panel.public_page.sort == 'earliest' %}true{% else %}false{% endif %}"
+          hx-get="{{ comment_page_url }}?sort=earliest"
+          hx-target="#comment-public-list"
+          hx-swap="outerHTML"
+        >最早</button>
+        <button
+          type="button"
+          data-comment-sort-control="latest"
+          aria-pressed="{% if comment_panel.public_page.sort == 'latest' %}true{% else %}false{% endif %}"
+          hx-get="{{ comment_page_url }}?sort=latest"
+          hx-target="#comment-public-list"
+          hx-swap="outerHTML"
+        >最新</button>
+        <button
+          type="button"
+          data-comment-sort-control="hottest"
+          aria-pressed="{% if comment_panel.public_page.sort == 'hottest' %}true{% else %}false{% endif %}"
+          hx-get="{{ comment_page_url }}?sort=hottest"
+          hx-target="#comment-public-list"
+          hx-swap="outerHTML"
+        >最热门</button>
+      </div>
+    </div>
+    {% include "comments/partials/public_list.html" %}
+  {% endif %}
+  <div id="comment-dialog-host"></div>
 </section>

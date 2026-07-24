@@ -1,0 +1,19 @@
+{% with comment_page=comment_panel.public_page %}
+  {% for item in comment_page.items %}
+    {% include "comments/partials/root_item.html" %}
+  {% endfor %}
+  {% if comment_page.next_cursor %}
+    <li
+      class="comment-loader comment-loader--top"
+      data-comment-loader="top"
+      hx-get="{{ comment_page_url }}?sort={{ comment_page.sort }}&amp;cursor={{ comment_page.next_cursor|urlencode }}"
+      hx-trigger="revealed"
+      hx-swap="outerHTML"
+    >
+      <span class="comment-loader__status htmx-indicator" role="status">
+        <i data-lucide="rotate-cw"></i>
+        正在加载更多评论
+      </span>
+    </li>
+  {% endif %}
+{% endwith %}

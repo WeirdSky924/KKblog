@@ -16,12 +16,22 @@ class CommentAccountPolicy(Protocol):
 
     def public_identity(self, account_id: UUID) -> "CommentAuthorIdentity | None": ...
 
+    def public_identities(
+        self, account_ids: tuple[UUID, ...]
+    ) -> dict[UUID, "CommentAuthorIdentity"]: ...
+
 
 @dataclass(frozen=True, slots=True)
 class CommentAuthorIdentity:
     account_id: UUID
     display_name: str
     profile_url: str
+
+
+@dataclass(frozen=True, slots=True)
+class CommentAuthorPresentation:
+    label: str
+    profile_url: str | None
 
 
 class CommentMediaError(ValueError):
@@ -62,6 +72,12 @@ class CommentMediaGateway(Protocol):
         client_ip: str,
         image_refs: tuple[str, ...],
     ) -> tuple[str, ...]: ...
+
+    def bound_image_ids(
+        self, comment_ids: tuple[str, ...]
+    ) -> dict[str, tuple[str, ...]]: ...
+
+    def release_images(self, comment_id: str) -> tuple[str, ...]: ...
 
 
 def _provider(setting_name: str):

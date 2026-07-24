@@ -70,3 +70,42 @@ COMMENT_DEEP_THREAD = EventDefinition(
     "comment.deep_thread.v1",
     _comment_deep_thread,
 )
+
+
+def _comment_deleted(payload: Mapping[str, object]) -> None:
+    expected = {
+        "thread_id",
+        "target_type",
+        "target_id",
+        "comment_id",
+        "deleted_by_kind",
+        "recipient_ids",
+        "reason",
+    }
+    if set(payload) != expected:
+        raise EventValidationError("Comment deletion event payload shape is invalid")
+    try:
+        UUID(str(payload["thread_id"]))
+        normalize_target(payload["target_type"], payload["target_id"])
+        normalize_ulid(payload["comment_id"])
+        recipients = tuple(UUID(str(value)) for value in payload["recipient_ids"])
+    except (TypeError, ValueError):
+        raise EventValidationError(
+            "Comment deletion event payload shape is invalid"
+        ) from None
+    reason = payload["reason"]
+    if (
+        payload["deleted_by_kind"] not in {"SELF", "OWNER", "ADMIN"}
+        or not isinstance(payload["recipient_ids"], list)
+        or len(recipients) > 2
+        or len(set(recipients)) != len(recipients)
+        or (reason is not None and (not isinstance(reason, str) or not reason))
+        or (isinstance(reason, str) and len(reason) > 200)
+        or (
+            payload["deleted_by_kind"] != "ADMIN" and (recipients or reason is not None)
+        )
+    ):
+        raise EventValidationError("Comment deletion event payload shape is invalid")
+
+
+COMMENT_DELETED = EventDefinition("comment.deleted.v1", _comment_deleted)

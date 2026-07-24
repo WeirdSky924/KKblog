@@ -1,0 +1,48 @@
+<article class="comment-item__content">
+  <header class="comment-item__meta">
+    {% if item.author.profile_url %}
+      <a href="{{ item.author.profile_url }}">{{ item.author.label }}</a>
+    {% else %}
+      <strong>{{ item.author.label }}</strong>
+    {% endif %}
+    <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"Y-m-d H:i" }}</time>
+    {% if item.depth > 4 %}<span>第 {{ item.depth }} 层回复</span>{% endif %}
+  </header>
+  {% if item.is_deleted %}
+    <p class="comment-item__placeholder">
+      <i data-lucide="trash-2"></i>
+      该评论已删除
+    </p>
+  {% else %}
+    <p class="comment-item__body">{{ item.body }}</p>
+    {% if item.image_urls %}
+      <ul class="comment-item__images" aria-label="评论图片">
+        {% for image_url in item.image_urls %}
+          <li>
+            <a href="{{ image_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="{{ image_url }}" alt="{{ item.author.label }}的评论图片 {{ forloop.counter }}" loading="lazy">
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+  {% if item.deletion_mode %}
+    <footer class="comment-item__actions">
+      <button
+        class="button button--secondary"
+        type="button"
+        data-comment-delete-mode="{{ item.deletion_mode }}"
+        data-dialog-trigger
+        data-dialog-return-hash="comment-{{ item.id }}"
+        aria-controls="comment-delete-dialog-{{ item.id }}"
+        hx-get="{% url 'article:comment-delete-confirm' article_id=comment_article_id comment_id=item.id %}?mode={{ item.deletion_mode }}"
+        hx-target="#comment-dialog-host"
+        hx-swap="innerHTML"
+      >
+        <i data-lucide="trash-2"></i>
+        删除
+      </button>
+    </footer>
+  {% endif %}
+</article>

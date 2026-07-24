@@ -9,9 +9,11 @@ class CommentsConfig(AppConfig):
     def ready(self) -> None:
         from apps.content.public import register_article_comment_purge
 
+        from .audit_schemas import register_comment_audit_schemas
         from .services.purge import purge_article_comments
         from .signals import anonymize_deleted_account_comments
 
+        register_comment_audit_schemas()
         account_model = self.apps.get_model("accounts", "Account")
         pre_delete.connect(
             anonymize_deleted_account_comments,

@@ -1,0 +1,12 @@
+<li id="comment-{{ item.id }}" class="comment-item comment-item--root" data-comment-id="{{ item.id }}">
+  {% include "comments/partials/comment_content.html" %}
+  {% if item.reply_page.items or item.reply_page.next_cursor %}
+    <ol
+      id="comment-replies-{{ item.id }}"
+      class="comment-replies"
+      aria-label="{{ item.author.label }}的评论回复"
+    >
+      {% include "comments/partials/reply_batch.html" with reply_page=item.reply_page comment_root_id=item.id %}
+    </ol>
+  {% endif %}
+</li>

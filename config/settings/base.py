@@ -81,6 +81,10 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 300
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_BEAT_SCHEDULE = {
+    "comments-publish-due": {
+        "task": "apps.comments.dispatch_due_comments",
+        "schedule": 60.0,
+    },
     "content-purge-deleted": {
         "task": "apps.content.dispatch_deleted_articles",
         "schedule": 3600.0,
@@ -110,6 +114,7 @@ COMMENTS_ACCOUNT_POLICY_PROVIDER = "config.comment_integrations.comment_account_
 COMMENTS_MEDIA_GATEWAY_PROVIDER = "config.comment_integrations.comment_media_gateway"
 COMMENTS_RECEIPT_COOKIE_NAME = "kaj_comment_receipts"
 COMMENTS_RECEIPT_MAX_AGE_SECONDS = 90 * 24 * 60 * 60
+COMMENTS_PUBLICATION_BATCH_SIZE = 100
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
