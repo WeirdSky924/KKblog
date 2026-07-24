@@ -6,53 +6,24 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.content.public import ArticleLoginRequired, ArticleNotFound
 
+from .action_views import (
+    comment_replies_for_target,
+    confirm_comment_delete_for_target,
+    delete_comment_for_target,
+)
 from .cooldown import CommentCooldownUnavailable
 from .errors import CommentPostingError
-from .models import Comment
-from .policies import CommentDeletionMode, comment_deletion_mode
+from .http import is_htmx as _is_htmx
+from .http import posting_status as _posting_status
 from .ports import CommentMediaError
 from .presentation import TopLevelCommentForm, article_comment_context
-from .presentation.deletion_forms import CommentDeletionForm
-from .queries import (
-    CommentCursorError,
-    article_comment_access,
-    public_reply_page,
-)
+from .queries import CommentCursorError
 from .receipts import (
     add_comment_receipt,
     decode_comment_receipts,
     set_comment_receipt_cookie,
 )
 from .services import create_top_level_comment, stage_top_level_comment_image
-from .services.deletion import (
-    CommentDeletionError,
-    delete_comment_as_admin,
-    delete_comment_as_owner,
-    delete_own_comment,
-)
-
-
-def _is_htmx(request) -> bool:
-    return request.headers.get("HX-Request") == "true"
-
-
-def _posting_status(code: str) -> int:
-    if code in {
-        "comments.body_invalid.v1",
-        "comments.images_invalid.v1",
-    }:
-        return 422
-    if code == "comments.cooldown_active.v1":
-        return 429
-    if code in {
-        "comments.login_required.v1",
-        "comments.account_unavailable.v1",
-        "comments.network_restricted.v1",
-    }:
-        return 403
-    if code == "comments.closed.v1":
-        return 409
-    return 404
 
 
 def _panel_response(request, article_id: str, context, *, status: int):
@@ -84,167 +55,31 @@ def _comment_list_error(request, *, status: int = 422):
     return response
 
 
-def _requested_deletion_mode(value) -> CommentDeletionMode:
-    try:
-        return CommentDeletionMode(value)
-    except (TypeError, ValueError):
-        raise Http404 from None
-
-
-def _deletion_capability(request, *, article_id: str, comment_id: str):
-    try:
-        access = article_comment_access(
-            actor_id=getattr(request, "account_id", None),
-            article_id=article_id,
-        )
-    except (ArticleLoginRequired, ArticleNotFound):
-        raise Http404 from None
-    comment = Comment.objects.filter(
-        pk=comment_id,
-        thread_id=access.thread_id,
-    ).first()
-    if comment is None:
-        raise Http404
-    mode = comment_deletion_mode(
-        state=comment.state,
-        author_kind=comment.author_kind,
-        author_id=comment.author_id,
-        actor_id=access.actor_id,
-        thread_owner_id=access.owner_id,
-        is_administrator=access.is_administrator,
-    )
-    if mode is None:
-        raise Http404
-    return comment, mode
-
-
-def _delete_dialog_response(
-    request,
-    *,
-    article_id: str,
-    comment: Comment,
-    mode: CommentDeletionMode,
-    form: CommentDeletionForm,
-    status: int = 200,
-):
-    title = {
-        CommentDeletionMode.SELF: "删除自己的评论？",
-        CommentDeletionMode.OWNER: "删除这条评论？",
-        CommentDeletionMode.ADMIN: "管理员删除这条评论？",
-    }[mode]
-    description = (
-        "这是终局操作，删除后不能申诉；现有回复仍会保留。"
-        if mode == CommentDeletionMode.ADMIN
-        else "删除后会保留占位，现有回复不会消失。"
-    )
-    response = render(
-        request,
-        "comments/partials/delete_dialog.html",
-        {
-            "comment": comment,
-            "deletion_mode": mode,
-            "deletion_form": form,
-            "dialog_title": title,
-            "dialog_description": description,
-            "delete_url": reverse(
-                "article:comment-delete",
-                kwargs={"article_id": article_id, "comment_id": comment.id},
-            ),
-        },
-        status=status,
-    )
-    response.headers["Cache-Control"] = "private, no-store"
-    if status == 422:
-        response.headers["HX-Retarget"] = "#comment-dialog-host"
-        response.headers["HX-Reswap"] = "innerHTML"
-    return response
-
-
 @require_GET
 def confirm_article_comment_delete(request, article_id, comment_id):
-    comment, mode = _deletion_capability(
+    return confirm_comment_delete_for_target(
         request,
-        article_id=article_id,
         comment_id=comment_id,
-    )
-    if _requested_deletion_mode(request.GET.get("mode")) != mode:
-        raise Http404
-    return _delete_dialog_response(
-        request,
-        article_id=article_id,
-        comment=comment,
-        mode=mode,
-        form=CommentDeletionForm(initial={"mode": mode.value}),
+        target_type="ARTICLE",
+        target_id=article_id,
+        delete_url=reverse(
+            "article:comment-delete",
+            kwargs={"article_id": article_id, "comment_id": comment_id},
+        ),
     )
 
 
 @require_POST
 def delete_article_comment(request, article_id, comment_id):
-    comment, mode = _deletion_capability(
+    return delete_comment_for_target(
         request,
-        article_id=article_id,
         comment_id=comment_id,
-    )
-    if _requested_deletion_mode(request.POST.get("mode")) != mode:
-        raise Http404
-    form = CommentDeletionForm(request.POST)
-    if not form.is_valid():
-        return _delete_dialog_response(
-            request,
-            article_id=article_id,
-            comment=comment,
-            mode=mode,
-            form=form,
-            status=422,
-        )
-    command = {
-        CommentDeletionMode.SELF: delete_own_comment,
-        CommentDeletionMode.OWNER: delete_comment_as_owner,
-        CommentDeletionMode.ADMIN: delete_comment_as_admin,
-    }[mode]
-    kwargs = {
-        "comment_id": comment.id,
-        "actor_id": getattr(request, "account_id", None),
-        "client_ip": request.client_ip,
-        "trace_code": request.trace_code,
-    }
-    if mode == CommentDeletionMode.ADMIN:
-        kwargs["reason"] = form.cleaned_data["reason"]
-    try:
-        command(**kwargs)
-    except CommentDeletionError as exc:
-        if exc.code == "comments.deletion_reason_invalid.v1":
-            form.add_error("reason", exc.safe_message)
-            return _delete_dialog_response(
-                request,
-                article_id=article_id,
-                comment=comment,
-                mode=mode,
-                form=form,
-                status=422,
-            )
-        if exc.code == "comments.media_cleanup_failed.v1":
-            context = _article_context_or_404(
-                request=request,
-                article_id=article_id,
-            )
-            context["comment_system_error"] = exc.safe_message
-            context["comment_trace_code"] = request.trace_code
-            return _panel_response(request, article_id, context, status=503)
-        raise Http404 from None
-    if not _is_htmx(request):
-        return HttpResponseRedirect(
-            f"{reverse('article:detail', kwargs={'article_id': article_id})}#comment-thread"
-        )
-    return _panel_response(
-        request,
-        article_id,
-        _article_context_or_404(
-            request=request,
-            article_id=article_id,
-            feedback="评论已删除。",
+        target_type="ARTICLE",
+        target_id=article_id,
+        delete_url=reverse(
+            "article:comment-delete",
+            kwargs={"article_id": article_id, "comment_id": comment_id},
         ),
-        status=200,
     )
 
 
@@ -272,36 +107,12 @@ def article_comment_page(request, article_id):
 
 @require_GET
 def article_comment_replies(request, article_id, root_id):
-    try:
-        access = article_comment_access(
-            actor_id=getattr(request, "account_id", None),
-            article_id=article_id,
-        )
-        page = public_reply_page(
-            thread_id=access.thread_id,
-            can_view=access.can_view,
-            root_id=root_id,
-            cursor=request.GET.get("cursor") or None,
-            actor_id=access.actor_id,
-            thread_owner_id=access.owner_id,
-            is_administrator=access.is_administrator,
-        )
-    except (ArticleLoginRequired, ArticleNotFound):
-        raise Http404 from None
-    except CommentCursorError:
-        return _comment_list_error(request)
-    response = render(
+    return comment_replies_for_target(
         request,
-        "comments/partials/reply_batch.html",
-        {
-            "reply_page": page,
-            "comment_article_id": article_id,
-            "comment_root_id": root_id,
-            "focus_reply_batch": True,
-        },
+        root_id=root_id,
+        target_type="ARTICLE",
+        target_id=article_id,
     )
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
 
 
 @require_POST

@@ -1,0 +1,39 @@
+<dialog
+  id="comment-reply-dialog-{{ comment.id }}"
+  class="confirm-dialog comment-reply-dialog"
+  data-confirm-dialog
+  data-auto-modal
+  open
+  aria-labelledby="comment-reply-dialog-{{ comment.id }}-title"
+>
+  <form
+    class="confirm-dialog__content"
+    action="{{ reply_url }}"
+    method="post"
+    hx-post="{{ reply_url }}"
+    hx-target="#comment-thread"
+    hx-swap="outerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    <h2 id="comment-reply-dialog-{{ comment.id }}-title">回复这条{{ comment_noun }}</h2>
+    <div class="comment-reply-dialog__field">
+      <label for="{{ reply_form.body.id_for_label }}">{{ reply_form.body.label }}</label>
+      {{ reply_form.body }}
+      {% if reply_form.body.errors %}
+        <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+          {% for error in reply_form.body.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    {% if reply_form.non_field_errors %}
+      <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+        {% for error in reply_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    <div class="confirm-dialog__actions">
+      <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+      <button class="button button--primary" type="submit">提交回复</button>
+    </div>
+  </form>
+</dialog>

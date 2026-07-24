@@ -60,8 +60,20 @@ def is_active_account(account_id: UUID | str | None) -> bool:
     return Account.objects.filter(pk=account_id, status=Account.Status.ACTIVE).exists()
 
 
+def active_administrator_id() -> UUID | None:
+    return (
+        RoleAssignment.objects.filter(
+            role=RoleAssignment.Role.ADMINISTRATOR,
+            account__status=Account.Status.ACTIVE,
+        )
+        .values_list("account_id", flat=True)
+        .first()
+    )
+
+
 __all__ = [
     "block_ip",
+    "active_administrator_id",
     "AccountDeletionDisposition",
     "AccountLifecycleError",
     "AuthorArticleDecision",

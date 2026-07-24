@@ -54,6 +54,8 @@ class PublicCommentItem:
     reply_count: int
     image_urls: tuple[str, ...]
     deletion_mode: str | None
+    can_reply: bool
+    can_report: bool
     reply_page: PublicReplyPage | None = None
 
 
@@ -182,6 +184,8 @@ def _present_rows(
     actor_id: UUID | None,
     thread_owner_id: UUID,
     is_administrator: bool,
+    can_reply: bool,
+    can_report: bool,
 ) -> dict[str, PublicCommentItem]:
     if not rows:
         return {}
@@ -232,6 +236,8 @@ def _present_rows(
                 thread_owner_id=thread_owner_id,
                 is_administrator=is_administrator,
             ),
+            can_reply=can_reply and not deleted,
+            can_report=can_report and not deleted,
         )
     return result
 
@@ -317,6 +323,8 @@ def public_comment_page(
     actor_id: UUID | None = None,
     thread_owner_id: UUID | None = None,
     is_administrator: bool = False,
+    can_reply: bool = False,
+    can_report: bool = False,
 ) -> PublicCommentPage:
     identity = _thread_id(thread_id)
     ordering = _sort(sort)
@@ -379,6 +387,8 @@ def public_comment_page(
         actor_id=actor_id,
         thread_owner_id=thread_owner_id,
         is_administrator=is_administrator,
+        can_reply=can_reply,
+        can_report=can_report,
     )
     items = tuple(
         replace(
@@ -414,6 +424,8 @@ def public_reply_page(
     actor_id: UUID | None = None,
     thread_owner_id: UUID | None = None,
     is_administrator: bool = False,
+    can_reply: bool = False,
+    can_report: bool = False,
 ) -> PublicReplyPage:
     identity = _thread_id(thread_id)
     try:
@@ -458,6 +470,8 @@ def public_reply_page(
         actor_id=actor_id,
         thread_owner_id=thread_owner_id,
         is_administrator=is_administrator,
+        can_reply=can_reply,
+        can_report=can_report,
     )
     next_cursor = (
         _reply_cursor(

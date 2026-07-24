@@ -10,6 +10,7 @@ from django.core import signing
 
 from apps.accounts.public import (
     PublicAccountNotFound,
+    active_administrator_id,
     is_active_account,
     is_administrator,
     is_ip_blocked,
@@ -44,6 +45,7 @@ _IMAGE_REF_MAX_AGE_SECONDS = 86_400
 
 
 class _CommentAccountPolicy:
+    administrator_id = staticmethod(active_administrator_id)
     is_active_account = staticmethod(is_active_account)
     is_administrator = staticmethod(is_administrator)
     is_ip_blocked = staticmethod(is_ip_blocked)

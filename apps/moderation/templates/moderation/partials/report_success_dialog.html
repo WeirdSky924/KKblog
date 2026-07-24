@@ -1,0 +1,16 @@
+<dialog
+  id="comment-report-dialog-{{ comment_id }}"
+  class="confirm-dialog report-dialog"
+  data-confirm-dialog
+  data-auto-modal
+  open
+  aria-labelledby="comment-report-dialog-{{ comment_id }}-title"
+>
+  <div class="confirm-dialog__content">
+    <h2 id="comment-report-dialog-{{ comment_id }}-title">举报已提交</h2>
+    <p role="status">管理员会审核这条{{ comment_noun }}及你提交的材料。</p>
+    <div class="confirm-dialog__actions">
+      <button class="button button--primary" type="button" data-dialog-cancel>关闭</button>
+    </div>
+  </div>
+</dialog>

@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from ipaddress import IPv6Address, ip_address
 from uuid import UUID
 
+from django.db import connection
+
 from apps.content.public import ArticleLoginRequired, ArticleNotFound
 from apps.core.ids import normalize_ulid
 
@@ -13,7 +15,11 @@ from ..targets import (
     DiscussionTargetType,
     normalize_target,
 )
-from .threads import sync_article_thread
+from .threads import (
+    GuestbookUnavailableError,
+    sync_article_thread,
+    sync_guestbook_thread,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +64,13 @@ def normalize_client_ip(value: str) -> str:
     return str(parsed)
 
 
-def _thread(*, target_type: DiscussionTargetType, target_id: str, actor_id):
+def _thread(
+    *,
+    target_type: DiscussionTargetType,
+    target_id: str,
+    actor_id,
+    account_policy: CommentAccountPolicy,
+):
     if target_type == DiscussionTargetType.ARTICLE:
         try:
             return sync_article_thread(actor_id=actor_id, article_id=target_id)[0]
@@ -70,11 +82,16 @@ def _thread(*, target_type: DiscussionTargetType, target_id: str, actor_id):
             raise CommentPostingError(
                 "comments.target_not_found.v1", "未找到可评论的内容。"
             ) from None
-    thread = (
-        DiscussionThread.objects.select_for_update()
-        .filter(target_type=target_type, target_id=target_id)
-        .first()
-    )
+    try:
+        synced = sync_guestbook_thread(account_policy=account_policy)
+    except GuestbookUnavailableError:
+        raise CommentPostingError(
+            "comments.target_not_found.v1", "未找到可评论的内容。"
+        ) from None
+    query = DiscussionThread.objects
+    if connection.in_atomic_block:
+        query = query.select_for_update()
+    thread = query.get(pk=synced.pk)
     if thread is None:
         raise CommentPostingError(
             "comments.target_not_found.v1", "未找到可评论的内容。"
@@ -108,6 +125,7 @@ def resolve_top_level_posting_access(
         target_type=target.target_type,
         target_id=target.target_id,
         actor_id=actor,
+        account_policy=account_policy,
     )
     if not thread.comments_enabled:
         raise CommentPostingError("comments.closed.v1", "评论区当前已关闭。")
@@ -153,6 +171,7 @@ def resolve_reply_posting_access(
         target_type=target_type,
         target_id=snapshot.thread.target_id,
         actor_id=actor,
+        account_policy=account_policy,
     )
     thread = DiscussionThread.objects.select_for_update().get(pk=synced.pk)
     parent = (

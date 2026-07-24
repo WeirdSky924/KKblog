@@ -4,7 +4,7 @@
     <ol
       id="comment-replies-{{ item.id }}"
       class="comment-replies"
-      aria-label="{{ item.author.label }}的评论回复"
+      aria-label="{{ item.author.label }}的{{ comment_noun }}回复"
     >
       {% include "comments/partials/reply_batch.html" with reply_page=item.reply_page comment_root_id=item.id %}
     </ol>

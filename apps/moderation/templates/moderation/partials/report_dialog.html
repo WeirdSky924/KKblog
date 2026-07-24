@@ -1,0 +1,68 @@
+<dialog
+  id="comment-report-dialog-{{ comment_id }}"
+  class="confirm-dialog report-dialog"
+  data-confirm-dialog
+  data-auto-modal
+  open
+  aria-labelledby="comment-report-dialog-{{ comment_id }}-title"
+>
+  <form
+    class="confirm-dialog__content report-form"
+    action="{{ report_url }}"
+    method="post"
+    hx-post="{{ report_url }}"
+    hx-target="#comment-dialog-host"
+    hx-swap="innerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    <h2 id="comment-report-dialog-{{ comment_id }}-title">举报这条{{ comment_noun }}</h2>
+    <div class="report-form__field">
+      <label for="{{ report_form.reason.id_for_label }}">{{ report_form.reason.label }}</label>
+      {{ report_form.reason }}
+      {% if report_form.reason.errors %}
+        <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+          {% for error in report_form.reason.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    <div class="report-form__field">
+      <div class="report-form__label-row">
+        <label for="{{ report_form.description.id_for_label }}">{{ report_form.description.label }}</label>
+        <span data-character-count="{{ report_form.description.id_for_label }}">0 / 200</span>
+      </div>
+      {{ report_form.description }}
+      {% if report_form.description.errors %}
+        <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+          {% for error in report_form.description.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    <details
+      class="report-evidence"
+      {% if report_form.evidence_ref_1.value or report_form.evidence_ref_2.value or report_form.evidence_ref_3.value %}open{% endif %}
+    >
+      <summary>
+        <span><i data-lucide="image-up"></i>添加证据图片</span>
+        <span>0–3</span>
+      </summary>
+      <div class="report-evidence__grid" aria-label="举报证据图片">
+        {% include "media/partials/picker.html" with adapter="report-evidence" upload_url=evidence_upload_url input_name="evidence_ref_1" label="证据 1（可选）" picker_id="report-evidence-1-"|add:comment_id current_asset_id=report_form.evidence_ref_1.value current_preview_url="" favicon_preview=False %}
+        {% include "media/partials/picker.html" with adapter="report-evidence" upload_url=evidence_upload_url input_name="evidence_ref_2" label="证据 2（可选）" picker_id="report-evidence-2-"|add:comment_id current_asset_id=report_form.evidence_ref_2.value current_preview_url="" favicon_preview=False %}
+        {% include "media/partials/picker.html" with adapter="report-evidence" upload_url=evidence_upload_url input_name="evidence_ref_3" label="证据 3（可选）" picker_id="report-evidence-3-"|add:comment_id current_asset_id=report_form.evidence_ref_3.value current_preview_url="" favicon_preview=False %}
+      </div>
+    </details>
+    {% if report_form.non_field_errors %}
+      <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+        {% for error in report_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    <div class="confirm-dialog__actions">
+      <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+      <button class="button button--primary" type="submit">
+        <i data-lucide="flag"></i>
+        提交举报
+      </button>
+    </div>
+  </form>
+</dialog>

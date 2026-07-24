@@ -17,3 +17,10 @@ def register_comment_audit_schemas() -> None:
             ),
         )
     )
+    register_audit_schema(
+        AuditSchema(
+            "comments.guestbook.settings_update",
+            "discussion_thread",
+            frozenset({"comments_enabled", "post_login_required"}),
+        )
+    )

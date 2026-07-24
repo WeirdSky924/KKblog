@@ -68,7 +68,7 @@
 - 授权：`否`。
 
 ### CMT-006 实现自删、作者管理删与管理员直接删除
-- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：用户可删自己、文章作者可删自己文章任意评论、管理员可直接删全站/留言板；全部保留占位和子回复、立即删图；管理员可填原因且终局无申诉并通知相关注册用户去重。
 - 来源：访谈 Q009、Q107-Q110、Q116、Q308-Q310；`modules/06-interactions-moderation.md` §管理员直接删除。
 - 依赖：前置 `CMT-001`、`CMT-002`、`MED-006`、`FND-005`、`OBS-004`、`OBS-006`；后续 `CMT-009`、`AUT-006`、`ADM-004`、`QA-003`、`QA-006`。
@@ -77,10 +77,11 @@
 - 影响：数据：DELETED/清空body/原因；权限：self/owner/admin；审计：admin写；缓存无；异步：媒体清理/outbox；媒体：立即解绑；通知：作者/评论者去重。
 - 测试/验收：RED 各角色伪造删除、子回复保留、图片缺失重试、接收者集合去重；Playwright 确认/原因/无申诉，最终 Receipt 由 `OBS-008` 回归。
 - 风险/停止：删除物理移除节点、正文进入审计、访客被尝试通知或媒体先删后回滚即停止。
+- 证据：聚焦 RED 由 `test_cmt006.py`、`test_cmt006_http.py` 与 `test_cmt006_integrations.py` 覆盖缺失的角色删除 service、HTMX 确认/422 恢复及媒体释放闭环；实现 comments owner 的 `SELF/OWNER/ADMIN` 三入口，服务端逐次重判登录、活动账户、永久 IP 封禁、本人/线程 owner/管理员权限，并在同一事务把节点转 `DELETED`、清空正文、保留树和子回复。媒体先解除 Binding 再注册提交后删除，缺文件按幂等成功，清理失败整体回滚；管理员原因只接受 200 字以内纯文本，管理员动作同事务写不含正文的 AuditEntry 与 `comment.deleted.v1`，接收者按评论作者/线程 owner 去重，访客和非管理员删除不产生通知集合。聚焦最终退出 0，`7 passed`；comments、MED-006、OBS-004、架构、Outbox 与 HTTP 安全相关回归退出 0，`70 passed`。隔离 PostgreSQL 读回三条根评论分别为 `SELF/OWNER/ADMIN`、正文为空且子节点仍 `VISIBLE`；管理员原因保留为“持续发布无关内容”，事件接收者 2 人且 payload/Audit 无正文或 IP。规定浏览器在 390 dark、768 eye-care、1440 light 实测管理员/本人/文章作者：确认框模式正确，只有管理员显示原因；恶意原因 422 保留输入并聚焦字段错误，Escape 恢复原触发点，键盘确认后显示占位、保留子回复且无申诉入口，三视口横向溢出均为 0，截图原尺寸无重叠/裁切。Ruff、format、`uv lock --check`、Django check、migration drift、完整 npm build 与 `git diff --check` 均退出 0；最终 Notification Receipt 仍由 `OBS-008` 消费稳定事件，未执行生产评论删除、生产媒体清理、生产 migration、部署或 Git 交付。
 - 授权：`否`；生产管理员删除具体内容 `是`。
 
 ### CMT-007 实现管理员拥有的留言板与全部评论规则复用
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P1。
 - 目标/行为：公开留言板默认开启且访客可顶层留言；管理员控制开启/登录要求、管理评论并接收深层提醒；回复、图片、排序、举报、占位全部复用。
 - 来源：访谈 Q237、Q240、Q312-Q313；`modules/06-interactions-moderation.md` §留言板；`contracts/03-frontend-contract-map.md` §public:guestbook。
 - 依赖：前置 `CMT-001`、`CMT-002`、`CMT-003`、`CMT-004`、`CMT-005`、`OBS-004`；后续 `ADM-007`、`QA-003`、`QA-006`。

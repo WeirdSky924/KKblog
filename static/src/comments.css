@@ -383,23 +383,27 @@
 .comment-item__actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
 }
 
-.comment-item__actions .button {
+.comment-item__actions [data-comment-delete-mode] {
   color: var(--danger);
 }
 
-.comment-delete-dialog__field {
+.comment-delete-dialog__field,
+.comment-reply-dialog__field {
   display: grid;
   gap: 0.5rem;
 }
 
-.comment-delete-dialog__field label {
+.comment-delete-dialog__field label,
+.comment-reply-dialog__field label {
   font-size: 0.875rem;
   font-weight: 700;
 }
 
-.comment-delete-dialog__field textarea {
+.comment-delete-dialog__field textarea,
+.comment-reply-dialog__field textarea {
   width: 100%;
   min-height: 7rem;
   resize: vertical;
@@ -409,6 +413,31 @@
   background: var(--surface-panel);
   color: var(--text-primary);
   line-height: 1.6;
+}
+
+.guestbook-page {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+}
+
+.guestbook-page__header {
+  display: grid;
+  gap: 0.75rem;
+  padding-block: 2rem 0.5rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.guestbook-page__header h1,
+.guestbook-page__header p {
+  margin: 0;
+}
+
+.guestbook-page__header h1 {
+  font-size: 2.5rem;
+}
+
+.guestbook-page__header p {
+  color: var(--text-secondary);
 }
 
 .comment-replies {

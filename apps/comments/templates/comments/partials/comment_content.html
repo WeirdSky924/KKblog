@@ -11,7 +11,7 @@
   {% if item.is_deleted %}
     <p class="comment-item__placeholder">
       <i data-lucide="trash-2"></i>
-      该评论已删除
+      该{{ comment_noun }}已删除
     </p>
   {% else %}
     <p class="comment-item__body">{{ item.body }}</p>
@@ -27,8 +27,41 @@
       </ul>
     {% endif %}
   {% endif %}
-  {% if item.deletion_mode %}
+  {% if item.can_reply or item.can_report or item.deletion_mode %}
     <footer class="comment-item__actions">
+      {% if item.can_reply %}
+        <button
+          class="button button--secondary"
+          type="button"
+          data-comment-reply
+          data-dialog-trigger
+          data-dialog-return-hash="comment-{{ item.id }}"
+          aria-controls="comment-reply-dialog-{{ item.id }}"
+          hx-get="{% url 'comments:comment-reply-confirm' comment_id=item.id %}"
+          hx-target="#comment-dialog-host"
+          hx-swap="innerHTML"
+        >
+          <i data-lucide="reply"></i>
+          回复
+        </button>
+      {% endif %}
+      {% if item.can_report %}
+        <button
+          class="button button--secondary"
+          type="button"
+          data-comment-report
+          data-dialog-trigger
+          data-dialog-return-hash="comment-{{ item.id }}"
+          aria-controls="comment-report-dialog-{{ item.id }}"
+          hx-get="{% url 'moderation:report-confirm' comment_id=item.id %}"
+          hx-target="#comment-dialog-host"
+          hx-swap="innerHTML"
+        >
+          <i data-lucide="flag"></i>
+          举报
+        </button>
+      {% endif %}
+      {% if item.deletion_mode %}
       <button
         class="button button--secondary"
         type="button"
@@ -36,13 +69,14 @@
         data-dialog-trigger
         data-dialog-return-hash="comment-{{ item.id }}"
         aria-controls="comment-delete-dialog-{{ item.id }}"
-        hx-get="{% url 'article:comment-delete-confirm' article_id=comment_article_id comment_id=item.id %}?mode={{ item.deletion_mode }}"
+        hx-get="{% url 'comments:comment-delete-confirm' comment_id=item.id %}?mode={{ item.deletion_mode }}"
         hx-target="#comment-dialog-host"
         hx-swap="innerHTML"
       >
         <i data-lucide="trash-2"></i>
         删除
       </button>
+      {% endif %}
     </footer>
   {% endif %}
 </article>

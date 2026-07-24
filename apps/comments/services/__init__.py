@@ -6,6 +6,11 @@ from .deletion import (
     delete_comment_as_owner,
     delete_own_comment,
 )
+from .guestbook import (
+    GuestbookSettingsError,
+    GuestbookSettingsResult,
+    update_guestbook_settings,
+)
 from .posting import TopLevelCommentResult, create_top_level_comment
 from .publication import (
     CommentPublicationOutcome,
@@ -15,7 +20,11 @@ from .publication import (
 )
 from .purge import purge_article_comments
 from .replies import ReplyCommentResult, reply_to_comment
-from .threads import sync_article_thread
+from .threads import (
+    GuestbookUnavailableError,
+    sync_article_thread,
+    sync_guestbook_thread,
+)
 from .uploads import stage_top_level_comment_image
 
 __all__ = [
@@ -26,6 +35,9 @@ __all__ = [
     "CommentPublicationResult",
     "ReplyCommentResult",
     "TopLevelCommentResult",
+    "GuestbookSettingsError",
+    "GuestbookSettingsResult",
+    "GuestbookUnavailableError",
     "create_top_level_comment",
     "delete_comment_as_admin",
     "delete_comment_as_owner",
@@ -36,4 +48,6 @@ __all__ = [
     "reply_to_comment",
     "stage_top_level_comment_image",
     "sync_article_thread",
+    "sync_guestbook_thread",
+    "update_guestbook_settings",
 ]

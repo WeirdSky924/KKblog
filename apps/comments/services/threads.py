@@ -3,7 +3,12 @@ from django.db import transaction
 from apps.content.public import ArticleCommentTarget, article_comment_target
 
 from ..models import DiscussionThread
-from ..targets import DiscussionTargetType
+from ..ports import CommentAccountPolicy, default_comment_account_policy
+from ..targets import GUESTBOOK_TARGET_ID, DiscussionTargetType
+
+
+class GuestbookUnavailableError(RuntimeError):
+    pass
 
 
 def sync_article_thread(
@@ -23,3 +28,27 @@ def sync_article_thread(
             defaults=defaults,
         )
     return thread, target
+
+
+def sync_guestbook_thread(
+    *, account_policy: CommentAccountPolicy | None = None
+) -> DiscussionThread:
+    accounts = account_policy or default_comment_account_policy()
+    owner_id = accounts.administrator_id()
+    if owner_id is None:
+        raise GuestbookUnavailableError("Active administrator is unavailable")
+    with transaction.atomic():
+        thread, created = DiscussionThread.objects.get_or_create(
+            target_type=DiscussionTargetType.GUESTBOOK,
+            target_id=GUESTBOOK_TARGET_ID,
+            defaults={
+                "owner_id": owner_id,
+                "comments_enabled": True,
+                "view_login_required": False,
+                "post_login_required": False,
+            },
+        )
+        if not created and thread.owner_id != owner_id:
+            thread.owner_id = owner_id
+            thread.save(update_fields=("owner", "updated_at"))
+    return thread

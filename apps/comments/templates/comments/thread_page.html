@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}留言板 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <div class="guestbook-page" aria-labelledby="guestbook-title">
+    <header class="guestbook-page__header">
+      <h1 id="guestbook-title">留言板</h1>
+      <p>留言将在提交 10 分钟后公开。</p>
+    </header>
+    {% include "comments/partials/thread_panel.html" %}
+  </div>
+{% endblock %}

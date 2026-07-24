@@ -10,6 +10,7 @@
 @import "./accounts.css";
 @import "./media.css";
 @import "./comments.css";
+@import "./moderation.css";
 
 @source "../../templates";
 @source "../../apps";

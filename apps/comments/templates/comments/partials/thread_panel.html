@@ -1,0 +1,127 @@
+<section
+  id="comment-thread"
+  class="comment-thread"
+  data-comment-thread
+  data-sort="{{ comment_panel.public_page.sort }}"
+  aria-labelledby="comment-thread-title"
+  data-focus-after-swap
+  tabindex="-1"
+>
+  <header class="comment-thread__header">
+    <div>
+      <p class="comment-thread__kicker">讨论</p>
+      <h2 id="comment-thread-title">{{ comment_noun }}</h2>
+    </div>
+    <span class="comment-thread__state">
+      {% if comment_panel.comments_enabled %}开放中{% else %}已关闭{% endif %}
+    </span>
+  </header>
+
+  {% if comment_feedback %}
+    <p class="comment-thread__feedback" role="status">{{ comment_feedback }}</p>
+  {% endif %}
+
+  {% if comment_system_error %}
+    <div class="error-inline" role="alert" data-error-focus tabindex="-1">
+      <p>{{ comment_system_error }}</p>
+      <p class="status-trace">Trace：<code>{{ comment_trace_code }}</code></p>
+    </div>
+  {% endif %}
+
+  {% if comment_panel.can_post %}
+    <form
+      class="comment-form"
+      action="{{ comment_post_url }}"
+      method="post"
+      hx-post="{{ comment_post_url }}"
+      hx-target="#comment-thread"
+      hx-swap="outerHTML"
+      data-submit-once
+      data-comment-form
+    >
+      {% csrf_token %}
+      <div class="comment-form__field">
+        <div class="comment-form__label-row">
+          <label for="{{ comment_form.body.id_for_label }}">{{ comment_form.body.label }}</label>
+          <span id="comment-body-help" data-comment-count>0 / 100</span>
+        </div>
+        {{ comment_form.body }}
+        {% if comment_form.body.errors %}
+          <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+            {% for error in comment_form.body.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      {% if comment_form.non_field_errors %}
+        <ul class="comment-form__errors" role="alert" data-error-focus tabindex="-1">
+          {% for error in comment_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      <details
+        class="comment-images"
+        {% if comment_form.image_ref_1.value or comment_form.image_ref_2.value or comment_form.image_ref_3.value %}open{% endif %}
+      >
+        <summary>
+          <span><i data-lucide="image-up"></i>添加图片</span>
+          <span>0–3</span>
+        </summary>
+        <div class="comment-images__grid" aria-label="{{ comment_noun }}图片">
+          {% include "media/partials/picker.html" with adapter="comment" upload_url=comment_image_upload_url input_name="image_ref_1" label="图片 1（可选）" picker_id="comment-image-1" current_asset_id=comment_form.image_ref_1.value current_preview_url="" favicon_preview=False %}
+          {% include "media/partials/picker.html" with adapter="comment" upload_url=comment_image_upload_url input_name="image_ref_2" label="图片 2（可选）" picker_id="comment-image-2" current_asset_id=comment_form.image_ref_2.value current_preview_url="" favicon_preview=False %}
+          {% include "media/partials/picker.html" with adapter="comment" upload_url=comment_image_upload_url input_name="image_ref_3" label="图片 3（可选）" picker_id="comment-image-3" current_asset_id=comment_form.image_ref_3.value current_preview_url="" favicon_preview=False %}
+        </div>
+      </details>
+
+      <div class="comment-form__actions">
+        <button class="button button--primary" type="submit">
+          <i data-lucide="message-circle"></i>
+          提交{{ comment_noun }}
+        </button>
+        <span class="htmx-indicator" role="status">正在提交</span>
+      </div>
+    </form>
+  {% elif not comment_panel.comments_enabled %}
+    <p class="comment-thread__notice">
+      {% if comment_noun == "留言" %}留言板已关闭，既有留言仍会保留。{% else %}评论区已关闭，既有评论仍会保留。{% endif %}
+    </p>
+  {% elif comment_panel.post_login_required %}
+    <p class="comment-thread__notice">
+      <a href="{% url 'accounts:login' %}?next={{ comment_return_url|urlencode }}">登录后才能发表{{ comment_noun }}</a>
+    </p>
+  {% endif %}
+
+  {% if comment_panel.buffered_items %}
+    <section class="comment-buffer" aria-labelledby="comment-buffer-title">
+      <h3 id="comment-buffer-title">等待公开</h3>
+      <ol>
+        {% for item in comment_panel.buffered_items %}
+          <li data-comment-id="{{ item.id }}">
+            <div class="comment-buffer__meta">
+              <strong>{{ item.author_label }}</strong>
+              <span>{% if item.is_reply %}回复等待公开{% else %}等待公开{% endif %}</span>
+              <time datetime="{{ item.visible_at|date:'c' }}">{{ item.visible_at|date:'H:i' }}</time>
+            </div>
+            <p>{{ item.body }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+
+  {% if not comment_panel.can_view %}
+    <p class="comment-thread__empty">登录后可查看{{ comment_noun }}。</p>
+  {% else %}
+    <div class="comment-sort" aria-label="{{ comment_noun }}排序">
+      <span>排序</span>
+      <div class="comment-sort__controls" role="group" aria-label="选择{{ comment_noun }}排序方式">
+        <button type="button" data-comment-sort-control="earliest" aria-pressed="{% if comment_panel.public_page.sort == 'earliest' %}true{% else %}false{% endif %}" hx-get="{{ comment_page_url }}?sort=earliest" hx-target="#comment-public-list" hx-swap="outerHTML">最早</button>
+        <button type="button" data-comment-sort-control="latest" aria-pressed="{% if comment_panel.public_page.sort == 'latest' %}true{% else %}false{% endif %}" hx-get="{{ comment_page_url }}?sort=latest" hx-target="#comment-public-list" hx-swap="outerHTML">最新</button>
+        <button type="button" data-comment-sort-control="hottest" aria-pressed="{% if comment_panel.public_page.sort == 'hottest' %}true{% else %}false{% endif %}" hx-get="{{ comment_page_url }}?sort=hottest" hx-target="#comment-public-list" hx-swap="outerHTML">最热门</button>
+      </div>
+    </div>
+    {% include "comments/partials/public_list.html" %}
+  {% endif %}
+  <div id="comment-dialog-host"></div>
+</section>

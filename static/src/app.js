@@ -12,6 +12,7 @@ import {
   Copy,
   Eye,
   ExternalLink,
+  Flag,
   ImageUp,
   Info,
   LogIn,
@@ -20,6 +21,7 @@ import {
   MessageCircle,
   MonitorSmartphone,
   Moon,
+  Reply,
   RotateCw,
   Search,
   Settings,
@@ -52,6 +54,7 @@ const availableIcons = {
   Copy,
   Eye,
   ExternalLink,
+  Flag,
   ImageUp,
   Info,
   LogIn,
@@ -60,6 +63,7 @@ const availableIcons = {
   MessageCircle,
   MonitorSmartphone,
   Moon,
+  Reply,
   RotateCw,
   Search,
   Settings,
@@ -169,6 +173,24 @@ function initializeCopyLinks(root = document) {
         button.disabled = false;
       }
     });
+  });
+}
+
+function initializeCharacterCounts(root = document) {
+  root.querySelectorAll?.("[data-character-count]").forEach((counter) => {
+    if (!(counter instanceof HTMLElement) || counter.dataset.bound === "true") {
+      return;
+    }
+    const field = document.getElementById(counter.dataset.characterCount || "");
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    counter.dataset.bound = "true";
+    const update = () => {
+      counter.textContent = `${field.value.length} / ${field.maxLength}`;
+    };
+    field.addEventListener("input", update);
+    update();
   });
 }
 
@@ -745,6 +767,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializePersonalMenus(root);
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
+  initializeCharacterCounts(root);
   initializeMediaPickers(root);
   initializeCommentForms(root);
   initializeCommentThreads(root);
@@ -796,6 +819,7 @@ initializeIcons();
 initializePersonalMenus();
 initializeConfirmDialogs();
 initializeCopyLinks();
+initializeCharacterCounts();
 initializeMediaPickers();
 initializeCommentForms();
 focusInsertedError(document);

@@ -5,7 +5,7 @@
         {% include "comments/partials/top_level_batch.html" %}
       </ol>
     {% else %}
-      <p class="comment-thread__empty">尚无已公开评论。</p>
+      <p class="comment-thread__empty">尚无已公开{{ comment_noun }}。</p>
     {% endif %}
   </div>
 {% endwith %}

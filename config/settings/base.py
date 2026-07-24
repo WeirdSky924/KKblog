@@ -13,6 +13,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.discovery",
     "apps.media",
+    "apps.moderation",
     "apps.navigation",
     "apps.notifications",
     "apps.operations",
@@ -115,6 +116,12 @@ COMMENTS_MEDIA_GATEWAY_PROVIDER = "config.comment_integrations.comment_media_gat
 COMMENTS_RECEIPT_COOKIE_NAME = "kaj_comment_receipts"
 COMMENTS_RECEIPT_MAX_AGE_SECONDS = 90 * 24 * 60 * 60
 COMMENTS_PUBLICATION_BATCH_SIZE = 100
+MODERATION_ACCOUNT_POLICY_PROVIDER = (
+    "config.moderation_integrations.moderation_account_policy"
+)
+MODERATION_EVIDENCE_GATEWAY_PROVIDER = (
+    "config.moderation_integrations.report_evidence_gateway"
+)
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024

@@ -6,7 +6,8 @@ from django.db.models import Q
 
 from ..models import Comment
 from ..ports import CommentAccountPolicy, default_comment_account_policy
-from ..services.threads import sync_article_thread
+from ..services.threads import sync_article_thread, sync_guestbook_thread
+from ..targets import DiscussionTargetType
 from .threads import CommentSort, PublicCommentPage, public_comment_page
 
 
@@ -16,6 +17,7 @@ class BufferedCommentItem:
     author_label: str
     body: str
     visible_at: datetime
+    is_reply: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,17 +46,15 @@ class CommentPanel:
     public_page: PublicCommentPage
 
 
-def article_comment_access(
+def _thread_access(
     *,
     actor_id: UUID | None,
-    article_id: str,
-    account_policy: CommentAccountPolicy | None = None,
+    thread,
+    account_policy: CommentAccountPolicy,
 ) -> CommentThreadAccess:
-    accounts = account_policy or default_comment_account_policy()
-    thread, _ = sync_article_thread(actor_id=actor_id, article_id=article_id)
-    active = actor_id is not None and accounts.is_active_account(actor_id)
+    active = actor_id is not None and account_policy.is_active_account(actor_id)
     owner = active and actor_id == thread.owner_id
-    administrator = active and accounts.is_administrator(actor_id)
+    administrator = active and account_policy.is_administrator(actor_id)
     can_view = not thread.view_login_required or active
     can_post = thread.comments_enabled and (active or not thread.post_login_required)
     return CommentThreadAccess(
@@ -72,19 +72,69 @@ def article_comment_access(
     )
 
 
-def article_comment_panel(
+def comment_thread_access(
+    *,
+    actor_id: UUID | None,
+    target_type: DiscussionTargetType | str,
+    target_id: str,
+    account_policy: CommentAccountPolicy | None = None,
+) -> CommentThreadAccess:
+    accounts = account_policy or default_comment_account_policy()
+    target = DiscussionTargetType(target_type)
+    thread = (
+        sync_article_thread(actor_id=actor_id, article_id=target_id)[0]
+        if target is DiscussionTargetType.ARTICLE
+        else sync_guestbook_thread(account_policy=accounts)
+    )
+    return _thread_access(
+        actor_id=actor_id,
+        thread=thread,
+        account_policy=accounts,
+    )
+
+
+def article_comment_access(
     *,
     actor_id: UUID | None,
     article_id: str,
+    account_policy: CommentAccountPolicy | None = None,
+) -> CommentThreadAccess:
+    return comment_thread_access(
+        actor_id=actor_id,
+        target_type=DiscussionTargetType.ARTICLE,
+        target_id=article_id,
+        account_policy=account_policy,
+    )
+
+
+def guestbook_comment_access(
+    *,
+    actor_id: UUID | None,
+    account_policy: CommentAccountPolicy | None = None,
+) -> CommentThreadAccess:
+    return comment_thread_access(
+        actor_id=actor_id,
+        target_type=DiscussionTargetType.GUESTBOOK,
+        target_id="site",
+        account_policy=account_policy,
+    )
+
+
+def comment_thread_panel(
+    *,
+    actor_id: UUID | None,
+    target_type: DiscussionTargetType | str,
+    target_id: str,
     receipt_ids: tuple[str, ...] = (),
     account_policy: CommentAccountPolicy | None = None,
     sort: CommentSort | str = CommentSort.EARLIEST,
     cursor: str | None = None,
 ) -> CommentPanel:
     accounts = account_policy or default_comment_account_policy()
-    access = article_comment_access(
+    access = comment_thread_access(
         actor_id=actor_id,
-        article_id=article_id,
+        target_type=target_type,
+        target_id=target_id,
         account_policy=accounts,
     )
 
@@ -96,7 +146,6 @@ def article_comment_panel(
     rows = Comment.objects.filter(
         permitted,
         thread_id=access.thread_id,
-        parent__isnull=True,
         state=Comment.State.BUFFERED,
     ).order_by("created_at", "id")[:20]
     return CommentPanel(
@@ -117,6 +166,7 @@ def article_comment_panel(
                 ),
                 body=row.body,
                 visible_at=row.visible_at,
+                is_reply=row.parent_id is not None,
             )
             for row in rows
         ),
@@ -129,5 +179,46 @@ def article_comment_panel(
             actor_id=access.actor_id,
             thread_owner_id=access.owner_id,
             is_administrator=access.is_administrator,
+            can_reply=access.is_active_actor and access.comments_enabled,
+            can_report=access.is_active_actor,
         ),
+    )
+
+
+def article_comment_panel(
+    *,
+    actor_id: UUID | None,
+    article_id: str,
+    receipt_ids: tuple[str, ...] = (),
+    account_policy: CommentAccountPolicy | None = None,
+    sort: CommentSort | str = CommentSort.EARLIEST,
+    cursor: str | None = None,
+) -> CommentPanel:
+    return comment_thread_panel(
+        actor_id=actor_id,
+        target_type=DiscussionTargetType.ARTICLE,
+        target_id=article_id,
+        receipt_ids=receipt_ids,
+        account_policy=account_policy,
+        sort=sort,
+        cursor=cursor,
+    )
+
+
+def guestbook_comment_panel(
+    *,
+    actor_id: UUID | None,
+    receipt_ids: tuple[str, ...] = (),
+    account_policy: CommentAccountPolicy | None = None,
+    sort: CommentSort | str = CommentSort.EARLIEST,
+    cursor: str | None = None,
+) -> CommentPanel:
+    return comment_thread_panel(
+        actor_id=actor_id,
+        target_type=DiscussionTargetType.GUESTBOOK,
+        target_id="site",
+        receipt_ids=receipt_ids,
+        account_policy=account_policy,
+        sort=sort,
+        cursor=cursor,
     )
