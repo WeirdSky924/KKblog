@@ -27,6 +27,7 @@ from .publication import PublishedRevision, published_revision
 from .revisions import RevisionTimelineItem, revision_timeline
 
 __all__ = [
+    "ArticleCommentTarget",
     "ArticleLoginRequired",
     "ArticleNotFound",
     "ArticleView",
@@ -42,6 +43,7 @@ __all__ = [
     "PublishedRevision",
     "RevisionTimelineItem",
     "active_tag",
+    "article_comment_target",
     "article_ids_by_author_for_cache",
     "article_for_admin",
     "article_for_author",
@@ -64,11 +66,13 @@ __all__ = [
     "revision_timeline",
 ]
 from .access import (
+    ArticleCommentTarget,
     ArticleLoginRequired,
     ArticleNotFound,
     ArticleView,
     PublicArticleCacheSnapshot,
     PublicArticleRender,
+    article_comment_target,
     article_for_admin,
     article_for_author,
     article_for_reader,

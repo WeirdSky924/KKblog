@@ -26,6 +26,17 @@ class IpBlockDetail:
     unblocked_at: datetime | None
 
 
+def is_ip_blocked(address: str) -> bool:
+    try:
+        normalized = normalize_ip(address)
+    except ClientIpError:
+        return True
+    return IpBlock.objects.filter(
+        address=normalized,
+        unblocked_at__isnull=True,
+    ).exists()
+
+
 def _require_administrator(is_admin: bool) -> None:
     if not is_admin:
         raise PermissionError("IP blocks require administrator access")

@@ -39,6 +39,8 @@ def _storage_key(
         return f"site/friend-links/{asset_id}.{extension}"
     if purpose == MediaPurpose.AVATAR:
         return f"users/{owner_id}/avatar/{asset_id}.{extension}"
+    if purpose == MediaPurpose.COMMENT and target_id == "site":
+        return f"users/{owner_id}/guestbook/comments/{asset_id}.{extension}"
     if target_id is None or not _SAFE_TARGET.fullmatch(target_id.upper()):
         raise MediaUploadError("media.target_invalid.v1", "此图片需要有效的归属对象。")
     segment = {

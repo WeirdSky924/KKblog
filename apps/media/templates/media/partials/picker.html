@@ -2,7 +2,7 @@
 <div
   class="media-picker"
   data-media-picker="{{ adapter }}"
-  data-media-upload-url="{% url 'media:upload' adapter=adapter %}"
+  data-media-upload-url="{% if upload_url %}{{ upload_url }}{% else %}{% url 'media:upload' adapter=adapter %}{% endif %}"
   data-media-input-name="{{ input_name }}"
   data-media-favicon="{% if favicon_preview %}true{% else %}false{% endif %}"
   data-media-state="{% if current_asset_id %}ready{% else %}empty{% endif %}"
@@ -27,7 +27,7 @@
       >
       <div class="media-picker__empty" data-media-empty {% if current_preview_url %}hidden{% endif %}>
         <i data-lucide="image-up"></i>
-        <span>尚未选择{{ label }}</span>
+        <span>{% if current_asset_id %}图片已选择{% else %}尚未选择{{ label }}{% endif %}</span>
       </div>
     </div>
 

@@ -1,0 +1,18 @@
+<div
+  class="media-upload-result"
+  role="status"
+  aria-live="polite"
+  data-media-upload-result="{% if upload_error %}error{% else %}success{% endif %}"
+  {% if upload %}
+    data-asset-id="{{ upload.image_ref }}"
+    data-image-ref="{{ upload.image_ref }}"
+    data-safe-asset-id="{{ upload.asset_id }}"
+  {% endif %}
+>
+  {% if upload_error %}
+    <p class="field-error">{{ upload_error }}</p>
+    {% if original_name %}<p class="media-upload-result__name">未上传：{{ original_name }}</p>{% endif %}
+  {% else %}
+    <p>图片已安全处理，可以随评论提交。</p>
+  {% endif %}
+</div>

@@ -9,6 +9,7 @@
 @import "./status-pages.css";
 @import "./accounts.css";
 @import "./media.css";
+@import "./comments.css";
 
 @source "../../templates";
 @source "../../apps";

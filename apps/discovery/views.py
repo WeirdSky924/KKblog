@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.comments.public import article_comment_context
 from apps.content.public import ArticleLoginRequired, ArticleNotFound
 from apps.discovery.presentation.forms import (
     BookmarkStateForm,
@@ -263,6 +264,10 @@ def article_detail(request, article_id):
                 actor_id=actor_id,
                 article_id=page.article_id,
                 article_path=article_path,
+            ),
+            **article_comment_context(
+                request=request,
+                article_id=page.article_id,
             ),
         },
     )

@@ -5,6 +5,7 @@ from .purge_ports import (
     register_article_comment_purge,
 )
 from .queries import (
+    ArticleCommentTarget,
     ArticleLoginRequired,
     ArticleNotFound,
     ArticleView,
@@ -20,6 +21,7 @@ from .queries import (
     VisibleArticlePage,
     VisibleArticleTag,
     active_tag,
+    article_comment_target,
     article_for_admin,
     article_for_author,
     article_for_reader,
@@ -110,6 +112,7 @@ from .snapshots import (
 
 __all__ = [
     "ArticleBodyLimit",
+    "ArticleCommentTarget",
     "ArticleCommentPurgeResult",
     "ArticleDeletionError",
     "ArticleDeletionResult",
@@ -193,6 +196,7 @@ __all__ = [
     "section_list",
     "tag_reference",
     "active_tag",
+    "article_comment_target",
     "article_ids_by_author_for_cache",
     "article_for_admin",
     "article_for_author",

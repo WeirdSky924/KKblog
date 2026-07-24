@@ -476,6 +476,25 @@ function initializeMediaPickers(root = document) {
   });
 }
 
+function initializeCommentForms(root = document) {
+  root.querySelectorAll?.("[data-comment-form]").forEach((form) => {
+    if (!(form instanceof HTMLFormElement) || form.dataset.countBound === "true") {
+      return;
+    }
+    const body = form.querySelector("textarea[name='body']");
+    const count = form.querySelector("[data-comment-count]");
+    if (!(body instanceof HTMLTextAreaElement) || !(count instanceof HTMLElement)) {
+      return;
+    }
+    form.dataset.countBound = "true";
+    const update = () => {
+      count.textContent = `${Array.from(body.value).length} / 100`;
+    };
+    body.addEventListener("input", update);
+    update();
+  });
+}
+
 function applyTheme(value, { persist = true } = {}) {
   const theme = normalizeTheme(value);
   if (!theme) {
@@ -731,14 +750,31 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
   initializeMediaPickers(root);
+  initializeCommentForms(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
 });
 
 document.addEventListener("htmx:beforeSwap", (event) => {
-  if (event.detail.xhr.status === 422 || event.detail.xhr.status === 409) {
+  if (
+    event.detail.xhr.status === 422 ||
+    event.detail.xhr.status === 409 ||
+    event.detail.xhr.status === 429 ||
+    event.detail.xhr.getResponseHeader("X-Kaj-Inline-Error") === "true"
+  ) {
     event.detail.shouldSwap = true;
     event.detail.isError = false;
+  }
+});
+
+document.addEventListener("htmx:afterRequest", (event) => {
+  const form = event.detail?.elt?.closest?.("form[data-submit-once]");
+  if (form instanceof HTMLFormElement) {
+    delete form.dataset.submitting;
+    form.removeAttribute("aria-busy");
+    form
+      .querySelectorAll("button[type='submit'], input[type='submit']")
+      .forEach((control) => control.removeAttribute("aria-disabled"));
   }
 });
 
@@ -754,5 +790,6 @@ initializePersonalMenus();
 initializeConfirmDialogs();
 initializeCopyLinks();
 initializeMediaPickers();
+initializeCommentForms();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

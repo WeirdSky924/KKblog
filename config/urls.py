@@ -5,6 +5,7 @@ from apps.accounts.public import PublicAccountNotFound, public_account_identity
 from apps.core.errors.handlers import not_found, permission_denied, server_error
 from apps.discovery.profile_identity import configure_profile_identity_provider
 from apps.operations.public import record_audit_entry
+from config.comment_integrations import configure_comment_integrations
 
 
 def _public_profile_identity(account_id):
@@ -16,6 +17,7 @@ def _public_profile_identity(account_id):
 
 configure_profile_audit_writer(record_audit_entry)
 configure_profile_identity_provider(_public_profile_identity)
+configure_comment_integrations()
 
 handler403 = permission_denied
 handler404 = not_found

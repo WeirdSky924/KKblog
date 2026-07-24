@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block title %}提交评论 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{{ comment_article_url }}">返回文章</a></p>
+  {% include "comments/partials/article_panel.html" %}
+{% endblock %}

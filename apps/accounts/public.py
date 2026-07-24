@@ -5,7 +5,11 @@ from apps.accounts.deletion import (
     AuthorArticleDecision,
 )
 from apps.accounts.models import Account, RoleAssignment
-from apps.accounts.queries.ip_blocks import ip_block_detail, ip_block_list
+from apps.accounts.queries.ip_blocks import (
+    ip_block_detail,
+    ip_block_list,
+    is_ip_blocked,
+)
 from apps.accounts.queries.profile import (
     PublicAccountIdentity,
     PublicAccountNotFound,
@@ -68,6 +72,7 @@ __all__ = [
     "delete_account",
     "ip_block_detail",
     "ip_block_list",
+    "is_ip_blocked",
     "is_administrator",
     "is_active_author",
     "is_active_account",

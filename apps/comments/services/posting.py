@@ -1,0 +1,197 @@
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+from django.db import transaction
+
+from apps.core.events import enqueue_event
+from apps.core.ids import new_ulid
+from apps.core.time.clock import Clock, SystemClock
+
+from ..cooldown import (
+    CommentCooldownActive,
+    CommentCooldownStore,
+    default_comment_cooldown_store,
+)
+from ..errors import CommentPostingError
+from ..events import COMMENT_CREATED
+from ..models import Comment
+from ..ports import (
+    CommentAccountPolicy,
+    CommentMediaError,
+    CommentMediaGateway,
+    default_comment_account_policy,
+    default_comment_media_gateway,
+)
+from .access import resolve_top_level_posting_access
+
+ANONYMOUS_COOLDOWN_SECONDS = 5 * 60
+ACCOUNT_COOLDOWN_SECONDS = 60
+COMMENT_BUFFER_SECONDS = 10 * 60
+
+
+@dataclass(frozen=True, slots=True)
+class TopLevelCommentResult:
+    comment_id: str
+    thread_id: str
+    state: str
+    visible_at: datetime
+    image_count: int
+
+
+def _body(value: str) -> str:
+    if not isinstance(value, str):
+        raise CommentPostingError(
+            "comments.body_invalid.v1", "评论正文需为 1 至 100 个字符。", field="body"
+        )
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not 1 <= len(normalized) <= 100 or any(
+        not char.isprintable() and char not in "\n\t" for char in normalized
+    ):
+        raise CommentPostingError(
+            "comments.body_invalid.v1", "评论正文需为 1 至 100 个字符。", field="body"
+        )
+    return normalized
+
+
+def _image_refs(values) -> tuple[str, ...]:
+    if not isinstance(values, tuple):
+        try:
+            values = tuple(values)
+        except TypeError:
+            values = ()
+    if (
+        len(values) > 3
+        or len(set(values)) != len(values)
+        or any(
+            not isinstance(value, str) or not 1 <= len(value) <= 2_048
+            for value in values
+        )
+    ):
+        raise CommentPostingError(
+            "comments.images_invalid.v1",
+            "顶层评论最多使用三张有效图片。",
+            field="images",
+        )
+    return values
+
+
+def create_top_level_comment(
+    *,
+    target_type,
+    target_id: str,
+    actor_id,
+    client_ip: str,
+    body: str,
+    image_refs: tuple[str, ...] = (),
+    trace_code: str,
+    clock: Clock | None = None,
+    account_policy: CommentAccountPolicy | None = None,
+    cooldown_store: CommentCooldownStore | None = None,
+    media_gateway: CommentMediaGateway | None = None,
+) -> TopLevelCommentResult:
+    normalized_body = _body(body)
+    normalized_refs = _image_refs(image_refs)
+    accounts = account_policy or default_comment_account_policy()
+    cooldown = cooldown_store or default_comment_cooldown_store()
+    media = media_gateway or default_comment_media_gateway()
+    active_clock = clock or SystemClock()
+
+    reservation = None
+    try:
+        with transaction.atomic():
+            access = resolve_top_level_posting_access(
+                target_type=target_type,
+                target_id=target_id,
+                actor_id=actor_id,
+                client_ip=client_ip,
+                account_policy=accounts,
+            )
+            thread = access.thread
+            actor = access.actor_id
+            address = access.client_ip
+
+            ttl = (
+                ACCOUNT_COOLDOWN_SECONDS
+                if actor is not None
+                else ANONYMOUS_COOLDOWN_SECONDS
+            )
+            try:
+                reservation = cooldown.reserve(
+                    subject_kind="ACCOUNT" if actor is not None else "IP",
+                    subject_value=str(actor) if actor is not None else address,
+                    ttl_seconds=ttl,
+                )
+            except CommentCooldownActive as exc:
+                raise CommentPostingError(
+                    "comments.cooldown_active.v1",
+                    f"请等待 {exc.remaining_seconds} 秒后再发表评论。",
+                    retry_after=exc.remaining_seconds,
+                ) from None
+
+            now = active_clock.now()
+            comment_id = new_ulid()
+            comment = Comment.objects.create(
+                id=comment_id,
+                thread=thread,
+                parent=None,
+                root_id=comment_id,
+                author_id=actor,
+                author_kind=(
+                    Comment.AuthorKind.ACCOUNT
+                    if actor is not None
+                    else Comment.AuthorKind.ANONYMOUS
+                ),
+                body=normalized_body,
+                state=Comment.State.BUFFERED,
+                visible_at=now + timedelta(seconds=COMMENT_BUFFER_SECONDS),
+                depth=0,
+                reply_count=0,
+                client_ip=address,
+                created_at=now,
+            )
+            try:
+                asset_ids = (
+                    media.bind_images(
+                        actor_id=actor,
+                        thread_owner_id=thread.owner_id,
+                        target_type=access.target_type.value,
+                        target_id=access.target_id,
+                        comment_id=comment.id,
+                        client_ip=address,
+                        image_refs=normalized_refs,
+                    )
+                    if normalized_refs
+                    else ()
+                )
+            except CommentMediaError as exc:
+                raise CommentPostingError(
+                    "comments.images_invalid.v1", exc.safe_message, field="images"
+                ) from None
+            enqueue_event(
+                COMMENT_CREATED,
+                aggregate_type="comment",
+                aggregate_id=comment.id,
+                actor_id=actor,
+                trace_code=trace_code,
+                payload={
+                    "thread_id": str(thread.id),
+                    "target_type": access.target_type.value,
+                    "target_id": access.target_id,
+                    "author_kind": comment.author_kind,
+                    "visible_at": comment.visible_at.isoformat(),
+                    "image_count": len(asset_ids),
+                },
+                clock=active_clock,
+            )
+    except Exception:
+        if reservation is not None:
+            cooldown.rollback(reservation)
+        raise
+
+    return TopLevelCommentResult(
+        comment_id=comment.id,
+        thread_id=str(thread.id),
+        state=comment.state,
+        visible_at=comment.visible_at,
+        image_count=len(asset_ids),
+    )

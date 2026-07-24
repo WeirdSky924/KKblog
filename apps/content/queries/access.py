@@ -68,6 +68,17 @@ class ArticleView:
 
 
 @dataclass(frozen=True, slots=True)
+class ArticleCommentTarget:
+    article_id: str
+    revision_id: str
+    owner_id: UUID
+    visibility: str
+    comments_enabled: bool
+    view_login_required: bool
+    post_login_required: bool
+
+
+@dataclass(frozen=True, slots=True)
 class PublicArticleCacheSnapshot:
     article_id: str
     revision_id: str
@@ -149,27 +160,47 @@ def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
     return article, revision
 
 
+def _require_reader_access(
+    article: Article, revision: ArticleRevision, actor: UUID | None
+) -> None:
+    authenticated = actor is not None and is_active_account(actor)
+    if revision.visibility == ArticleRevision.Visibility.PUBLIC:
+        return
+    if revision.visibility == ArticleRevision.Visibility.AUTHENTICATED:
+        if not authenticated:
+            raise ArticleLoginRequired(article.id)
+        return
+    if actor != article.author_id or not is_active_author(actor):
+        raise ArticleNotFound
+
+
 def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     identity = _article_id(article_id)
     actor = _actor_id(actor_id, required=False)
     article, revision = _reader_article(identity)
-    authenticated = actor is not None and is_active_account(actor)
-    if revision.visibility == ArticleRevision.Visibility.PUBLIC:
-        allowed = True
-    elif revision.visibility == ArticleRevision.Visibility.AUTHENTICATED:
-        if not authenticated:
-            raise ArticleLoginRequired(article.id)
-        allowed = True
-    else:
-        allowed = actor == article.author_id and is_active_author(actor)
-    if not allowed:
-        raise ArticleNotFound
+    _require_reader_access(article, revision, actor)
     owner = actor == article.author_id and is_active_author(actor)
     rendered_body_html, readable_cover_asset_id = _reader_media(revision)
     return replace(
         _view(article, revision, can_edit=owner, admin_read_only=False),
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,
+    )
+
+
+def article_comment_target(*, actor_id, article_id: str) -> ArticleCommentTarget:
+    identity = _article_id(article_id)
+    actor = _actor_id(actor_id, required=False)
+    article, revision = _reader_article(identity)
+    _require_reader_access(article, revision, actor)
+    return ArticleCommentTarget(
+        article_id=article.id,
+        revision_id=revision.id,
+        owner_id=article.author_id,
+        visibility=revision.visibility,
+        comments_enabled=revision.comments_enabled,
+        view_login_required=revision.comments_view_login,
+        post_login_required=revision.comments_post_login,
     )
 
 
