@@ -84,6 +84,7 @@
 .confirm-dialog {
   width: min(calc(100% - 2rem), 32rem);
   max-height: calc(100vh - 2rem);
+  margin: auto;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 4px;

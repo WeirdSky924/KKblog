@@ -81,7 +81,7 @@
 - 授权：`否`；生产管理员删除具体内容 `是`。
 
 ### CMT-007 实现管理员拥有的留言板与全部评论规则复用
-- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P1。
 - 目标/行为：公开留言板默认开启且访客可顶层留言；管理员控制开启/登录要求、管理评论并接收深层提醒；回复、图片、排序、举报、占位全部复用。
 - 来源：访谈 Q237、Q240、Q312-Q313；`modules/06-interactions-moderation.md` §留言板；`contracts/03-frontend-contract-map.md` §public:guestbook。
 - 依赖：前置 `CMT-001`、`CMT-002`、`CMT-003`、`CMT-004`、`CMT-005`、`OBS-004`；后续 `ADM-007`、`QA-003`、`QA-006`。
@@ -90,10 +90,11 @@
 - 影响：数据：单Thread/设置投影；权限：admin owner/访客；审计：设置；缓存无；异步：缓冲；媒体：评论图；通知：深层/审核。
 - 测试/验收：RED 默认/关闭/登录要求、管理员owner、完整举报复用；Playwright访客留言→10m→用户回复/举报。
 - 风险/停止：出现第二套模型/审核逻辑或留言板无owner导致任务/通知丢失即停止。
+- 证据：聚焦 RED 由 `test_cmt007.py` 与 `test_cmt007_http.py` 覆盖缺失的留言板单例、设置命令、公开页面和全部评论入口；实现固定 `GUESTBOOK/site` 的唯一 DiscussionThread，按当前唯一管理员同步 owner，但保留开启/登录要求设置。公开页直接复用顶层发布、图片、回复、排序/游标、缓冲公开、占位、自删/owner 删除及 CMT-008 举报 partial；设置命令逐次重判管理员、活动账户和永久 IP 封禁，并与安全 AuditEntry 同事务。聚焦与架构回归退出 0，CMT-007/CMT-008/架构合计 `12 passed`。隔离 PostgreSQL 读回留言板线程精确 1 条、owner 为当前管理员、设置为默认开启/访客可见可发，设置审计 3 条；`comment.deep_thread.v1` 精确 1 条且 payload owner 为当前管理员。规定浏览器已实测 390 dark 访客留言与举报弹窗、768 eye-care 登录回复/举报、1440 light 管理员 owner 删除，三视口无横向溢出；举报弹窗修正后 390/768/1440 等距居中、焦点落取消、重复 ID 为 0、控制台 0 错误/警告，原尺寸截图无重叠或裁切。Ruff、format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0；未执行生产留言、生产设置、真实通知投递、部署或生产 migration。
 - 授权：`否`。
 
 ### CMT-008 实现举报提交、理由、证据与隐私边界
-- 元数据：状态 `待处理`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：登录用户每目标仅一次举报，必选六类理由，可选200字和≤3张2MiB证据；访客禁止；被举报方任何表面不见举报人身份。
 - 来源：访谈 Q117-Q125；`data/03-interaction-operations-fields.md` §Report；`contracts/02-authorization-matrix.md` §举报。
 - 依赖：前置 `CMT-002`、`MED-003`、`ACC-005`；后续 `CMT-009`、`CMT-010`、`ADM-004`、`QA-002`、`QA-003`、`QA-006`。
@@ -102,10 +103,11 @@
 - 影响：数据：Report/证据绑定；权限：登录/一次/私有；审计：admin裁决后；缓存无；异步无；媒体：私有证据；通知后续。
 - 测试/验收：RED 重复举报、访客、200/3边界、他人证据URL、payload泄露；Playwright举报弹窗/字段错误/成功。
 - 风险/停止：举报人ID进入通知/页面/导出、证据公开或唯一只靠表单即停止。
+- 证据：聚焦 RED 由 `test_cmt008.py` 与 `test_cmt008_http.py` 固定缺失的 moderation 举报 owner、持久唯一性、私有证据和 HTMX 弹窗；新增六项注册理由、Report 永久 `(reporter_id,target_comment_id)` 唯一约束与待审队列/目标索引。`create_report` 服务端重判登录、活动账户、永久 IP 封禁和目标可见性，校验可选 200 字及最多三张证据，Report 与 evidence Binding 同事务；证据先经 media owner 的 2 MiB/真实解码/元数据清洗，再用限时签名引用绑定为私有 REPORT 资产。直接证据读回仅举报人和管理员允许，被举报方与其他账户隐私 404；提交不写审计或业务事件。聚焦与架构回归退出 0，CMT-007/CMT-008/架构合计 `12 passed`，comments/moderation 相关回归另行退出 0，`44 passed`。隔离 PostgreSQL catalog 读回主键、ID/目标/待审形状 CHECK、永久举报唯一约束及 queue/target 索引；真实数据为 2 条 PENDING 举报、1 条证据 Binding、0 条 moderation Audit/Outbox，权限矩阵读回举报人 `(存在/可绑定/可读)=true/true/true`、管理员 `true/false/true`、被举报方 `true/false/false`。规定浏览器实测访客无入口/403，登录用户 422 保留 201 字并聚焦首错、真实图片上传与 201 成功、重复 409 保留输入、动态字数和 Escape 焦点恢复；被举报方页面不含举报人身份、说明或结果。390 dark、768 eye-care、1440 light 弹窗等距居中且无溢出，控制台 0 错误/警告，原尺寸截图无重叠/裁切。Ruff、format、Django check、migration drift、npm build 与差异检查均退出 0；未执行生产举报、生产证据、生产 migration、通知投递、部署或 Git 交付。
 - 授权：`否`。
 
 ### CMT-009 实现举报初审、对外删除与可恢复私有快照
-- 元数据：状态 `待处理`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：管理员判成立则评论对外占位并通知双方，驳回只通知举报人；为一次申诉在审核域保存受限恢复快照，终局前可恢复。
 - 来源：访谈 Q117-Q122；`flows/03-comment-moderation-state-machine.md` §举报初审/裁决；`reference/01-requirements-resolution.md` §评论申诉。
 - 依赖：前置 `CMT-006`、`CMT-008`、`FND-005`、`OBS-004`；后续 `CMT-010`、`CMT-011`、`ADM-004`、`QA-002`、`QA-003`、`QA-006`。
