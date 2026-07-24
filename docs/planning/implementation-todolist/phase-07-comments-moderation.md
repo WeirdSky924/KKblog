@@ -107,7 +107,7 @@
 - 授权：`否`。
 
 ### CMT-009 实现举报初审、对外删除与可恢复私有快照
-- 元数据：状态 `进行中`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：管理员判成立则评论对外占位并通知双方，驳回只通知举报人；为一次申诉在审核域保存受限恢复快照，终局前可恢复。
 - 来源：访谈 Q117-Q122；`flows/03-comment-moderation-state-machine.md` §举报初审/裁决；`reference/01-requirements-resolution.md` §评论申诉。
 - 依赖：前置 `CMT-006`、`CMT-008`、`FND-005`、`OBS-004`；后续 `CMT-010`、`CMT-011`、`ADM-004`、`QA-002`、`QA-003`、`QA-006`。
@@ -116,10 +116,11 @@
 - 影响：数据：Report状态/私有快照/Comment占位；权限：admin；审计：裁决；缓存无；异步：outbox；媒体：证据保留；通知：双方/举报人。
 - 测试/验收：RED 重复管理员请求仅一次、成立/驳回事实事件、快照访问、审计同事务回滚；DB/页面/Outbox 读回，通知 Receipt 由 `OBS-008` 回归。
 - 风险/停止：初审即销毁无法申诉恢复、快照对外可读或通知泄露举报人即停止。
+- 证据：聚焦 RED `pytest apps/moderation/tests/test_cmt009.py -q` 收集退出 2，准确报告 comments 的举报删除公开端口缺失。新增 comments owner 的 `delete_comment_for_report` 命令，逐次重判活动管理员/IP、锁 Comment、只写 `DELETED/REPORT` 占位并立即释放图片，向 moderation 返回正文、原状态/公开时间、作者和图片数的安全事务快照，不自行写审计或事件；moderation 锁 Report，只允许 `PENDING -> UPHELD/REJECTED` 一次转换，成立时保存无 IP/路径的私有一对一恢复快照，驳回不改评论，并与安全 AuditEntry 和 `report.reviewed.v1` 同事务。聚焦 GREEN 退出 0，`5 passed`；CMT-006/CMT-008/CMT-009、Audit、Outbox 与架构回归退出 0，`35 passed, 1 deselected`，排除项为上海凌晨时 `timezone.now().date()` 取 UTC 前一日导致的既存 OBS-004 查询测试，已单独稳定复现。隔离 migration `0002 -> 0001 -> 0002` 反向/重放均退出 0；PostgreSQL catalog 读回快照主键/FK、正文/状态/图片数约束。真实隔离图片裁决读回 Report=`UPHELD`、Comment=`DELETED/REPORT`、快照原正文/`VISIBLE`/1 图、图片 Binding=0、资产=`DELETED`、文件不存在、Audit/Outbox 各 1；事件/审计均不含举报描述或正文，快照权限为管理员可读、举报人/被举报方不可读。临时 Report/Comment/Media/账户均精确清零，唯一管理员已恢复为原账户；Django check、migration drift、Ruff、format 与差异检查均退出 0。管理页面由后续 `ADM-004` 拥有，本项未创建平行 UI；最终 Receipt 仍由 `OBS-008` 消费稳定事件，未执行生产裁决、生产媒体删除、生产 migration、部署或 Git 交付。
 - 授权：`否`；生产裁决具体举报 `是`。
 
 ### CMT-010 实现一次申诉、终局复审与快照销毁/恢复
-- 元数据：状态 `待处理`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：初审失败仅举报人可申诉一次，成立仅被举报账户可申诉一次；200字/3图；管理员复审终局，成立保持/执行删除，失败恢复可恢复内容并通知双方。
 - 来源：访谈 Q120-Q125；`flows/03-comment-moderation-state-machine.md` §状态/副作用；`data/03-interaction-operations-fields.md` §ReportAppeal。
 - 依赖：前置 `CMT-008`、`CMT-009`、`OBS-004`；后续 `ADM-004`、`QA-002`、`QA-003`、`QA-006`。
@@ -128,10 +129,11 @@
 - 影响：数据：Appeal/终局状态；权限：结果对应一方/admin；审计：复审；异步：outbox/清理；媒体：申诉证据；通知：双方；缓存无。
 - 测试/验收：RED eligibility、一次、无期限、终局重复、恢复/无法恢复；直接 URL 证据权限与事件 payload 隐私，最终通知由 `OBS-008` 回归。
 - 风险/停止：状态可逆越过终局、错误方可申诉或快照终局成立后仍留正文即停止。
+- 证据：聚焦 RED `pytest apps/moderation/tests/test_cmt010.py -q` 收集退出 2，准确报告永久 ReportAppeal 模型缺失。新增 Report 一对一 Appeal，永久保存申诉方、初审基准、200 字说明、复审元数据和安全恢复错误码，数据库约束固定 ULID、唯一案件、待审/终局形状及只允许初审成立后的终局驳回记录恢复错误；申诉服务锁 Report，初审驳回仅举报人、初审成立仅被举报账户可提交一次且无时间窗，证据绑定成功后才转 `APPEAL_PENDING`。终局服务锁 Report/Appeal：成立时保持或委托 comments 执行 `REPORT` 删除并销毁快照；不成立时委托 comments 从私有快照恢复正文/原状态/公开时间，成功后销毁快照，目标物理消失则保留占位与快照、记录安全错误并仍进入终局；重复复审稳定冲突。聚焦最终退出 0，`6 passed`，覆盖资格/一次/无期限、201 字/4 图、证据绑定回滚、非管理员、终局重复、恢复失败、Audit 失败全事务回滚和事件隐私；CMT-006/CMT-008/CMT-009/CMT-010、media、Audit、Outbox 与架构相关回归退出 0，`46 passed, 1 deselected`，排除项仍为已独立复现的 OBS-004 UTC 日期边界缺陷。真实隔离媒体读回 Appeal=`FINAL_UPHELD/REJECTED基准`、证据 Binding=`report_appeal/evidence-1`，申诉方/管理员可读、被举报方/匿名均隐私拒绝，终局成立 Comment=`DELETED/REPORT`；另一真实案件读回 `UPHELD` 基准经终局驳回恢复 Comment=`VISIBLE` 和原正文、快照为 0、恢复状态=`RESTORED`。两案 Audit 各 2、`report.reviewed/finalized.v1` 齐全，最终事件不含举报描述或申诉说明且双方接收者去重。隔离 migration `0003 -> 0002 -> 0003` 反向/重放均退出 0，catalog 读回主键、Report 唯一 FK、状态/恢复错误约束和队列索引；临时 Report/Appeal/Comment/Media/账户均精确清零，原管理员保持恢复。Django check、migration drift、Ruff、format 与差异检查均退出 0；申诉/复审管理页面由后续 `ADM-004` 消费公开服务，最终 Receipt 由 `OBS-008` 消费稳定事件，未执行生产申诉、生产复审、生产 migration、部署或 Git 交付。
 - 授权：`否`；生产复审 `是`。
 
 ### CMT-011 实现管理员文章案件/申诉及删除账户关联案件收敛
-- 元数据：状态 `待处理`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：管理员隐藏/删除他人文章可填原因并通知/审计；作者一次200字/3图申诉，复审终局；准许恢复前状态。删除举报人/被举报人时按规则关闭并永久留管理员记录。
 - 来源：访谈 Q284、Q287、Q302-Q307、Q311、Q315；`data/03-interaction-operations-fields.md` §ArticleCase/Appeal；`contracts/02-authorization-matrix.md`。
 - 依赖：前置 `CNT-005`、`CNT-008`、`ACC-011`、`CMT-009`、`OBS-004`；后续 `OBS-008`、`EXC-004`、`ADM-004`、`QA-002`、`QA-003`、`QA-006`。

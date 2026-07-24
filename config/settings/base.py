@@ -122,6 +122,9 @@ MODERATION_ACCOUNT_POLICY_PROVIDER = (
 MODERATION_EVIDENCE_GATEWAY_PROVIDER = (
     "config.moderation_integrations.report_evidence_gateway"
 )
+MODERATION_APPEAL_EVIDENCE_GATEWAY_PROVIDER = (
+    "config.moderation_integrations.report_appeal_evidence_gateway"
+)
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024

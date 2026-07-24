@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from ipaddress import IPv6Address, ip_address
 from uuid import UUID
@@ -7,7 +8,7 @@ from django.db import transaction
 
 from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
-from apps.core.time.clock import Clock, SystemClock
+from apps.core.time.clock import Clock, SystemClock, require_aware
 from apps.operations.public import record_audit_entry
 
 from ..events import COMMENT_DELETED
@@ -41,6 +42,31 @@ class CommentDeletionResult:
     deleted_by_kind: str
     asset_ids: tuple[str, ...]
     recipient_ids: tuple[UUID, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ReportCommentDeletionSnapshot:
+    comment_id: str
+    changed: bool
+    body: str
+    previous_state: str
+    previous_visible_at: datetime
+    asset_ids: tuple[str, ...]
+    reported_author_id: UUID | None
+
+
+@dataclass(frozen=True, slots=True)
+class ReportCommentRecoveryResult:
+    comment_id: str
+    changed: bool
+    state: str
+
+
+class CommentReportRecoveryError(ValueError):
+    def __init__(self, code: str, safe_message: str) -> None:
+        self.code = code
+        self.safe_message = safe_message
+        super().__init__(safe_message)
 
 
 def _actor_id(value) -> UUID:
@@ -308,3 +334,145 @@ def delete_comment_as_owner(**kwargs) -> CommentDeletionResult:
 
 def delete_comment_as_admin(**kwargs) -> CommentDeletionResult:
     return _delete_comment(mode=_DeletionMode.ADMIN, **kwargs)
+
+
+def delete_comment_for_report(
+    *,
+    comment_id: str,
+    actor_id,
+    client_ip: str,
+    account_policy: CommentAccountPolicy | None = None,
+    media_gateway: CommentMediaGateway | None = None,
+) -> ReportCommentDeletionSnapshot:
+    identity = _comment_id(comment_id)
+    actor = _actor_id(actor_id)
+    address = _client_ip(client_ip)
+    accounts = account_policy or default_comment_account_policy()
+    media = media_gateway or default_comment_media_gateway()
+    _authorize_account(
+        actor_id=actor,
+        client_ip=address,
+        mode=_DeletionMode.ADMIN,
+        account_policy=accounts,
+    )
+
+    with transaction.atomic():
+        comment = Comment.objects.select_for_update().filter(pk=identity).first()
+        if comment is None:
+            raise CommentDeletionError(
+                "comments.delete_not_allowed.v1",
+                "当前评论无法删除。",
+            )
+        if comment.state == Comment.State.DELETED:
+            return ReportCommentDeletionSnapshot(
+                comment_id=comment.id,
+                changed=False,
+                body="",
+                previous_state=comment.state,
+                previous_visible_at=comment.visible_at,
+                asset_ids=(),
+                reported_author_id=comment.author_id,
+            )
+
+        body = comment.body
+        previous_state = comment.state
+        previous_visible_at = comment.visible_at
+        reported_author_id = comment.author_id
+        comment.state = Comment.State.DELETED
+        comment.body = ""
+        comment.deleted_by_kind = Comment.DeletedByKind.REPORT
+        comment.deletion_reason = None
+        comment.save(
+            update_fields=(
+                "state",
+                "body",
+                "deleted_by_kind",
+                "deletion_reason",
+                "updated_at",
+            )
+        )
+        released_assets = _asset_ids(media, comment.id)
+
+    return ReportCommentDeletionSnapshot(
+        comment_id=comment.id,
+        changed=True,
+        body=body,
+        previous_state=previous_state,
+        previous_visible_at=previous_visible_at,
+        asset_ids=released_assets,
+        reported_author_id=reported_author_id,
+    )
+
+
+def restore_comment_from_report(
+    *,
+    comment_id: str,
+    actor_id,
+    client_ip: str,
+    body: str,
+    previous_state: str,
+    previous_visible_at: datetime,
+    account_policy: CommentAccountPolicy | None = None,
+) -> ReportCommentRecoveryResult:
+    identity = _comment_id(comment_id)
+    actor = _actor_id(actor_id)
+    address = _client_ip(client_ip)
+    accounts = account_policy or default_comment_account_policy()
+    _authorize_account(
+        actor_id=actor,
+        client_ip=address,
+        mode=_DeletionMode.ADMIN,
+        account_policy=accounts,
+    )
+    if (
+        not isinstance(body, str)
+        or not 1 <= len(body) <= 100
+        or any(
+            not character.isprintable() and character not in "\n\t"
+            for character in body
+        )
+        or previous_state not in {Comment.State.BUFFERED, Comment.State.VISIBLE}
+    ):
+        raise CommentReportRecoveryError(
+            "comments.report_recovery_snapshot_invalid.v1",
+            "评论恢复材料无效。",
+        )
+    try:
+        visible_at = require_aware(previous_visible_at)
+    except (TypeError, ValueError, AttributeError):
+        raise CommentReportRecoveryError(
+            "comments.report_recovery_snapshot_invalid.v1",
+            "评论恢复材料无效。",
+        ) from None
+
+    with transaction.atomic():
+        comment = Comment.objects.select_for_update().filter(pk=identity).first()
+        if comment is None:
+            raise CommentReportRecoveryError(
+                "comments.report_recovery_target_missing.v1",
+                "评论当前无法恢复。",
+            )
+        if (
+            comment.state != Comment.State.DELETED
+            or comment.deleted_by_kind != Comment.DeletedByKind.REPORT
+        ):
+            raise CommentReportRecoveryError(
+                "comments.report_recovery_state_conflict.v1",
+                "评论当前无法恢复。",
+            )
+        comment.state = previous_state
+        comment.body = body
+        comment.visible_at = visible_at
+        comment.deleted_by_kind = None
+        comment.deletion_reason = None
+        comment.save(
+            update_fields=(
+                "state",
+                "body",
+                "visible_at",
+                "deleted_by_kind",
+                "deletion_reason",
+                "updated_at",
+            )
+        )
+    return ReportCommentRecoveryResult(comment.id, True, comment.state)

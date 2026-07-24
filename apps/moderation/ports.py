@@ -49,6 +49,40 @@ class ReportEvidenceGateway(Protocol):
     ) -> tuple[str, ...]: ...
 
 
+class ReportAppealEvidenceError(ValueError):
+    def __init__(self, code: str, safe_message: str) -> None:
+        self.code = code
+        self.safe_message = safe_message
+        super().__init__(safe_message)
+
+
+@dataclass(frozen=True, slots=True)
+class ReportAppealEvidenceUpload:
+    asset_id: str
+    evidence_ref: str
+
+
+class ReportAppealEvidenceGateway(Protocol):
+    def stage_evidence(
+        self,
+        *,
+        actor_id: UUID,
+        report_id: str,
+        original_name: str,
+        declared_content_type: str,
+        chunks: Iterable[bytes],
+    ) -> ReportAppealEvidenceUpload: ...
+
+    def bind_evidence(
+        self,
+        *,
+        appeal_id: str,
+        report_id: str,
+        actor_id: UUID,
+        evidence_refs: tuple[str, ...],
+    ) -> tuple[str, ...]: ...
+
+
 def _provider(setting_name: str):
     path = getattr(settings, setting_name, "")
     if not isinstance(path, str) or not path:
@@ -62,3 +96,7 @@ def default_moderation_account_policy() -> ModerationAccountPolicy:
 
 def default_report_evidence_gateway() -> ReportEvidenceGateway:
     return _provider("MODERATION_EVIDENCE_GATEWAY_PROVIDER")
+
+
+def default_report_appeal_evidence_gateway() -> ReportAppealEvidenceGateway:
+    return _provider("MODERATION_APPEAL_EVIDENCE_GATEWAY_PROVIDER")

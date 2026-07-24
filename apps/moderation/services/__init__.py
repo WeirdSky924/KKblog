@@ -1,3 +1,14 @@
+from .appeals import (
+    CreateReportAppealResult,
+    ReportAppealError,
+    ReportAppealEvidenceAccess,
+    ReportFinalReviewOutcome,
+    ReportFinalReviewResult,
+    create_report_appeal,
+    finalize_report_appeal,
+    report_appeal_evidence_access,
+    stage_report_appeal_evidence,
+)
 from .reporting import (
     CreateReportResult,
     ReportEvidenceAccess,
@@ -6,12 +17,35 @@ from .reporting import (
     report_evidence_access,
     stage_report_evidence,
 )
+from .review import (
+    ReportRecoverySnapshotAccess,
+    ReportReviewError,
+    ReportReviewOutcome,
+    ReportReviewResult,
+    report_recovery_snapshot_access,
+    review_report,
+)
 
 __all__ = [
+    "CreateReportAppealResult",
     "CreateReportResult",
     "ReportEvidenceAccess",
+    "ReportAppealError",
+    "ReportAppealEvidenceAccess",
+    "ReportFinalReviewOutcome",
+    "ReportFinalReviewResult",
+    "ReportRecoverySnapshotAccess",
+    "ReportReviewError",
+    "ReportReviewOutcome",
+    "ReportReviewResult",
     "ReportSubmissionError",
     "create_report",
+    "create_report_appeal",
+    "finalize_report_appeal",
+    "report_appeal_evidence_access",
     "report_evidence_access",
+    "report_recovery_snapshot_access",
+    "review_report",
     "stage_report_evidence",
+    "stage_report_appeal_evidence",
 ]
