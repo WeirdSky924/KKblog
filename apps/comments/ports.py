@@ -14,6 +14,15 @@ class CommentAccountPolicy(Protocol):
 
     def is_ip_blocked(self, client_ip: str) -> bool: ...
 
+    def public_identity(self, account_id: UUID) -> "CommentAuthorIdentity | None": ...
+
+
+@dataclass(frozen=True, slots=True)
+class CommentAuthorIdentity:
+    account_id: UUID
+    display_name: str
+    profile_url: str
+
 
 class CommentMediaError(ValueError):
     def __init__(self, code: str, safe_message: str) -> None:

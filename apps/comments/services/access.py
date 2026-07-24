@@ -3,9 +3,10 @@ from ipaddress import IPv6Address, ip_address
 from uuid import UUID
 
 from apps.content.public import ArticleLoginRequired, ArticleNotFound
+from apps.core.ids import normalize_ulid
 
 from ..errors import CommentPostingError
-from ..models import DiscussionThread
+from ..models import Comment, DiscussionThread
 from ..ports import CommentAccountPolicy
 from ..targets import (
     DiscussionTargetError,
@@ -21,6 +22,16 @@ class TopLevelPostingAccess:
     target_type: DiscussionTargetType
     target_id: str
     actor_id: UUID | None
+    client_ip: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReplyPostingAccess:
+    thread: DiscussionThread
+    parent: Comment
+    target_type: DiscussionTargetType
+    target_id: str
+    actor_id: UUID
     client_ip: str
 
 
@@ -106,6 +117,63 @@ def resolve_top_level_posting_access(
         thread=thread,
         target_type=target.target_type,
         target_id=target.target_id,
+        actor_id=actor,
+        client_ip=address,
+    )
+
+
+def resolve_reply_posting_access(
+    *,
+    parent_id: str,
+    actor_id,
+    client_ip: str,
+    account_policy: CommentAccountPolicy,
+) -> ReplyPostingAccess:
+    actor = normalize_actor(actor_id)
+    if actor is None:
+        raise CommentPostingError("comments.login_required.v1", "登录后才能回复评论。")
+    address = normalize_client_ip(client_ip)
+    if account_policy.is_ip_blocked(address):
+        raise CommentPostingError("comments.network_restricted.v1", "当前网络暂时受限")
+    if not account_policy.is_active_account(actor):
+        raise CommentPostingError(
+            "comments.account_unavailable.v1", "当前账户无法回复评论。"
+        )
+    try:
+        identity = normalize_ulid(parent_id)
+    except (TypeError, ValueError):
+        raise CommentPostingError(
+            "comments.reply_unavailable.v1", "当前评论无法回复。"
+        ) from None
+    snapshot = Comment.objects.select_related("thread").filter(pk=identity).first()
+    if snapshot is None:
+        raise CommentPostingError("comments.reply_unavailable.v1", "当前评论无法回复。")
+    target_type = DiscussionTargetType(snapshot.thread.target_type)
+    synced = _thread(
+        target_type=target_type,
+        target_id=snapshot.thread.target_id,
+        actor_id=actor,
+    )
+    thread = DiscussionThread.objects.select_for_update().get(pk=synced.pk)
+    parent = (
+        Comment.objects.select_for_update().filter(pk=identity, thread=thread).first()
+    )
+    if parent is None or parent.state == Comment.State.DELETED:
+        raise CommentPostingError("comments.reply_unavailable.v1", "当前评论无法回复。")
+    if not thread.comments_enabled:
+        raise CommentPostingError("comments.closed.v1", "评论区当前已关闭。")
+    privileged_buffer_read = (
+        parent.author_id == actor
+        or thread.owner_id == actor
+        or account_policy.is_administrator(actor)
+    )
+    if parent.state == Comment.State.BUFFERED and not privileged_buffer_read:
+        raise CommentPostingError("comments.reply_unavailable.v1", "当前评论无法回复。")
+    return ReplyPostingAccess(
+        thread=thread,
+        parent=parent,
+        target_type=target_type,
+        target_id=thread.target_id,
         actor_id=actor,
         client_ip=address,
     )

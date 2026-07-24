@@ -20,6 +20,11 @@ class DiscussionThread(models.Model):
     comments_enabled = models.BooleanField(default=True)
     view_login_required = models.BooleanField(default=False)
     post_login_required = models.BooleanField(default=False)
+    deep_thread_alerted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

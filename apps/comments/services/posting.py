@@ -7,6 +7,11 @@ from apps.core.events import enqueue_event
 from apps.core.ids import new_ulid
 from apps.core.time.clock import Clock, SystemClock
 
+from ..constants import (
+    ACCOUNT_COOLDOWN_SECONDS,
+    ANONYMOUS_COOLDOWN_SECONDS,
+    COMMENT_BUFFER_SECONDS,
+)
 from ..cooldown import (
     CommentCooldownActive,
     CommentCooldownStore,
@@ -22,11 +27,8 @@ from ..ports import (
     default_comment_account_policy,
     default_comment_media_gateway,
 )
+from ..validation import normalize_comment_body
 from .access import resolve_top_level_posting_access
-
-ANONYMOUS_COOLDOWN_SECONDS = 5 * 60
-ACCOUNT_COOLDOWN_SECONDS = 60
-COMMENT_BUFFER_SECONDS = 10 * 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,21 +38,6 @@ class TopLevelCommentResult:
     state: str
     visible_at: datetime
     image_count: int
-
-
-def _body(value: str) -> str:
-    if not isinstance(value, str):
-        raise CommentPostingError(
-            "comments.body_invalid.v1", "评论正文需为 1 至 100 个字符。", field="body"
-        )
-    normalized = value.replace("\r\n", "\n").replace("\r", "\n").strip()
-    if not 1 <= len(normalized) <= 100 or any(
-        not char.isprintable() and char not in "\n\t" for char in normalized
-    ):
-        raise CommentPostingError(
-            "comments.body_invalid.v1", "评论正文需为 1 至 100 个字符。", field="body"
-        )
-    return normalized
 
 
 def _image_refs(values) -> tuple[str, ...]:
@@ -89,7 +76,7 @@ def create_top_level_comment(
     cooldown_store: CommentCooldownStore | None = None,
     media_gateway: CommentMediaGateway | None = None,
 ) -> TopLevelCommentResult:
-    normalized_body = _body(body)
+    normalized_body = normalize_comment_body(body)
     normalized_refs = _image_refs(image_refs)
     accounts = account_policy or default_comment_account_policy()
     cooldown = cooldown_store or default_comment_cooldown_store()

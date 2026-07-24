@@ -8,9 +8,19 @@ from uuid import UUID
 from django.conf import settings
 from django.core import signing
 
-from apps.accounts.public import is_active_account, is_administrator, is_ip_blocked
+from apps.accounts.public import (
+    PublicAccountNotFound,
+    is_active_account,
+    is_administrator,
+    is_ip_blocked,
+    public_account_identity,
+)
 from apps.comments.policies import comment_media_access
-from apps.comments.ports import CommentImageUpload, CommentMediaError
+from apps.comments.ports import (
+    CommentAuthorIdentity,
+    CommentImageUpload,
+    CommentMediaError,
+)
 from apps.comments.targets import DiscussionTargetType, normalize_target
 from apps.media.public import (
     BindingInput,
@@ -34,6 +44,18 @@ class _CommentAccountPolicy:
     is_active_account = staticmethod(is_active_account)
     is_administrator = staticmethod(is_administrator)
     is_ip_blocked = staticmethod(is_ip_blocked)
+
+    @staticmethod
+    def public_identity(account_id: UUID) -> CommentAuthorIdentity | None:
+        try:
+            identity = public_account_identity(account_id)
+        except PublicAccountNotFound:
+            return None
+        return CommentAuthorIdentity(
+            account_id=identity.account_id,
+            display_name=identity.display_name,
+            profile_url=identity.profile_url,
+        )
 
 
 def comment_account_policy() -> _CommentAccountPolicy:

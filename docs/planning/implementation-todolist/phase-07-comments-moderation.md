@@ -16,7 +16,7 @@
 - 授权：schema/隔离 migration `否`；生产 migration `是`。
 
 ### CMT-002 实现顶层评论、权限、冷却、缓冲与图片
-- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：文章/留言允许时，访客无需身份可发顶层且显示“访客”，登录用户可发；正文≤100字、最多3图；访客5分钟、用户1分钟；所有评论缓冲10分钟。
 - 来源：访谈 Q008-Q010、Q111-Q116、Q119、Q191、Q230、Q292；`flows/03-comment-moderation-state-machine.md` §评论提交/创建权限。
 - 依赖：前置 `CMT-001`、`ACC-010`、`MED-003`；后续 `CMT-004`、`CMT-006`、`CMT-007`、`CMT-008`、`QA-003`、`QA-006`。
@@ -25,10 +25,11 @@
 - 影响：数据：BUFFERED评论/IP；权限：线程设置/IP；审计：安全事件；缓存：冷却Redis；异步：到期扫描；媒体：≤3；通知无。
 - 测试/验收：RED 访客/用户权限、100字、0..3/4图、5m/1m、10m、重复提交；Playwright提交后本人状态/他人不可见。
 - 风险/停止：冷却只在前端、缓冲评论提前公开、图片绑定失败仍建评论或IP泄露列表即停止。
+- 证据：聚焦 RED 由 `test_cmt002.py`、`test_cmt002_http.py` 与 `test_cmt002_integrations.py` 覆盖缺失的 posting/cooldown/HTMX/真实媒体接线；实现 comments owner 的顶层发布 service、HMAC Redis 原子冷却及令牌匹配回滚、账户/IP/线程策略、10 分钟 BUFFERED、匿名收据、版本化 `comment.created.v1` 和最多三张签名媒体引用，跨 app 只经公开端口与 `config/comment_integrations.py` 接线。最终跨层聚焦回归退出 0，`30 passed`；此前同一提交全量回归退出 0，`339 passed`，Ruff、format、Django check、migration drift、npm build 与差异检查均退出 0。隔离 PostgreSQL 读回匿名/账户评论 `visible_at-created_at=600`、原 IP 仅留受限字段；Outbox payload 精确为 thread/target/author kind/visible_at/image count 六字段，无正文/IP；真实 1600x900 PNG 经清洗后 ACTIVE、owner/文章目录/`image-1` Binding 正确，临时媒体文件存在且 SHA-256 一致。规定浏览器在 390 dark、768 eye-care、1440 light 实测访客 201 后本人缓冲可见、429 保留输入并聚焦错误、无收据陌生会话不可见、作者可见全部缓冲、账户真实上传 201 与评论 201；缓冲媒体对陌生会话隐私 404、owner 200 且 `private, no-store`，三视口横向溢出均为 0，768 图片折叠区 Enter 开闭并保留焦点，正常流控制台 0 错误。未执行生产 migration、生产评论/媒体写入、真实邮件、Beat、部署或 Git 交付。
 - 授权：`否`。
 
 ### CMT-003 实现登录回复、无限深度与深层一次告警
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：仅登录用户可回复非删除节点，回复无图；计算root/depth并原子增加顶层reply_count；depth>100向文章作者/留言板管理员只通知一次。
 - 来源：访谈 Q011-Q012、Q108、Q119、Q191、Q259-Q260、Q313；`modules/06-interactions-moderation.md` §评论聚合/排序。
 - 依赖：前置 `CMT-001`、`ACC-005`、`FND-005`、`OBS-001`；后续 `CMT-005`、`CMT-007`、`QA-003`、`QA-006`。
@@ -37,10 +38,11 @@
 - 影响：数据：parent/root/depth/reply_count；权限：登录/目标；审计无；缓存无；异步：outbox；媒体禁止；通知：深层告警。
 - 测试/验收：RED 并发回复计数、100→101阈值、重复事件、删除parent、账户主页链接；DB锁读回。
 - 风险/停止：递归查询栈溢出、计数漂移或每级重复通知即停止。
+- 证据：聚焦 RED `pytest apps/comments/tests/test_cmt003.py -q` 收集退出 2，准确报告回复所需账户展示端口不存在。新增 comments owner 的 `reply_to_comment`：输入阶段禁止图片并复用 100 字校验，服务端重判登录/活动账户/永久 IP 封禁/目标可见性/评论开关/parent 状态和缓冲可见权；复用账户 60 秒 Redis 冷却与所有评论 600 秒缓冲。事务按 thread→parent→root 加锁，写 parent/root/depth、原子增加根 `reply_count`，任意深度无应用上限；线程首次 depth>100 写 `deep_thread_alerted_at` 并同事务发 `comment.deep_thread.v1`，后续深层回复不重复。账户作者 presenter 只经窄 port 返回展示名和 `/people/<uuid>/`，访客与已注销账户无链接；事件不含正文/IP。聚焦最终退出 0，`7 passed`，覆盖访客/封禁/失效/关闭/删除 parent、他人缓冲隐私、回复带图、失败事务整体回滚、八 Worker 并发计数、100→101→102 一次告警和主页链接；全量回归退出 0，`346 passed`。隔离 migration `0003 -> 0002 -> 0003` 回滚重放均退出 0，catalog 读回 nullable `timestamptz`；默认账户适配器和真实 Redis 读回账户冷却键 TTL 60、回复 depth 1、root 计数 1、600 秒缓冲、公开主页 URL 及安全 `comment.created.v1`，fixture 与键已精确清理。Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。深层事实事件由既定 `OBS-008` 后续模板/Receipt 集成消费；未执行生产 migration、真实通知、生产评论、部署或 Git 交付。
 - 授权：`否`。
 
 ### CMT-004 实现缓冲公开任务与评论关闭语义
-- 元数据：状态 `待处理`；阶段 P7；owner `comments`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P7；owner `comments`；优先级 P0。
 - 目标/行为：每分钟小批量领取到期 BUFFERED 并条件更新为VISIBLE；作者关闭评论只阻止新建，已缓冲仍按时公开，删除状态永不公开。
 - 来源：访谈 Q009-Q013、Q224；`contracts/05-background-tasks.md` §评论公开扫描；`flows/03-comment-moderation-state-machine.md`。
 - 依赖：前置 `CMT-002`、`RUN-002`、`OBS-006`；后续 `CMT-007`、`AUT-006`、`QA-003`、`QA-004`、`QA-006`。
