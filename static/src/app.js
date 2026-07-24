@@ -757,7 +757,9 @@ document.addEventListener("htmx:load", (event) => {
 });
 
 document.addEventListener("htmx:afterSettle", (event) => {
-  focusLoadedCommentReply(event.detail?.target ?? document);
+  const root = event.detail?.target ?? document;
+  focusInsertedError(root);
+  focusLoadedCommentReply(root);
 });
 
 document.addEventListener("htmx:beforeSwap", (event) => {
