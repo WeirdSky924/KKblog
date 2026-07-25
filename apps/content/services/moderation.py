@@ -11,6 +11,7 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock
 
 from ..models import Article, ArticleRevision, ArticleTombstone
+from ..policies import article_administrative_action_allowed
 from .deletion import restore_deleted_article
 
 
@@ -246,6 +247,7 @@ def _delete_snapshot_matches(
 def restore_article_from_moderation(
     *,
     actor_id,
+    case_id: str,
     article_id: str,
     action: ArticleModerationAction | str,
     pre_action_snapshot,
@@ -256,6 +258,17 @@ def restore_article_from_moderation(
     actor = _actor(actor_id)
     identity = _article_id(article_id)
     normalized_action = _action(action)
+    if not article_administrative_action_allowed(
+        actor_id=actor,
+        article_id=identity,
+        case_id=case_id,
+        action=normalized_action.value,
+        operation="RESTORE",
+    ):
+        raise ArticleModerationBoundaryError(
+            "content.article_moderation_not_allowed.v1",
+            "文章不存在或不能执行该管理操作。",
+        )
     snapshot = _snapshot_mapping(pre_action_snapshot)
     if snapshot["article_id"] != identity:
         raise ArticleModerationBoundaryError(
@@ -302,6 +315,7 @@ def restore_article_from_moderation(
             expected_row_version=article.row_version,
             trace_code=trace_code,
             client_ip=client_ip,
+            moderation_case_id=case_id,
             clock=clock,
         )
         return ArticleModerationRecoveryResult(

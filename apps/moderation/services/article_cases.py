@@ -198,24 +198,6 @@ def create_article_moderation_case(
                 )
             except ArticleModerationBoundaryError as exc:
                 raise _boundary_error(exc) from None
-            article_changed = False
-            if normalized_action == ArticleAction.DELETE:
-                try:
-                    deletion = delete_article(
-                        actor_id=actor,
-                        article_id=target.article_id,
-                        expected_row_version=target.row_version,
-                        administrative=True,
-                        trace_code=trace_code,
-                        client_ip=address,
-                        clock=active_clock,
-                    )
-                except ArticleDeletionError as exc:
-                    raise ArticleCaseError(
-                        "moderation.article_action_not_allowed.v1",
-                        exc.safe_message,
-                    ) from None
-                article_changed = deletion.changed
             case = ArticleModerationCase.objects.create(
                 id=case_id,
                 article_id=target.article_id,
@@ -226,6 +208,25 @@ def create_article_moderation_case(
                 acted_by_id=actor,
                 acted_at=acted_at,
             )
+            article_changed = False
+            if normalized_action == ArticleAction.DELETE:
+                try:
+                    deletion = delete_article(
+                        actor_id=actor,
+                        article_id=target.article_id,
+                        expected_row_version=target.row_version,
+                        administrative=True,
+                        trace_code=trace_code,
+                        client_ip=address,
+                        moderation_case_id=case.id,
+                        clock=active_clock,
+                    )
+                except ArticleDeletionError as exc:
+                    raise ArticleCaseError(
+                        "moderation.article_action_not_allowed.v1",
+                        exc.safe_message,
+                    ) from None
+                article_changed = deletion.changed
             record_audit_entry(
                 action="moderation.article.action",
                 actor_id=actor,
@@ -307,6 +308,7 @@ def restore_article_moderation_case(
         try:
             recovery = restore_article_from_moderation(
                 actor_id=actor,
+                case_id=case.id,
                 article_id=case.article_id,
                 action=case.action,
                 pre_action_snapshot=case.pre_action_snapshot,

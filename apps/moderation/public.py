@@ -9,6 +9,7 @@ from .models import (
     ReportRecoverySnapshot,
 )
 from .policies import (
+    article_administrative_action_allowed,
     article_is_moderation_hidden,
     exclude_moderation_hidden_articles,
 )
@@ -93,6 +94,7 @@ __all__ = [
     "ReportSubmissionError",
     "DeletedAccountIdentity",
     "appeal_article_action",
+    "article_administrative_action_allowed",
     "article_appeal_evidence_access",
     "article_is_moderation_hidden",
     "consume_account_deleted",

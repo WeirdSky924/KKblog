@@ -9,6 +9,7 @@ from django.core import signing
 
 from apps.accounts.public import is_active_account, is_administrator, is_ip_blocked
 from apps.content.public import (
+    register_article_administrative_action_policy,
     register_article_reader_mask,
     register_article_reader_scope,
 )
@@ -32,6 +33,7 @@ from apps.moderation.public import (
     ReportAppealEvidenceUpload,
     ReportEvidenceError,
     ReportEvidenceUpload,
+    article_administrative_action_allowed,
     article_appeal_evidence_access,
     article_is_moderation_hidden,
     exclude_moderation_hidden_articles,
@@ -534,5 +536,6 @@ def configure_moderation_integrations() -> None:
     _register_report_media_target()
     _register_report_appeal_media_target()
     _register_article_appeal_media_target()
+    register_article_administrative_action_policy(article_administrative_action_allowed)
     register_article_reader_mask(article_is_moderation_hidden)
     register_article_reader_scope(exclude_moderation_hidden_articles)

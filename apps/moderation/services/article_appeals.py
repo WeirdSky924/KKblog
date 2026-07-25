@@ -355,6 +355,7 @@ def review_article_appeal(
             try:
                 recovery = restore_article_from_moderation(
                     actor_id=actor,
+                    case_id=case.id,
                     article_id=case.article_id,
                     action=case.action,
                     pre_action_snapshot=case.pre_action_snapshot,

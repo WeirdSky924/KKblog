@@ -1,5 +1,9 @@
 from .consumers import consume_account_status_event
-from .policies import register_article_reader_mask, register_article_reader_scope
+from .policies import (
+    register_article_administrative_action_policy,
+    register_article_reader_mask,
+    register_article_reader_scope,
+)
 from .purge_ports import (
     ArticleCommentPurgeResult,
     register_article_comment_purge,
@@ -221,6 +225,7 @@ __all__ = [
     "tags_for_article",
     "validate_publication_section",
     "register_article_comment_purge",
+    "register_article_administrative_action_policy",
     "register_article_reader_mask",
     "register_article_reader_scope",
     "visible_article_page",

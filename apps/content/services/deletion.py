@@ -17,7 +17,10 @@ from apps.operations.public import record_audit_entry
 
 from ..events import ARTICLE_DELETED, ARTICLE_PURGE_REQUESTED, ARTICLE_RESTORED
 from ..models import Article, ArticleTombstone
-from ..policies import article_is_reader_masked
+from ..policies import (
+    article_administrative_action_allowed,
+    article_is_reader_masked,
+)
 from ..purge_ports import (
     ArticleCommentPurge,
     ArticleCommentPurgeResult,
@@ -124,6 +127,7 @@ def delete_article(
     administrative: bool,
     trace_code: str,
     client_ip: str,
+    moderation_case_id: str | None = None,
     clock: Clock | None = None,
 ) -> ArticleDeletionResult:
     actor = _actor_id(actor_id)
@@ -145,6 +149,21 @@ def delete_article(
                 "文章不存在或不能执行该操作。",
             ) from None
         if not _delete_allowed(article, actor, administrative):
+            raise ArticleDeletionError(
+                "content.article_delete_not_allowed.v1",
+                "文章不存在或不能执行该操作。",
+            )
+        if (
+            administrative
+            and moderation_case_id is not None
+            and not article_administrative_action_allowed(
+                actor_id=actor,
+                article_id=article.id,
+                case_id=moderation_case_id,
+                action="DELETE",
+                operation="APPLY",
+            )
+        ):
             raise ArticleDeletionError(
                 "content.article_delete_not_allowed.v1",
                 "文章不存在或不能执行该操作。",
@@ -228,6 +247,7 @@ def restore_deleted_article(
     expected_row_version: int,
     trace_code: str,
     client_ip: str,
+    moderation_case_id: str | None = None,
     clock: Clock | None = None,
 ) -> ArticleRestorationResult:
     actor = _actor_id(actor_id)
@@ -251,6 +271,17 @@ def restore_deleted_article(
         owner = actor == article.author_id and is_active_author(actor)
         if (tombstone.administrative and not administrator) or not (
             administrator or owner
+        ):
+            raise ArticleDeletionError(
+                "content.article_restore_not_allowed.v1",
+                "文章不存在或不能恢复。",
+            )
+        if tombstone.administrative and not article_administrative_action_allowed(
+            actor_id=actor,
+            article_id=article.id,
+            case_id=moderation_case_id,
+            action="DELETE",
+            operation="RESTORE",
         ):
             raise ArticleDeletionError(
                 "content.article_restore_not_allowed.v1",
