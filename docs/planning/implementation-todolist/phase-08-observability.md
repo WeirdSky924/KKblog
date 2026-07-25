@@ -16,7 +16,7 @@
 - 证据：RED `pytest apps/operations/tests/test_obs005.py -q` 在收集期因缺少 `RuntimeError` owner 退出 2。实现 `RuntimeError` fingerprint 聚合与可多错误关联同一 trace 的永久 occurrence、严格安全上下文 schema、无异常原文的脱敏堆栈、并发唯一约束和三次冲突重入；core 仅调用可配置 sink，operations 写库失败只向 stderr 输出静态标记、合法 trace 与安全异常类型。管理员 query/UI 支持 trace、错误码、关键字、上海日期和详情，普通用户仍只见通用 500 与 trace。最终聚焦退出 0，`6 passed`；operations、管理员 wiring 与 HTTP 安全回归退出 0，`40 passed`；Ruff/format（目标 53 文件）、Django check、migration drift 与 `git diff --check` 均退出 0。隔离 PostgreSQL 应用 `operations.0003_runtime_error` 后，含 password/code/token/Cookie/Authorization/连接串/正文/邮箱/IP/原路径的 HTTP 异常在页面、DB、日志与 stderr 均无原值，同 fingerprint 两次读回 count=2、两个不同 fingerprint 可关联同一 trace，未知 trace 返回诚实空态。`blog-playwright-cli` 以普通错误面和管理员身份验证 390/768/1440、light/dark/eye-care、键盘 Enter 查询、详情/空态和局部表格滚动；发现并修复 390 长 fingerprint/pre 页面溢出，最终三视口页面 scrollWidth 等于 viewport。全仓 Ruff 仍被基线 `apps/comments/tests/test_cmt004.py` 的既有 import 顺序阻断；原始架构 guard 仍因 P7 comments/moderation→operations 的既有九处公共端口调用与未提交本地映射漂移退出 1，按该已确认映射注入审计退出 0，OBS-005 未新增反向边。未执行生产 migration、生产数据/日志读取、提交、推送、部署或服务重启。
 
 ### OBS-008 完成领域事件模板、通知去重与集成回执
-- 元数据：状态 `待处理`；阶段 P8；owner `notifications`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P8；owner `notifications`；优先级 P0。
 - 目标/行为：在通知基础表和 Outbox 就绪后，为账户、内容、评论和审核事件注册版本化安全模板；同一事件按接收者和业务日去重，并可从事件到 Receipt 读回。
 - 来源：`contracts/04-events-errors.md` §事件注册表/通知模板安全；`modules/09-notifications-observability.md` §通知事件；`reference/01-requirements-resolution.md` §通知口径。
 - 依赖：前置 `OBS-001`、`FND-005`、`ACC-011`、`CNT-011`、`CMT-011`；后续 `OBS-002`、`OBS-003`、`OBS-009`、`EXC-003`、`EXC-005`、`QA-003`、`QA-004`、`QA-006`。
@@ -26,9 +26,10 @@
 - 测试/验收：RED 重复事件、兼任角色、同文章/上海日聚合、模板未知字段、账户删除收件；真实 Outbox 消费后 DB 通知与 Receipt 读回。
 - 风险/停止：模板字段未注册、重复或泄露敏感 payload、消费成功但 Receipt 缺失时停止所有通知 UI 集成。
 - 授权：`否`；生产群发和真实外发邮件仍按 OBS-003/OBS-009 授权。
+- 证据：RED `pytest apps/notifications/tests/test_obs008.py tests/integration/test_obs008_outbox.py -q` 在收集期因缺少领域消费者与应用 transport 退出 2。实现 notifications 唯一 owner 下 12 个版本化 schema/纯文本 renderer、必填/枚举/日期/理由校验、接收者写前重判、兼任角色去重、Receipt 集合强读回，以及管理员查看按接收者+文章+上海日期聚合；合法的自删/作者删评论事件安全终结但不通知，未知事件与尚属 OBS-009 的 `task.final_failed.v1` 关闭失败。`config` 组合根复用现有 account/content/moderation/discovery consumer，26/27 个当前实际事件均已路由或明确终结，唯一延后项为 `task.final_failed.v1`；高频 Outbox Celery 入口直接复用 `publish_batch` 与 `execute_celery_entry`，未建立第二套重试。最终聚焦退出 0，`14 passed`；notifications、账户生命周期、内容/评论事件、Outbox 与 TaskRun 相关回归退出 0，`70 passed`；目标 Ruff/format（26 文件）、Django check、migration drift 与 `git diff --check` 均退出 0。隔离 PostgreSQL 应用全部 migration 后，经 Redis DB 14 与真实 Celery solo worker 投递 `tag.reviewed.v1`，读回 Outbox `published/attempts=1/lease cleared`、consumer `processed/attempts=1/lease cleared`、Notification/Receipt 各 1、TaskRun `succeeded/result_ref=outbox:1:1/lease cleared`；第二次 broker 调度读回 `outbox:0:0` 且通知/回执仍各 1。专用 worker、数据库与 Redis namespace 已清理，读回数据库不存在、Redis DB size=0、无遗留进程。本卡无用户页面，浏览器状态由 OBS-002/003 验收。原始架构 guard 仍被 P7 既有九处 comments/moderation→`operations.public` 映射漂移阻断；临时加入这两条已确认公共端口许可后全 app AST owner 审计违规为 0，本任务未新增反向边。未执行生产事件消费、生产 migration、真实群发/邮件、部署、服务重启、提交或推送。
 
 ### OBS-002 实现通知浮层、完整 overlay、通知页与已读
-- 元数据：状态 `待处理`；阶段 P8；owner `notifications`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P8；owner `notifications`；优先级 P1。
 - 目标/行为：Header hover显示最新5条，点击打开完整浮层；查看全部到通知页；逐条/全部已读清除红点，用户无删除按钮；覆盖空/错误/隐藏态。
 - 来源：访谈 Q063、Q066、Q242-Q243；`contracts/03-frontend-contract-map.md` §身份页面；原型 account/notifications。
 - 依赖：前置 `OBS-001`、`OBS-008`、`DSC-001`；后续 `ADM-008`、`QA-003`、`QA-006`。

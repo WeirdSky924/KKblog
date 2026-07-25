@@ -1,6 +1,7 @@
 from apps.notifications.consumers import (
     consume_account_deleted,
     consume_author_role_changed,
+    consume_domain_notification,
 )
 from apps.notifications.queries import (
     notification_for_recipient,
@@ -17,6 +18,7 @@ __all__ = [
     "NotificationRejected",
     "NotificationTemplateSchema",
     "deliver_notification",
+    "consume_domain_notification",
     "consume_author_role_changed",
     "consume_account_deleted",
     "notification_for_recipient",

@@ -5,11 +5,10 @@ from apps.core.ids import is_ulid
 from apps.core.time.clock import Clock
 from apps.notifications.models import Notification
 from apps.notifications.services.delivery import (
-    NotificationTemplateSchema,
     deliver_notification,
-    register_notification_template,
 )
 from apps.notifications.services.recipients import notification_recipient_exists
+from apps.notifications.templates_registry import register_builtin_templates
 
 AUTHOR_ROLE_CHANGED_EVENT = "account.author_role_changed.v1"
 AUTHOR_ROLE_CHANGED_CONSUMER = "notifications.account_author_role_changed.v1"
@@ -18,13 +17,7 @@ ACCOUNT_DELETED_CONSUMER = "notifications.account_deleted.v1"
 
 
 def register_account_event_templates() -> None:
-    register_notification_template(
-        NotificationTemplateSchema(
-            key=AUTHOR_ROLE_CHANGED_EVENT,
-            target_type="account_role",
-            allowed_payload_fields=frozenset({"enabled"}),
-        )
-    )
+    register_builtin_templates(keys=(AUTHOR_ROLE_CHANGED_EVENT,))
 
 
 def _deliver_author_role_changed(envelope: EventEnvelope) -> None:

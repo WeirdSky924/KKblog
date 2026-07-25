@@ -36,6 +36,7 @@ CACHES = {
 }
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+OUTBOX_TRANSPORT = "config.outbox_transport.build_application_event_transport"
 
 ADMIN_EMAIL = _environment.admin_email
 ADMINS = [("Kaj admin", ADMIN_EMAIL)]

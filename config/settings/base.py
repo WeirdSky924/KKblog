@@ -82,6 +82,10 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_RESULT_EXPIRES = 300
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_BEAT_SCHEDULE = {
+    "core-publish-outbox": {
+        "task": "config.runtime_tasks.publish_outbox",
+        "schedule": 5.0,
+    },
     "comments-publish-due": {
         "task": "apps.comments.dispatch_due_comments",
         "schedule": 60.0,

@@ -6,6 +6,6 @@ class NotificationsConfig(AppConfig):
     name = "apps.notifications"
 
     def ready(self) -> None:
-        from apps.notifications.consumers import register_account_event_templates
+        from apps.notifications.templates_registry import register_builtin_templates
 
-        register_account_event_templates()
+        register_builtin_templates()

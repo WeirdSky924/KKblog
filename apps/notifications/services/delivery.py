@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from uuid import UUID
@@ -35,6 +36,8 @@ class NotificationTemplateSchema:
     key: str
     target_type: str
     allowed_payload_fields: frozenset[str]
+    required_payload_fields: frozenset[str] = frozenset()
+    payload_validator: Callable[[Mapping[str, object]], None] | None = None
 
     def __post_init__(self) -> None:
         if not _KEY.fullmatch(self.key) or not _KEY.fullmatch(self.target_type):
@@ -43,6 +46,22 @@ class NotificationTemplateSchema:
             lowered = field.casefold()
             if not _KEY.fullmatch(field) or set(lowered.split("_")) & _FORBIDDEN:
                 raise NotificationRejected("Unsafe notification field")
+        if not self.required_payload_fields <= self.allowed_payload_fields:
+            raise NotificationRejected("Invalid required notification field")
+        if self.payload_validator is not None and not callable(self.payload_validator):
+            raise NotificationRejected("Invalid notification payload validator")
+
+    def validate_payload(self, payload: Mapping[str, object]) -> None:
+        if not self.required_payload_fields <= set(payload):
+            raise NotificationRejected("Missing notification payload field")
+        if self.payload_validator is None:
+            return
+        try:
+            self.payload_validator(MappingProxyType(dict(payload)))
+        except NotificationRejected:
+            raise
+        except (KeyError, TypeError, ValueError):
+            raise NotificationRejected("Invalid notification payload") from None
 
 
 _TEMPLATES: dict[str, NotificationTemplateSchema] = {}
@@ -85,6 +104,7 @@ def _existing_matches(
     schema: NotificationTemplateSchema,
     target_id: str,
     payload: dict[str, object],
+    recipient_ids: tuple[UUID, ...],
 ) -> Notification:
     if (
         notification.template_key != schema.key
@@ -93,6 +113,11 @@ def _existing_matches(
         or notification.payload_safe != payload
     ):
         raise NotificationRejected("Dedupe key targets different notification")
+    actual_recipients = set(
+        notification.receipts.values_list("recipient_id", flat=True)
+    )
+    if actual_recipients != set(recipient_ids):
+        raise NotificationRejected("Dedupe key targets different recipients")
     return notification
 
 
@@ -116,6 +141,7 @@ def deliver_notification(
     ):
         raise NotificationRejected("Unknown notification payload field")
     safe_payload = {key: _safe_value(value) for key, value in payload.items()}
+    schema.validate_payload(safe_payload)
     try:
         recipients = tuple(dict.fromkeys(UUID(str(value)) for value in recipient_ids))
         actor = UUID(str(actor_id)) if actor_id is not None else None
@@ -131,7 +157,11 @@ def deliver_notification(
         existing = Notification.objects.filter(dedupe_key=dedupe_key).first()
         if existing:
             return _existing_matches(
-                existing, schema=schema, target_id=target_id, payload=safe_payload
+                existing,
+                schema=schema,
+                target_id=target_id,
+                payload=safe_payload,
+                recipient_ids=recipients,
             )
     try:
         with transaction.atomic():
@@ -157,5 +187,9 @@ def deliver_notification(
             raise
         existing = Notification.objects.get(dedupe_key=dedupe_key)
         return _existing_matches(
-            existing, schema=schema, target_id=target_id, payload=safe_payload
+            existing,
+            schema=schema,
+            target_id=target_id,
+            payload=safe_payload,
+            recipient_ids=recipients,
         )
