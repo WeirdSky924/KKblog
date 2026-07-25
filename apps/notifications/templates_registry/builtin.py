@@ -72,6 +72,19 @@ def _safe_reason(value: object, *, nullable: bool = False) -> bool:
     )
 
 
+def _broadcast(payload: Mapping[str, object]) -> None:
+    headline = payload["headline"]
+    message = payload["message"]
+    _reject_unless(
+        isinstance(headline, str)
+        and 1 <= len(headline) <= 100
+        and "\n" not in headline
+        and "\r" not in headline
+        and _safe_reason(headline)
+    )
+    _reject_unless(_safe_reason(message))
+
+
 def _comment_deleted(payload: Mapping[str, object]) -> None:
     _reject_unless(payload["deleted_by_kind"] == "ADMIN")
     _reject_unless(_safe_reason(payload["reason"], nullable=True))
@@ -170,6 +183,19 @@ def _schema(
 
 
 _BUILTINS = (
+    (
+        _schema(
+            "admin.broadcast.v1",
+            "broadcast",
+            frozenset({"headline", "message"}),
+            _broadcast,
+        ),
+        NotificationTemplateDefinition(
+            "admin.broadcast.v1",
+            lambda payload: payload["headline"],
+            lambda payload: payload["message"],
+        ),
+    ),
     (
         _schema(
             "account.author_role_changed.v1",

@@ -9,19 +9,23 @@ from apps.notifications.services.delivery import (
 )
 
 MessageRenderer = Callable[[Mapping[str, object]], str]
+TitleRenderer = Callable[[Mapping[str, object]], str]
 _VERSIONED_KEY = re.compile(r"[a-z][a-z0-9_.-]*\.v[1-9][0-9]*\Z")
 
 
 @dataclass(frozen=True, slots=True)
 class NotificationTemplateDefinition:
     key: str
-    title: str
+    title: str | TitleRenderer
     render_message: MessageRenderer
 
     def __post_init__(self) -> None:
         if not _VERSIONED_KEY.fullmatch(self.key):
             raise NotificationRejected("Notification template key must be versioned")
-        _plain_text(self.title, limit=100)
+        if isinstance(self.title, str):
+            _plain_text(self.title, limit=100)
+        elif not callable(self.title):
+            raise NotificationRejected("Invalid notification title renderer")
         if not callable(self.render_message):
             raise NotificationRejected("Invalid notification renderer")
 
@@ -81,12 +85,17 @@ def render_notification(
         raise NotificationRejected("Unknown notification payload field")
     schema.validate_payload(payload)
     try:
+        title = (
+            definition.title(MappingProxyType(dict(payload)))
+            if callable(definition.title)
+            else definition.title
+        )
         message = definition.render_message(MappingProxyType(dict(payload)))
     except NotificationRejected:
         raise
     except (KeyError, TypeError, ValueError):
         raise NotificationRejected("Notification rendering failed") from None
     return RenderedNotification(
-        title=_plain_text(definition.title, limit=100),
+        title=_plain_text(title, limit=100),
         message=_plain_text(message, limit=500),
     )

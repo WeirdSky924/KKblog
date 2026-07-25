@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}群发通知 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="broadcast-page" aria-labelledby="broadcast-title">
+    <header class="broadcast-header">
+      <p class="broadcast-kicker">管理 · 站内通知</p>
+      <h1 id="broadcast-title">群发通知</h1>
+      <p>每次固定发送给全部注册用户；隐藏可恢复，删除后产品内不可恢复。</p>
+      {% if saved == "broadcast" %}<p class="broadcast-success" role="status">通知已发送给全部注册用户。</p>{% endif %}
+      {% if saved == "hide" %}<p class="broadcast-success" role="status">通知已对所有收件人隐藏。</p>{% endif %}
+      {% if saved == "restore" %}<p class="broadcast-success" role="status">通知已恢复为全体可见。</p>{% endif %}
+      {% if saved == "delete" %}<p class="broadcast-success" role="status">通知已删除，产品内不再提供恢复。</p>{% endif %}
+    </header>
+
+    <section id="broadcast-compose" class="broadcast-compose" aria-labelledby="broadcast-compose-title">
+      <div class="broadcast-section-heading">
+        <div>
+          <span class="broadcast-folio" aria-hidden="true">01</span>
+          <h2 id="broadcast-compose-title">创建通知</h2>
+        </div>
+        <p><i data-lucide="user-round"></i> 固定受众：全部注册用户</p>
+      </div>
+      <form method="post" class="broadcast-form" data-submit-once>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="preview_broadcast">
+        {{ broadcast_form.as_div }}
+        <button
+          class="button button--primary"
+          type="submit"
+          data-dialog-trigger
+          aria-controls="broadcast-confirm-dialog"
+        ><i data-lucide="bell"></i><span>继续确认</span></button>
+      </form>
+    </section>
+
+    <section class="broadcast-index" aria-labelledby="broadcast-index-title">
+      <div class="broadcast-section-heading">
+        <div>
+          <span class="broadcast-folio" aria-hidden="true">02</span>
+          <h2 id="broadcast-index-title">发送记录</h2>
+        </div>
+        <p>{{ broadcast_rows|length }} 条最近记录</p>
+      </div>
+      {% if query_error %}<p class="broadcast-error" data-error-focus tabindex="-1" role="alert">{{ query_error }}</p>{% endif %}
+      {% if broadcast_rows %}
+        <div class="broadcast-list">
+          {% for row in broadcast_rows %}
+            <article
+              id="broadcast-row-{{ row.notification_id }}"
+              class="broadcast-row{% if row.notification_id == selected_id %} broadcast-row--selected{% endif %}"
+              data-broadcast-state="{{ row.state }}"
+            >
+              <div class="broadcast-row__number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</div>
+              <div class="broadcast-row__content">
+                <div class="broadcast-row__heading">
+                  <div>
+                    <h3>{{ row.headline }}</h3>
+                    <p>{{ row.created_at|date:"Y-m-d H:i" }}</p>
+                  </div>
+                  <strong class="broadcast-state">
+                    {% if row.state == "VISIBLE" %}可见{% elif row.state == "HIDDEN" %}已隐藏{% else %}已删除{% endif %}
+                  </strong>
+                </div>
+                <p class="broadcast-row__message">{{ row.message }}</p>
+                <dl class="broadcast-counts">
+                  <div><dt>收件</dt><dd>{{ row.recipient_count }}</dd></div>
+                  <div><dt>已读</dt><dd>{{ row.read_count }}</dd></div>
+                  <div><dt>未读</dt><dd>{{ row.unread_count }}</dd></div>
+                </dl>
+                <nav class="broadcast-actions" aria-label="{{ row.headline }} 管理操作">
+                  <a class="button button--secondary" href="?detail={{ row.notification_id }}#broadcast-detail"><i data-lucide="eye"></i><span>查看回执</span></a>
+                  {% if row.state == "VISIBLE" %}
+                    <a
+                      class="button button--secondary"
+                      href="?detail={{ row.notification_id }}&amp;confirm={{ row.notification_id }}&amp;operation=hide#broadcast-row-{{ row.notification_id }}"
+                      data-dialog-trigger
+                      data-dialog-return-hash="broadcast-row-{{ row.notification_id }}"
+                      aria-controls="broadcast-visibility-{{ row.notification_id }}"
+                    ><i data-lucide="eye"></i><span>隐藏</span></a>
+                  {% elif row.state == "HIDDEN" %}
+                    <a
+                      class="button button--secondary"
+                      href="?detail={{ row.notification_id }}&amp;confirm={{ row.notification_id }}&amp;operation=restore#broadcast-row-{{ row.notification_id }}"
+                      data-dialog-trigger
+                      data-dialog-return-hash="broadcast-row-{{ row.notification_id }}"
+                      aria-controls="broadcast-visibility-{{ row.notification_id }}"
+                    ><i data-lucide="rotate-cw"></i><span>恢复</span></a>
+                  {% endif %}
+                  {% if row.state != "DELETED" %}
+                    <a
+                      class="button button--danger"
+                      href="?detail={{ row.notification_id }}&amp;confirm={{ row.notification_id }}&amp;operation=delete#broadcast-row-{{ row.notification_id }}"
+                      data-dialog-trigger
+                      data-dialog-return-hash="broadcast-row-{{ row.notification_id }}"
+                      aria-controls="broadcast-visibility-{{ row.notification_id }}"
+                    ><i data-lucide="trash-2"></i><span>删除</span></a>
+                  {% endif %}
+                </nav>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="broadcast-empty">
+          <h3>还没有群发通知</h3>
+          <p>创建后的通知会在这里显示全体收件与已读状态。</p>
+          <a class="button button--secondary" href="#broadcast-compose">创建第一条通知</a>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if broadcast_detail %}
+      <section id="broadcast-detail" class="broadcast-detail" aria-labelledby="broadcast-detail-title">
+        <div class="broadcast-section-heading">
+          <div>
+            <span class="broadcast-folio" aria-hidden="true">03</span>
+            <h2 id="broadcast-detail-title">收件回执</h2>
+          </div>
+          <a href="{% url 'admin:notifications' %}#broadcast-index-title">关闭详情</a>
+        </div>
+        <div class="broadcast-detail__summary">
+          <div>
+            <h3>{{ broadcast_detail.headline }}</h3>
+            <p>{{ broadcast_detail.message }}</p>
+          </div>
+          <dl class="broadcast-counts">
+            <div><dt>全部</dt><dd>{{ broadcast_detail.recipient_count }}</dd></div>
+            <div><dt>已读</dt><dd>{{ broadcast_detail.read_count }}</dd></div>
+            <div><dt>未读</dt><dd>{{ broadcast_detail.unread_count }}</dd></div>
+          </dl>
+        </div>
+        <form method="get" class="broadcast-filter" role="search">
+          <input type="hidden" name="detail" value="{{ broadcast_detail.notification_id }}">
+          <div>
+            <label for="broadcast-recipient-state">阅读状态</label>
+            <select id="broadcast-recipient-state" name="recipient_state">
+              <option value=""{% if not recipient_state %} selected{% endif %}>全部</option>
+              <option value="READ"{% if recipient_state == "READ" %} selected{% endif %}>已读</option>
+              <option value="UNREAD"{% if recipient_state == "UNREAD" %} selected{% endif %}>未读</option>
+            </select>
+          </div>
+          <div>
+            <label for="broadcast-recipient-query">昵称或邮箱</label>
+            <input id="broadcast-recipient-query" name="q" value="{{ recipient_keyword }}" maxlength="200">
+          </div>
+          <button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+        </form>
+        <p class="broadcast-result-count">当前条件共 {{ broadcast_detail.recipient_total }} 人，{{ broadcast_detail.unread_count }} 人未读。</p>
+        {% if broadcast_detail.recipients %}
+          <div class="broadcast-receipts" tabindex="0" aria-label="通知收件回执列表">
+            <table>
+              <thead><tr><th>收件人</th><th>邮箱</th><th>状态</th><th>阅读时间</th></tr></thead>
+              <tbody>
+                {% for recipient in broadcast_detail.recipients %}
+                  <tr>
+                    <td>{{ recipient.display_name }}</td>
+                    <td>{{ recipient.email }}</td>
+                    <td>{% if recipient.is_read %}已读{% else %}未读{% endif %}</td>
+                    <td>{% if recipient.read_at %}{{ recipient.read_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if broadcast_detail.recipient_pages > 1 %}
+            <nav class="broadcast-pagination" aria-label="收件回执分页">
+              {% if broadcast_detail.recipient_page > 1 %}<a class="button button--secondary" href="?detail={{ broadcast_detail.notification_id }}&amp;recipient_state={{ recipient_state }}&amp;q={{ recipient_keyword|urlencode }}&amp;page={{ broadcast_detail.recipient_page|add:'-1' }}#broadcast-detail">上一页</a>{% endif %}
+              <span>第 {{ broadcast_detail.recipient_page }} / {{ broadcast_detail.recipient_pages }} 页</span>
+              {% if broadcast_detail.recipient_page < broadcast_detail.recipient_pages %}<a class="button button--secondary" href="?detail={{ broadcast_detail.notification_id }}&amp;recipient_state={{ recipient_state }}&amp;q={{ recipient_keyword|urlencode }}&amp;page={{ broadcast_detail.recipient_page|add:'1' }}#broadcast-detail">下一页</a>{% endif %}
+            </nav>
+          {% endif %}
+        {% else %}
+          <div class="broadcast-empty"><h3>没有匹配的收件回执</h3><p>调整阅读状态、昵称或邮箱后重新筛选。</p></div>
+        {% endif %}
+      </section>
+    {% endif %}
+  </section>
+
+  {% if broadcast_confirmation %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="broadcast-confirm-dialog" dialog_open=True dialog_title="确认发送给全部注册用户？" dialog_description="提交后会立即创建全体收件回执；发送范围不能手动选择。" action_value="broadcast" confirmation_form=broadcast_confirmation confirm_label="确认群发" %}
+  {% endif %}
+  {% if visibility_form %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id=visibility_dialog_id dialog_open=True dialog_title=visibility_copy.title dialog_description=visibility_copy.description action_value=visibility_operation confirmation_form=visibility_form confirm_label=visibility_copy.label %}
+  {% endif %}
+{% endblock %}

@@ -9,6 +9,7 @@ from apps.administration.views.audit import audit_log
 from apps.administration.views.errors import runtime_errors
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
+from apps.administration.views.notifications import notifications
 
 app_name = "admin"
 
@@ -32,4 +33,5 @@ urlpatterns = [
     path("errors/", runtime_errors, name="errors"),
     path("invites/", invites, name="invites"),
     path("ip-blocks/", ip_blocks, name="ip-blocks"),
+    path("notifications/", notifications, name="notifications"),
 ]

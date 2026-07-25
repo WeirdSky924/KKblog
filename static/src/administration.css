@@ -1,0 +1,354 @@
+.broadcast-page {
+  display: grid;
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  gap: 0;
+}
+
+.broadcast-header {
+  display: grid;
+  gap: 0.5rem;
+  padding-block-end: 2rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.broadcast-kicker,
+.broadcast-header h1,
+.broadcast-header > p,
+.broadcast-section-heading h2,
+.broadcast-section-heading p,
+.broadcast-row h3,
+.broadcast-row p,
+.broadcast-empty h3,
+.broadcast-empty p,
+.broadcast-detail h3,
+.broadcast-detail p {
+  margin: 0;
+}
+
+.broadcast-kicker,
+.broadcast-folio {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 680;
+}
+
+.broadcast-kicker {
+  font-size: 0.875rem;
+}
+
+.broadcast-header h1 {
+  font-size: 3.25rem;
+  line-height: 1.15;
+}
+
+.broadcast-header > p:not(.broadcast-kicker, .broadcast-success) {
+  color: var(--text-secondary);
+}
+
+.broadcast-success,
+.broadcast-error {
+  padding: 0.75rem 1rem;
+  border-inline-start: 3px solid var(--success);
+  background: var(--surface-muted);
+}
+
+.broadcast-error {
+  border-inline-start-color: var(--danger);
+}
+
+.broadcast-compose,
+.broadcast-index,
+.broadcast-detail {
+  display: grid;
+  gap: 1.5rem;
+  padding-block: 2rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.broadcast-section-heading,
+.broadcast-section-heading > div,
+.broadcast-row__heading,
+.broadcast-actions,
+.broadcast-filter,
+.broadcast-pagination {
+  display: flex;
+  align-items: center;
+}
+
+.broadcast-section-heading,
+.broadcast-row__heading {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.broadcast-section-heading > div {
+  gap: 1rem;
+}
+
+.broadcast-section-heading h2 {
+  font-size: 1.5rem;
+}
+
+.broadcast-section-heading > p,
+.broadcast-result-count,
+.broadcast-row__heading p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.broadcast-section-heading > p {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.broadcast-section-heading .lucide,
+.broadcast-actions .lucide,
+.broadcast-filter .lucide {
+  width: 1rem;
+  height: 1rem;
+}
+
+.broadcast-form {
+  display: grid;
+  width: min(100%, 46rem);
+  gap: 1rem;
+}
+
+.broadcast-form > div,
+.broadcast-filter > div {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.broadcast-form label,
+.broadcast-filter label {
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.broadcast-form input,
+.broadcast-form textarea,
+.broadcast-filter input,
+.broadcast-filter select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+}
+
+.broadcast-form textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.broadcast-form .errorlist {
+  margin: 0;
+  padding: 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.broadcast-form > .button {
+  justify-self: start;
+}
+
+.broadcast-list {
+  border-block-start: 1px solid var(--line);
+}
+
+.broadcast-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  border-block-end: 1px solid var(--line);
+  border-inline-start: 3px solid transparent;
+}
+
+.broadcast-row--selected {
+  border-inline-start-color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.broadcast-row__number {
+  padding-block-start: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.broadcast-row__content {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  padding: 1.25rem 1rem;
+}
+
+.broadcast-row h3,
+.broadcast-detail h3 {
+  overflow-wrap: anywhere;
+  font-size: 1.125rem;
+}
+
+.broadcast-state {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 0.8125rem;
+}
+
+[data-broadcast-state="DELETED"] .broadcast-state {
+  color: var(--danger);
+}
+
+.broadcast-row__message,
+.broadcast-detail__summary p {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.broadcast-counts {
+  display: flex;
+  margin: 0;
+  gap: 1.5rem;
+}
+
+.broadcast-counts div {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.375rem;
+}
+
+.broadcast-counts dt {
+  color: var(--text-secondary);
+}
+
+.broadcast-counts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.broadcast-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.button--danger {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
+}
+
+.button--danger:hover {
+  background: var(--danger);
+  color: var(--accent-contrast);
+}
+
+.broadcast-empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  padding-block: 2rem;
+}
+
+.broadcast-detail__summary {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-inline-start: 3px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.broadcast-filter {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.45fr) minmax(14rem, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+}
+
+.broadcast-result-count {
+  margin: 0;
+}
+
+.broadcast-receipts {
+  overflow-x: auto;
+  border-block: 1px solid var(--line);
+}
+
+.broadcast-receipts table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+}
+
+.broadcast-receipts th,
+.broadcast-receipts td {
+  padding: 0.875rem 1rem;
+  border-block-end: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.broadcast-receipts th {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.broadcast-pagination {
+  justify-content: center;
+  gap: 1rem;
+}
+
+@media (max-width: 48rem) {
+  .broadcast-section-heading,
+  .broadcast-row__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .broadcast-filter {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .broadcast-filter .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .broadcast-header h1 {
+    font-size: 2.25rem;
+  }
+
+  .broadcast-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+
+  .broadcast-row__content {
+    padding-inline-end: 0;
+  }
+
+  .broadcast-counts {
+    gap: 0.75rem;
+  }
+
+  .broadcast-counts div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .broadcast-actions .button {
+    width: 100%;
+  }
+
+  .broadcast-pagination {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+}

@@ -12,6 +12,7 @@
 @import "./media.css";
 @import "./comments.css";
 @import "./moderation.css";
+@import "./administration.css";
 
 @source "../../templates";
 @source "../../apps";

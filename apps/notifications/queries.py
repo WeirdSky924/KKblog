@@ -3,12 +3,13 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core import signing
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
-from apps.notifications.models import NotificationReceipt
+from apps.notifications.models import Notification, NotificationReceipt
+from apps.notifications.services.broadcast import BROADCAST_TEMPLATE_KEY
 from apps.notifications.templates_registry import render_notification
 
 _CURSOR_SALT = "notifications.inbox-cursor.v1"
@@ -53,11 +54,173 @@ class NotificationInboxPage:
     start_index: int
 
 
+@dataclass(frozen=True, slots=True)
+class BroadcastSummary:
+    notification_id: str
+    headline: str
+    message: str
+    state: str
+    recipient_count: int
+    read_count: int
+    unread_count: int
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class BroadcastRecipient:
+    recipient_id: str
+    display_name: str
+    email: str
+    is_read: bool
+    read_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class BroadcastDetail:
+    notification_id: str
+    headline: str
+    message: str
+    state: str
+    recipient_count: int
+    read_count: int
+    unread_count: int
+    created_at: datetime
+    hidden_at: datetime | None
+    deleted_at: datetime | None
+    recipients: tuple[BroadcastRecipient, ...]
+    recipient_total: int
+    recipient_page: int
+    recipient_pages: int
+
+
 def _recipient_id(value: UUID | str) -> UUID:
     try:
         return UUID(str(value))
     except (TypeError, ValueError):
         raise ValueError("Invalid notification recipient") from None
+
+
+def _require_broadcast_admin(is_admin: bool) -> None:
+    if is_admin is not True:
+        raise PermissionError("Broadcast access denied")
+
+
+def _broadcast_state(notification: Notification) -> str:
+    if notification.deleted_at is not None:
+        return "DELETED"
+    if notification.hidden_at is not None:
+        return "HIDDEN"
+    return "VISIBLE"
+
+
+def _broadcast_query():
+    return Notification.objects.filter(template_key=BROADCAST_TEMPLATE_KEY).annotate(
+        recipient_count_value=Count("receipts"),
+        read_count_value=Count("receipts", filter=Q(receipts__read_at__isnull=False)),
+    )
+
+
+def _broadcast_summary(notification: Notification) -> BroadcastSummary:
+    rendered = render_notification(notification.template_key, notification.payload_safe)
+    recipient_count = notification.recipient_count_value
+    read_count = notification.read_count_value
+    return BroadcastSummary(
+        notification_id=notification.id,
+        headline=rendered.title,
+        message=rendered.message,
+        state=_broadcast_state(notification),
+        recipient_count=recipient_count,
+        read_count=read_count,
+        unread_count=recipient_count - read_count,
+        created_at=notification.created_at,
+    )
+
+
+def broadcast_list(*, is_admin: bool, limit: int = 50) -> tuple[BroadcastSummary, ...]:
+    _require_broadcast_admin(is_admin)
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 200:
+        raise ValueError("Invalid broadcast list limit")
+    return tuple(
+        _broadcast_summary(notification)
+        for notification in _broadcast_query().order_by("-created_at", "-id")[:limit]
+    )
+
+
+def broadcast_detail(
+    *,
+    notification_id: str,
+    is_admin: bool,
+    recipient_state: str = "",
+    keyword: str = "",
+    page: int = 1,
+    page_size: int = 50,
+) -> BroadcastDetail:
+    _require_broadcast_admin(is_admin)
+    try:
+        normalized_id = normalize_ulid(notification_id)
+    except (TypeError, ValueError):
+        raise PermissionError("Broadcast access denied") from None
+    state = recipient_state.strip().upper()
+    if state not in {"", "READ", "UNREAD"}:
+        raise ValueError("Invalid broadcast recipient state")
+    if not isinstance(keyword, str) or len(keyword) > 200:
+        raise ValueError("Invalid broadcast recipient keyword")
+    normalized_keyword = keyword.strip()
+    if (
+        not isinstance(page, int)
+        or isinstance(page, bool)
+        or page < 1
+        or not isinstance(page_size, int)
+        or isinstance(page_size, bool)
+        or not 1 <= page_size <= 100
+    ):
+        raise ValueError("Invalid broadcast recipient page")
+    notification = _broadcast_query().filter(pk=normalized_id).first()
+    if notification is None:
+        raise PermissionError("Broadcast access denied")
+    receipts = notification.receipts.select_related("recipient")
+    if state == "READ":
+        receipts = receipts.filter(read_at__isnull=False)
+    elif state == "UNREAD":
+        receipts = receipts.filter(read_at__isnull=True)
+    if normalized_keyword:
+        receipts = receipts.filter(
+            Q(recipient__email__icontains=normalized_keyword)
+            | Q(recipient__nickname__icontains=normalized_keyword)
+        )
+    receipts = receipts.order_by("recipient__created_at", "recipient_id")
+    recipient_total = receipts.count()
+    recipient_pages = max(1, (recipient_total + page_size - 1) // page_size)
+    if page > recipient_pages:
+        raise ValueError("Invalid broadcast recipient page")
+    offset = (page - 1) * page_size
+    rows = tuple(receipts[offset : offset + page_size])
+    summary = _broadcast_summary(notification)
+    return BroadcastDetail(
+        notification_id=summary.notification_id,
+        headline=summary.headline,
+        message=summary.message,
+        state=summary.state,
+        recipient_count=summary.recipient_count,
+        read_count=summary.read_count,
+        unread_count=summary.unread_count,
+        created_at=notification.created_at,
+        hidden_at=notification.hidden_at,
+        deleted_at=notification.deleted_at,
+        recipients=tuple(
+            BroadcastRecipient(
+                recipient_id=str(row.recipient_id),
+                display_name=row.recipient.nickname or row.recipient.email,
+                email=row.recipient.email,
+                is_read=row.read_at is not None,
+                read_at=row.read_at,
+            )
+            for row in rows
+        ),
+        recipient_total=recipient_total,
+        recipient_page=page,
+        recipient_pages=recipient_pages,
+    )
 
 
 def _visible_receipts(recipient_id: UUID):

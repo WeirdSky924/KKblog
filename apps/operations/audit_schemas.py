@@ -48,6 +48,26 @@ def register_builtin_audit_schemas() -> None:
             "account",
             frozenset({"nickname_present", "theme", "avatar_present"}),
         ),
+        AuditSchema(
+            "notifications.broadcast.create",
+            "notification",
+            frozenset({"state", "recipient_count"}),
+        ),
+        AuditSchema(
+            "notifications.broadcast.hide",
+            "notification",
+            frozenset({"state"}),
+        ),
+        AuditSchema(
+            "notifications.broadcast.restore",
+            "notification",
+            frozenset({"state"}),
+        ),
+        AuditSchema(
+            "notifications.broadcast.delete",
+            "notification",
+            frozenset({"state"}),
+        ),
     )
     for schema in schemas:
         register_audit_schema(schema)

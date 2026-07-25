@@ -29,7 +29,7 @@
 - 证据：RED `pytest apps/notifications/tests/test_obs008.py tests/integration/test_obs008_outbox.py -q` 在收集期因缺少领域消费者与应用 transport 退出 2。实现 notifications 唯一 owner 下 12 个版本化 schema/纯文本 renderer、必填/枚举/日期/理由校验、接收者写前重判、兼任角色去重、Receipt 集合强读回，以及管理员查看按接收者+文章+上海日期聚合；合法的自删/作者删评论事件安全终结但不通知，未知事件与尚属 OBS-009 的 `task.final_failed.v1` 关闭失败。`config` 组合根复用现有 account/content/moderation/discovery consumer，26/27 个当前实际事件均已路由或明确终结，唯一延后项为 `task.final_failed.v1`；高频 Outbox Celery 入口直接复用 `publish_batch` 与 `execute_celery_entry`，未建立第二套重试。最终聚焦退出 0，`14 passed`；notifications、账户生命周期、内容/评论事件、Outbox 与 TaskRun 相关回归退出 0，`70 passed`；目标 Ruff/format（26 文件）、Django check、migration drift 与 `git diff --check` 均退出 0。隔离 PostgreSQL 应用全部 migration 后，经 Redis DB 14 与真实 Celery solo worker 投递 `tag.reviewed.v1`，读回 Outbox `published/attempts=1/lease cleared`、consumer `processed/attempts=1/lease cleared`、Notification/Receipt 各 1、TaskRun `succeeded/result_ref=outbox:1:1/lease cleared`；第二次 broker 调度读回 `outbox:0:0` 且通知/回执仍各 1。专用 worker、数据库与 Redis namespace 已清理，读回数据库不存在、Redis DB size=0、无遗留进程。本卡无用户页面，浏览器状态由 OBS-002/003 验收。原始架构 guard 仍被 P7 既有九处 comments/moderation→`operations.public` 映射漂移阻断；临时加入这两条已确认公共端口许可后全 app AST owner 审计违规为 0，本任务未新增反向边。未执行生产事件消费、生产 migration、真实群发/邮件、部署、服务重启、提交或推送。
 
 ### OBS-002 实现通知浮层、完整 overlay、通知页与已读
-- 元数据：状态 `进行中`；阶段 P8；owner `notifications`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P8；owner `notifications`；优先级 P1。
 - 目标/行为：Header hover显示最新5条，点击打开完整浮层；查看全部到通知页；逐条/全部已读清除红点，用户无删除按钮；覆盖空/错误/隐藏态。
 - 来源：访谈 Q063、Q066、Q242-Q243；`contracts/03-frontend-contract-map.md` §身份页面；原型 account/notifications。
 - 依赖：前置 `OBS-001`、`OBS-008`、`DSC-001`；后续 `ADM-008`、`QA-003`、`QA-006`。
@@ -39,9 +39,10 @@
 - 测试/验收：RED 并发mark-all、最新5/游标、他人通知；Playwright hover/触摸/键盘/focus/overlay/空态/1440/390。
 - 风险/停止：打开即错误标已读、红点与DB不一致、浮层焦点逃逸或移动端无入口即停止。
 - 授权：`否`。
+- 证据：RED HTTP 聚焦首次退出 1，`4 failed, 1 passed`，失败均准确落在通知模板尚不存在；逻辑聚焦同时暴露字符串分页参数未关闭失败和并发全部已读重复计数。实现本人 Receipt 唯一查询 owner、最新五条与精确未读数、签名且绑定接收者/快照/位置的游标、隐藏/删除全面排除、单条与稳定行锁并发全读；Header 通过私有 `no-store` HTMX loader 隔离用户缓存，桌面 hover 与触屏 details 共用入口，原生 dialog 支持 Escape、初始焦点与关闭后触发点恢复，列表追加 folio 连续且所有已读状态通过精确事件同步。最终本地聚焦退出 0，`16 passed`；notifications 与 accounts 相关回归退出 0，`113 passed`；目标 Ruff/format、Django check、migration drift、完整前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 与真实浏览器读回 23 条可见 Receipt 全部已读、未读 0；另两条隐藏/删除 Receipt 仍未读且未被全读越界更新。`blog-playwright-cli` 验证 1440 light 最新五条 hover/空态、390 dark 触屏 popover/dialog、768 eye-care 通知页，覆盖键盘打开/Escape、焦点恢复、23 条游标追加、篡改游标 422 自动聚焦、全读后区域聚焦，390/768 无横向溢出且控制台 0 error/0 warning；原尺寸截图未见遮挡或裁切。专用浏览器、服务、数据库和 Redis DB 12 已清理并读回数据库不存在、Redis size=0。实现提交 `3fb3333` 已快进远端 `main`；未执行生产 migration、生产通知读写、部署或服务重启。
 
 ### OBS-003 实现管理员群发、读回、隐藏/恢复/删除
-- 元数据：状态 `待处理`；阶段 P8；owner `notifications`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P8；owner `notifications`；优先级 P1。
 - 目标/行为：唯一管理员群发固定给全部注册用户，可看每人已读；隐藏全体不可见且可恢复，删除全体不可见且产品不可恢复；所有写永久审计。
 - 来源：访谈 Q063-Q067；`modules/09-notifications-observability.md` §通知模型；`contracts/02-authorization-matrix.md` §通知。
 - 依赖：前置 `OBS-001`、`OBS-004`、`OBS-008`、`ACC-001`；后续 `ADM-008`、`QA-002`、`QA-003`、`QA-006`。
@@ -51,9 +52,10 @@
 - 测试/验收：RED 并发注册/群发边界、全体回执、隐藏/恢复/删除、普通用户伪造；Playwright读回列表。
 - 风险/停止：部分群发无明确终态、选择受众意外出现或删除可被普通入口恢复即停止。
 - 授权：`否`；生产群发 `是`。
+- 证据：RED `pytest apps/notifications/tests/test_obs003.py apps/administration/tests/test_obs003_http.py -q` 在收集期因缺少广播公共端口退出 2。实现 `admin.broadcast.v1` 版本化纯文本动态标题/内容模板，notifications owner 在事务内以 PostgreSQL account 表 SHARE 锁建立注册完成边界，固定选择全部仍存在账户（含禁用账户、排除已删除账户），一次写 Notification、全体 Receipt 与 `notifications.broadcast.create` 永久审计；隐藏/恢复/删除均锁定群发记录、服务端重判唯一管理员并与 before/after 审计同成败，删除终态拒绝恢复且个人通知不能借用群发可见性命令。管理员 query/UI 提供最近记录、全体/已读/未读计数、逐收件人分页筛选与纯文本搜索；表单没有 audience/scope 字段，确认请求保留输入，普通用户 GET/伪造 POST 均 403。聚焦最终退出 0，`10 passed`，覆盖并发注册在广播锁边界提交后仍收到 Receipt、审计失败全事务回滚、逐人读回和不可恢复删除；notifications、administration、accounts 相关回归退出 0，`109 passed`。目标 Ruff/format（43 文件）、Django check、migration drift、完整前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 页面实测创建 1 条群发、4 条 Receipt（含 1 个禁用账户），管理员实际阅读后读回 `1 read / 3 unread`，最终删除后用户可见 Receipt 为 0；四条 AuditEntry 顺序为 create/hide/restore/delete，快照仅含状态与收件人数，不含标题、内容或邮箱。`blog-playwright-cli` 验证 1440 light 空态/群发/逐人回执、390 dark 本地横向回执表与页面无溢出、768 eye-care 密集页，覆盖确认初始焦点、Escape/取消后触发点恢复、阅读筛选、隐藏/恢复/删除成功反馈，删除态无恢复/删除入口，控制台 0 error/0 warning；专用浏览器、runserver、数据库与 Redis DB 12 已清理并读回数据库不存在、Redis size=0。原始架构 guard 仍仅被 P7 既有 comments/moderation→`operations.public` 九处映射漂移阻断，本任务产品代码未新增违规。未执行生产群发、生产 migration、部署、真实邮件、提交或推送。
 
 ### OBS-009 实现任务最终失败通知与运维邮件集成
-- 元数据：状态 `待处理`；阶段 P8；owner `operations`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P8；owner `operations`；优先级 P1。
 - 目标/行为：TaskRun 达到三次失败后写 RuntimeError、生成一次站内通知；健康、磁盘、备份和运维类任务再按供应商配置发送管理员邮件，重复失败按小时去重。
 - 来源：`contracts/05-background-tasks.md` §统一任务协议/任务测试；`modules/09-notifications-observability.md` §TaskRun 与告警；`contracts/04-events-errors.md` §task.final_failed；DEC-002。
 - 依赖：前置 `OBS-006`、`OBS-005`、`OBS-008`、`FND-005`；后续 `OBS-010`、`EXC-005`、`EXC-006`、`EXC-007`、`QA-001`、`QA-003`、`QA-004`、`QA-006`。
