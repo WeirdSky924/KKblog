@@ -10,6 +10,7 @@ from .capacity import (
     capacity_health_snapshot,
 )
 from .celery import execute_celery_entry
+from .errors import capture_runtime_error
 from .tasks import (
     RetryableTaskError,
     StartOutcome,
@@ -40,6 +41,7 @@ __all__ = [
     "claim_task",
     "complete_task",
     "capacity_health_snapshot",
+    "capture_runtime_error",
     "execute_celery_entry",
     "execute_tracked_task",
     "fail_task",

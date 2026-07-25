@@ -32,6 +32,72 @@ class AuditEntry(models.Model):
         ]
 
 
+class RuntimeError(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    fingerprint = models.CharField(max_length=64, unique=True, editable=False)
+    error_code = models.CharField(max_length=96, editable=False)
+    exception_type = models.CharField(max_length=192, editable=False)
+    safe_summary = models.CharField(max_length=255, editable=False)
+    safe_traceback = models.TextField(editable=False)
+    safe_context = models.JSONField(default=dict, editable=False)
+    latest_trace_code = models.CharField(max_length=30, editable=False)
+    occurrence_count = models.PositiveIntegerField(default=1, editable=False)
+    first_seen_at = models.DateTimeField(editable=False)
+    last_seen_at = models.DateTimeField(editable=False)
+
+    class Meta:
+        db_table = "operations_runtime_error"
+        ordering = ("-last_seen_at", "-id")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(occurrence_count__gte=1),
+                name="operations_runtime_error_count_positive",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("error_code", "last_seen_at"),
+                name="runtime_error_code_idx",
+            ),
+            models.Index(fields=("last_seen_at",), name="runtime_error_seen_idx"),
+        ]
+
+
+class RuntimeErrorOccurrence(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    runtime_error = models.ForeignKey(
+        RuntimeError,
+        on_delete=models.PROTECT,
+        related_name="occurrences",
+        editable=False,
+    )
+    trace_code = models.CharField(max_length=30, editable=False)
+    safe_context = models.JSONField(default=dict, editable=False)
+    occurred_at = models.DateTimeField(editable=False)
+
+    class Meta:
+        db_table = "operations_runtime_error_occurrence"
+        ordering = ("-occurred_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("runtime_error", "trace_code"),
+                name="runtime_occurrence_error_trace_unique",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("runtime_error", "occurred_at"),
+                name="runtime_occurrence_error_idx",
+            ),
+            models.Index(fields=("occurred_at",), name="runtime_occurrence_seen_idx"),
+            models.Index(fields=("trace_code",), name="runtime_occurrence_trace_idx"),
+        ]
+
+
 class TaskRunStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     RUNNING = "running", "Running"

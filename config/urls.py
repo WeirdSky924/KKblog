@@ -3,8 +3,9 @@ from django.urls import include, path
 from apps.accounts.audit import configure_profile_audit_writer
 from apps.accounts.public import PublicAccountNotFound, public_account_identity
 from apps.core.errors.handlers import not_found, permission_denied, server_error
+from apps.core.errors.runtime_sink import configure_runtime_error_sink
 from apps.discovery.profile_identity import configure_profile_identity_provider
-from apps.operations.public import record_audit_entry
+from apps.operations.public import capture_runtime_error, record_audit_entry
 from config.comment_integrations import configure_comment_integrations
 from config.moderation_integrations import configure_moderation_integrations
 
@@ -17,6 +18,7 @@ def _public_profile_identity(account_id):
 
 
 configure_profile_audit_writer(record_audit_entry)
+configure_runtime_error_sink(capture_runtime_error)
 configure_profile_identity_provider(_public_profile_identity)
 configure_comment_integrations()
 configure_moderation_integrations()

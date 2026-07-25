@@ -3,7 +3,7 @@
 退出门禁：领域通知、浮层/通知页、错误检索、任务最终失败和容量告警均真实读回。
 
 ### OBS-005 实现 RuntimeError、trace 聚合与管理员错误检索
-- 元数据：状态 `待处理`；阶段 P8；owner `operations`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P8；owner `operations`；优先级 P0。
 - 目标/行为：未预期异常脱敏后永久保存并按fingerprint聚合次数/首末时间；用户见通用文案+trace，管理员按trace/错误码/关键字/时间查详情。
 - 来源：访谈 Q199-Q203；`modules/09-notifications-observability.md` §运行错误；`contracts/04-events-errors.md` §Trace/脱敏。
 - 依赖：前置 `FND-004`、`OBS-004`；后续 `OBS-009`、`ADM-008`、`QA-001`、`QA-003`、`QA-006`。
@@ -13,6 +13,7 @@
 - 测试/验收：注入全类秘密并验证页面/DB/stderr；相同fingerprint聚合、trace不存在诚实空态；Playwright用户/管理员两面。
 - 风险/停止：任一sink泄密、错误记录递归崩溃或用户可读取堆栈即停止。
 - 授权：`否`。
+- 证据：RED `pytest apps/operations/tests/test_obs005.py -q` 在收集期因缺少 `RuntimeError` owner 退出 2。实现 `RuntimeError` fingerprint 聚合与可多错误关联同一 trace 的永久 occurrence、严格安全上下文 schema、无异常原文的脱敏堆栈、并发唯一约束和三次冲突重入；core 仅调用可配置 sink，operations 写库失败只向 stderr 输出静态标记、合法 trace 与安全异常类型。管理员 query/UI 支持 trace、错误码、关键字、上海日期和详情，普通用户仍只见通用 500 与 trace。最终聚焦退出 0，`6 passed`；operations、管理员 wiring 与 HTTP 安全回归退出 0，`40 passed`；Ruff/format（目标 53 文件）、Django check、migration drift 与 `git diff --check` 均退出 0。隔离 PostgreSQL 应用 `operations.0003_runtime_error` 后，含 password/code/token/Cookie/Authorization/连接串/正文/邮箱/IP/原路径的 HTTP 异常在页面、DB、日志与 stderr 均无原值，同 fingerprint 两次读回 count=2、两个不同 fingerprint 可关联同一 trace，未知 trace 返回诚实空态。`blog-playwright-cli` 以普通错误面和管理员身份验证 390/768/1440、light/dark/eye-care、键盘 Enter 查询、详情/空态和局部表格滚动；发现并修复 390 长 fingerprint/pre 页面溢出，最终三视口页面 scrollWidth 等于 viewport。全仓 Ruff 仍被基线 `apps/comments/tests/test_cmt004.py` 的既有 import 顺序阻断；原始架构 guard 仍因 P7 comments/moderation→operations 的既有九处公共端口调用与未提交本地映射漂移退出 1，按该已确认映射注入审计退出 0，OBS-005 未新增反向边。未执行生产 migration、生产数据/日志读取、提交、推送、部署或服务重启。
 
 ### OBS-008 完成领域事件模板、通知去重与集成回执
 - 元数据：状态 `待处理`；阶段 P8；owner `notifications`；优先级 P0。

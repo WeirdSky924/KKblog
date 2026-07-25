@@ -6,6 +6,7 @@ from apps.administration.views.article_moderation import (
     review_article_appeal_action,
 )
 from apps.administration.views.audit import audit_log
+from apps.administration.views.errors import runtime_errors
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
 
@@ -28,6 +29,7 @@ urlpatterns = [
         name="article-appeal-review",
     ),
     path("audit/", audit_log, name="audit"),
+    path("errors/", runtime_errors, name="errors"),
     path("invites/", invites, name="invites"),
     path("ip-blocks/", ip_blocks, name="ip-blocks"),
 ]

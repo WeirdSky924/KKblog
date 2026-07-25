@@ -11,6 +11,7 @@ from apps.core.observability.trace import new_trace_code
 
 from .codes import ErrorCode, ErrorSpec, spec_for
 from .exceptions import DomainError
+from .runtime_sink import capture_unexpected_exception
 
 logger = logging.getLogger("kaj.errors")
 
@@ -82,11 +83,18 @@ class ErrorResponseMiddleware(MiddlewareMixin):
             return render_error_response(request, spec_for(ErrorCode.VALIDATION_FAILED))
 
         trace_code = _request_trace(request)
-        logger.error(
-            "Unhandled request exception type=%s",
-            type(exception).__name__,
-            extra={"trace_code": trace_code},
+        resolver_match = getattr(request, "resolver_match", None)
+        capture_unexpected_exception(
+            exception,
+            trace_code=trace_code,
+            error_code=ErrorCode.INTERNAL_ERROR.value,
+            context={
+                "method": request.method,
+                "route": getattr(resolver_match, "view_name", "") or "unresolved",
+                "source": "http",
+            },
         )
+        logger.error("Unhandled request exception", extra={"trace_code": trace_code})
         return render_error_response(request, spec_for(ErrorCode.INTERNAL_ERROR))
 
 
