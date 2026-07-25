@@ -1,0 +1,35 @@
+<details id="notification-center" class="notification-center" data-notification-center>
+  <summary
+    class="icon-button notification-center__trigger"
+    aria-label="通知，{{ notification_popover.unread_count }}条未读"
+    title="通知"
+  >
+    <i data-lucide="bell"></i>
+    <span
+      class="notification-center__badge"
+      data-notification-badge
+      {% if not notification_popover.unread_count %}hidden{% endif %}
+    ></span>
+    <span class="visually-hidden" data-notification-unread-label>{{ notification_popover.unread_count }}条未读</span>
+  </summary>
+  <section class="notification-popover" aria-label="通知预览">
+    <header class="notification-popover__header">
+      <h2>通知</h2>
+      <p data-notification-unread-text>{% if notification_popover.unread_count %}{{ notification_popover.unread_count }} 条未读{% else %}已全部阅读{% endif %}</p>
+    </header>
+    {% if notification_popover.items %}
+      <div class="notification-popover__list" role="list">
+        {% for item in notification_popover.items %}
+          {% include "notifications/partials/notification_item.html" with notification_item=item notification_variant="popover" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="notification-popover__empty">
+        <p>暂时没有通知</p>
+      </div>
+    {% endif %}
+    <footer class="notification-popover__footer">
+      <a href="{% url 'notifications:list' %}">查看全部</a>
+    </footer>
+  </section>
+</details>

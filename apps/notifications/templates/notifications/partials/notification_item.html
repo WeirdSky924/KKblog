@@ -1,0 +1,30 @@
+<div
+  class="notification-item notification-item--{{ notification_variant }}{% if not notification_item.is_read %} notification-item--unread{% endif %}"
+  role="listitem"
+  data-notification-item
+  data-notification-id="{{ notification_item.notification_id }}"
+  data-notification-read="{% if notification_item.is_read %}true{% else %}false{% endif %}"
+>
+  <span class="notification-item__folio" aria-hidden="true">{% if notification_variant == "inbox" %}{{ notification_folio|stringformat:"02d" }}{% else %}{{ forloop.counter|stringformat:"02d" }}{% endif %}</span>
+  <form method="post" action="{% url 'notifications:open' notification_item.notification_id %}" data-submit-once>
+    {% csrf_token %}
+    <button
+      class="notification-item__button"
+      type="submit"
+      hx-post="{% url 'notifications:open' notification_item.notification_id %}"
+      hx-target="#modal-layer"
+      hx-swap="innerHTML"
+      aria-haspopup="dialog"
+      data-notification-trigger="{{ notification_item.notification_id }}"
+    >
+      <span class="notification-item__copy">
+        <strong>{{ notification_item.title }}</strong>
+        <span class="notification-item__message">{{ notification_item.message }}</span>
+      </span>
+      <span class="notification-item__meta">
+        <time datetime="{{ notification_item.created_at|date:'c' }}">{{ notification_item.created_at|date:"m月d日 H:i" }}</time>
+        <span data-notification-state>{% if notification_item.is_read %}已读{% else %}未读{% endif %}</span>
+      </span>
+    </button>
+  </form>
+</div>

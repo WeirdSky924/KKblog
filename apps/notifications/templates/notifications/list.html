@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+{% block title %}通知 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="notification-page" aria-labelledby="notification-page-title">
+    <header class="notification-page__header">
+      <p>仅自己可见</p>
+      <h1 id="notification-page-title">通知</h1>
+    </header>
+    {% include "notifications/partials/inbox_page.html" %}
+  </section>
+{% endblock %}

@@ -27,14 +27,7 @@
       </form>{% endif %}
       <div class="identity-controls">
         {% if shell_account %}
-          <button
-            class="icon-button notification-slot"
-            type="button"
-            data-notification-slot
-            aria-label="通知"
-            title="通知"
-            disabled
-          ><i data-lucide="bell"></i></button>
+          {% include "notifications/partials/header_loader.html" %}
           {% include "components/navigation/personal_menu.html" %}
         {% else %}
           {% if shell_login_url %}<a class="button button--secondary" href="{{ shell_login_url }}"><i data-lucide="log-in"></i><span>登录</span></a>{% endif %}

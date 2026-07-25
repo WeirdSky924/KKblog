@@ -1,0 +1,14 @@
+<div
+  id="notification-center"
+  class="notification-center notification-center--loading"
+  data-notification-header-loader
+  hx-get="{% url 'notifications:popover' %}"
+  hx-trigger="load"
+  hx-swap="outerHTML"
+  aria-live="polite"
+>
+  <button class="icon-button" type="button" disabled aria-label="正在加载通知">
+    <i data-lucide="bell"></i>
+  </button>
+  <span class="visually-hidden">正在加载通知</span>
+</div>

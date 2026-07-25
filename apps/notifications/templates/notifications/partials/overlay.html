@@ -1,0 +1,29 @@
+<dialog
+  id="notification-dialog"
+  class="notification-dialog"
+  data-notification-dialog
+  data-notification-id="{{ notification_item.notification_id }}"
+  open
+  aria-labelledby="notification-dialog-title"
+  aria-describedby="notification-dialog-message"
+>
+  <article class="notification-dialog__content">
+    <header class="notification-dialog__header">
+      <p>通知详情</p>
+      <button class="icon-button" type="button" data-notification-close aria-label="关闭通知详情" title="关闭">
+        <i data-lucide="x"></i>
+      </button>
+    </header>
+    <div class="notification-dialog__body">
+      <h2 id="notification-dialog-title">{{ notification_item.title }}</h2>
+      <time datetime="{{ notification_item.created_at|date:'c' }}">{{ notification_item.created_at|date:"Y年m月d日 H:i" }}</time>
+      <p id="notification-dialog-message">{{ notification_item.message }}</p>
+    </div>
+    <footer class="notification-dialog__actions">
+      {% if notification_item.target_url %}
+        <a class="button button--primary" href="{{ notification_item.target_url }}">查看相关内容</a>
+      {% endif %}
+      <button class="button button--secondary" type="button" data-notification-close>关闭</button>
+    </footer>
+  </article>
+</dialog>

@@ -1,0 +1,19 @@
+<details id="notification-center" class="notification-center" data-notification-center data-notification-error>
+  <summary class="icon-button notification-center__trigger" aria-label="通知暂时不可用" title="通知">
+    <i data-lucide="bell"></i>
+  </summary>
+  <section class="notification-popover notification-popover--error" aria-label="通知状态">
+    <div class="notification-popover__error" role="alert">
+      <h2>通知暂时不可用</h2>
+      <p>请稍后重试。</p>
+      {% if trace_code and trace_code != "-" %}<p class="notification-popover__trace">参考编号 {{ trace_code }}</p>{% endif %}
+      <button
+        class="button button--secondary"
+        type="button"
+        hx-get="{% url 'notifications:popover' %}"
+        hx-target="#notification-center"
+        hx-swap="outerHTML"
+      >重试</button>
+    </div>
+  </section>
+</details>

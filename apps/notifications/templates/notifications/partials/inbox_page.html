@@ -1,0 +1,86 @@
+{% if notification_append %}
+  <div class="notification-inbox__batch" role="presentation">
+    {% for item in notification_page.items %}
+      {% include "notifications/partials/notification_item.html" with notification_item=item notification_variant="inbox" notification_folio=notification_page.start_index|add:forloop.counter %}
+    {% endfor %}
+  </div>
+  <div id="notification-load-more" class="notification-inbox__load-more" hx-swap-oob="outerHTML">
+    {% if notification_page.next_cursor %}
+      <a
+        class="button button--secondary"
+        href="{% url 'notifications:list' %}?cursor={{ notification_page.next_cursor|urlencode }}"
+        hx-get="{% url 'notifications:list' %}?cursor={{ notification_page.next_cursor|urlencode }}"
+        hx-target="#notification-feed"
+        hx-swap="beforeend"
+        hx-indicator="#notification-inbox-loading"
+      >加载更多</a>
+    {% endif %}
+  </div>
+{% else %}
+  <div
+    id="notification-inbox"
+    class="notification-inbox"
+    data-notification-inbox
+    data-focus-after-swap
+    tabindex="-1"
+  >
+    <p id="notification-inbox-loading" class="notification-inbox__loading htmx-indicator" role="status">正在更新通知…</p>
+    {% if notification_cursor_error %}
+      <div class="notification-inbox__error" data-error-focus tabindex="-1" role="alert">
+        <h2>通知页码已失效</h2>
+        <p>{{ notification_cursor_error }}</p>
+        <a class="button button--secondary" href="{% url 'notifications:list' %}">返回最新通知</a>
+      </div>
+    {% endif %}
+    <header class="notification-inbox__toolbar">
+      <p data-notification-unread-text>{% if notification_unread_count %}{{ notification_unread_count }} 条未读{% else %}已全部阅读{% endif %}</p>
+      {% if notification_unread_count %}
+        <form
+          method="post"
+          action="{% url 'notifications:mark-all-read' %}"
+          hx-post="{% url 'notifications:mark-all-read' %}"
+          hx-target="#notification-inbox"
+          hx-swap="outerHTML"
+          hx-indicator="#notification-inbox-loading"
+          data-notification-mark-all
+          data-submit-once
+        >
+          {% csrf_token %}
+          <button class="button button--secondary" type="submit">
+            <i data-lucide="circle-check"></i>
+            <span>全部标为已读</span>
+          </button>
+        </form>
+      {% endif %}
+    </header>
+    {% if notification_all_read %}
+      <p class="notification-inbox__success" role="status">全部通知已标为已读。</p>
+    {% endif %}
+    {% if notification_page.items %}
+      <div id="notification-feed" class="notification-inbox__feed" role="list">
+        <div class="notification-inbox__batch" role="presentation">
+          {% for item in notification_page.items %}
+            {% include "notifications/partials/notification_item.html" with notification_item=item notification_variant="inbox" notification_folio=notification_page.start_index|add:forloop.counter %}
+          {% endfor %}
+        </div>
+      </div>
+      <div id="notification-load-more" class="notification-inbox__load-more">
+        {% if notification_page.next_cursor %}
+          <a
+            class="button button--secondary"
+            href="{% url 'notifications:list' %}?cursor={{ notification_page.next_cursor|urlencode }}"
+            hx-get="{% url 'notifications:list' %}?cursor={{ notification_page.next_cursor|urlencode }}"
+            hx-target="#notification-feed"
+            hx-swap="beforeend"
+            hx-indicator="#notification-inbox-loading"
+          >加载更多</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="notification-inbox__empty">
+        <h2>暂时没有通知</h2>
+        <a class="button button--secondary" href="{% url 'public:home' %}">浏览文章</a>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

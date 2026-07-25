@@ -77,6 +77,7 @@ const availableIcons = {
 };
 const RETURN_FOCUS_KEY = "kaj.error-return-focus";
 const RETURN_FOCUS_REQUEST_KEY = "kaj.error-return-focus-requested";
+let activeNotificationTrigger = null;
 
 function writeSessionValue(key, value) {
   try {
@@ -211,6 +212,146 @@ function initializePersonalMenus(root = document) {
         menu.open = false;
       }
     });
+  });
+}
+
+function initializeNotificationCenters() {
+  document.querySelectorAll("[data-notification-center]").forEach((center) => {
+    if (
+      !(center instanceof HTMLDetailsElement) ||
+      center.dataset.notificationBound === "true"
+    ) {
+      return;
+    }
+    center.dataset.notificationBound = "true";
+    if (window.matchMedia("(hover: hover)").matches) {
+      center.addEventListener("pointerenter", () => {
+        center.open = true;
+      });
+      center.addEventListener("pointerleave", () => {
+        if (!center.contains(document.activeElement)) {
+          center.open = false;
+        }
+      });
+    }
+    center.addEventListener("focusout", () => {
+      requestAnimationFrame(() => {
+        if (
+          center.dataset.notificationDialogActive !== "true" &&
+          !center.contains(document.activeElement) &&
+          !center.matches(":hover")
+        ) {
+          center.open = false;
+        }
+      });
+    });
+  });
+}
+
+function notificationTrigger(notificationId) {
+  if (
+    activeNotificationTrigger instanceof HTMLElement &&
+    activeNotificationTrigger.isConnected &&
+    activeNotificationTrigger.dataset.notificationTrigger === notificationId
+  ) {
+    return activeNotificationTrigger;
+  }
+  return Array.from(document.querySelectorAll("[data-notification-trigger]")).find(
+    (trigger) => trigger.dataset.notificationTrigger === notificationId,
+  );
+}
+
+function initializeNotificationDialogs() {
+  document.querySelectorAll("[data-notification-dialog]").forEach((dialog) => {
+    if (
+      !(dialog instanceof HTMLDialogElement) ||
+      dialog.dataset.notificationBound === "true"
+    ) {
+      return;
+    }
+    dialog.dataset.notificationBound = "true";
+    const notificationId = dialog.dataset.notificationId || "";
+    const origin = notificationTrigger(notificationId);
+    const notificationCenter = origin?.closest("[data-notification-center]");
+    if (notificationCenter instanceof HTMLDetailsElement) {
+      notificationCenter.dataset.notificationDialogActive = "true";
+      notificationCenter.open = true;
+    }
+    const closeDialog = () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+    dialog.querySelectorAll("[data-notification-close]").forEach((button) => {
+      button.addEventListener("click", closeDialog);
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        closeDialog();
+      }
+    });
+    dialog.addEventListener("close", () => {
+      const trigger = notificationTrigger(notificationId);
+      if (notificationCenter instanceof HTMLDetailsElement) {
+        delete notificationCenter.dataset.notificationDialogActive;
+        notificationCenter.open = true;
+      }
+      dialog.closest("#modal-layer")?.replaceChildren();
+      activeNotificationTrigger = null;
+      if (trigger instanceof HTMLElement) {
+        requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
+      }
+    });
+    if (dialog.open) {
+      dialog.removeAttribute("open");
+    }
+    dialog.showModal();
+    const initialFocus = dialog.querySelector("[data-notification-close]");
+    if (initialFocus instanceof HTMLElement) {
+      requestAnimationFrame(() => initialFocus.focus({ preventScroll: true }));
+    }
+  });
+}
+
+function updateNotificationUnreadCount(value) {
+  const unreadCount = Number(value);
+  if (!Number.isSafeInteger(unreadCount) || unreadCount < 0) {
+    return;
+  }
+  document.querySelectorAll("[data-notification-center]").forEach((center) => {
+    const trigger = center.querySelector(".notification-center__trigger");
+    trigger?.setAttribute("aria-label", `通知，${unreadCount}条未读`);
+    const label = center.querySelector("[data-notification-unread-label]");
+    if (label instanceof HTMLElement) {
+      label.textContent = `${unreadCount}条未读`;
+    }
+    const badge = center.querySelector("[data-notification-badge]");
+    if (badge instanceof HTMLElement) {
+      badge.hidden = unreadCount === 0;
+    }
+  });
+  document.querySelectorAll("[data-notification-unread-text]").forEach((label) => {
+    label.textContent = unreadCount ? `${unreadCount} 条未读` : "已全部阅读";
+  });
+  document.querySelectorAll("[data-notification-mark-all]").forEach((form) => {
+    form.hidden = unreadCount === 0;
+  });
+}
+
+function markNotificationItemRead(notificationId) {
+  if (!notificationId) {
+    return;
+  }
+  document.querySelectorAll("[data-notification-item]").forEach((item) => {
+    if (item.dataset.notificationId !== notificationId) {
+      return;
+    }
+    item.dataset.notificationRead = "true";
+    item.classList.remove("notification-item--unread");
+    const state = item.querySelector("[data-notification-state]");
+    if (state instanceof HTMLElement) {
+      state.textContent = "已读";
+    }
   });
 }
 
@@ -657,6 +798,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const notification = target.closest("[data-notification-trigger]");
+  if (notification instanceof HTMLElement) {
+    activeNotificationTrigger = notification;
+  }
+
   const back = target.closest("[data-error-back]");
   if (back) {
     if (window.history.length > 1) {
@@ -708,6 +854,18 @@ document.addEventListener("kaj:theme-request", (event) => {
   applyTheme(event.detail?.theme);
 });
 
+document.addEventListener("kaj:notification-read", (event) => {
+  const notificationId = event.detail?.notificationId;
+  if (notificationId) {
+    markNotificationItemRead(notificationId);
+  } else {
+    document.querySelectorAll("[data-notification-item]").forEach((item) => {
+      markNotificationItemRead(item.dataset.notificationId);
+    });
+  }
+  updateNotificationUnreadCount(event.detail?.unreadCount);
+});
+
 document.addEventListener("submit", (event) => {
   const form = event.target;
   if (form instanceof HTMLFormElement && form.matches("[data-theme-bridge]")) {
@@ -755,16 +913,21 @@ document.addEventListener("click", (event) => {
     return;
   }
   document.querySelectorAll(".site-header details[open]").forEach((disclosure) => {
-    if (!disclosure.contains(event.target)) {
+    if (
+      disclosure.dataset.notificationDialogActive !== "true" &&
+      !disclosure.contains(event.target)
+    ) {
       disclosure.removeAttribute("open");
     }
   });
 });
 
 document.addEventListener("htmx:afterSwap", (event) => {
-  const root = event.detail?.target ?? document;
+  const root = currentSwapRoot(event.detail?.target ?? document);
   initializeIcons(root);
   initializePersonalMenus(root);
+  initializeNotificationCenters();
+  initializeNotificationDialogs();
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
   initializeCharacterCounts(root);
@@ -779,9 +942,17 @@ document.addEventListener("htmx:load", (event) => {
   initializeCommentThreads(event.detail?.elt ?? document);
 });
 
+document.addEventListener("htmx:beforeRequest", (event) => {
+  const trigger = event.detail?.elt?.closest?.("[data-notification-trigger]");
+  if (trigger instanceof HTMLElement) {
+    activeNotificationTrigger = trigger;
+  }
+});
+
 document.addEventListener("htmx:afterSettle", (event) => {
-  const root = event.detail?.target ?? document;
+  const root = currentSwapRoot(event.detail?.target ?? document);
   focusInsertedError(root);
+  focusSwappedRegion(root);
   focusLoadedCommentReply(root);
 });
 
@@ -817,6 +988,8 @@ window.Alpine = Alpine;
 Alpine.start();
 initializeIcons();
 initializePersonalMenus();
+initializeNotificationCenters();
+initializeNotificationDialogs();
 initializeConfirmDialogs();
 initializeCopyLinks();
 initializeCharacterCounts();
