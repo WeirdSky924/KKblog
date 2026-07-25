@@ -33,6 +33,7 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False
+OPERATIONAL_EMAIL_PROVIDER = "mailpit"
 
 TEST_REDIS_URL = load_isolated_test_redis(os.environ)
 if TEST_REDIS_URL is not None:

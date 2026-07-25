@@ -1,5 +1,12 @@
 """Operational application services."""
 
+from .alerts import (
+    AlertEmailBatchResult,
+    OperationalEmailMessage,
+    is_operational_task,
+    record_task_final_failure_alert,
+    send_pending_operational_alert_emails,
+)
 from .capacity import (
     CapacityDecision,
     CapacityGate,
@@ -33,6 +40,8 @@ __all__ = [
     "CapacityPolicy",
     "CapacitySample",
     "CapacityState",
+    "AlertEmailBatchResult",
+    "OperationalEmailMessage",
     "RetryableTaskError",
     "StartOutcome",
     "TaskFinalFailed",
@@ -46,6 +55,9 @@ __all__ = [
     "execute_tracked_task",
     "fail_task",
     "heartbeat_task",
+    "is_operational_task",
+    "record_task_final_failure_alert",
     "recover_expired_task_leases",
     "retry_delay_seconds",
+    "send_pending_operational_alert_emails",
 ]

@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Iterable, Mapping
 from datetime import date
 
@@ -11,6 +12,8 @@ from apps.notifications.services.delivery import (
 from .registry import NotificationTemplateDefinition, register_template_definition
 
 PayloadValidator = Callable[[Mapping[str, object]], None]
+_TASK_NAME = re.compile(r"[a-z][a-z0-9_.-]{0,127}\Z")
+_ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z")
 
 
 def _reject_unless(condition: bool) -> None:
@@ -83,6 +86,18 @@ def _broadcast(payload: Mapping[str, object]) -> None:
         and _safe_reason(headline)
     )
     _reject_unless(_safe_reason(message))
+
+
+def _task_final_failure(payload: Mapping[str, object]) -> None:
+    attempt = payload["attempt"]
+    _reject_unless(
+        isinstance(payload["task_name"], str)
+        and _TASK_NAME.fullmatch(payload["task_name"])
+        and not isinstance(attempt, bool)
+        and attempt == 3
+        and isinstance(payload["error_code"], str)
+        and _ERROR_CODE.fullmatch(payload["error_code"])
+    )
 
 
 def _comment_deleted(payload: Mapping[str, object]) -> None:
@@ -183,6 +198,22 @@ def _schema(
 
 
 _BUILTINS = (
+    (
+        _schema(
+            "task.final_failed.v1",
+            "task_run",
+            frozenset({"task_name", "attempt", "error_code"}),
+            _task_final_failure,
+        ),
+        NotificationTemplateDefinition(
+            "task.final_failed.v1",
+            "后台任务最终失败",
+            lambda payload: (
+                f"任务 {payload['task_name']} 已在第 3 次尝试后终止，"
+                f"错误码：{payload['error_code']}。"
+            ),
+        ),
+    ),
     (
         _schema(
             "admin.broadcast.v1",

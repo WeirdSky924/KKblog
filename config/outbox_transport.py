@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from apps.accounts.public import active_administrator_id
 from apps.content.consumers.account_status import consume_account_status_event
 from apps.core.events import ConsumerOutcome, EventEnvelope
 from apps.discovery.cache.invalidation import consume_discovery_cache_event
@@ -11,7 +12,9 @@ from apps.notifications.public import (
     consume_account_deleted,
     consume_author_role_changed,
     consume_domain_notification,
+    consume_task_final_failure_notification,
 )
+from apps.operations.public import consume_task_final_failure_alert
 
 EventConsumer = Callable[[EventEnvelope], object]
 
@@ -60,6 +63,13 @@ _TERMINAL_EVENTS = frozenset(
 )
 
 
+def _consume_task_final_failure_notification(envelope: EventEnvelope):
+    return consume_task_final_failure_notification(
+        envelope,
+        administrator_id_provider=active_administrator_id,
+    )
+
+
 def _routes(event_type: str) -> tuple[EventConsumer, ...]:
     if event_type == "account.author_role_changed.v1":
         return (consume_author_role_changed,)
@@ -71,6 +81,11 @@ def _routes(event_type: str) -> tuple[EventConsumer, ...]:
         return (consume_discovery_cache_event,)
     if event_type in _DOMAIN_NOTIFICATION_EVENTS:
         return (consume_domain_notification,)
+    if event_type == "task.final_failed.v1":
+        return (
+            consume_task_final_failure_alert,
+            _consume_task_final_failure_notification,
+        )
     if event_type in _TERMINAL_EVENTS:
         return ()
     raise UnsupportedApplicationEvent("Application event has no registered route")

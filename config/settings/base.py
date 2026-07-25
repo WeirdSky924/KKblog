@@ -86,6 +86,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "config.runtime_tasks.publish_outbox",
         "schedule": 5.0,
     },
+    "operations-send-alert-emails": {
+        "task": "config.runtime_tasks.send_operational_alert_emails",
+        "schedule": 60.0,
+    },
     "comments-publish-due": {
         "task": "apps.comments.dispatch_due_comments",
         "schedule": 60.0,

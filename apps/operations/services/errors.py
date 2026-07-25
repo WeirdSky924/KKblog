@@ -8,10 +8,10 @@ from typing import Any
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.utils import timezone
 
 from apps.core.errors.redaction import DEFAULT_REDACTION_POLICY
 from apps.core.observability.trace import new_trace_code
+from apps.core.time.clock import Clock, SystemClock
 from apps.operations.models import (
     RuntimeError as RuntimeErrorRecord,
 )
@@ -112,8 +112,8 @@ def _persist_once(
     safe_traceback: str,
     safe_context: dict[str, object],
     trace_code: str,
+    now,
 ) -> RuntimeErrorRecord:
-    now = timezone.now()
     with transaction.atomic():
         aggregate = (
             RuntimeErrorRecord.objects.select_for_update()
@@ -164,6 +164,7 @@ def _persist_runtime_error(
     trace_code: str,
     error_code: str,
     context: Mapping[str, Any] | None,
+    clock: Clock | None = None,
 ) -> RuntimeErrorRecord:
     safe_error_code = _error_code(error_code)
     kwargs = {
@@ -173,6 +174,7 @@ def _persist_runtime_error(
         "safe_traceback": _safe_traceback(exception),
         "safe_context": _safe_context(context),
         "trace_code": _trace_code(trace_code),
+        "now": (clock or SystemClock()).now(),
     }
     for attempt in range(3):
         try:
@@ -189,6 +191,7 @@ def capture_runtime_error(
     trace_code: str,
     error_code: str = "core.internal_error.v1",
     context: Mapping[str, Any] | None = None,
+    clock: Clock | None = None,
 ) -> RuntimeErrorRecord | None:
     safe_trace_code = _trace_code(trace_code)
     try:
@@ -197,6 +200,7 @@ def capture_runtime_error(
             trace_code=safe_trace_code,
             error_code=error_code,
             context=context,
+            clock=clock,
         )
     except Exception:
         diagnostic = (

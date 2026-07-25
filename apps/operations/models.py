@@ -98,6 +98,173 @@ class RuntimeErrorOccurrence(models.Model):
         ]
 
 
+class OperationalAlertKind(models.TextChoices):
+    TASK_FINAL_FAILED = "task_final_failed", "Task final failed"
+    CAPACITY = "capacity", "Capacity"
+    SERVICE_HEALTH = "service_health", "Service health"
+
+
+class OperationalAlertSeverity(models.TextChoices):
+    WARNING = "warning", "Warning"
+    CRITICAL = "critical", "Critical"
+
+
+class OperationalAlert(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    kind = models.CharField(max_length=24, choices=OperationalAlertKind, editable=False)
+    fingerprint = models.CharField(max_length=64, unique=True, editable=False)
+    source_key = models.CharField(max_length=128, editable=False)
+    task_run = models.ForeignKey(
+        "operations.TaskRun",
+        related_name="operational_alerts",
+        null=True,
+        on_delete=models.PROTECT,
+        editable=False,
+    )
+    runtime_error = models.ForeignKey(
+        RuntimeError,
+        related_name="operational_alerts",
+        null=True,
+        on_delete=models.PROTECT,
+        editable=False,
+    )
+    task_name = models.CharField(max_length=128, blank=True, editable=False)
+    error_code = models.CharField(max_length=96, editable=False)
+    trace_code = models.CharField(max_length=30, editable=False)
+    severity = models.CharField(
+        max_length=12,
+        choices=OperationalAlertSeverity,
+        default=OperationalAlertSeverity.CRITICAL,
+        editable=False,
+    )
+    active = models.BooleanField(default=True, editable=False)
+    occurrence_count = models.PositiveIntegerField(default=1, editable=False)
+    first_seen_at = models.DateTimeField(editable=False)
+    last_seen_at = models.DateTimeField(editable=False)
+    resolved_at = models.DateTimeField(null=True, editable=False)
+
+    class Meta:
+        db_table = "operations_operational_alert"
+        ordering = ("-last_seen_at", "-id")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(occurrence_count__gte=1),
+                name="operations_alert_count_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(active=True, resolved_at__isnull=True)
+                    | Q(active=False, resolved_at__isnull=False)
+                ),
+                name="operations_alert_resolution_shape",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("active", "kind", "last_seen_at"),
+                name="operations_alert_active_idx",
+            ),
+            models.Index(fields=("source_key",), name="operations_alert_source_idx"),
+        ]
+
+
+class AlertEmailStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SENDING = "sending", "Sending"
+    SENT = "sent", "Sent"
+    FAILED = "failed", "Failed"
+    UNKNOWN = "unknown", "Delivery unknown"
+
+
+class OperationalAlertEmailWindow(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    alert = models.ForeignKey(
+        OperationalAlert,
+        related_name="email_windows",
+        on_delete=models.PROTECT,
+        editable=False,
+    )
+    window_started_at = models.DateTimeField(editable=False)
+    status = models.CharField(
+        max_length=12,
+        choices=AlertEmailStatus,
+        default=AlertEmailStatus.PENDING,
+        editable=False,
+    )
+    attempts = models.PositiveSmallIntegerField(default=0, editable=False)
+    available_at = models.DateTimeField(default=timezone.now, editable=False)
+    lease_token = models.UUIDField(null=True, editable=False)
+    lease_expires_at = models.DateTimeField(null=True, editable=False)
+    sent_at = models.DateTimeField(null=True, editable=False)
+    last_error_code = models.CharField(max_length=96, blank=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        db_table = "operations_alert_email_window"
+        ordering = ("window_started_at", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("alert", "window_started_at"),
+                name="operations_alert_email_window_unique",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        status=AlertEmailStatus.SENDING,
+                        attempts__gte=1,
+                        lease_token__isnull=False,
+                        lease_expires_at__isnull=False,
+                        sent_at__isnull=True,
+                    )
+                    | Q(
+                        status=AlertEmailStatus.SENT,
+                        attempts__gte=1,
+                        lease_token__isnull=True,
+                        lease_expires_at__isnull=True,
+                        sent_at__isnull=False,
+                    )
+                    | Q(
+                        status__in=(
+                            AlertEmailStatus.FAILED,
+                            AlertEmailStatus.UNKNOWN,
+                        ),
+                        attempts__gte=1,
+                        lease_token__isnull=True,
+                        lease_expires_at__isnull=True,
+                        sent_at__isnull=True,
+                    )
+                    | Q(
+                        status=AlertEmailStatus.PENDING,
+                        attempts=0,
+                        lease_token__isnull=True,
+                        lease_expires_at__isnull=True,
+                        sent_at__isnull=True,
+                    )
+                ),
+                name="operations_alert_email_state_shape",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("status", "available_at"),
+                name="ops_alert_email_ready_idx",
+                condition=Q(
+                    status__in=(AlertEmailStatus.PENDING, AlertEmailStatus.FAILED)
+                ),
+            ),
+            models.Index(
+                fields=("lease_expires_at",),
+                name="ops_alert_email_lease_idx",
+                condition=Q(status=AlertEmailStatus.SENDING),
+            ),
+        ]
+
+
 class TaskRunStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     RUNNING = "running", "Running"

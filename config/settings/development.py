@@ -46,5 +46,6 @@ _mailpit = load_development_mailpit(os.environ)
 EMAIL_HOST = _mailpit.host
 EMAIL_PORT = _mailpit.port
 EMAIL_USE_TLS = False
+OPERATIONAL_EMAIL_PROVIDER = "mailpit"
 
 del _mailpit

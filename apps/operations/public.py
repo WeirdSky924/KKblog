@@ -1,5 +1,7 @@
+from apps.operations.consumers import consume_task_final_failure_alert
 from apps.operations.queries.audit import audit_detail, search_audit
 from apps.operations.queries.errors import error_detail, search_runtime_errors
+from apps.operations.services.alerts import send_pending_operational_alert_emails
 from apps.operations.services.audit import (
     AuditRejected,
     AuditSchema,
@@ -29,6 +31,7 @@ __all__ = [
     "RetryableTaskError",
     "StartOutcome",
     "capture_runtime_error",
+    "consume_task_final_failure_alert",
     "require_image_creation_capacity",
     "require_text_creation_capacity",
     "audit_detail",
@@ -38,4 +41,5 @@ __all__ = [
     "register_audit_schema",
     "search_audit",
     "search_runtime_errors",
+    "send_pending_operational_alert_emails",
 ]

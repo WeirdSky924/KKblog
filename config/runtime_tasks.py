@@ -5,8 +5,10 @@ from uuid import UUID
 from celery import shared_task
 
 from apps.core.events import publish_batch
+from apps.operations.services.alerts import send_pending_operational_alert_emails
 from apps.operations.services.celery import execute_celery_entry
 from apps.operations.services.tasks import RetryableTaskError
+from config.operational_email import send_configured_operational_email
 from config.outbox_transport import build_application_event_transport
 
 
@@ -20,6 +22,14 @@ def _publish_outbox_service(batch_id: str) -> str:
     if result.failed:
         raise RetryableTaskError("core.outbox_transport_failed.v1")
     return f"outbox:{result.claimed}:{result.published}"
+
+
+def _send_operational_alert_emails_service(batch_id: str) -> str:
+    UUID(str(batch_id))
+    result = send_pending_operational_alert_emails(
+        sender=send_configured_operational_email
+    )
+    return f"alert-email:{result.sent}:{result.skipped}"
 
 
 @shared_task(
@@ -56,4 +66,21 @@ def publish_outbox(self) -> None:
         business_object=request_id,
         idempotency_key=f"outbox:{request_id}",
         service=_publish_outbox_service,
+    )
+
+
+@shared_task(
+    bind=True,
+    ignore_result=True,
+    max_retries=None,
+    name="config.runtime_tasks.send_operational_alert_emails",
+)
+def send_operational_alert_emails(self) -> None:
+    request_id = getattr(self.request, "id", "")
+    execute_celery_entry(
+        self,
+        task_name="config.runtime_tasks.send_operational_alert_emails",
+        business_object=request_id,
+        idempotency_key=f"alert-email:{request_id}",
+        service=_send_operational_alert_emails_service,
     )
