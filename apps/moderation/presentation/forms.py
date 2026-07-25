@@ -51,3 +51,33 @@ class ReportForm(forms.Form):
         if not self.is_valid():
             return ()
         return self.cleaned_data["evidence_refs"]
+
+
+class ArticleAppealForm(forms.Form):
+    statement = forms.CharField(
+        required=False,
+        max_length=200,
+        strip=True,
+        error_messages={"max_length": "申诉说明不能超过 200 字。"},
+    )
+    evidence_ref_1 = forms.CharField(required=False, max_length=2048)
+    evidence_ref_2 = forms.CharField(required=False, max_length=2048)
+    evidence_ref_3 = forms.CharField(required=False, max_length=2048)
+
+    def clean(self):
+        cleaned = super().clean()
+        refs = tuple(
+            value
+            for name in ("evidence_ref_1", "evidence_ref_2", "evidence_ref_3")
+            if (value := cleaned.get(name))
+        )
+        if len(set(refs)) != len(refs):
+            raise forms.ValidationError("申诉证据图片不能重复。")
+        cleaned["evidence_refs"] = refs
+        return cleaned
+
+    @property
+    def evidence_refs(self) -> tuple[str, ...]:
+        if not self.is_valid():
+            return ()
+        return self.cleaned_data["evidence_refs"]

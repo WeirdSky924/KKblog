@@ -169,15 +169,15 @@ def appeal_article_action(
                 .filter(pk=identity)
                 .first()
             )
-            if case is None or case.state != ArticleModerationCase.State.ACTIVE:
-                raise ArticleCaseError(
-                    "moderation.article_appeal_state_conflict.v1",
-                    "该文章管理动作当前不能申诉。",
-                )
-            if actor != case.author_id:
+            if case is None or actor != case.author_id:
                 raise ArticleCaseError(
                     "moderation.article_appeal_forbidden.v1",
                     "当前身份不能处理该文章申诉。",
+                )
+            if case.state != ArticleModerationCase.State.ACTIVE:
+                raise ArticleCaseError(
+                    "moderation.article_appeal_state_conflict.v1",
+                    "该文章管理动作当前不能申诉。",
                 )
             appeal = ArticleAppeal.objects.create(
                 id=appeal_id,
@@ -236,10 +236,13 @@ def stage_article_appeal_evidence(
         code="moderation.article_appeal_unavailable.v1",
     )
     case = ArticleModerationCase.objects.filter(pk=identity).first()
+    if case is None or case.author_id != actor:
+        raise ArticleCaseError(
+            "moderation.article_appeal_forbidden.v1",
+            "当前身份不能处理该文章申诉。",
+        )
     if (
-        case is None
-        or case.state != ArticleModerationCase.State.ACTIVE
-        or case.author_id != actor
+        case.state != ArticleModerationCase.State.ACTIVE
         or ArticleAppeal.objects.filter(case=case).exists()
     ):
         raise ArticleCaseError(

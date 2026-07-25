@@ -21,6 +21,14 @@ from .ports import (
     ReportEvidenceError,
     ReportEvidenceUpload,
 )
+from .queries import (
+    ArticleAppealDetail,
+    ArticleCaseDetail,
+    ArticleCaseListItem,
+    ArticleCaseNotFound,
+    article_case_detail,
+    article_case_list,
+)
 from .services import (
     ArticleAction,
     ArticleAppealEvidenceAccess,
@@ -62,12 +70,16 @@ from .services import (
 __all__ = [
     "ArticleAction",
     "ArticleAppeal",
+    "ArticleAppealDetail",
     "ArticleAppealEvidenceAccess",
     "ArticleAppealEvidenceError",
     "ArticleAppealEvidenceUpload",
     "ArticleAppealReviewOutcome",
     "ArticleAppealReviewResult",
     "ArticleCaseError",
+    "ArticleCaseDetail",
+    "ArticleCaseListItem",
+    "ArticleCaseNotFound",
     "ArticleCaseRestorationResult",
     "ArticleCaseResult",
     "ArticleModerationCase",
@@ -95,6 +107,8 @@ __all__ = [
     "DeletedAccountIdentity",
     "appeal_article_action",
     "article_administrative_action_allowed",
+    "article_case_detail",
+    "article_case_list",
     "article_appeal_evidence_access",
     "article_is_moderation_hidden",
     "consume_account_deleted",

@@ -133,7 +133,7 @@
 - 授权：`否`；生产复审 `是`。
 
 ### CMT-011 实现管理员文章案件/申诉及删除账户关联案件收敛
-- 元数据：状态 `进行中`；阶段 P7；owner `moderation`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P7；owner `moderation`；优先级 P0。
 - 目标/行为：管理员隐藏/删除他人文章可填原因并通知/审计；作者一次200字/3图申诉，复审终局；准许恢复前状态。删除举报人/被举报人时按规则关闭并永久留管理员记录。
 - 来源：访谈 Q284、Q287、Q302-Q307、Q311、Q315；`data/03-interaction-operations-fields.md` §ArticleCase/Appeal；`contracts/02-authorization-matrix.md`。
 - 依赖：前置 `CNT-005`、`CNT-008`、`ACC-011`、`CMT-009`、`OBS-004`；后续 `OBS-008`、`EXC-004`、`ADM-004`、`QA-002`、`QA-003`、`QA-006`。
@@ -142,6 +142,15 @@
 - 影响：数据：Case/Appeal/身份快照；权限：admin/受影响作者；审计：永久；缓存：content事件失效；异步：outbox；媒体：证据；通知：动作/结果。
 - 测试/验收：RED 隐藏仅已发布、一次申诉、前状态恢复、删除账户关闭报告、重复事件；四身份伪造POST+DB读回。
 - 风险/停止：案件与文章状态分叉、管理员权限扩大或账户删除清除追踪身份即停止。
+- 证据：阶段收口 RED `pytest apps/moderation/tests/test_cmt011_http.py -q` 首次收集退出 2，准确报告 moderation 缺少案件查询公共契约；补查询后再次退出 1、`2 failed`，准确报告 administration 案件动作路由缺失。新增永久 `ArticleModerationCase/ArticleAppeal/DeletedAccountIdentity` 事实及 moderation owner 的案件/申诉服务、账户删除幂等 consumer、有效案件策略、只读 detail/list DTO 和安全事件；隐藏只接受他人已发布文章且不改 Article 私有字段，删除/恢复经 content 公开边界并携带匹配 case ID，直接绕过案件恢复被拒绝，申诉准许精确恢复前状态。author 申诉/证据 POST 由 moderation 公开交互入口适配，管理员创建/主动恢复/终局复审 POST 由 administration 薄适配器拥有；适配器不复制权限、状态机、审计或 Outbox。四身份 HTTP GREEN 退出 0、`2 passed`：访客/普通用户/受影响作者伪造管理 POST 和访客/普通用户/管理员伪造申诉均无数据库副作用，只有管理员可建案/裁决、只有受影响作者可申诉；查询对无关身份统一不可见，管理员可读回删除账户的不可复用 deletion ID。CMT-011/CNT-008 聚焦最终退出 0、`15 passed`，覆盖 HIDE/DELETE、主动恢复、申诉终局、真实 PNG 私有证据、Audit/Outbox 脱敏、直接恢复防绕过、账户删除重复事件和文章物理清理后 Report/Appeal/ArticleCase 永久保留；架构/HTTP 安全/举报相关回归 `21 passed`，最终全仓退出 0、`392 passed in 199.92s`。全新隔离 PostgreSQL 从零应用全部 migration 成功，`moderation 0004 -> 0003 -> 0004` 回退/重放均退出 0；回退读回三张新增表不存在、Report 三个关闭字段为 0，重放读回三张表/三个字段、案件/申诉 CHECK、有效案件部分唯一索引及 moderation 到 Article/Comment 外键数 0，专用数据库删除后数量为 0。Django check、migration drift、Ruff、format 与差异检查均退出 0。完整 `admin:articles/admin:reports` 队列页面和浏览器状态矩阵由明确后续 `ADM-004` 消费本卡公共查询/动作，最终 Notification Receipt 由 `OBS-008` 消费稳定事件；未执行生产隐藏/删除/裁决、生产 migration、真实通知或部署，本收口增量的 Git 交付由后续用户指令单独授权。
 - 授权：`否`；生产隐藏/删除/裁决 `是`。
+
+## 阶段总审计（2026-07-25）
+
+- 状态与拓扑：结构化读回 P7 精确 11 张 `CMT` 任务卡、11 条 `完成`、11 条证据和 11 条授权，P7 `进行中/待处理/阻塞/待确认` 为 0；总清单仍只有无关 P6 `DSC-008` 一条进行中。13 个阶段、102 个唯一任务、555 条前置与 555 条互认后续边保持 0 缺失、0 反向阶段边、0 不互认、0 环和 0 owner 缺失；comments 拥有线程/评论树，moderation 拥有举报/申诉/文章案件，administration 只提供管理动作适配，不形成第二状态机。
+- 数据与回归：最终隔离全仓 pytest 退出 0、`392 passed`；CMT-011 与 CNT-008 聚焦 `15 passed`，架构/HTTP 安全/举报/CMT-011 组合 `21 passed`。真实 PostgreSQL 覆盖评论树约束、游标、删除占位、举报/申诉终局、账户删除幂等与案件/申诉永久记录；真实临时媒体覆盖评论图、举报证据和文章申诉证据的绑定、授权与清理；隔离 Redis solo Worker 已在 CMT-004 读回到期公开首成/重复 TaskRun。
+- Migration 与 catalog：本阶段任务卡分别记录 comments `0001..0003` 与 moderation `0001..0004` 的正向、反向和重放证据。最终专用数据库从零应用全仓 migration，并再次完成 moderation `0004 -> 0003 -> 0004`；catalog 读回有效案件唯一裁决、终局/关闭形状、删除身份快照和 0 条到 Article/Comment 的外键，证明文章/评论物理清理不会级联删除审核记录。测试数据库、临时媒体、浏览器产物和 Worker 均已定向清理。
+- 页面与边界：CMT-002/005/006/007/008 已按各卡证据完成 390/768/1440、三主题、键盘/焦点和真实持久化浏览器流；CMT-011 的卡内门禁以四身份真实 POST+DB 读回完成。完整管理员文章/举报队列页面明确归后续 `ADM-004`，本阶段只交付其稳定 moderation 查询和 administration 动作适配；领域通知 Receipt 归 `OBS-008`，未用临时页面或通知实现冒充完成。
+- 未执行与残余边界：未执行生产 migration、生产评论/举报/申诉/文章裁决、生产媒体清理、真实通知/邮件、真实 Beat、部署或服务重启。P7 完成解锁 `OBS-008`、`EXC-004`、`ADM-004` 和相应 QA 前置，但总阶段顺序仍需先收口正在进行的 P6 `DSC-008`；本阶段收口增量已由后续用户指令授权 Git 交付，本地验证测试按交付规则不纳入提交。
 
 [返回总索引](../implementation-todolist.md)
