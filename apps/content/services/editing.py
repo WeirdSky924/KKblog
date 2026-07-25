@@ -14,6 +14,7 @@ from apps.core.time.clock import Clock, SystemClock
 from apps.media.public import MediaPurpose, MediaTargetType, target_binding_snapshot
 
 from ..models import Article, ArticleEditGrant, ArticleRevision, Tag
+from ..policies import article_is_reader_masked
 from ..snapshots import ArticleSnapshot, ArticleWriteResult
 from .articles import ContentCommandError, save_revision
 
@@ -190,6 +191,8 @@ def open_edit_session(
             )
         except Article.DoesNotExist:
             raise EditTokenError from None
+        if article_is_reader_masked(article.id):
+            raise EditTokenError
         if article.edit_grants.filter(state=ArticleEditGrant.State.CONFLICT).exists():
             raise EditTokenError
         revision = ArticleRevision.objects.get(pk=article.working_revision_id)
@@ -225,6 +228,8 @@ def save_revision_with_token(
             )
         except Article.DoesNotExist:
             raise EditTokenError from None
+        if article_is_reader_masked(article.id):
+            raise EditTokenError
         grant = _locked_grant(edit_token)
         if (
             grant.actor_id != actor
@@ -295,6 +300,8 @@ def resolve_edit_conflict(
             )
         except Article.DoesNotExist:
             raise EditTokenError from None
+        if article_is_reader_masked(article.id):
+            raise EditTokenError
         grant = _locked_grant(conflict_token)
         if (
             grant.actor_id != actor

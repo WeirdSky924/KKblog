@@ -27,6 +27,7 @@ from ..models import (
     RevisionTag,
     Tag,
 )
+from ..policies import article_is_reader_masked
 from ..snapshots import ArticleSnapshot, ArticleWriteResult
 from .editing import _snapshot
 from .publication import _render_for_publication
@@ -162,6 +163,10 @@ def prepare_restore_revision(
                 "content.restore_source_invalid.v1",
                 "历史版本不存在或不可恢复。",
             ) from None
+        if article_is_reader_masked(article.id):
+            raise RestoreCommandError(
+                "content.restore_not_allowed.v1", "文章不存在或不可恢复。"
+            )
         if article.edit_grants.filter(state="CONFLICT").exists():
             raise RestoreCommandError(
                 "content.edit_conflict_unresolved.v1",
@@ -255,6 +260,10 @@ def restore_revision(
                     "content.restore_source_invalid.v1",
                     "历史版本不存在或不可恢复。",
                 ) from None
+            if article_is_reader_masked(article.id):
+                raise RestoreCommandError(
+                    "content.restore_not_allowed.v1", "文章不存在或不可恢复。"
+                )
             grant = _locked_grant(restore_token)
             if (
                 grant.consumed_at is not None

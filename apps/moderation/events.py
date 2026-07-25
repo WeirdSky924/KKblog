@@ -81,3 +81,125 @@ def _report_finalized(payload: Mapping[str, object]) -> None:
 
 
 REPORT_FINALIZED = EventDefinition("report.finalized.v1", _report_finalized)
+
+
+def _recipient(value: object) -> bool:
+    try:
+        UUID(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _safe_reason(value: object) -> bool:
+    return (
+        bool(
+            isinstance(value, str)
+            and len(value) <= 200
+            and "<" not in value
+            and ">" not in value
+            and "://" not in value
+            and all(
+                character.isprintable() or character in "\n\t" for character in value
+            )
+        )
+        or value == ""
+    )
+
+
+def _article_moderated(payload: Mapping[str, object]) -> None:
+    if set(payload) != {"case_id", "action", "reason", "recipient_id"}:
+        raise EventValidationError("Article moderation event payload shape is invalid")
+    try:
+        normalize_ulid(payload["case_id"])
+    except (TypeError, ValueError):
+        raise EventValidationError(
+            "Article moderation event payload shape is invalid"
+        ) from None
+    if (
+        payload["action"] not in {"HIDE", "DELETE"}
+        or not _safe_reason(payload["reason"])
+        or not _recipient(payload["recipient_id"])
+    ):
+        raise EventValidationError("Article moderation event payload shape is invalid")
+
+
+ARTICLE_MODERATED = EventDefinition("article.moderated.v1", _article_moderated)
+
+
+def _article_moderation_restored(payload: Mapping[str, object]) -> None:
+    if set(payload) != {
+        "case_id",
+        "action",
+        "recipient_id",
+        "recovery_status",
+    }:
+        raise EventValidationError("Article restore event payload shape is invalid")
+    try:
+        normalize_ulid(payload["case_id"])
+    except (TypeError, ValueError):
+        raise EventValidationError(
+            "Article restore event payload shape is invalid"
+        ) from None
+    if (
+        payload["action"] not in {"HIDE", "DELETE"}
+        or payload["recovery_status"] != "RESTORED"
+        or not _recipient(payload["recipient_id"])
+    ):
+        raise EventValidationError("Article restore event payload shape is invalid")
+
+
+ARTICLE_MODERATION_RESTORED = EventDefinition(
+    "article.moderation_restored.v1",
+    _article_moderation_restored,
+)
+
+
+def _article_moderation_finalized(payload: Mapping[str, object]) -> None:
+    if set(payload) != {
+        "case_id",
+        "action",
+        "outcome",
+        "decision_reason",
+        "recipient_id",
+        "recovery_status",
+    }:
+        raise EventValidationError("Article final event payload shape is invalid")
+    try:
+        normalize_ulid(payload["case_id"])
+    except (TypeError, ValueError):
+        raise EventValidationError(
+            "Article final event payload shape is invalid"
+        ) from None
+    if (
+        payload["action"] not in {"HIDE", "DELETE"}
+        or payload["outcome"] not in {"FINAL_UPHELD", "FINAL_REJECTED"}
+        or payload["recovery_status"] not in {"NOT_REQUIRED", "RESTORED", "FAILED"}
+        or not _safe_reason(payload["decision_reason"])
+        or not _recipient(payload["recipient_id"])
+    ):
+        raise EventValidationError("Article final event payload shape is invalid")
+
+
+ARTICLE_MODERATION_FINALIZED = EventDefinition(
+    "article.moderation_finalized.v1",
+    _article_moderation_finalized,
+)
+
+
+def _report_closed(payload: Mapping[str, object]) -> None:
+    if set(payload) != {"target_comment_id", "outcome", "recipient_id"}:
+        raise EventValidationError("Report closed event payload shape is invalid")
+    try:
+        normalize_ulid(payload["target_comment_id"])
+    except (TypeError, ValueError):
+        raise EventValidationError(
+            "Report closed event payload shape is invalid"
+        ) from None
+    if payload["outcome"] != "CONTENT_DELETED" or not _recipient(
+        payload["recipient_id"]
+    ):
+        raise EventValidationError("Report closed event payload shape is invalid")
+
+
+REPORT_CLOSED = EventDefinition("report.closed.v1", _report_closed)

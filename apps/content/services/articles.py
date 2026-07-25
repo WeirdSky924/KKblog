@@ -23,6 +23,7 @@ from apps.media.public import (
 from apps.operations.public import require_text_creation_capacity
 
 from ..models import Article, ArticleRevision, ArticleTag, RevisionTag, Section, Tag
+from ..policies import article_is_reader_masked
 from ..snapshots import (
     ArticleBodyLimit,
     ArticleSnapshot,
@@ -400,6 +401,10 @@ def save_revision(
                     "content.article_not_editable.v1", "文章不存在或不可编辑。"
                 ) from None
             if article.author_id != actor:
+                raise ContentCommandError(
+                    "content.article_not_editable.v1", "文章不存在或不可编辑。"
+                )
+            if article_is_reader_masked(article.id):
                 raise ContentCommandError(
                     "content.article_not_editable.v1", "文章不存在或不可编辑。"
                 )

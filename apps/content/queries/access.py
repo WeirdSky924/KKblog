@@ -304,10 +304,11 @@ def article_for_author(
     except Article.DoesNotExist:
         raise ArticleNotFound from None
     assert article.working_revision is not None
+    moderated = article_is_reader_masked(article.id)
     return _view(
         article,
         article.working_revision,
-        can_edit=article.deleted_at is None,
+        can_edit=article.deleted_at is None and not moderated,
         admin_read_only=False,
     )
 

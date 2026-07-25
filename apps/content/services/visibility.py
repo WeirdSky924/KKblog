@@ -18,6 +18,7 @@ from apps.media.public import (
 
 from ..events import ARTICLE_VISIBILITY_CHANGED
 from ..models import Article, ArticleRevision, RevisionTag, Tag
+from ..policies import article_is_reader_masked
 from ..snapshots import Visibility
 from .articles import ContentCommandError
 from .publication import _render_for_publication
@@ -101,6 +102,10 @@ def change_visibility(
                 raise ContentCommandError(
                     "content.article_not_editable.v1", "文章不存在或不可编辑。"
                 ) from None
+            if article_is_reader_masked(article.id):
+                raise ContentCommandError(
+                    "content.article_not_editable.v1", "文章不存在或不可编辑。"
+                )
             source = ArticleRevision.objects.get(pk=article.published_revision_id)
             if source.visibility == desired:
                 return _result(article, source, article.last_published_at or now)

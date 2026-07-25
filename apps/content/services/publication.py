@@ -26,7 +26,7 @@ from apps.media.public import (
 
 from ..events import ARTICLE_PUBLISHED
 from ..models import Article, ArticleRevision, PublicationReviewGrant, Tag
-from ..policies import author_is_content_masked
+from ..policies import article_is_reader_masked, author_is_content_masked
 
 REVIEW_LIFETIME = timedelta(minutes=15)
 
@@ -122,6 +122,10 @@ def _load_target(
             "content.article_not_editable.v1", "文章不存在或不可发布。"
         ) from None
     if article.author_id != actor_id:
+        raise PublicationCommandError(
+            "content.article_not_editable.v1", "文章不存在或不可发布。"
+        )
+    if article_is_reader_masked(article.id):
         raise PublicationCommandError(
             "content.article_not_editable.v1", "文章不存在或不可发布。"
         )

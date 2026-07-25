@@ -12,6 +12,7 @@ class ReportAppeal(models.Model):
         PENDING = "PENDING", "待复审"
         FINAL_UPHELD = "FINAL_UPHELD", "终局成立"
         FINAL_REJECTED = "FINAL_REJECTED", "终局驳回"
+        CLOSED = "CLOSED", "已关闭"
 
     id = models.CharField(
         primary_key=True,
@@ -49,7 +50,7 @@ class ReportAppeal(models.Model):
             models.CheckConstraint(
                 condition=(
                     models.Q(
-                        state="PENDING",
+                        state__in=("PENDING", "CLOSED"),
                         reviewed_by_id__isnull=True,
                         reviewed_at__isnull=True,
                         decision_reason="",

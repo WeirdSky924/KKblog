@@ -1,5 +1,5 @@
 from .consumers import consume_account_status_event
-from .policies import register_article_reader_scope
+from .policies import register_article_reader_mask, register_article_reader_scope
 from .purge_ports import (
     ArticleCommentPurgeResult,
     register_article_comment_purge,
@@ -46,6 +46,10 @@ from .queries import (
 from .services import (
     ArticleDeletionError,
     ArticleDeletionResult,
+    ArticleModerationAction,
+    ArticleModerationBoundaryError,
+    ArticleModerationRecoveryResult,
+    ArticleModerationTarget,
     ArticlePurgeOutcome,
     ArticlePurgeResult,
     ArticleRestorationResult,
@@ -83,6 +87,7 @@ from .services import (
     delete_tag,
     due_deleted_articles,
     open_edit_session,
+    prepare_article_moderation_action,
     prepare_publication,
     prepare_restore_revision,
     propose_tag,
@@ -92,6 +97,7 @@ from .services import (
     rename_section,
     republish_saved_revision,
     resolve_edit_conflict,
+    restore_article_from_moderation,
     restore_deleted_article,
     restore_revision,
     restore_tag,
@@ -128,6 +134,10 @@ __all__ = [
     "ArticlePurgeOutcome",
     "ArticlePurgeResult",
     "ArticleRestorationResult",
+    "ArticleModerationAction",
+    "ArticleModerationBoundaryError",
+    "ArticleModerationRecoveryResult",
+    "ArticleModerationTarget",
     "ContentCommandError",
     "EditConflict",
     "EditConflictError",
@@ -174,6 +184,7 @@ __all__ = [
     "open_edit_session",
     "propose_tag",
     "prepare_publication",
+    "prepare_article_moderation_action",
     "prepare_restore_revision",
     "publish_article",
     "publish_scheduled_article",
@@ -183,6 +194,7 @@ __all__ = [
     "rename_section",
     "restore_revision",
     "restore_deleted_article",
+    "restore_article_from_moderation",
     "restore_tag",
     "republish_saved_revision",
     "resolve_edit_conflict",
@@ -209,6 +221,7 @@ __all__ = [
     "tags_for_article",
     "validate_publication_section",
     "register_article_comment_purge",
+    "register_article_reader_mask",
     "register_article_reader_scope",
     "visible_article_page",
     "visible_articles_by_author",

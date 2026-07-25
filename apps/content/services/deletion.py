@@ -17,6 +17,7 @@ from apps.operations.public import record_audit_entry
 
 from ..events import ARTICLE_DELETED, ARTICLE_PURGE_REQUESTED, ARTICLE_RESTORED
 from ..models import Article, ArticleTombstone
+from ..policies import article_is_reader_masked
 from ..purge_ports import (
     ArticleCommentPurge,
     ArticleCommentPurgeResult,
@@ -108,7 +109,11 @@ def _aware_datetime(value, *, field: str) -> datetime:
 def _delete_allowed(article: Article, actor: UUID, administrative: bool) -> bool:
     if administrative:
         return is_administrator(actor)
-    return actor == article.author_id and is_active_author(actor)
+    return (
+        actor == article.author_id
+        and is_active_author(actor)
+        and not article_is_reader_masked(article.id)
+    )
 
 
 def delete_article(

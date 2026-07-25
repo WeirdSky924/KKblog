@@ -14,7 +14,7 @@ from apps.core.time.clock import Clock, SystemClock
 
 from ..events import ARTICLE_SCHEDULE_CANCELLED, ARTICLE_SCHEDULED
 from ..models import Article, ArticleRevision, PublicationReviewGrant
-from ..policies import author_is_content_masked
+from ..policies import article_is_reader_masked, author_is_content_masked
 from .publication import (
     PublicationCommandError,
     _actor,
@@ -205,6 +205,10 @@ def cancel_schedule(
             raise PublicationCommandError(
                 "content.article_not_editable.v1", "文章不存在或不可取消排期。"
             ) from None
+        if article_is_reader_masked(article.id):
+            raise PublicationCommandError(
+                "content.article_not_editable.v1", "文章不存在或不可取消排期。"
+            )
         if (
             article.publication_state != Article.PublicationState.SCHEDULED
             or article.scheduled_revision_id is None

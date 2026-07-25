@@ -9,6 +9,24 @@ from .appeals import (
     report_appeal_evidence_access,
     stage_report_appeal_evidence,
 )
+from .article_appeals import (
+    ArticleAppealEvidenceAccess,
+    ArticleAppealReviewOutcome,
+    ArticleAppealReviewResult,
+    CreateArticleAppealResult,
+    appeal_article_action,
+    article_appeal_evidence_access,
+    review_article_appeal,
+    stage_article_appeal_evidence,
+)
+from .article_cases import (
+    ArticleAction,
+    ArticleCaseError,
+    ArticleCaseRestorationResult,
+    ArticleCaseResult,
+    create_article_moderation_case,
+    restore_article_moderation_case,
+)
 from .reporting import (
     CreateReportResult,
     ReportEvidenceAccess,
@@ -27,6 +45,14 @@ from .review import (
 )
 
 __all__ = [
+    "ArticleAction",
+    "ArticleAppealEvidenceAccess",
+    "ArticleAppealReviewOutcome",
+    "ArticleAppealReviewResult",
+    "ArticleCaseError",
+    "ArticleCaseRestorationResult",
+    "ArticleCaseResult",
+    "CreateArticleAppealResult",
     "CreateReportAppealResult",
     "CreateReportResult",
     "ReportEvidenceAccess",
@@ -40,12 +66,18 @@ __all__ = [
     "ReportReviewResult",
     "ReportSubmissionError",
     "create_report",
+    "appeal_article_action",
+    "article_appeal_evidence_access",
+    "create_article_moderation_case",
     "create_report_appeal",
     "finalize_report_appeal",
     "report_appeal_evidence_access",
     "report_evidence_access",
     "report_recovery_snapshot_access",
     "review_report",
+    "review_article_appeal",
+    "restore_article_moderation_case",
     "stage_report_evidence",
     "stage_report_appeal_evidence",
+    "stage_article_appeal_evidence",
 ]

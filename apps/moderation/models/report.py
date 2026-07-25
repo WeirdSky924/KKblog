@@ -22,6 +22,13 @@ class Report(models.Model):
         FINAL_REJECTED = "FINAL_REJECTED", "终局驳回"
         CLOSED = "CLOSED", "已关闭"
 
+    class ClosureReason(models.TextChoices):
+        REPORTER_DELETED = "REPORTER_DELETED", "举报人账户已删除"
+        REPORTED_ACCOUNT_DELETED = (
+            "REPORTED_ACCOUNT_DELETED",
+            "被举报账户已删除",
+        )
+
     id = models.CharField(
         primary_key=True,
         max_length=26,
@@ -41,6 +48,14 @@ class Report(models.Model):
     reviewed_by_id = models.UUIDField(null=True, blank=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     decision_reason = models.CharField(max_length=200, blank=True, default="")
+    closure_reason = models.CharField(
+        max_length=32,
+        choices=ClosureReason.choices,
+        blank=True,
+        default="",
+    )
+    closure_deletion_id = models.CharField(max_length=26, blank=True, default="")
+    closed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -71,6 +86,27 @@ class Report(models.Model):
                     )
                 ),
                 name="moderation_report_pending_review_shape",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        state="CLOSED",
+                        closure_reason__in=(
+                            "REPORTER_DELETED",
+                            "REPORTED_ACCOUNT_DELETED",
+                        ),
+                        closure_deletion_id__regex=(r"^[0-9A-HJKMNP-TV-Z]{26}$"),
+                        closed_at__isnull=False,
+                    )
+                    | (
+                        models.Q(
+                            closure_reason="",
+                            closure_deletion_id="",
+                            closed_at__isnull=True,
+                        )
+                    )
+                ),
+                name="moderation_report_closure_shape",
             ),
         ]
         indexes = [
