@@ -60,3 +60,11 @@ def check_readiness(checks: ReadinessChecks | None = None) -> None:
         active_checks.cache()
     except Exception:
         raise ReadinessUnavailable() from None
+
+
+def application_is_ready() -> bool:
+    try:
+        check_readiness()
+    except ReadinessUnavailable:
+        return False
+    return True

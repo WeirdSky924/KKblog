@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -28,6 +29,13 @@ ALERT_EMAIL_FAILED = "operations.alert_email_failed.v1"
 ALERT_EMAIL_DELIVERY_UNKNOWN = "operations.alert_email_delivery_unknown.v1"
 ALERT_EMAIL_LEASE_SECONDS = 300
 ALERT_EMAIL_RETRY_SECONDS = 60
+CAPACITY_LOW_ERROR = "operations.capacity_low.v1"
+SERVICE_UNAVAILABLE_ERROR = "operations.service_unavailable.v1"
+
+_SOURCE_KEY = re.compile(r"[a-z][a-z0-9_.-]{0,63}\Z")
+_STATE_CODE = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
+_ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z")
+_TRACE_CODE = re.compile(r"trc_[0-9a-hjkmnp-tv-z]{26}\Z")
 
 _OPERATIONAL_TASK_NAMES = frozenset(
     {
@@ -111,6 +119,149 @@ def _hour_window(moment):
     return moment.replace(minute=0, second=0, microsecond=0)
 
 
+def _ensure_email_window(alert: OperationalAlert, *, occurred_at) -> None:
+    OperationalAlertEmailWindow.objects.get_or_create(
+        alert=alert,
+        window_started_at=_hour_window(occurred_at),
+        defaults={"available_at": occurred_at},
+    )
+
+
+def _state_alert_fingerprint(
+    *,
+    kind: OperationalAlertKind,
+    source_key: str,
+    occurred_at: datetime,
+) -> str:
+    material = json.dumps(
+        {
+            "incident_started_at": occurred_at.isoformat(),
+            "kind": kind,
+            "source_key": source_key,
+        },
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(material).hexdigest()
+
+
+def record_operational_state_alert(
+    *,
+    kind: OperationalAlertKind,
+    source_key: str,
+    state_code: str,
+    error_code: str,
+    severity: OperationalAlertSeverity,
+    trace_code: str,
+    occurred_at: datetime,
+) -> OperationalAlert:
+    if kind not in {
+        OperationalAlertKind.CAPACITY,
+        OperationalAlertKind.SERVICE_HEALTH,
+    }:
+        raise AlertPersistenceError("Invalid operational state alert kind")
+    if not isinstance(severity, OperationalAlertSeverity):
+        raise AlertPersistenceError("Invalid operational alert severity")
+    if (
+        not isinstance(source_key, str)
+        or not _SOURCE_KEY.fullmatch(source_key)
+        or not isinstance(state_code, str)
+        or not _STATE_CODE.fullmatch(state_code)
+        or not isinstance(error_code, str)
+        or not _ERROR_CODE.fullmatch(error_code)
+        or not isinstance(trace_code, str)
+        or not _TRACE_CODE.fullmatch(trace_code)
+    ):
+        raise AlertPersistenceError("Invalid operational state alert fact")
+    FrozenClock(occurred_at)
+    with transaction.atomic():
+        alert = (
+            OperationalAlert.objects.select_for_update()
+            .filter(kind=kind, source_key=source_key, active=True)
+            .first()
+        )
+        if alert is None:
+            alert = OperationalAlert.objects.create(
+                kind=kind,
+                fingerprint=_state_alert_fingerprint(
+                    kind=kind,
+                    source_key=source_key,
+                    occurred_at=occurred_at,
+                ),
+                source_key=source_key,
+                state_code=state_code,
+                error_code=error_code,
+                trace_code=trace_code,
+                severity=severity,
+                first_seen_at=occurred_at,
+                last_seen_at=occurred_at,
+            )
+        else:
+            alert.state_code = state_code
+            alert.error_code = error_code
+            alert.trace_code = trace_code
+            alert.severity = severity
+            alert.occurrence_count += 1
+            alert.last_seen_at = occurred_at
+            alert.save(
+                update_fields=(
+                    "state_code",
+                    "error_code",
+                    "trace_code",
+                    "severity",
+                    "occurrence_count",
+                    "last_seen_at",
+                )
+            )
+        _ensure_email_window(alert, occurred_at=occurred_at)
+        return alert
+
+
+def resolve_operational_state_alert(
+    *,
+    kind: OperationalAlertKind,
+    source_key: str,
+    state_code: str,
+    trace_code: str,
+    occurred_at: datetime,
+) -> OperationalAlert | None:
+    if (
+        kind not in {OperationalAlertKind.CAPACITY, OperationalAlertKind.SERVICE_HEALTH}
+        or not isinstance(source_key, str)
+        or not _SOURCE_KEY.fullmatch(source_key)
+        or not isinstance(state_code, str)
+        or not _STATE_CODE.fullmatch(state_code)
+        or not isinstance(trace_code, str)
+        or not _TRACE_CODE.fullmatch(trace_code)
+    ):
+        raise AlertPersistenceError("Invalid operational alert resolution")
+    FrozenClock(occurred_at)
+    with transaction.atomic():
+        alert = (
+            OperationalAlert.objects.select_for_update()
+            .filter(kind=kind, source_key=source_key, active=True)
+            .first()
+        )
+        if alert is None:
+            return None
+        alert.active = False
+        alert.resolved_at = occurred_at
+        alert.last_seen_at = occurred_at
+        alert.state_code = state_code
+        alert.trace_code = trace_code
+        alert.save(
+            update_fields=(
+                "active",
+                "resolved_at",
+                "last_seen_at",
+                "state_code",
+                "trace_code",
+            )
+        )
+        return alert
+
+
 def record_task_final_failure_alert(
     run: TaskRun,
     *,
@@ -171,25 +322,39 @@ def record_task_final_failure_alert(
             )
         )
     if is_operational_task(run.task_name):
-        OperationalAlertEmailWindow.objects.get_or_create(
-            alert=alert,
-            window_started_at=_hour_window(now),
-            defaults={"available_at": now},
-        )
+        _ensure_email_window(alert, occurred_at=now)
     return alert
 
 
 def _message(window: OperationalAlertEmailWindow) -> OperationalEmailMessage:
     alert = window.alert
-    return OperationalEmailMessage(
-        delivery_id=window.id,
-        subject="Kaj 的小房间运维告警",
-        body=(
+    if alert.kind == OperationalAlertKind.CAPACITY:
+        body = (
+            "磁盘容量监测触发告警。\n"
+            f"监测源：{alert.source_key}\n"
+            f"状态：{alert.state_code}\n"
+            f"错误码：{alert.error_code}\n"
+            f"追踪码：{alert.trace_code}\n"
+        )
+    elif alert.kind == OperationalAlertKind.SERVICE_HEALTH:
+        body = (
+            "服务健康监测触发告警。\n"
+            f"监测源：{alert.source_key}\n"
+            f"状态：{alert.state_code}\n"
+            f"错误码：{alert.error_code}\n"
+            f"追踪码：{alert.trace_code}\n"
+        )
+    else:
+        body = (
             "后台任务已在三次尝试后最终失败。\n"
             f"任务：{alert.task_name}\n"
             f"错误码：{alert.error_code}\n"
             f"追踪码：{alert.trace_code}\n"
-        ),
+        )
+    return OperationalEmailMessage(
+        delivery_id=window.id,
+        subject="Kaj 的小房间运维告警",
+        body=body,
     )
 
 

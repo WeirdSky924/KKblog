@@ -8,7 +8,7 @@ from pathlib import Path
 from shutil import disk_usage
 
 from apps.core.errors import DomainError, ErrorCode
-from apps.core.time.clock import require_aware
+from apps.core.time.clock import Clock, SystemClock, require_aware
 
 
 class CapacityState(StrEnum):
@@ -126,15 +126,26 @@ def capacity_health_snapshot(gate: CapacityGate) -> CapacityDecision:
     return gate.evaluate()
 
 
-def filesystem_capacity_gate(path: Path | str) -> CapacityGate:
+def filesystem_capacity_sample(
+    path: Path | str,
+    *,
+    clock: Clock | None = None,
+) -> CapacitySample:
     root = Path(path)
+    if not root.is_absolute():
+        raise ValueError("Capacity path must be absolute")
+    probe = root
+    while not probe.exists() and probe.parent != probe:
+        probe = probe.parent
+    if not probe.exists():
+        raise FileNotFoundError("Capacity filesystem is unavailable")
+    usage = disk_usage(probe)
+    return CapacitySample(
+        total_bytes=usage.total,
+        free_bytes=usage.free,
+        observed_at=(clock or SystemClock()).now(),
+    )
 
-    def sample() -> CapacitySample:
-        usage = disk_usage(root)
-        return CapacitySample(
-            total_bytes=usage.total,
-            free_bytes=usage.free,
-            observed_at=datetime.now(UTC),
-        )
 
-    return CapacityGate(sample)
+def filesystem_capacity_gate(path: Path | str) -> CapacityGate:
+    return CapacityGate(lambda: filesystem_capacity_sample(path))

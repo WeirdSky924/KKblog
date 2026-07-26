@@ -14,6 +14,9 @@ from .registry import NotificationTemplateDefinition, register_template_definiti
 PayloadValidator = Callable[[Mapping[str, object]], None]
 _TASK_NAME = re.compile(r"[a-z][a-z0-9_.-]{0,127}\Z")
 _ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z")
+_OPERATIONAL_SOURCES = frozenset({"application", "media_disk"})
+_CAPACITY_STATES = frozenset({"unknown", "normal", "warn", "no_image", "read_only"})
+_HEALTH_STATES = frozenset({"unknown", "healthy", "unavailable"})
 
 
 def _reject_unless(condition: bool) -> None:
@@ -97,6 +100,53 @@ def _task_final_failure(payload: Mapping[str, object]) -> None:
         and attempt == 3
         and isinstance(payload["error_code"], str)
         and _ERROR_CODE.fullmatch(payload["error_code"])
+    )
+
+
+def _operational_state(
+    payload: Mapping[str, object],
+    *,
+    states: frozenset[str],
+) -> None:
+    _reject_unless(
+        payload["source_key"] in _OPERATIONAL_SOURCES
+        and payload["previous_state"] in states
+        and payload["current_state"] in states - {"unknown"}
+        and payload["previous_state"] != payload["current_state"]
+    )
+
+
+def _capacity_state(payload: Mapping[str, object]) -> None:
+    _operational_state(payload, states=_CAPACITY_STATES)
+
+
+def _health_state(payload: Mapping[str, object]) -> None:
+    _operational_state(payload, states=_HEALTH_STATES)
+
+
+def _capacity_title(payload: Mapping[str, object]) -> str:
+    return "磁盘容量已恢复" if payload["current_state"] == "normal" else "磁盘容量告警"
+
+
+def _capacity_message(payload: Mapping[str, object]) -> str:
+    messages = {
+        "normal": "磁盘可用空间已恢复，创建限制已自动解除。",
+        "warn": "磁盘可用空间低于 10%，请尽快处理。",
+        "no_image": "磁盘可用空间低于 5%，图片创建已暂停。",
+        "read_only": "磁盘可用空间低于 2%，文字和图片创建已暂停。",
+    }
+    return messages[payload["current_state"]]
+
+
+def _health_title(payload: Mapping[str, object]) -> str:
+    return "服务健康已恢复" if payload["current_state"] == "healthy" else "服务健康告警"
+
+
+def _health_message(payload: Mapping[str, object]) -> str:
+    return (
+        "应用依赖健康检查已恢复。"
+        if payload["current_state"] == "healthy"
+        else "应用依赖健康检查当前不可用，请检查运行状态。"
     )
 
 
@@ -198,6 +248,32 @@ def _schema(
 
 
 _BUILTINS = (
+    (
+        _schema(
+            "capacity.threshold_changed.v1",
+            "operational_state",
+            frozenset({"source_key", "previous_state", "current_state"}),
+            _capacity_state,
+        ),
+        NotificationTemplateDefinition(
+            "capacity.threshold_changed.v1",
+            _capacity_title,
+            _capacity_message,
+        ),
+    ),
+    (
+        _schema(
+            "service.health_changed.v1",
+            "operational_state",
+            frozenset({"source_key", "previous_state", "current_state"}),
+            _health_state,
+        ),
+        NotificationTemplateDefinition(
+            "service.health_changed.v1",
+            _health_title,
+            _health_message,
+        ),
+    ),
     (
         _schema(
             "task.final_failed.v1",

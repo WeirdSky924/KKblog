@@ -12,6 +12,7 @@ from apps.notifications.public import (
     consume_account_deleted,
     consume_author_role_changed,
     consume_domain_notification,
+    consume_operational_state_notification,
     consume_task_final_failure_notification,
 )
 from apps.operations.public import consume_task_final_failure_alert
@@ -70,6 +71,13 @@ def _consume_task_final_failure_notification(envelope: EventEnvelope):
     )
 
 
+def _consume_operational_state_notification(envelope: EventEnvelope):
+    return consume_operational_state_notification(
+        envelope,
+        administrator_id_provider=active_administrator_id,
+    )
+
+
 def _routes(event_type: str) -> tuple[EventConsumer, ...]:
     if event_type == "account.author_role_changed.v1":
         return (consume_author_role_changed,)
@@ -86,6 +94,11 @@ def _routes(event_type: str) -> tuple[EventConsumer, ...]:
             consume_task_final_failure_alert,
             _consume_task_final_failure_notification,
         )
+    if event_type in {
+        "capacity.threshold_changed.v1",
+        "service.health_changed.v1",
+    }:
+        return (_consume_operational_state_notification,)
     if event_type in _TERMINAL_EVENTS:
         return ()
     raise UnsupportedApplicationEvent("Application event has no registered route")

@@ -90,6 +90,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "config.runtime_tasks.send_operational_alert_emails",
         "schedule": 60.0,
     },
+    "operations-check-capacity": {
+        "task": "apps.operations.check_capacity",
+        "schedule": 300.0,
+    },
+    "operations-check-service-health": {
+        "task": "apps.operations.check_service_health",
+        "schedule": 60.0,
+    },
     "comments-publish-due": {
         "task": "apps.comments.dispatch_due_comments",
         "schedule": 60.0,

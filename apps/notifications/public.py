@@ -2,6 +2,7 @@ from apps.notifications.consumers import (
     consume_account_deleted,
     consume_author_role_changed,
     consume_domain_notification,
+    consume_operational_state_notification,
     consume_task_final_failure_notification,
 )
 from apps.notifications.queries import (
@@ -35,6 +36,7 @@ __all__ = [
     "delete_broadcast",
     "deliver_notification",
     "consume_domain_notification",
+    "consume_operational_state_notification",
     "consume_task_final_failure_notification",
     "consume_author_role_changed",
     "consume_account_deleted",

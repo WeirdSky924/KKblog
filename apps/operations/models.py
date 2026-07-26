@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 
 from apps.core.ids import new_ulid
@@ -98,6 +98,114 @@ class RuntimeErrorOccurrence(models.Model):
         ]
 
 
+class CapacitySnapshotState(models.TextChoices):
+    NORMAL = "normal", "Normal"
+    WARN = "warn", "Warning"
+    NO_IMAGE = "no_image", "No image creation"
+    READ_ONLY = "read_only", "Read only"
+
+
+class CapacitySnapshot(models.Model):
+    source_key = models.CharField(primary_key=True, max_length=64, editable=False)
+    state = models.CharField(
+        max_length=12,
+        choices=CapacitySnapshotState,
+        editable=False,
+    )
+    total_bytes = models.BigIntegerField(editable=False)
+    free_bytes = models.BigIntegerField(editable=False)
+    observed_at = models.DateTimeField(editable=False)
+    state_changed_at = models.DateTimeField(editable=False)
+    sample_count = models.PositiveBigIntegerField(default=1, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        db_table = "operations_capacity_snapshot"
+        ordering = ("source_key",)
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(state__in=CapacitySnapshotState.values),
+                name="ops_capacity_state_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(total_bytes__gt=0),
+                name="operations_capacity_total_positive",
+            ),
+            models.CheckConstraint(
+                condition=Q(free_bytes__gte=0) & Q(free_bytes__lte=F("total_bytes")),
+                name="operations_capacity_free_range",
+            ),
+            models.CheckConstraint(
+                condition=Q(sample_count__gte=1),
+                name="operations_capacity_samples_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("state", "observed_at"),
+                name="operations_capacity_state_idx",
+            )
+        ]
+
+
+class ServiceHealthStatus(models.TextChoices):
+    HEALTHY = "healthy", "Healthy"
+    UNAVAILABLE = "unavailable", "Unavailable"
+
+
+class ServiceHealthSnapshot(models.Model):
+    source_key = models.CharField(primary_key=True, max_length=64, editable=False)
+    status = models.CharField(
+        max_length=12,
+        choices=ServiceHealthStatus,
+        editable=False,
+    )
+    check_count = models.PositiveBigIntegerField(default=1, editable=False)
+    consecutive_failures = models.PositiveIntegerField(default=0, editable=False)
+    first_checked_at = models.DateTimeField(editable=False)
+    last_checked_at = models.DateTimeField(editable=False)
+    status_changed_at = models.DateTimeField(editable=False)
+    last_success_at = models.DateTimeField(null=True, editable=False)
+    last_error_code = models.CharField(max_length=96, blank=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        db_table = "operations_service_health_snapshot"
+        ordering = ("source_key",)
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(check_count__gte=1),
+                name="operations_health_checks_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        status=ServiceHealthStatus.HEALTHY,
+                        consecutive_failures=0,
+                        last_error_code="",
+                        last_success_at__isnull=False,
+                    )
+                    | (
+                        Q(
+                            status=ServiceHealthStatus.UNAVAILABLE,
+                            consecutive_failures__gte=1,
+                        )
+                        & ~Q(last_error_code="")
+                    )
+                ),
+                name="operations_health_state_shape",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("status", "last_checked_at"),
+                name="operations_health_status_idx",
+            )
+        ]
+
+
 class OperationalAlertKind(models.TextChoices):
     TASK_FINAL_FAILED = "task_final_failed", "Task final failed"
     CAPACITY = "capacity", "Capacity"
@@ -133,6 +241,7 @@ class OperationalAlert(models.Model):
     task_name = models.CharField(max_length=128, blank=True, editable=False)
     error_code = models.CharField(max_length=96, editable=False)
     trace_code = models.CharField(max_length=30, editable=False)
+    state_code = models.CharField(max_length=32, blank=True, editable=False)
     severity = models.CharField(
         max_length=12,
         choices=OperationalAlertSeverity,
@@ -159,6 +268,25 @@ class OperationalAlert(models.Model):
                     | Q(active=False, resolved_at__isnull=False)
                 ),
                 name="operations_alert_resolution_shape",
+            ),
+            models.UniqueConstraint(
+                fields=("kind", "source_key"),
+                condition=Q(active=True),
+                name="operations_alert_active_source_unique",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(kind=OperationalAlertKind.TASK_FINAL_FAILED, state_code="")
+                    | Q(
+                        kind=OperationalAlertKind.CAPACITY,
+                        state_code__in=CapacitySnapshotState.values,
+                    )
+                    | Q(
+                        kind=OperationalAlertKind.SERVICE_HEALTH,
+                        state_code__in=ServiceHealthStatus.values,
+                    )
+                ),
+                name="ops_alert_state_code_shape",
             ),
         ]
         indexes = [

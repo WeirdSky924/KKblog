@@ -43,6 +43,7 @@ payload 由每个版本的 schema 校验，不放正文、密码、验证码、�
 | `export.includes_foreign_content.v1` | exchange | 受影响作者按日聚合通知 |
 | `task.final_failed.v1` | operations | 管理员站内+邮件告警 |
 | `capacity.threshold_changed.v1` | operations | 站内告警/解除运行门禁 |
+| `service.health_changed.v1` | operations | 管理员站内健康告警/恢复状态；邮件仅故障 |
 
 需要“立即一致”的动作不能等待事件：禁用账户撤销会话、发布指针更新、管理员隐藏查询遮罩、删除占位、唯一约束都在原事务完成。事件负责可重试的跨域投影与通知。
 
