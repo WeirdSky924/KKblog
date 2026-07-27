@@ -254,6 +254,8 @@ def _create_revision(
     sequence: int,
     snapshot: _ValidatedSnapshot,
     based_on: ArticleRevision | None = None,
+    reason: str = ArticleRevision.Reason.STANDARD,
+    import_key: str | None = None,
 ) -> ArticleRevision:
     return ArticleRevision.objects.create(
         article=article,
@@ -272,6 +274,8 @@ def _create_revision(
         comments_enabled=snapshot.comments_enabled,
         comments_view_login=snapshot.comments_view_login,
         comments_post_login=snapshot.comments_post_login,
+        reason=reason,
+        import_key=import_key,
     )
 
 

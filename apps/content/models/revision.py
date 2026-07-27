@@ -31,6 +31,11 @@ class ArticleRevision(models.Model):
         AUTHENTICATED = "AUTHENTICATED", "登录可见"
         PRIVATE = "PRIVATE", "私人"
 
+    class Reason(models.TextChoices):
+        STANDARD = "STANDARD", "常规保存"
+        IMPORT = "IMPORT", "导入"
+        IMPORT_FORMAT_CHANGE = "IMPORT_FORMAT_CHANGE", "导入格式转换"
+
     id = models.CharField(
         primary_key=True,
         max_length=26,
@@ -89,6 +94,18 @@ class ArticleRevision(models.Model):
         "accounts.Account",
         related_name="article_revisions_created",
         on_delete=models.PROTECT,
+        editable=False,
+    )
+    reason = models.CharField(
+        max_length=24,
+        choices=Reason.choices,
+        default=Reason.STANDARD,
+        editable=False,
+    )
+    import_key = models.CharField(
+        max_length=128,
+        unique=True,
+        null=True,
         editable=False,
     )
     created_at = models.DateTimeField(auto_now_add=True)

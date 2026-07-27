@@ -4,6 +4,7 @@
 }
 
 import /etc/caddy/media-delivery.caddy
+import /etc/caddy/analytics-proxy.caddy
 
 http://{$KAJ_PUBLIC_HOST} {
 	redir https://{$KAJ_PUBLIC_HOST}{uri} permanent
@@ -17,6 +18,7 @@ http://{$KAJ_PUBLIC_HOST} {
 	encode gzip
 	route {
 		import media_delivery
+		import analytics_proxy
 		handle_path /static/* {
 			root * /srv/static
 			header Cache-Control "public, max-age=31536000, immutable"

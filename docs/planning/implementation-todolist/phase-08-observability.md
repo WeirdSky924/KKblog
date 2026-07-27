@@ -82,10 +82,10 @@
 
 ## P8 阶段完成审计（2026-07-26）
 
-- 任务与依赖：结构化读回 13 个阶段文件、102 个唯一任务；P8 为 6 张卡、6 个 `完成`、6 条证据和 6 条授权。P8 全部前置均已完成；全图缺失 ID、前后互认缺口、未来阶段前置和 P8 未完成前置均为 0。总索引同步为 74 项完成、`DSC-008` 1 项进行中、P9-P12 共 27 项待处理，未以 P8 完成跳过较早阶段缺口。
+- 任务与依赖：结构化读回 13 个阶段文件、102 个唯一任务；P8 为 6 张卡、6 个 `完成`、6 条证据和 6 条授权。P8 全部前置均已完成；全图缺失 ID、前后互认缺口、未来阶段前置和 P8 未完成前置均为 0。P8 收口当时总索引为 74 项完成、`DSC-008` 1 项进行中、P9-P12 共 27 项待处理；该较早阶段缺口后续已完成，当前总索引为 75 项完成、27 项待处理、0 项进行中。
 - 事件与 owner：AST 读回 29 个唯一 `EventDefinition`，26 个进入一个或多个消费者、3 个为明确终结事件，未注册路由为 0；15 个需要用户文案的事件模板全部注册，唯一非事件模板是 `admin.broadcast.v1`，`account.deleted.v1` 走收件清理消费者而不生成通知。架构 owner guard 退出 0，`3 passed`；operations 对 accounts/notifications 的反向导入为 0。收尾发现 `apps.operations.queries.__all__` 覆盖既有导出，聚焦 RED 退出 1 后改为扩展原清单，GREEN 退出 0并增加永久回归。
 - 浏览器与数据：隔离 PostgreSQL + `/usr/local/bin/blog-playwright-cli` 验证访客访问 `admin:notifications` 为 403；管理员 1440 light 覆盖空态、确认初始焦点、Escape/触发点恢复、2 人群发读回及隐藏/恢复/删除，删除态没有恢复或删除入口。普通用户 1440 light 悬停只显示最新 5 条；真实 `--mobile` 上下文在 390 dark 读回 `hover=false/pointer=coarse`、触控 popover、完整 dialog、Escape 与焦点恢复；768 eye-care 通知页显示 8 条可见通知，单条读取后再全部已读。390/768/1440 的 document scrollWidth 均等于 viewport，干净浏览器会话均为 0 error/0 warning。最终 DB 读回普通用户 7 条可见 Receipt 全部已读、未读 0，隐藏/删除种子和已删除群发均被排除；群发 2 条 Receipt、1 条已读，AuditEntry 顺序为 create/hide/restore/delete。
 - 回归：查询导出聚焦 GREEN 退出 0；第二次全仓 `pytest -q` 退出 0，`369 passed in 206.33s`。首次全仓运行有 1 次未触及的媒体并发绑定用例时序失败（`368 passed, 1 failed`），该用例立即聚焦重跑为 `1 passed`，随后第二次全仓全绿；保留为后续 QA 的并发时序残余风险，不作为 P8 假成功掩盖。最终 `ruff check .`、`ruff format --check .`（458 文件）、Django check、migration drift、前端正式 build 与 `git diff --check` 均退出 0。
-- 授权边界：未连接 Resend、真实收件人或生产数据，未执行生产 migration、生产容量门禁、容器故障注入、部署、生产服务重启或生产清理；Compose 故障沙箱仍由 `QA-005` 验收。运行时代码已按用户单次授权快进远端 `main`，永久测试与本阶段最终文档当前仍是本地未提交进度。
+- 授权边界：未连接 Resend、真实收件人或生产数据，未执行生产 migration、生产容量门禁、容器故障注入、部署、生产服务重启或生产清理；Compose 故障沙箱仍由 `QA-005` 验收。运行时代码与本阶段最终文档已由提交 `c0cc845` 收口并快进远端 `main`；永久测试仍保留在原本地工作树，未包含在该提交中。
 
 [返回总索引](../implementation-todolist.md)

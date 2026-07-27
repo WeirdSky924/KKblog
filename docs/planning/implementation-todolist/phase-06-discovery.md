@@ -94,7 +94,7 @@
 - 授权：`否`。
 
 ### DSC-008 实现 SEO、sitemap 与公开缓存失效
-- 元数据：状态 `进行中`；阶段 P6；owner `discovery`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P6；owner `discovery`；优先级 P0。
 - 目标/行为：PUBLIC文章可索引并进入 sitemap；标题为SEO标题、正文纯文本前100字为描述；AUTH/PRIVATE/个人/管理 noindex；只缓存公开清洗正文/列表。
 - 来源：访谈 Q135-Q138、Q255、Q273；`modules/05-discovery-reading.md` §缓存/SEO；`data/05-storage-lifecycle.md` §缓存边界。
 - 依赖：前置 `DSC-002`、`DSC-003`、`DSC-004`、`DSC-005`、`CNT-009`；后续 `QA-003`、`QA-004`、`QA-006`。
@@ -103,6 +103,7 @@
 - 影响：数据：发布投影读；权限：PUBLIC-only；缓存：发布/重发/可见/分类/隐藏/删除/恢复/禁用全失效；异步：outbox消费者；媒体：渲染引用；审计/通知无。
 - 测试/验收：RED 缓存命中后各遮罩、Redis flush、sitemap/noindex、描述去HTML；真实请求/缓存键读回。
 - 风险/停止：缓存成为事实、私密内容进入搜索引擎或失效事件重复产生错误状态即停止。
+- 证据：历史实现提交 `5ce0912` 建立 PUBLIC-only SEO metadata/sitemap、含 sanitizer 版本的公开静态缓存键与 Outbox generation 失效；本次收口的一次性专项 RED 针对 P7 新增的 `article.moderated.v1`、`article.moderation_restored.v1`、`article.moderation_finalized.v1`，3 个用例均读回只有通知消费者、缺少 discovery 缓存消费者。全局 transport 随后让三个重叠事件按序投递缓存失效和领域通知，并补登记契约已有的 `article.hidden.v1`；专项 GREEN 退出 0，`9 passed`，覆盖三个事件双路由、真实 PostgreSQL `consume_once`、真实 Redis generation、重复事件 `already_processed`、PUBLIC/AUTH/PRIVATE sitemap/noindex、描述去 HTML 后精确前 100 字、公开静态字段缓存、PUBLIC→AUTH 缓存命中前重新判权、Redis flush 冷重建，以及管理员隐藏/恢复后首页经真实 Outbox 恢复。相关回归为 `66 passed, 1 failed`，全仓为 `360 passed, 1 failed in 212.68s`；唯一失败均是当前 `origin/main` 已存在的 architecture 白名单未登记 comments/moderation→`operations.public`，与 DSC-008 产品改动无关，未借本卡越权修改。`/usr/local/bin/blog-playwright-cli` 在 1440 light、768 eye-care、390 dark 验证 PUBLIC `index,follow` 与 100 字描述、AUTH `noindex,nofollow` 和安全登录回跳、PRIVATE 真实 404 且不泄露标题、sitemap 仅含 PUBLIC URL；三视口页面宽度均等于 viewport、正常页面控制台 0 error/0 warning，PRIVATE 主请求和 XML favicon 的 404 为对应验收场景的预期记录。最终 `ruff format --check .`（455 文件）、Django check、migration drift 与 `git diff --check` 均退出 0；Django 两项仅报告已清理生成目录后的 `static/dist` 不存在 warning。`ruff check .` 唯一失败是当前 `origin/main` 已有 `apps/comments/tests/test_cmt004.py` 导入顺序，与本卡无关，未修改该既有测试。一次性测试、种子、构建产物、专用容器和浏览器/服务会话均已清理；未连接生产数据库/Redis、未执行生产 migration、生产缓存清理、部署、提交或推送。
 - 授权：`否`。
 
 [返回总索引](../implementation-todolist.md)

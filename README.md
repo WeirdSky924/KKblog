@@ -4,7 +4,7 @@ Kaj 的小房间是一个面向中文用户、支持移动端的私人博客项�
 
 ## 当前状态
 
-需求、原型基线、施工级架构和 P0 决策已经完成。P1 项目与质量骨架及 P2 运行时与跨域基础已在当前未提交工作区完成隔离验证；P3 及后续业务阶段尚未实施。P2 只提供可验证的本地运行入口、健康/任务/容量基础和部署模拟，不代表存在生产配置、生产数据库、备份、已认证邮件身份或已部署服务。
+需求、原型基线和施工级架构已建立；准确的实施阶段、任务状态与验收证据统一见[实施总清单](docs/planning/implementation-todolist.md)，本 README 不维护第二份进度账。已完成的本地与隔离环境验证不代表存在生产配置、生产数据库、备份、已认证邮件身份或已部署服务。
 
 禁止自动部署。迁移、提交、推送、部署、生产邮件和生产备份只在用户当前回合明确授权后执行。
 
@@ -13,7 +13,7 @@ Kaj 的小房间是一个面向中文用户、支持移动端的私人博客项�
 - Python 3.12、Django、PostgreSQL、Redis、Celery。
 - Django Templates、HTMX、Alpine.js、Tailwind CSS、TipTap。
 - `uv` 管理 Python 依赖；pytest、Ruff、Playwright 提供质量门禁。
-- Docker Compose、Gunicorn、Celery、Caddy、Mailpit 和 Umami 的运行时入口已建立；Umami 业务集成、生产配置与部署仍属于后续阶段或显式授权动作。
+- Docker Compose、Gunicorn、Celery、Caddy、Mailpit 和 Umami 的运行时入口已建立；Umami 同源管理员入口、全站 tracker 配置和一个月保留代码已集成，真实启动、首次配置、跟踪、清理和部署仍需当前回合明确授权。
 
 ## 项目真值
 
@@ -25,7 +25,7 @@ Kaj 的小房间是一个面向中文用户、支持移动端的私人博客项�
 - [运维入口](docs/operations/README.md)
 - [测试环境与固定命令](docs/operations/testing.md)
 
-不要从原型假数据推断业务已完成，也不要在 README 维护第二份任务进度。
+不要从原型假数据推断业务已完成。
 
 ## 环境边界
 

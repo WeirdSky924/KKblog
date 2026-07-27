@@ -11,9 +11,10 @@ KAJ_TEST_DATABASE_URL=postgresql://kaj_test_runner@127.0.0.1:<port>/kaj_test_<na
 KAJ_TEST_REDIS_URL=redis://127.0.0.1:<port>/<1..15>
 KAJ_TEST_MAILPIT_SMTP_URL=smtp://127.0.0.1:<port>
 KAJ_TEST_MAILPIT_API_URL=http://127.0.0.1:<port>
+KAJ_TEST_UMAMI_DATABASE_URL=postgresql://kaj_test_runner@127.0.0.1:<port>/kaj_test_<name>_umami
 ```
 
-解析器拒绝非 loopback、默认 Redis DB 0、数据库名/用户不匹配、URL 凭据和 query。pytest 为数据库建立 `test_kaj_test_*`，媒体 fixture 使用 pytest `/tmp` 并自动清理。
+前四项是完整 pytest 的固定依赖；`KAJ_TEST_UMAMI_DATABASE_URL` 只用于 Umami schema/保留集成测试。解析器拒绝非 loopback、默认 Redis DB 0、数据库名/用户不匹配、URL 凭据和 query。pytest 为 Django 数据库建立 `test_kaj_test_*`，媒体 fixture 使用 pytest `/tmp` 并自动清理；Umami 集成库由测试调用方独立创建和定向删除。
 
 固定命令：
 

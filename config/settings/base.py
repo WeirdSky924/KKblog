@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from celery.schedules import crontab
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
@@ -8,10 +10,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.administration",
+    "apps.analytics",
     "apps.comments",
     "apps.content",
     "apps.core",
     "apps.discovery",
+    "apps.exchange",
     "apps.media",
     "apps.moderation",
     "apps.navigation",
@@ -42,6 +46,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "apps.accounts.presentation.context.account_theme",
+                "apps.analytics.presentation.context.analytics_tracking",
                 "apps.navigation.presentation.context.site_shell",
             ]
         },
@@ -118,6 +123,24 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.media.dispatch_staged_media",
         "schedule": 3_600.0,
     },
+    "exchange-expire-exports": {
+        "task": "apps.exchange.dispatch_expired_exports",
+        "schedule": 3_600.0,
+    },
+    "operations-weekly-backup": {
+        "task": "apps.operations.weekly_backup",
+        # CELERY_TIMEZONE is UTC; Sunday 19:00 UTC is Monday 03:00 Shanghai.
+        "schedule": crontab(minute=0, hour=19, day_of_week=0),
+    },
+    "operations-expire-backups": {
+        "task": "apps.operations.dispatch_expired_backups",
+        "schedule": crontab(minute=30, hour=19),
+    },
+    "analytics-expire-umami-data": {
+        "task": "apps.analytics.expire_umami_data",
+        # 19:45 UTC is 03:45 in Asia/Shanghai.
+        "schedule": crontab(minute=45, hour=19),
+    },
 }
 
 MEDIA_STAGED_EXPIRY_SECONDS = 86_400
@@ -147,6 +170,24 @@ MODERATION_ARTICLE_APPEAL_EVIDENCE_GATEWAY_PROVIDER = (
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
+EXCHANGE_IMPORT_ROOT = BASE_DIR / "var" / "exchange" / "imports"
+EXCHANGE_IMPORT_COMPRESSED_MAX_BYTES = 64 * 1024 * 1024
+EXCHANGE_IMPORT_EXPANDED_MAX_BYTES = 256 * 1024 * 1024
+EXCHANGE_IMPORT_ITEM_MAX_COUNT = 1000
+EXCHANGE_IMPORT_PATH_MAX_DEPTH = 8
+EXCHANGE_IMPORT_COMPRESSION_MAX_RATIO = 100
+EXCHANGE_EXPORT_ROOT = BASE_DIR / "var" / "exchange" / "exports"
+EXCHANGE_EXPORT_EXPIRY_BATCH_SIZE = 100
+BACKUP_ROOT = BASE_DIR / "var" / "backups"
+BACKUP_DESTINATION = "local"
+BACKUP_TIMEZONE = "Asia/Shanghai"
+BACKUP_CRON = "0 3 * * 1"
+BACKUP_PG_DUMP_BINARY = "/usr/lib/postgresql/16/bin/pg_dump"
+BACKUP_HEARTBEAT_INTERVAL_SECONDS = 30
+BACKUP_EXPIRY_BATCH_SIZE = 100
+ANALYTICS_ENABLED = False
+ANALYTICS_DATABASE_URL = ""
+ANALYTICS_WEBSITE_ID = ""
 NAVIGATION_SITE_PRESENTATION_PROVIDER = (
     "apps.navigation.public.default_site_presentation"
 )

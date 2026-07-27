@@ -34,6 +34,9 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False
 OPERATIONAL_EMAIL_PROVIDER = "mailpit"
+ANALYTICS_ENABLED = False
+ANALYTICS_DATABASE_URL = ""
+ANALYTICS_WEBSITE_ID = ""
 
 TEST_REDIS_URL = load_isolated_test_redis(os.environ)
 if TEST_REDIS_URL is not None:

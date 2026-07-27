@@ -29,6 +29,7 @@ handler500 = server_error
 
 urlpatterns = [
     path("accounts/", include("config.account_urls")),
+    path("", include("apps.analytics.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("admin/", include("apps.administration.urls")),
     path("", include("apps.media.urls")),

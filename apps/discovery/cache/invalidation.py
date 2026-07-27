@@ -18,6 +18,9 @@ ARTICLE_EVENT_TYPES = frozenset(
         "article.deleted.v1",
         "article.restored.v1",
         "article.purge_requested.v1",
+        "article.moderated.v1",
+        "article.moderation_restored.v1",
+        "article.moderation_finalized.v1",
     }
 )
 CLASSIFICATION_EVENT_TYPES = frozenset({"section.changed.v1", "tag.changed.v1"})

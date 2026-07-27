@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -29,6 +30,8 @@ class ProductionEnvironment:
     media_root: Path
     initial_admin_password: str = field(repr=False)
     trusted_proxy_cidrs: tuple[str, ...]
+    umami_database_url: str = field(repr=False)
+    umami_website_id: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +146,48 @@ def _database(value: str) -> dict[str, object]:
         "CONN_MAX_AGE": 60,
         "CONN_HEALTH_CHECKS": True,
     }
+
+
+def load_umami_database_url(
+    values: Mapping[str, str], *, required: bool = False
+) -> str:
+    name = "KAJ_UMAMI_DATABASE_URL"
+    value = values.get(name, "").strip()
+    if not value:
+        if required:
+            raise _missing(name)
+        return ""
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port or 5432
+    except ValueError:
+        raise _invalid(name) from None
+    database_name = unquote(parsed.path.lstrip("/"))
+    if (
+        parsed.scheme not in {"postgres", "postgresql"}
+        or not parsed.hostname
+        or not parsed.username
+        or parsed.password is None
+        or database_name != "umami"
+        or not 1 <= port <= 65_535
+        or parsed.fragment
+    ):
+        raise _invalid(name)
+    return value
+
+
+def load_umami_website_id(values: Mapping[str, str], *, required: bool = False) -> str:
+    name = "KAJ_UMAMI_WEBSITE_ID"
+    value = values.get(name, "").strip()
+    if not value:
+        if required:
+            raise _missing(name)
+        return ""
+    try:
+        website_id = UUID(value)
+    except (AttributeError, ValueError):
+        raise _invalid(name) from None
+    return str(website_id)
 
 
 def load_development_database(
@@ -273,6 +318,32 @@ def load_isolated_test_database(values: Mapping[str, str]) -> dict[str, object] 
     }
 
 
+def load_isolated_umami_database_url(values: Mapping[str, str]) -> str | None:
+    value = values.get("KAJ_TEST_UMAMI_DATABASE_URL", "").strip()
+    if not value:
+        return None
+    name = "KAJ_TEST_UMAMI_DATABASE_URL"
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        raise _invalid(name) from None
+    database_name = unquote(parsed.path.lstrip("/"))
+    if (
+        parsed.scheme not in {"postgres", "postgresql"}
+        or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
+        or port is None
+        or not 1_024 <= port <= 65_535
+        or parsed.username != "kaj_test_runner"
+        or parsed.password is not None
+        or not database_name.startswith("kaj_test_")
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise _invalid(name)
+    return value
+
+
 def load_isolated_test_redis(values: Mapping[str, str]) -> str | None:
     value = values.get("KAJ_TEST_REDIS_URL", "").strip()
     if not value:
@@ -398,6 +469,15 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
         _required(values, "KAJ_INITIAL_ADMIN_PASSWORD")
     )
     trusted_proxy_cidrs = load_trusted_proxy_cidrs(values, required=True)
+    umami_database_url = load_umami_database_url(values, required=True)
+    parsed_umami = urlsplit(umami_database_url)
+    if (
+        parsed_umami.hostname == database["HOST"]
+        and (parsed_umami.port or 5432) == database["PORT"]
+        and unquote(parsed_umami.path.lstrip("/")) == database["NAME"]
+    ):
+        raise _invalid("KAJ_UMAMI_DATABASE_URL")
+    umami_website_id = load_umami_website_id(values, required=True)
     return ProductionEnvironment(
         secret_key=secret_key,
         public_url=public_url,
@@ -410,4 +490,6 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
         media_root=media_root,
         initial_admin_password=initial_password,
         trusted_proxy_cidrs=trusted_proxy_cidrs,
+        umami_database_url=umami_database_url,
+        umami_website_id=umami_website_id,
     )

@@ -43,6 +43,7 @@ _OPERATIONAL_TASK_NAMES = frozenset(
         "config.runtime_tasks.publish_outbox",
         "apps.operations.check_capacity",
         "apps.operations.check_service_health",
+        "apps.analytics.expire_umami_data",
         "apps.operations.weekly_backup",
         "apps.operations.expire_backups",
     }

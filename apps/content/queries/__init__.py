@@ -23,6 +23,22 @@ from .discovery import (
     visible_articles_by_ids,
     visible_filter_tags,
 )
+from .exports import (
+    ContentExportError,
+    ExportArticleSnapshot,
+    ExportRevisionPayload,
+    ExportRevisionTag,
+    export_article_snapshots,
+    export_revision_payloads,
+)
+from .imports import (
+    ImportConflictFacts,
+    ImportContentError,
+    ImportMappingFacts,
+    import_conflict_facts,
+    resolve_import_metadata,
+    validate_import_mapping,
+)
 from .publication import PublishedRevision, published_revision
 from .revisions import RevisionTimelineItem, revision_timeline
 
@@ -42,6 +58,13 @@ __all__ = [
     "VisibleArticleTag",
     "PublishedRevision",
     "RevisionTimelineItem",
+    "ImportConflictFacts",
+    "ImportContentError",
+    "ImportMappingFacts",
+    "ContentExportError",
+    "ExportArticleSnapshot",
+    "ExportRevisionPayload",
+    "ExportRevisionTag",
     "active_tag",
     "article_comment_target",
     "article_ids_by_author_for_cache",
@@ -64,6 +87,11 @@ __all__ = [
     "visible_filter_tags",
     "published_revision",
     "revision_timeline",
+    "import_conflict_facts",
+    "export_article_snapshots",
+    "export_revision_payloads",
+    "resolve_import_metadata",
+    "validate_import_mapping",
 ]
 from .access import (
     ArticleCommentTarget,

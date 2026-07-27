@@ -23,6 +23,13 @@
     <script src="{% static 'dist/theme.js' %}"></script>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
     <script type="module" src="{% static 'dist/app.js' %}"></script>
+    {% if analytics_tracking.enabled %}
+      <script
+        defer
+        src="{{ analytics_tracking.script_path }}"
+        data-website-id="{{ analytics_tracking.website_id }}"
+      ></script>
+    {% endif %}
     {% block head %}{% endblock %}
   </head>
   <body class="{% block body_class %}site-shell{% endblock %}">

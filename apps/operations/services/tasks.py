@@ -36,6 +36,7 @@ _ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z
 
 Jitter = Callable[[int], int]
 TaskService = Callable[[str], str | None]
+HeartbeatTaskService = Callable[[str, Callable[[], None]], str | None]
 
 
 class StartOutcome(StrEnum):
@@ -473,13 +474,18 @@ def execute_tracked_task(
     business_object: str,
     idempotency_key: str,
     celery_id: str,
-    service: TaskService,
+    service: TaskService | None = None,
+    heartbeat_service: HeartbeatTaskService | None = None,
     lease_seconds: int = DEFAULT_LEASE_SECONDS,
     clock: Clock | None = None,
     jitter: Jitter | None = None,
 ) -> TaskStartResult:
-    if not callable(service):
+    if (service is None) == (heartbeat_service is None):
+        raise TypeError("exactly one task service must be callable")
+    if service is not None and not callable(service):
         raise TypeError("service must be callable")
+    if heartbeat_service is not None and not callable(heartbeat_service):
+        raise TypeError("heartbeat_service must be callable")
     active_clock = clock or SystemClock()
     start = claim_task(
         task_name=task_name,
@@ -506,7 +512,21 @@ def execute_tracked_task(
     token = bind_trace_code(claim.trace_code)
     try:
         try:
-            result_ref = _result_ref(service(business_object))
+            if heartbeat_service is None:
+                assert service is not None
+                service_result = service(business_object)
+            else:
+
+                def renew_lease() -> None:
+                    if not heartbeat_task(
+                        claim,
+                        lease_seconds=lease_seconds,
+                        clock=active_clock,
+                    ):
+                        raise TaskLeaseLost("task lease is no longer owned")
+
+                service_result = heartbeat_service(business_object, renew_lease)
+            result_ref = _result_ref(service_result)
         except Exception as error:
             error_code = (
                 error.error_code

@@ -1,4 +1,5 @@
 from .audit import AuditDetail, AuditListItem, audit_detail, search_audit
+from .backups import BackupRecordItem, backup_records
 from .errors import (
     RuntimeErrorDetail,
     RuntimeErrorListItem,
@@ -11,10 +12,12 @@ from .monitoring import current_monitoring_status
 __all__ = [
     "AuditDetail",
     "AuditListItem",
+    "BackupRecordItem",
     "RuntimeErrorDetail",
     "RuntimeErrorListItem",
     "RuntimeErrorOccurrenceItem",
     "audit_detail",
+    "backup_records",
     "current_monitoring_status",
     "error_detail",
     "search_audit",

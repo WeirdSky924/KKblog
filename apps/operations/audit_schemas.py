@@ -68,6 +68,41 @@ def register_builtin_audit_schemas() -> None:
             "notification",
             frozenset({"state"}),
         ),
+        AuditSchema(
+            "exchange.import_decision.updated",
+            "import_job",
+            frozenset(
+                {
+                    "preview_version",
+                    "item_id",
+                    "included",
+                    "decision",
+                    "section_mapped",
+                    "tag_count",
+                    "proposed_tag_count",
+                }
+            ),
+        ),
+        AuditSchema(
+            "exchange.import.confirmed",
+            "import_job",
+            frozenset({"preview_version", "selected_count", "skipped_count"}),
+        ),
+        AuditSchema(
+            "exchange.export.requested",
+            "export_job",
+            frozenset({"scope", "selected_count", "other_author_count"}),
+        ),
+        AuditSchema(
+            "exchange.export.cancel_requested",
+            "export_job",
+            frozenset({"state"}),
+        ),
+        AuditSchema(
+            "exchange.export.downloaded",
+            "export_job",
+            frozenset({"state"}),
+        ),
     )
     for schema in schemas:
         register_audit_schema(schema)

@@ -81,11 +81,12 @@ def _delivery(
     recipients: tuple[UUID, ...],
     payload: dict[str, object],
     dedupe_key: str | None = None,
+    target_id: str | None = None,
 ) -> _Delivery:
     return _Delivery(
         template_key=envelope.event_type,
         recipient_ids=recipients,
-        target_id=envelope.aggregate_id,
+        target_id=target_id or envelope.aggregate_id,
         payload=payload,
         dedupe_key=dedupe_key or f"event:{envelope.event_id}",
     )
@@ -316,6 +317,59 @@ def _article_event(envelope: EventEnvelope) -> _Delivery:
     )
 
 
+def _exchange_import_title_warning(envelope: EventEnvelope) -> _Delivery:
+    payload = _base(
+        envelope,
+        event_type="exchange.import_title_warning.v1",
+        aggregate_type="article",
+        fields=frozenset({"job_id", "item_id", "recipient_id"}),
+    )
+    _ulid(envelope.aggregate_id)
+    _ulid(payload["job_id"])
+    item_id = _ulid(payload["item_id"])
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload={},
+        dedupe_key=f"exchange-import-title-warning:{item_id}",
+    )
+
+
+def _exchange_export_completed(envelope: EventEnvelope) -> _Delivery:
+    payload = _base(
+        envelope,
+        event_type="exchange.export_completed.v1",
+        aggregate_type="export_job",
+        fields=frozenset({"recipient_id"}),
+    )
+    job_id = _ulid(envelope.aggregate_id)
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload={},
+        dedupe_key=f"exchange-export-completed:{job_id}",
+    )
+
+
+def _exchange_export_author_content(envelope: EventEnvelope) -> _Delivery:
+    payload = _base(
+        envelope,
+        event_type="exchange.export_author_content.v1",
+        aggregate_type="export_job",
+        fields=frozenset({"recipient_id", "export_date"}),
+    )
+    _ulid(envelope.aggregate_id)
+    recipient = _uuid(payload["recipient_id"])
+    export_date = _date(payload["export_date"])
+    return _delivery(
+        envelope,
+        recipients=(recipient,),
+        payload={},
+        dedupe_key=f"exchange-export-author:{recipient}:{export_date}",
+        target_id=str(recipient),
+    )
+
+
 _BUILDERS: dict[str, Callable[[EventEnvelope], _Delivery | None]] = {
     "tag.reviewed.v1": _tag_reviewed,
     "tag.restore_conflict.v1": _tag_restore_conflict,
@@ -328,6 +382,9 @@ _BUILDERS: dict[str, Callable[[EventEnvelope], _Delivery | None]] = {
     "article.moderated.v1": _article_event,
     "article.moderation_restored.v1": _article_event,
     "article.moderation_finalized.v1": _article_event,
+    "exchange.import_title_warning.v1": _exchange_import_title_warning,
+    "exchange.export_completed.v1": _exchange_export_completed,
+    "exchange.export_author_content.v1": _exchange_export_author_content,
 }
 
 

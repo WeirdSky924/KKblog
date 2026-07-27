@@ -7,6 +7,8 @@ from config.environment import (
     load_development_mailpit,
     load_development_redis,
     load_trusted_proxy_cidrs,
+    load_umami_database_url,
+    load_umami_website_id,
 )
 
 from .base import *
@@ -16,6 +18,9 @@ DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 SITE_BASE_URL = "http://localhost"
 TRUSTED_PROXY_CIDRS = load_trusted_proxy_cidrs(os.environ)
+ANALYTICS_DATABASE_URL = load_umami_database_url(os.environ)
+ANALYTICS_WEBSITE_ID = load_umami_website_id(os.environ)
+ANALYTICS_ENABLED = bool(ANALYTICS_DATABASE_URL and ANALYTICS_WEBSITE_ID)
 
 DATABASES = {
     "default": load_development_database(os.environ)

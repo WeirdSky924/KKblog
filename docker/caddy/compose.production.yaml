@@ -10,6 +10,8 @@ x-production-environment: &production-environment
   KAJ_MEDIA_ROOT: ${KAJ_MEDIA_ROOT:?KAJ_MEDIA_ROOT is required}
   KAJ_INITIAL_ADMIN_PASSWORD: ${KAJ_INITIAL_ADMIN_PASSWORD:?KAJ_INITIAL_ADMIN_PASSWORD is required}
   KAJ_TRUSTED_PROXY_CIDRS: ${KAJ_TRUSTED_PROXY_CIDRS:?KAJ_TRUSTED_PROXY_CIDRS is required}
+  KAJ_UMAMI_DATABASE_URL: ${KAJ_UMAMI_DATABASE_URL:?KAJ_UMAMI_DATABASE_URL is required}
+  KAJ_UMAMI_WEBSITE_ID: ${KAJ_UMAMI_WEBSITE_ID:?KAJ_UMAMI_WEBSITE_ID is required}
 
 services:
   web:
@@ -27,6 +29,7 @@ services:
       KAJ_PUBLIC_HOST: ${KAJ_PUBLIC_HOST:?KAJ_PUBLIC_HOST is required}
       KAJ_PUBLIC_URL: ${KAJ_PUBLIC_URL:?KAJ_PUBLIC_URL is required}
       KAJ_CADDY_UPSTREAM: web:8000
+      KAJ_UMAMI_UPSTREAM: umami:3000
     ports: !override
       - name: public-http
         target: 80
@@ -43,3 +46,12 @@ services:
     environment:
       DATABASE_URL: ${KAJ_UMAMI_DATABASE_URL:?KAJ_UMAMI_DATABASE_URL is required}
       APP_SECRET: ${KAJ_UMAMI_APP_SECRET:?KAJ_UMAMI_APP_SECRET is required}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ "$(printf %s "$$APP_SECRET" | wc -c | tr -d ' ')" -lt 32 ]; then
+          echo "APP_SECRET must be at least 32 characters" >&2
+          exit 1
+        fi
+        exec pnpm start-docker

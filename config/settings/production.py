@@ -18,6 +18,9 @@ REDIS_URL = _environment.redis_url
 MEDIA_ROOT = _environment.media_root
 INITIAL_ADMIN_PASSWORD = _environment.initial_admin_password
 TRUSTED_PROXY_CIDRS = _environment.trusted_proxy_cidrs
+ANALYTICS_ENABLED = True
+ANALYTICS_DATABASE_URL = _environment.umami_database_url
+ANALYTICS_WEBSITE_ID = _environment.umami_website_id
 
 STORAGES = {
     "default": {

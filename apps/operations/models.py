@@ -393,6 +393,147 @@ class OperationalAlertEmailWindow(models.Model):
         ]
 
 
+class BackupRecord(models.Model):
+    class State(models.TextChoices):
+        RUNNING = "RUNNING", "Running"
+        COMPLETED = "COMPLETED", "Completed"
+        FAILED = "FAILED", "Failed"
+        EXPIRED = "EXPIRED", "Expired"
+
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    week_id = models.CharField(max_length=8, editable=False)
+    destination = models.CharField(max_length=8, default="local", editable=False)
+    state = models.CharField(
+        max_length=12,
+        choices=State.choices,
+        default=State.RUNNING,
+        editable=False,
+    )
+    archive_key = models.CharField(max_length=512, blank=True, editable=False)
+    archive_size_bytes = models.PositiveBigIntegerField(null=True, editable=False)
+    archive_sha256 = models.CharField(max_length=64, blank=True, editable=False)
+    database_size_bytes = models.PositiveBigIntegerField(null=True, editable=False)
+    media_size_bytes = models.PositiveBigIntegerField(null=True, editable=False)
+    media_file_count = models.PositiveIntegerField(null=True, editable=False)
+    error_code = models.CharField(max_length=96, blank=True, editable=False)
+    started_at = models.DateTimeField(editable=False)
+    heartbeat_at = models.DateTimeField(editable=False)
+    lease_token = models.UUIDField(null=True, editable=False)
+    lease_expires_at = models.DateTimeField(null=True, editable=False)
+    completed_at = models.DateTimeField(null=True, editable=False)
+    expires_at = models.DateTimeField(null=True, editable=False)
+    expired_at = models.DateTimeField(null=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        db_table = "operations_backup_record"
+        ordering = ("-started_at", "-id")
+        indexes = [
+            models.Index(
+                fields=("state", "started_at"),
+                name="operations_backup_state_idx",
+            ),
+            models.Index(
+                fields=("expires_at", "id"),
+                condition=Q(state="COMPLETED"),
+                name="operations_backup_expiry_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("destination", "week_id"),
+                name="operations_backup_week_unique",
+            ),
+            models.UniqueConstraint(
+                models.Value(1),
+                condition=Q(state="RUNNING"),
+                name="operations_backup_running_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(destination="local"),
+                name="operations_backup_destination_local",
+            ),
+            models.CheckConstraint(
+                condition=Q(week_id__regex=r"^[0-9]{4}-W[0-9]{2}$"),
+                name="operations_backup_week_shape",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        state="RUNNING",
+                        archive_key="",
+                        archive_size_bytes__isnull=True,
+                        archive_sha256="",
+                        database_size_bytes__isnull=True,
+                        media_size_bytes__isnull=True,
+                        media_file_count__isnull=True,
+                        error_code="",
+                        lease_token__isnull=False,
+                        lease_expires_at__isnull=False,
+                        completed_at__isnull=True,
+                        expires_at__isnull=True,
+                        expired_at__isnull=True,
+                    )
+                    | (
+                        Q(
+                            state="COMPLETED",
+                            archive_size_bytes__isnull=False,
+                            database_size_bytes__isnull=False,
+                            media_size_bytes__isnull=False,
+                            media_file_count__isnull=False,
+                            error_code="",
+                            lease_token__isnull=True,
+                            lease_expires_at__isnull=True,
+                            completed_at__isnull=False,
+                            expires_at__isnull=False,
+                            expired_at__isnull=True,
+                        )
+                        & ~Q(archive_key="")
+                        & Q(archive_sha256__regex=r"^[0-9a-f]{64}$")
+                    )
+                    | (
+                        Q(
+                            state="FAILED",
+                            archive_key="",
+                            archive_size_bytes__isnull=True,
+                            archive_sha256="",
+                            database_size_bytes__isnull=True,
+                            media_size_bytes__isnull=True,
+                            media_file_count__isnull=True,
+                            lease_token__isnull=True,
+                            lease_expires_at__isnull=True,
+                            completed_at__isnull=False,
+                            expires_at__isnull=True,
+                            expired_at__isnull=True,
+                        )
+                        & ~Q(error_code="")
+                    )
+                    | (
+                        Q(
+                            state="EXPIRED",
+                            archive_key="",
+                            archive_size_bytes__isnull=False,
+                            database_size_bytes__isnull=False,
+                            media_size_bytes__isnull=False,
+                            media_file_count__isnull=False,
+                            error_code="",
+                            lease_token__isnull=True,
+                            lease_expires_at__isnull=True,
+                            completed_at__isnull=False,
+                            expires_at__isnull=False,
+                            expired_at__isnull=False,
+                        )
+                        & Q(archive_sha256__regex=r"^[0-9a-f]{64}$")
+                    )
+                ),
+                name="operations_backup_state_shape",
+            ),
+        ]
+
+
 class TaskRunStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     RUNNING = "running", "Running"

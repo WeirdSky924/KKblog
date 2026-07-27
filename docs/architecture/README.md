@@ -1,6 +1,6 @@
 # Kaj的小房间架构设计总览
 
-状态：需求与施工级架构设计已完成；原型作为视觉基线，路由/身份/状态以 `docs/prototype/page-state-matrix.md` 补齐；P1/P2 技术基础已在未提交工作区实现并隔离验证，P3 及后续业务领域尚未实施。
+状态：需求与施工级架构设计已完成；原型作为视觉基线，路由/身份/状态以 `docs/prototype/page-state-matrix.md` 补齐。准确的实施阶段、任务状态与验收证据统一见 `docs/planning/implementation-todolist.md`，本架构入口不维护第二份进度账。
 
 需求真值：`docs/planning/requirements-interview.md`。前端基线：`docs/prototype/page-state-matrix.md`、`docs/prototype/index.html` 与 `docs/prototype/README.md`。历史决策冲突先看 `reference/01-requirements-resolution.md`。
 

@@ -1,0 +1,45 @@
+(analytics_proxy) {
+	@analytics_script {
+		path /analytics/script.js
+		method GET HEAD
+	}
+	handle @analytics_script {
+		reverse_proxy {$KAJ_UMAMI_UPSTREAM:umami:3000} {
+			header_up -Cookie
+		}
+	}
+
+	@analytics_collection {
+		path /analytics/collect
+		method POST OPTIONS
+	}
+	handle @analytics_collection {
+		reverse_proxy {$KAJ_UMAMI_UPSTREAM:umami:3000} {
+			header_up -Cookie
+		}
+	}
+
+	@analytics_dashboard {
+		path /admin/analytics/umami /admin/analytics/umami/* /_next/* /api /api/*
+		path /console /console/* /dashboard /dashboard/* /login /login/*
+		path /logout /logout/* /profile /profile/* /reports /reports/*
+		path /settings /settings/* /share /share/* /sso /sso/*
+		path /teams /teams/* /telemetry.js /websites /websites/*
+	}
+	handle @analytics_dashboard {
+		route {
+			request_header -X-Kaj-Internal-Auth
+			forward_auth {$KAJ_CADDY_UPSTREAM:web:8000} {
+				uri /internal/analytics/authorize
+				header_up X-Kaj-Internal-Auth "1"
+				header_up -Authorization
+			}
+			uri strip_prefix /admin/analytics/umami
+			header Cache-Control "private, no-store"
+			reverse_proxy {$KAJ_UMAMI_UPSTREAM:umami:3000} {
+				header_up -X-Kaj-Internal-Auth
+				header_up -Cookie
+			}
+		}
+	}
+}

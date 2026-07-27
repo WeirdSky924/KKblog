@@ -20,6 +20,19 @@ from .cleanup import (
     release_owner_assets,
     release_target_assets,
 )
+from .exports import (
+    ExportMediaDescriptor,
+    MediaExportError,
+    export_revision_media,
+    read_export_media,
+)
+from .imports import (
+    ImportedMediaAsset,
+    ValidatedImportImage,
+    create_import_asset,
+    discard_import_assets,
+    validate_import_image,
+)
 from .uploads import MediaUploadError, stage_upload
 
 __all__ = [
@@ -34,6 +47,10 @@ __all__ = [
     "MediaUploadError",
     "ReplaceBindingsResult",
     "TargetBindingSnapshot",
+    "ValidatedImportImage",
+    "ImportedMediaAsset",
+    "ExportMediaDescriptor",
+    "MediaExportError",
     "authorize_asset_read",
     "bind_assets",
     "bind_revision_snapshot_assets",
@@ -44,5 +61,10 @@ __all__ = [
     "replace_bindings",
     "target_binding_snapshot",
     "target_binding_snapshots",
+    "validate_import_image",
+    "create_import_asset",
+    "discard_import_assets",
+    "export_revision_media",
+    "read_export_media",
     "stage_upload",
 ]

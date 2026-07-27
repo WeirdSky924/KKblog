@@ -4,11 +4,13 @@
 }
 
 import /etc/caddy/media-delivery.caddy
+import /etc/caddy/analytics-proxy.caddy
 
 http://localhost {
 	encode gzip
 	route {
 		import media_delivery
+		import analytics_proxy
 		handle_path /static/* {
 			root * /srv/static
 			header Cache-Control "no-cache"

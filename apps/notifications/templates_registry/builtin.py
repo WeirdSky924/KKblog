@@ -38,6 +38,10 @@ def _boolean(field: str) -> PayloadValidator:
     return validate
 
 
+def _empty(payload: Mapping[str, object]) -> None:
+    _reject_unless(not payload)
+
+
 def _iso_date(field: str) -> PayloadValidator:
     def validate(payload: Mapping[str, object]) -> None:
         value = payload[field]
@@ -440,6 +444,45 @@ _BUILTINS = (
         ),
         NotificationTemplateDefinition(
             "article.moderation_finalized.v1", "文章申诉终局", _article_final_message
+        ),
+    ),
+    (
+        _schema(
+            "exchange.import_title_warning.v1",
+            "article",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "exchange.import_title_warning.v1",
+            "导入文章同标题提醒",
+            lambda payload: "作者导入并发布了与其他作者同标题的文章，请复核。",
+        ),
+    ),
+    (
+        _schema(
+            "exchange.export_completed.v1",
+            "export_job",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "exchange.export_completed.v1",
+            "导出已完成",
+            lambda payload: "内容导出已完成，可在管理后台下载。",
+        ),
+    ),
+    (
+        _schema(
+            "exchange.export_author_content.v1",
+            "account",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "exchange.export_author_content.v1",
+            "文章已由管理员导出",
+            lambda payload: "管理员导出了你的文章内容。",
         ),
     ),
 )

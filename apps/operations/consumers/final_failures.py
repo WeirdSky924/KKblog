@@ -10,7 +10,7 @@ from apps.operations.services.alerts import (
 CONSUMER_NAME = "operations.task-final-failure-alert.v1"
 
 
-def _handle(envelope: EventEnvelope, *, clock: Clock | None) -> None:
+def validate_task_final_failure(envelope: EventEnvelope) -> tuple[TaskRun, dict]:
     if (
         not isinstance(envelope, EventEnvelope)
         or envelope.event_type != TASK_FINAL_FAILED.event_type
@@ -31,6 +31,11 @@ def _handle(envelope: EventEnvelope, *, clock: Clock | None) -> None:
     }
     if payload != expected or envelope.trace_code != run.trace_code:
         raise AlertPersistenceError("Task final failure event does not match task run")
+    return run, payload
+
+
+def _handle(envelope: EventEnvelope, *, clock: Clock | None) -> None:
+    run, _payload = validate_task_final_failure(envelope)
     record_task_final_failure_alert(
         run,
         trace_code=envelope.trace_code,

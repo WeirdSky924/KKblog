@@ -16,7 +16,9 @@ def execute_celery_entry(
     task_name: str,
     business_object: str,
     idempotency_key: str,
-    service: Callable[[str], str | None],
+    service: Callable[[str], str | None] | None = None,
+    heartbeat_service: Callable[[str, Callable[[], None]], str | None] | None = None,
+    lease_seconds: int = 300,
 ) -> TaskStartResult:
     request_id = getattr(celery_task.request, "id", None)
     if not isinstance(request_id, str) or not request_id:
@@ -28,6 +30,8 @@ def execute_celery_entry(
             idempotency_key=idempotency_key,
             celery_id=request_id,
             service=service,
+            heartbeat_service=heartbeat_service,
+            lease_seconds=lease_seconds,
         )
     except TaskRetryScheduled as scheduled:
         raise celery_task.retry(

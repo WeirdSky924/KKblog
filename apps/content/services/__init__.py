@@ -30,6 +30,15 @@ from .editing import (
     resolve_edit_conflict,
     save_revision_with_token,
 )
+from .imports import (
+    ImportArticleCommand,
+    ImportArticleError,
+    ImportArticleResult,
+    ImportOperation,
+    ImportPublicationStatus,
+    import_article_item,
+    imported_article_result,
+)
 from .moderation import (
     ArticleModerationAction,
     ArticleModerationBoundaryError,
@@ -91,6 +100,11 @@ __all__ = [
     "EditSaveResult",
     "EditSession",
     "EditTokenError",
+    "ImportArticleCommand",
+    "ImportArticleError",
+    "ImportArticleResult",
+    "ImportOperation",
+    "ImportPublicationStatus",
     "CancelScheduleResult",
     "PreferenceRepublishResult",
     "PublicationCommandError",
@@ -138,5 +152,7 @@ __all__ = [
     "due_deleted_articles",
     "purge_deleted_article",
     "open_edit_session",
+    "import_article_item",
+    "imported_article_result",
     "validate_publication_section",
 ]
