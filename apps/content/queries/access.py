@@ -63,6 +63,8 @@ class ArticleView:
     can_edit: bool
     can_publish: bool
     admin_read_only: bool
+    row_version: int
+    can_discard_cloud_draft: bool
     rendered_body_html: str | None = None
     readable_cover_asset_id: str | None = None
 
@@ -121,6 +123,14 @@ def _view(
     can_edit: bool,
     admin_read_only: bool,
 ) -> ArticleView:
+    can_discard_cloud_draft = (
+        can_edit
+        and article.publication_state != Article.PublicationState.SCHEDULED
+        and (
+            article.published_revision_id is None
+            or article.working_revision_id != article.published_revision_id
+        )
+    )
     return ArticleView(
         article.id,
         revision.id,
@@ -137,6 +147,8 @@ def _view(
         can_edit,
         can_edit,
         admin_read_only,
+        article.row_version,
+        can_discard_cloud_draft,
     )
 
 

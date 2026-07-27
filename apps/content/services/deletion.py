@@ -16,7 +16,7 @@ from apps.media.public import MediaTargetType, release_target_assets
 from apps.operations.public import record_audit_entry
 
 from ..events import ARTICLE_DELETED, ARTICLE_PURGE_REQUESTED, ARTICLE_RESTORED
-from ..models import Article, ArticleTombstone
+from ..models import Article, ArticleEditGrant, ArticleTombstone
 from ..policies import (
     article_administrative_action_allowed,
     article_is_reader_masked,
@@ -31,6 +31,13 @@ COOLING_PERIOD = timedelta(days=7)
 
 
 class ArticleDeletionError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        self.safe_message = message
+        super().__init__(message)
+
+
+class CloudDraftDiscardError(ValueError):
     def __init__(self, code: str, message: str) -> None:
         self.code = code
         self.safe_message = message
@@ -66,6 +73,16 @@ class ArticleRestorationResult:
 class ArticlePurgeResult:
     article_id: str
     outcome: ArticlePurgeOutcome
+    asset_ids: tuple[str, ...] = ()
+    comment_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class CloudDraftDiscardResult:
+    article_id: str
+    article_removed: bool
+    working_revision_id: str | None
+    row_version: int | None
     asset_ids: tuple[str, ...] = ()
     comment_count: int = 0
 
@@ -109,6 +126,27 @@ def _aware_datetime(value, *, field: str) -> datetime:
     return value
 
 
+def _discard_identity(*, actor_id, article_id, expected_row_version):
+    try:
+        actor = UUID(str(actor_id))
+        identity = normalize_ulid(article_id)
+    except (TypeError, ValueError):
+        raise CloudDraftDiscardError(
+            "content.cloud_draft_discard_not_allowed.v1",
+            "云端草稿不存在或不能删除。",
+        ) from None
+    if (
+        isinstance(expected_row_version, bool)
+        or not isinstance(expected_row_version, int)
+        or expected_row_version < 1
+    ):
+        raise CloudDraftDiscardError(
+            "content.edit_conflict.v1",
+            "文章版本已发生变化，请重新打开后再试。",
+        )
+    return actor, identity, expected_row_version
+
+
 def _delete_allowed(article: Article, actor: UUID, administrative: bool) -> bool:
     if administrative:
         return is_administrator(actor)
@@ -117,6 +155,112 @@ def _delete_allowed(article: Article, actor: UUID, administrative: bool) -> bool
         and is_active_author(actor)
         and not article_is_reader_masked(article.id)
     )
+
+
+def discard_cloud_draft(
+    *,
+    actor_id,
+    article_id: str,
+    expected_row_version: int,
+    storage=None,
+    comment_purge: ArticleCommentPurge | None = None,
+) -> CloudDraftDiscardResult:
+    actor, identity, version = _discard_identity(
+        actor_id=actor_id,
+        article_id=article_id,
+        expected_row_version=expected_row_version,
+    )
+    if comment_purge is not None and not callable(comment_purge):
+        raise TypeError("comment_purge must be callable")
+    purge_comments: Callable[[str], ArticleCommentPurgeResult] = (
+        comment_purge or purge_article_comments
+    )
+    with transaction.atomic():
+        try:
+            article = Article.objects.select_for_update().get(
+                pk=identity,
+                author_id=actor,
+                deleted_at__isnull=True,
+                working_revision__isnull=False,
+            )
+        except Article.DoesNotExist:
+            raise CloudDraftDiscardError(
+                "content.cloud_draft_discard_not_allowed.v1",
+                "云端草稿不存在或不能删除。",
+            ) from None
+        if not is_active_author(actor) or article_is_reader_masked(article.id):
+            raise CloudDraftDiscardError(
+                "content.cloud_draft_discard_not_allowed.v1",
+                "云端草稿不存在或不能删除。",
+            )
+        if article.row_version != version:
+            raise CloudDraftDiscardError(
+                "content.edit_conflict.v1",
+                "文章版本已发生变化，请重新打开后再试。",
+            )
+        if article.edit_grants.filter(state=ArticleEditGrant.State.CONFLICT).exists():
+            raise CloudDraftDiscardError(
+                "content.edit_conflict_unresolved.v1",
+                "请先解决编辑冲突后再继续。",
+            )
+        if article.publication_state == Article.PublicationState.SCHEDULED:
+            raise CloudDraftDiscardError(
+                "content.cloud_draft_scheduled.v1",
+                "定时发布内容需先取消排期。",
+            )
+
+        if article.published_revision_id is None:
+            comment_result = purge_comments(article.id)
+            if not isinstance(comment_result, ArticleCommentPurgeResult):
+                raise TypeError("comment_purge returned an invalid result")
+            revision_ids = tuple(
+                article.revisions.order_by("id").values_list("id", flat=True)
+            )
+            if revision_ids:
+                media_result = release_target_assets(
+                    target_type=MediaTargetType.ARTICLE_REVISION,
+                    target_ids=revision_ids,
+                    storage=storage,
+                )
+                asset_ids = media_result.asset_ids
+            else:
+                asset_ids = ()
+            article.delete()
+            return CloudDraftDiscardResult(
+                identity,
+                True,
+                None,
+                None,
+                asset_ids,
+                comment_result.comment_count,
+            )
+
+        if article.working_revision_id == article.published_revision_id:
+            raise CloudDraftDiscardError(
+                "content.cloud_draft_missing.v1",
+                "当前没有可删除的云端草稿。",
+            )
+        article.working_revision_id = article.published_revision_id
+        article.publication_state = Article.PublicationState.PUBLISHED
+        article.row_version += 1
+        article.save(
+            update_fields=(
+                "working_revision",
+                "publication_state",
+                "row_version",
+                "updated_at",
+            )
+        )
+        ArticleEditGrant.objects.filter(
+            article=article,
+            state__in=(ArticleEditGrant.State.ACTIVE, ArticleEditGrant.State.CONFLICT),
+        ).update(state=ArticleEditGrant.State.REPLACED)
+        return CloudDraftDiscardResult(
+            article.id,
+            False,
+            article.working_revision_id,
+            article.row_version,
+        )
 
 
 def delete_article(

@@ -5,7 +5,7 @@ from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from apps.authoring.forms import ArticleEditorForm
+from apps.authoring.forms import ArticleEditorForm, CloudDraftDiscardForm
 from apps.authoring.presenters import (
     FORMAT_LABELS,
     initial_from_session,
@@ -15,12 +15,14 @@ from apps.content.public import (
     ArticleBodyLimit,
     ArticleNotFound,
     ArticlePreviewError,
+    CloudDraftDiscardError,
     ContentCommandError,
     ContentFormat,
     EditConflictError,
     EditTokenError,
     article_for_author,
     create_article,
+    discard_cloud_draft,
     open_edit_session,
     preview_article_body,
     save_revision_with_token,
@@ -30,6 +32,15 @@ from apps.content.public import (
 from apps.core.ids import new_ulid, normalize_ulid
 
 from .access import author_id_or_response, private_response
+
+_DISCARD_CONFIRM = "discard-cloud-draft"
+_DISCARD_ERRORS = {
+    "invalid": "删除请求已失效，请关闭确认框后重试。",
+    "content.edit_conflict.v1": "文章版本已发生变化，请重新打开后再试。",
+    "content.edit_conflict_unresolved.v1": "请先解决编辑冲突后再继续。",
+    "content.cloud_draft_scheduled.v1": "定时发布内容需先取消排期。",
+    "content.cloud_draft_missing.v1": "当前没有可删除的云端草稿。",
+}
 
 
 def _choices() -> dict:
@@ -46,10 +57,21 @@ def _editor_context(
     saved: bool = False,
     cloud_error: bool = False,
     frozen: bool = False,
+    row_version: int | None = None,
+    can_discard_cloud_draft: bool = False,
+    discard_open: bool = False,
+    discard_error: str = "",
 ) -> dict:
     preview, preview_error = preview_from_form(form, content_format)
     upload_scope = form["upload_scope"].value() or ""
     query = urlencode({"target": upload_scope})
+    discard_form = (
+        CloudDraftDiscardForm(
+            initial={"expected_row_version": row_version, "confirm": "discard"}
+        )
+        if can_discard_cloud_draft and row_version is not None
+        else None
+    )
     return {
         "editor_form": form,
         "editor_mode": mode,
@@ -64,6 +86,14 @@ def _editor_context(
         "editor_saved": saved,
         "editor_cloud_error": cloud_error,
         "editor_frozen": frozen,
+        "editor_discard_form": discard_form,
+        "editor_discard_open": discard_open and discard_form is not None,
+        "editor_discard_error": discard_error if discard_form is not None else "",
+        "editor_discard_url": (
+            reverse("authoring:discard-draft", kwargs={"article_id": article_id})
+            if discard_form is not None
+            else ""
+        ),
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
         "cover_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-cover'})}?{query}"
@@ -200,6 +230,12 @@ def edit(request, article_id: str):
                 mode="edit",
                 article_id=article_id,
                 saved=request.GET.get("created") == "1",
+                row_version=session.row_version,
+                can_discard_cloud_draft=article.can_discard_cloud_draft,
+                discard_open=request.GET.get("confirm") == _DISCARD_CONFIRM,
+                discard_error=_DISCARD_ERRORS.get(
+                    request.GET.get("discard_error", ""), ""
+                ),
             ),
         )
     form = ArticleEditorForm(
@@ -222,6 +258,10 @@ def edit(request, article_id: str):
             form.add_error(None, str(exc))
             frozen = True
         else:
+            saved_article = article_for_author(
+                actor_id=actor_id,
+                article_id=article_id,
+            )
             form = ArticleEditorForm(
                 initial=initial_from_session(result.next_session),
                 locked_format=article.content_format,
@@ -236,6 +276,8 @@ def edit(request, article_id: str):
                     mode="edit",
                     article_id=article_id,
                     saved=True,
+                    row_version=result.next_session.row_version,
+                    can_discard_cloud_draft=(saved_article.can_discard_cloud_draft),
                 ),
             )
     return _render_editor(
@@ -249,8 +291,78 @@ def edit(request, article_id: str):
             article_id=article_id,
             cloud_error=True,
             frozen=frozen,
+            row_version=article.row_version,
+            can_discard_cloud_draft=(article.can_discard_cloud_draft and not frozen),
         ),
     )
+
+
+def _discard_error_response(request, *, article_id: str, code: str, message: str):
+    if request.headers.get("HX-Request") != "true":
+        query = urlencode({"confirm": _DISCARD_CONFIRM, "discard_error": code})
+        return redirect(
+            f"{reverse('authoring:edit', kwargs={'article_id': article_id})}?{query}"
+        )
+    status = 409 if code.startswith("content.edit_conflict") else 422
+    response = render(
+        request,
+        "authoring/partials/discard_cloud_draft_error.html",
+        {"discard_error": message},
+        status=status,
+    )
+    response.headers["HX-Retarget"] = "#discard-cloud-draft-feedback"
+    response.headers["HX-Reswap"] = "innerHTML"
+    response.headers["X-Kaj-Inline-Error"] = "true"
+    return private_response(response)
+
+
+def discard_draft(request, article_id: str):
+    actor_id, response = author_id_or_response(request)
+    if response is not None:
+        return response
+    if request.method != "POST":
+        return private_response(HttpResponseNotAllowed(("POST",)))
+    form = CloudDraftDiscardForm(request.POST)
+    if not form.is_valid():
+        return _discard_error_response(
+            request,
+            article_id=article_id,
+            code="invalid",
+            message=_DISCARD_ERRORS["invalid"],
+        )
+    try:
+        result = discard_cloud_draft(
+            actor_id=actor_id,
+            article_id=article_id,
+            expected_row_version=form.cleaned_data["expected_row_version"],
+        )
+    except CloudDraftDiscardError as exc:
+        if exc.code == "content.cloud_draft_discard_not_allowed.v1":
+            raise Http404 from None
+        return _discard_error_response(
+            request,
+            article_id=article_id,
+            code=exc.code,
+            message=exc.safe_message,
+        )
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"{reverse('authoring:articles')}?state=DRAFT&discarded=1")
+    response = render(
+        request,
+        "authoring/partials/draft_discarded.html",
+        {"draft_discard_result": result},
+    )
+    response.headers["HX-Trigger-After-Swap"] = json.dumps(
+        {
+            "kaj:author-draft-clear": {
+                "userId": str(actor_id),
+                "articleKey": result.article_id,
+            }
+        },
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return private_response(response)
 
 
 def preview(request):

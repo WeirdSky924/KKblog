@@ -6,7 +6,17 @@
   aria-labelledby="{{ dialog_id }}-title"
   aria-describedby="{{ dialog_id }}-description"
 >
-  <form method="post" data-submit-once class="confirm-dialog__content">
+  <form
+    method="post"
+    {% if dialog_action %}action="{{ dialog_action }}"{% endif %}
+    {% if dialog_hx_post %}
+      hx-post="{{ dialog_hx_post }}"
+      hx-target="{{ dialog_hx_target }}"
+      hx-swap="outerHTML"
+    {% endif %}
+    data-submit-once
+    class="confirm-dialog__content"
+  >
     {% csrf_token %}
     <input type="hidden" name="action" value="{{ action_value }}">
     {% for hidden in confirmation_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -14,6 +24,11 @@
     <p id="{{ dialog_id }}-description">{{ dialog_description }}</p>
     {{ confirmation_form.confirm.errors }}
     {{ confirmation_form.non_field_errors }}
+    {% if dialog_feedback_id %}
+      <div id="{{ dialog_feedback_id }}" class="confirm-dialog__feedback" aria-live="polite">
+        {% if dialog_feedback %}<p role="alert">{{ dialog_feedback }}</p>{% endif %}
+      </div>
+    {% endif %}
     <div class="confirm-dialog__actions">
       <button class="button button--secondary" type="button" data-dialog-cancel autofocus>取消</button>
       <button class="button button--primary" type="submit">{{ confirm_label }}</button>

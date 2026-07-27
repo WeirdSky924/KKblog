@@ -162,12 +162,25 @@
           <a class="button button--secondary" href="{% url 'authoring:articles' %}">
             <i data-lucide="arrow-left"></i><span>返回我的文章</span>
           </a>
+          {% if editor_discard_form %}
+            <a
+              class="button button--secondary author-editor-discard"
+              href="?confirm=discard-cloud-draft"
+              data-dialog-trigger
+              aria-controls="discard-cloud-draft-dialog"
+            >
+              <i data-lucide="trash-2"></i><span>删除云端草稿</span>
+            </a>
+          {% endif %}
           <button class="button button--primary" type="submit" {% if editor_frozen %}disabled{% endif %}>
             <i data-lucide="save"></i>
             <span>{% if editor_mode == "create" %}创建草稿{% else %}保存草稿{% endif %}</span>
           </button>
         </div>
       </form>
+      {% if editor_discard_form %}
+        {% include "components/feedback/confirm_dialog.html" with dialog_id="discard-cloud-draft-dialog" dialog_open=editor_discard_open dialog_title="删除云端草稿？" dialog_description="首发前草稿会立即删除且不能恢复；已发布文章只会撤销未发布的工作稿，历史版本仍会保留。" action_value="discard" confirmation_form=editor_discard_form confirm_label="确认删除" dialog_action=editor_discard_url dialog_hx_post=editor_discard_url dialog_hx_target="#author-editor-workspace" dialog_feedback_id="discard-cloud-draft-feedback" dialog_feedback=editor_discard_error %}
+      {% endif %}
     </section>
   </div>
 {% endblock %}

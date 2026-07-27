@@ -1,0 +1,27 @@
+<section
+  id="author-editor-workspace"
+  class="authoring-stage authoring-stage--editor"
+  aria-labelledby="author-draft-discarded-title"
+  tabindex="-1"
+  data-focus-after-swap
+>
+  <header class="authoring-heading authoring-heading--editor">
+    <div>
+      <p class="authoring-folio">02 / 06</p>
+      <h1 id="author-draft-discarded-title">云端草稿已删除</h1>
+    </div>
+  </header>
+  <div class="authoring-empty author-draft-discarded">
+    {% if draft_discard_result.article_removed %}
+      <h2>尚未发布的文章已移除</h2>
+      <p>文章、云端修订和对应媒体引用已立即清理。</p>
+    {% else %}
+      <h2>已恢复到当前发布版本</h2>
+      <p>未发布的工作稿已撤销，已有版本历史保持不变。</p>
+    {% endif %}
+    <p data-author-draft-clear-result aria-live="polite">正在清理这个浏览器中的本地稿。</p>
+    <a class="button button--primary" href="{% url 'authoring:articles' %}?state=DRAFT">
+      <i data-lucide="arrow-left"></i><span>返回我的文章</span>
+    </a>
+  </div>
+</section>

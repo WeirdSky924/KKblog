@@ -275,8 +275,12 @@ export function initializeLocalDraft(form) {
 }
 
 export function clearArticleLocalDrafts({ userId, articleKey }) {
+  if (!USER_ID.test(userId) || !ULID.test(articleKey)) {
+    return { ok: false, cleared: 0, pendingCleared: false };
+  }
   const prefix = `${DRAFT_SCHEMA}:${userId}:${articleKey}:`;
   let cleared = 0;
+  let pendingCleared = false;
   try {
     const keys = Array.from({ length: window.localStorage.length }, (_, index) =>
       window.localStorage.key(index),
@@ -285,14 +289,30 @@ export function clearArticleLocalDrafts({ userId, articleKey }) {
       window.localStorage.removeItem(key);
       cleared += 1;
     });
-    return { ok: true, cleared };
+    const pending = parseStored(window.sessionStorage, PENDING_SAVE_KEY);
+    if (
+      pending?.schema === DRAFT_SCHEMA &&
+      pending.userId === userId &&
+      pending.articleKey === articleKey
+    ) {
+      window.sessionStorage.removeItem(PENDING_SAVE_KEY);
+      pendingCleared = true;
+    }
+    return { ok: true, cleared, pendingCleared };
   } catch {
-    return { ok: false, cleared };
+    return { ok: false, cleared, pendingCleared };
   }
 }
 
 document.addEventListener("kaj:author-draft-clear", (event) => {
   if (event.detail?.userId && event.detail?.articleKey) {
-    clearArticleLocalDrafts(event.detail);
+    const result = clearArticleLocalDrafts(event.detail);
+    const status = document.querySelector("[data-author-draft-clear-result]");
+    if (status instanceof HTMLElement) {
+      status.textContent = result.ok
+        ? "这个浏览器中的对应本地稿已清理。"
+        : "云端草稿已删除，但本地稿未能清理，请清除浏览器站点数据。";
+      status.dataset.localState = result.ok ? "cleared" : "error";
+    }
   }
 });

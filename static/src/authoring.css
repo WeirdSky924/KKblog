@@ -751,12 +751,28 @@
   display: flex;
   min-height: 4.5rem;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem;
   border: 1px solid var(--line);
   border-block-start: 0;
   background: var(--surface-panel);
+}
+
+.author-editor-discard {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.author-discard-error,
+.author-draft-discarded [data-local-state="error"] {
+  color: var(--danger);
+}
+
+.author-discard-error {
+  margin: 0;
+  font-size: 0.8125rem;
 }
 
 .author-editor-form[data-editor-input-active="true"] .author-editor-actions {

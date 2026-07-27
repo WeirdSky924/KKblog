@@ -29,6 +29,14 @@ _VISIBILITY_CHOICES = (
 )
 
 
+class CloudDraftDiscardForm(forms.Form):
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("discard", "确认删除云端草稿"),),
+        widget=forms.HiddenInput,
+    )
+
+
 class ArticleEditorForm(forms.Form):
     content_format = forms.ChoiceField(
         choices=_FORMAT_CHOICES,
