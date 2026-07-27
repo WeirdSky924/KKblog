@@ -7,7 +7,7 @@
 {% block content %}
   <div class="authoring-layout authoring-layout--editor">
     {% include "authoring/partials/workflow_rail.html" with current_author_step=2 editor_article_id=editor_article_id %}
-    <section class="authoring-stage authoring-stage--editor" aria-labelledby="author-editor-title">
+    <section id="author-editor-workspace" class="authoring-stage authoring-stage--editor" aria-labelledby="author-editor-title">
       <header class="authoring-heading authoring-heading--editor">
         <div>
           <p class="authoring-folio">02 / 06</p>
@@ -15,7 +15,15 @@
         </div>
         <div class="author-editor-status">
           <span class="author-format-lock"><i data-lucide="lock-keyhole"></i>已锁定为{{ editor_format_label }}</span>
-          {% if editor_saved %}<span class="author-save-state"><i data-lucide="circle-check"></i>云端草稿已保存</span>{% endif %}
+          <span
+            class="author-save-state"
+            data-editor-cloud-label
+            data-cloud-state="{% if editor_cloud_error %}error{% elif editor_saved %}saved{% elif editor_mode == 'edit' %}loaded{% else %}empty{% endif %}"
+            aria-live="polite"
+          >
+            <i data-lucide="save"></i>
+            {% if editor_cloud_error %}云端保存失败，本地稿已保留{% elif editor_saved %}云端草稿已保存{% elif editor_mode == "edit" %}云端草稿已加载{% else %}尚未创建云端草稿{% endif %}
+          </span>
         </div>
       </header>
 
@@ -25,13 +33,26 @@
         action="{% if editor_mode == 'create' %}{% url 'authoring:create' %}{% else %}{% url 'authoring:edit' article_id=editor_article_id %}{% endif %}"
         data-submit-once
         data-author-editor="{{ editor_format }}"
+        data-editor-mode="{{ editor_mode }}"
+        data-editor-user-id="{{ editor_actor_id }}"
+        data-editor-article-key="{{ editor_article_key }}"
+        data-editor-baseline="{{ editor_baseline_revision_id }}"
+        data-cloud-saved="{% if editor_saved %}true{% else %}false{% endif %}"
+        data-cloud-error="{% if editor_cloud_error %}true{% else %}false{% endif %}"
         data-editor-preview-url="{% url 'authoring:preview' %}"
         data-editor-body-limit="{{ editor_body_limit }}"
         data-editor-frozen="{% if editor_frozen %}true{% else %}false{% endif %}"
+        {% if editor_mode == "edit" %}
+          hx-post="{% url 'authoring:edit' article_id=editor_article_id %}"
+          hx-target="#author-editor-workspace"
+          hx-select="#author-editor-workspace"
+          hx-swap="outerHTML"
+        {% endif %}
       >
         {% csrf_token %}
         {{ editor_form.content_format }}
         {{ editor_form.upload_scope }}
+        {{ editor_form.baseline_revision_id }}
         {{ editor_form.edit_token }}
 
         {% if editor_form.errors %}
@@ -108,7 +129,7 @@
           <section class="author-editor-pane author-editor-pane--edit" data-editor-pane="edit">
             <header class="author-editor-pane__header">
               <strong>{{ editor_format_label }}</strong>
-              <span data-editor-local-state>尚未修改</span>
+              <span data-editor-local-state aria-live="polite">本地暂无修改</span>
             </header>
             {% if editor_format == "TIPTAP_JSON" %}
               <div class="author-tiptap-toolbar" role="toolbar" aria-label="富文本格式">

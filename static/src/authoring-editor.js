@@ -1,7 +1,10 @@
 import { Editor, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 
+import { initializeLocalDraft } from "./authoring-local-draft.js";
+
 const MEDIA_SOURCE = /^media:([0-9A-HJKMNP-TV-Z]{26})$/;
+const activeEditors = new WeakMap();
 
 const AuthorImage = Node.create({
   name: "image",
@@ -150,10 +153,12 @@ function initializeTiptap(root, source, changed) {
 
 function initializeAuthorEditor(root) {
   if (!(root instanceof HTMLFormElement) || root.dataset.editorBound === "true") return;
-  root.dataset.editorBound = "true";
   const format = root.dataset.authorEditor;
+  const localDraft = initializeLocalDraft(root);
   const source = root.querySelector("[data-editor-source]");
-  const localState = root.querySelector("[data-editor-local-state]");
+  const cloudState = root
+    .closest("#author-editor-workspace")
+    ?.querySelector("[data-editor-cloud-label]");
   const summaryMode = root.querySelector("[data-summary-mode]");
   const customSummary = root.querySelector("[data-custom-summary-field]");
   const editPane = root.querySelector('[data-editor-pane="edit"]');
@@ -167,7 +172,20 @@ function initializeAuthorEditor(root) {
   let previewTimer = null;
   let previewRequest = null;
 
-  if (!(source instanceof HTMLTextAreaElement)) return;
+  if (!(source instanceof HTMLTextAreaElement)) {
+    localDraft?.dispose();
+    return;
+  }
+  root.dataset.editorBound = "true";
+
+  const setCloudState = (state, text) => {
+    if (!(cloudState instanceof HTMLElement)) return;
+    cloudState.dataset.cloudState = state;
+    const icon = cloudState.querySelector(".lucide");
+    cloudState.replaceChildren();
+    if (icon) cloudState.append(icon);
+    cloudState.append(document.createTextNode(text));
+  };
 
   const patchLocalImages = () => {
     root.querySelectorAll("img").forEach((image) => {
@@ -224,7 +242,8 @@ function initializeAuthorEditor(root) {
 
   const schedulePreview = () => {
     updateMetric();
-    if (localState instanceof HTMLElement) localState.textContent = "有未保存更改";
+    localDraft?.schedule();
+    setCloudState("dirty", "云端尚未包含这些修改");
     window.clearTimeout(previewTimer);
     previewTimer = window.setTimeout(requestPreview, 250);
   };
@@ -232,7 +251,9 @@ function initializeAuthorEditor(root) {
   const tiptap = format === "TIPTAP_JSON" ? initializeTiptap(root, source, schedulePreview) : null;
   if (!tiptap) source.addEventListener("input", schedulePreview);
   root.querySelectorAll("input, select, textarea").forEach((field) => {
-    if (field !== source) field.addEventListener("input", schedulePreview);
+    if (field === source) return;
+    field.addEventListener("input", schedulePreview);
+    field.addEventListener("change", schedulePreview);
   });
 
   const updateSummary = () => {
@@ -284,6 +305,10 @@ function initializeAuthorEditor(root) {
   });
 
   root.addEventListener("kaj:media-ready", (event) => {
+    if (event.detail?.adapter === "article-cover") {
+      schedulePreview();
+      return;
+    }
     if (event.detail?.adapter !== "article-body") return;
     const id = event.detail.assetId;
     if (event.detail.file instanceof File) localMedia.set(id, URL.createObjectURL(event.detail.file));
@@ -298,13 +323,53 @@ function initializeAuthorEditor(root) {
     patchLocalImages();
   });
 
+  root.addEventListener("kaj:cloud-save-failed", () => {
+    setCloudState("error", "云端保存失败，本地稿已保留");
+  });
+
   root.addEventListener("submit", () => {
     if (tiptap) source.value = JSON.stringify(normalizeTiptap(tiptap.getJSON()));
+    localDraft?.flushForCloudSave();
+    setCloudState("saving", "正在保存云端草稿");
   });
-  window.addEventListener("pagehide", () => localMedia.forEach((url) => URL.revokeObjectURL(url)), { once: true });
+
+  const clearLocalMedia = () => {
+    localMedia.forEach((url) => URL.revokeObjectURL(url));
+    localMedia.clear();
+  };
+  window.addEventListener("pagehide", clearLocalMedia, { once: true });
+  activeEditors.set(root, () => {
+    window.clearTimeout(previewTimer);
+    previewRequest?.abort();
+    localDraft?.dispose();
+    tiptap?.destroy();
+    window.removeEventListener("pagehide", clearLocalMedia);
+    clearLocalMedia();
+    activeEditors.delete(root);
+  });
   updateMetric();
+  if (localDraft?.restored) {
+    if (root.dataset.cloudError === "true") {
+      setCloudState("error", "云端保存失败，本地稿已保留");
+    } else {
+      setCloudState("dirty", "云端尚未包含已恢复的本地稿");
+    }
+    requestPreview();
+  }
 }
 
 export function initializeAuthorEditors(scope = document) {
+  if (scope instanceof HTMLFormElement && scope.matches("form[data-author-editor]")) {
+    initializeAuthorEditor(scope);
+  }
   scope.querySelectorAll?.("form[data-author-editor]").forEach(initializeAuthorEditor);
+}
+
+export function destroyAuthorEditors(scope) {
+  const forms = [];
+  if (scope instanceof HTMLFormElement && scope.matches("form[data-author-editor]")) {
+    forms.push(scope);
+  }
+  scope?.querySelectorAll?.("form[data-author-editor]").forEach((form) => forms.push(form));
+  forms.forEach((form) => activeEditors.get(form)?.());
 }

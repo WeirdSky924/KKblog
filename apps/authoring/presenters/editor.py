@@ -21,6 +21,7 @@ def initial_from_session(session) -> dict:
     return {
         "content_format": snapshot.content_format,
         "upload_scope": session.article_id,
+        "baseline_revision_id": session.baseline_revision_id,
         "edit_token": session.token,
         "title": snapshot.title,
         "body": serialized_body(snapshot.content_format, snapshot.body),

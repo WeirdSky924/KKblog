@@ -27,7 +27,7 @@ from apps.content.public import (
     section_list,
     selectable_tag_list,
 )
-from apps.core.ids import new_ulid
+from apps.core.ids import new_ulid, normalize_ulid
 
 from .access import author_id_or_response, private_response
 
@@ -39,10 +39,12 @@ def _choices() -> dict:
 def _editor_context(
     *,
     form,
+    actor_id,
     content_format: str,
     mode: str,
     article_id: str = "",
     saved: bool = False,
+    cloud_error: bool = False,
     frozen: bool = False,
 ) -> dict:
     preview, preview_error = preview_from_form(form, content_format)
@@ -52,11 +54,15 @@ def _editor_context(
         "editor_form": form,
         "editor_mode": mode,
         "editor_article_id": article_id,
+        "editor_actor_id": str(actor_id),
+        "editor_article_key": article_id or upload_scope,
+        "editor_baseline_revision_id": form["baseline_revision_id"].value(),
         "editor_format": content_format,
         "editor_format_label": FORMAT_LABELS[content_format],
         "editor_preview": preview,
         "editor_preview_error": preview_error,
         "editor_saved": saved,
+        "editor_cloud_error": cloud_error,
         "editor_frozen": frozen,
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
         "cover_upload_url": (
@@ -71,6 +77,16 @@ def _editor_context(
             else ""
         ),
     }
+
+
+def _create_upload_scope(request) -> str:
+    value = request.GET.get("scope", "")
+    if not value:
+        return new_ulid()
+    try:
+        return normalize_ulid(value)
+    except (TypeError, ValueError):
+        raise Http404 from None
 
 
 def _render_editor(request, *, status=200, **context):
@@ -104,7 +120,8 @@ def create(request):
         form = ArticleEditorForm(
             initial={
                 "content_format": selected_format,
-                "upload_scope": new_ulid(),
+                "upload_scope": _create_upload_scope(request),
+                "baseline_revision_id": "NEW",
                 "title": "",
                 "body": initial_body,
                 "summary_mode": "AUTO",
@@ -118,6 +135,7 @@ def create(request):
             request,
             **_editor_context(
                 form=form,
+                actor_id=actor_id,
                 content_format=selected_format,
                 mode="create",
             ),
@@ -142,8 +160,10 @@ def create(request):
         status=422,
         **_editor_context(
             form=form,
+            actor_id=actor_id,
             content_format=selected_format,
             mode="create",
+            cloud_error=True,
         ),
     )
 
@@ -175,6 +195,7 @@ def edit(request, article_id: str):
             request,
             **_editor_context(
                 form=form,
+                actor_id=actor_id,
                 content_format=article.content_format,
                 mode="edit",
                 article_id=article_id,
@@ -210,6 +231,7 @@ def edit(request, article_id: str):
                 request,
                 **_editor_context(
                     form=form,
+                    actor_id=actor_id,
                     content_format=article.content_format,
                     mode="edit",
                     article_id=article_id,
@@ -221,9 +243,11 @@ def edit(request, article_id: str):
         status=409 if frozen else 422,
         **_editor_context(
             form=form,
+            actor_id=actor_id,
             content_format=article.content_format,
             mode="edit",
             article_id=article_id,
+            cloud_error=True,
             frozen=frozen,
         ),
     )

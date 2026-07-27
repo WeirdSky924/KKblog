@@ -56,7 +56,10 @@ import {
   initializeCommentForms,
   initializeCommentThreads,
 } from "./comments.js";
-import { initializeAuthorEditors } from "./authoring-editor.js";
+import {
+  destroyAuthorEditors,
+  initializeAuthorEditors,
+} from "./authoring-editor.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -587,6 +590,7 @@ function initializeMediaPickers(root = document) {
         }
         if (request.status === 201 && responseNode?.dataset.assetId) {
           value.value = responseNode.dataset.assetId;
+          value.dispatchEvent(new Event("input", { bubbles: true }));
           progress.value = 100;
           remove?.removeAttribute("hidden");
           retry?.setAttribute("hidden", "");
@@ -642,6 +646,7 @@ function initializeMediaPickers(root = document) {
       selectedFile = null;
       input.value = "";
       value.value = "";
+      value.dispatchEvent(new Event("input", { bubbles: true }));
       result.replaceChildren();
       retry?.setAttribute("hidden", "");
       remove.setAttribute("hidden", "");
@@ -977,8 +982,8 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
   initializeCharacterCounts(root);
-  initializeMediaPickers(root);
   initializeAuthorEditors(root);
+  initializeMediaPickers(root);
   initializeCommentForms(root);
   initializeCommentThreads(root);
   focusInsertedError(root);
@@ -994,6 +999,23 @@ document.addEventListener("htmx:beforeRequest", (event) => {
   if (trigger instanceof HTMLElement) {
     activeNotificationTrigger = trigger;
   }
+});
+
+function notifyAuthorCloudFailure(event) {
+  const status = event.detail?.xhr?.status ?? 0;
+  if (status !== 0 && status < 500) return;
+  const form = event.detail?.elt?.closest?.("form[data-author-editor]");
+  if (form instanceof HTMLFormElement) {
+    form.dispatchEvent(new CustomEvent("kaj:cloud-save-failed"));
+  }
+}
+
+document.addEventListener("htmx:sendError", notifyAuthorCloudFailure);
+document.addEventListener("htmx:responseError", notifyAuthorCloudFailure);
+document.addEventListener("htmx:timeout", notifyAuthorCloudFailure);
+
+document.addEventListener("htmx:beforeCleanupElement", (event) => {
+  destroyAuthorEditors(event.detail?.elt ?? event.target);
 });
 
 document.addEventListener("htmx:afterSettle", (event) => {
@@ -1040,8 +1062,8 @@ initializeNotificationDialogs();
 initializeConfirmDialogs();
 initializeCopyLinks();
 initializeCharacterCounts();
-initializeMediaPickers();
 initializeAuthorEditors();
+initializeMediaPickers();
 initializeCommentForms();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

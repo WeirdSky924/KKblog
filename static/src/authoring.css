@@ -388,8 +388,24 @@
 }
 
 .author-save-state {
+  color: var(--text-secondary);
+}
+
+.author-save-state[data-cloud-state="loaded"],
+.author-save-state[data-cloud-state="saved"] {
   border-color: var(--success);
   color: var(--success);
+}
+
+.author-save-state[data-cloud-state="dirty"],
+.author-save-state[data-cloud-state="saving"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.author-save-state[data-cloud-state="error"] {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .author-format-lock .lucide,
@@ -620,12 +636,18 @@
   text-align: end;
 }
 
+.author-editor-pane__header [data-local-state="error"] {
+  color: var(--danger);
+}
+
 .author-editor-pane--edit > textarea {
   min-height: 35rem;
   resize: vertical;
   border: 0;
   border-radius: 0;
-  font-family: ui-monospace, "Cascadia Code", "Noto Sans Mono", monospace;
+  font-family:
+    ui-monospace, "Cascadia Code", "Noto Sans SC Variable", "Noto Sans SC",
+    monospace;
   font-size: 0.875rem;
   line-height: 1.75;
 }

@@ -35,6 +35,7 @@ class ArticleEditorForm(forms.Form):
         widget=forms.HiddenInput,
     )
     upload_scope = forms.CharField(max_length=26, widget=forms.HiddenInput)
+    baseline_revision_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
     edit_token = forms.CharField(required=False, widget=forms.HiddenInput)
     title = forms.CharField(
         label="标题",
@@ -110,6 +111,15 @@ class ArticleEditorForm(forms.Form):
             raise forms.ValidationError(
                 "媒体上传作用域已失效，请重新打开页面。"
             ) from None
+
+    def clean_baseline_revision_id(self) -> str:
+        value = self.cleaned_data["baseline_revision_id"]
+        if value == "NEW":
+            return value
+        try:
+            return normalize_ulid(value)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("编辑基线已失效，请重新打开页面。") from None
 
     def clean_cover_asset_id(self) -> str | None:
         value = self.cleaned_data["cover_asset_id"]
