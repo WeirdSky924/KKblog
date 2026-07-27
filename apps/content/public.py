@@ -9,10 +9,14 @@ from .purge_ports import (
     register_article_comment_purge,
 )
 from .queries import (
+    AUTHOR_ARTICLE_STATES,
     ArticleCommentTarget,
     ArticleLoginRequired,
     ArticleNotFound,
     ArticleView,
+    AuthorArticleCounts,
+    AuthorArticleItem,
+    AuthorArticlePage,
     ContentExportError,
     ExportArticleSnapshot,
     ExportRevisionPayload,
@@ -37,6 +41,7 @@ from .queries import (
     article_for_author,
     article_for_reader,
     article_ids_by_author_for_cache,
+    author_article_page,
     current_public_article_revisions,
     export_article_snapshots,
     export_revision_payloads,
@@ -140,6 +145,7 @@ from .snapshots import (
 )
 
 __all__ = [
+    "AUTHOR_ARTICLE_STATES",
     "ArticleBodyLimit",
     "ArticleCommentTarget",
     "ArticleCommentPurgeResult",
@@ -150,6 +156,9 @@ __all__ = [
     "ArticleSnapshot",
     "ArticleWriteResult",
     "ArticleView",
+    "AuthorArticleCounts",
+    "AuthorArticleItem",
+    "AuthorArticlePage",
     "ImportConflictFacts",
     "ImportContentError",
     "ImportMappingFacts",
@@ -248,6 +257,7 @@ __all__ = [
     "article_for_admin",
     "article_for_author",
     "article_for_reader",
+    "author_article_page",
     "current_public_article_revisions",
     "import_conflict_facts",
     "export_article_snapshots",

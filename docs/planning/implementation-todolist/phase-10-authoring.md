@@ -3,7 +3,7 @@
 退出门禁：作者工作台所有编辑、草稿、冲突、审查、版本、评论和导入流均可操作。
 
 ### AUT-001 实现作者工作台入口、文章状态列表与权限能力
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P1。
 - 目标/行为：作者从个人菜单进入“我的文章”，查看已发布/草稿/定时/删除冷静期及空态；只显示本人可执行动作，撤销作者后既有文章可读但不能继续作者命令。
 - 来源：访谈 Q002、Q104、Q233-Q235、Q285；`modules/07-authoring-workbench.md` §UI状态；原型 authorlist/editor。
 - 依赖：前置 `CNT-002`、`CNT-004`、`CNT-008`、`ACC-011`、`DSC-006`；后续 `AUT-002`、`AUT-005`、`QA-003`、`QA-006`。
@@ -13,9 +13,10 @@
 - 测试/验收：Playwright普通用户直接URL拒绝、作者四tabs/空态、撤销角色后按钮与伪造POST；1440/390。
 - 风险/停止：UI隐藏代替服务授权、列表漏冷静期或作者入口拥有第二套状态判断即停止。
 - 授权：`否`。
+- 证据：聚焦 RED `pytest apps/authoring/tests/test_aut001.py -q` 首次退出 2，准确报告 content 的作者列表公开契约缺失；content owner 随后新增本人四状态分页、计数和 capability DTO，authoring 只做展示编排，个人菜单与 view/content query 双重重判角色。聚焦 GREEN 退出 0、`4 passed`；AUT-001、CNT-002/004/008、ACC-011 与架构联合回归退出 0、`36 passed`，Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回本人已发布/草稿/定时/冷静期各 1、他人文章 0，撤销作者角色后公开文章仍可读而同一浏览器会话工作台立即 403。`blog-playwright-cli` 由 `blog-browser` 运行，读回访客登录回跳、普通用户 403、作者四 tabs 的真实 HTMX URL/内容、空态与角色撤销；390px 浅色/深色/护眼和 1440px 护眼原尺寸截图位于 `output/playwright/p10-aut001/`，390px 页面宽度读回 `390/390`，首个 Tab 聚焦跳转主要内容。未执行生产 migration、生产服务、提交、推送、部署或真实邮件。
 
 ### AUT-002 集成 Markdown/TipTap 编辑器与安全实时预览
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：新建先选不可变格式；桌面编辑/预览并列，手机分段切换；共用标题/摘要/封面/可见性/分区/标签/评论设置/媒体；预览使用发布同一sanitizer。
 - 来源：访谈 Q036-Q037、Q219-Q222、Q263、Q316；`modules/07-authoring-workbench.md` §编辑器；`03-frontend-design-system.md` §编辑器。
 - 依赖：前置 `AUT-001`、`MED-005`、`MED-007`、`CNT-002`；后续 `AUT-003`、`AUT-004`、`AUT-005`、`QA-003`、`QA-006`。

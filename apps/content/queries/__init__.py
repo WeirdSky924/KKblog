@@ -1,3 +1,10 @@
+from .authoring import (
+    AUTHOR_ARTICLE_STATES,
+    AuthorArticleCounts,
+    AuthorArticleItem,
+    AuthorArticlePage,
+    author_article_page,
+)
 from .classification import (
     SectionItem,
     TagItem,
@@ -43,10 +50,14 @@ from .publication import PublishedRevision, published_revision
 from .revisions import RevisionTimelineItem, revision_timeline
 
 __all__ = [
+    "AUTHOR_ARTICLE_STATES",
     "ArticleCommentTarget",
     "ArticleLoginRequired",
     "ArticleNotFound",
     "ArticleView",
+    "AuthorArticleCounts",
+    "AuthorArticleItem",
+    "AuthorArticlePage",
     "PublicArticleCacheSnapshot",
     "PublicArticleRender",
     "PublicArticleRevisionIdentity",
@@ -71,6 +82,7 @@ __all__ = [
     "article_for_admin",
     "article_for_author",
     "article_for_reader",
+    "author_article_page",
     "current_public_article_revisions",
     "public_article_cache_snapshot",
     "public_article_sitemap_items",

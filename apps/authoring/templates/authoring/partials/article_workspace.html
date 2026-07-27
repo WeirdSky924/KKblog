@@ -1,0 +1,87 @@
+{% load static %}
+<div id="author-article-workspace" class="article-workspace" aria-live="polite">
+  <nav class="authoring-tabs" aria-label="文章状态">
+    {% for tab in workspace.tabs %}
+      <a
+        href="{% url 'authoring:articles' %}?state={{ tab.state }}"
+        {% if tab.selected %}aria-current="page"{% endif %}
+        hx-get="{% url 'authoring:articles' %}?state={{ tab.state }}"
+        hx-target="#author-article-workspace"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+      >
+        <span>{{ tab.label }}</span>
+        <strong aria-label="{{ tab.count }} 篇">{{ tab.count }}</strong>
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if workspace.articles %}
+    <p class="authoring-result-count">当前状态共 {{ workspace.total_items }} 篇文章</p>
+    <div class="author-article-list">
+      {% for item in workspace.articles %}
+        <article class="author-article-row">
+          <div class="author-article-row__cover">
+            <img
+              src="{% if item.cover_asset_id %}/_kaj/media/{{ item.cover_asset_id }}{% else %}{% static 'media/brand/default-cover.png' %}{% endif %}"
+              width="1600"
+              height="900"
+              alt=""
+              loading="lazy"
+            >
+          </div>
+          <div class="author-article-row__body">
+            <div class="author-article-row__title">
+              <h2>{{ item.title }}</h2>
+              <span class="author-article-state">{{ item.state_label }}</span>
+            </div>
+            <dl class="author-article-row__meta">
+              <div><dt>可见范围</dt><dd>{{ item.visibility_label }}</dd></div>
+              <div><dt>格式</dt><dd>{{ item.format_label }}</dd></div>
+              <div><dt>版本</dt><dd>第 {{ item.sequence }} 版</dd></div>
+              <div>
+                <dt>{{ item.timing_label }}</dt>
+                <dd><time datetime="{{ item.timing_value|date:'c' }}">{{ item.timing_value|date:"Y-m-d H:i" }}</time></dd>
+              </div>
+            </dl>
+            {% if item.has_unpublished_changes %}
+              <p class="author-article-row__notice">有尚未发布的修改</p>
+            {% endif %}
+          </div>
+          <div class="author-article-row__actions">
+            {% if item.state == "PUBLISHED" %}
+              <a class="button button--secondary" href="{% url 'article:detail' item.article_id %}">
+                <i data-lucide="eye"></i><span>阅读</span>
+              </a>
+            {% endif %}
+            {% if item.can_edit %}<span class="author-capability">可编辑</span>{% endif %}
+            {% if item.can_restore %}<span class="author-capability">可恢复</span>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    {% if workspace.total_pages > 1 %}
+      <nav class="authoring-pagination" aria-label="文章分页">
+        {% if workspace.has_previous %}
+          <a href="?state={{ workspace.selected_state }}&page={{ workspace.page_number|add:'-1' }}">上一页</a>
+        {% endif %}
+        <span>第 {{ workspace.page_number }} / {{ workspace.total_pages }} 页</span>
+        {% if workspace.has_next %}
+          <a href="?state={{ workspace.selected_state }}&page={{ workspace.page_number|add:'1' }}">下一页</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="authoring-empty">
+      {% if workspace.selected_state == "PUBLISHED" %}
+        <h2>还没有已发布文章</h2><p>完成终稿审查并确认发布后，文章会出现在这里。</p>
+      {% elif workspace.selected_state == "DRAFT" %}
+        <h2>没有云端草稿</h2><p>显式保存的工作修订会出现在这里。</p>
+      {% elif workspace.selected_state == "SCHEDULED" %}
+        <h2>没有定时发布文章</h2><p>已确认排期的文章会按计划时间排列。</p>
+      {% else %}
+        <h2>删除冷静期为空</h2><p>软删除文章会保留七天后再清理。</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

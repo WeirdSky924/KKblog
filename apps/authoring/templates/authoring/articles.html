@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}我的文章 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout">
+    <nav class="authoring-rail" aria-label="作者工作流程">
+      <a class="authoring-rail__step is-current" href="{% url 'authoring:articles' %}" aria-current="page">
+        <span aria-hidden="true">01</span>
+        <strong>我的文章</strong>
+      </a>
+      <span class="authoring-rail__step" aria-disabled="true">
+        <span aria-hidden="true">02</span>
+        <strong>编辑</strong>
+      </span>
+      <span class="authoring-rail__step" aria-disabled="true">
+        <span aria-hidden="true">03</span>
+        <strong>发布审查</strong>
+      </span>
+      <span class="authoring-rail__step" aria-disabled="true">
+        <span aria-hidden="true">04</span>
+        <strong>版本</strong>
+      </span>
+      <span class="authoring-rail__step" aria-disabled="true">
+        <span aria-hidden="true">05</span>
+        <strong>评论</strong>
+      </span>
+      <span class="authoring-rail__step" aria-disabled="true">
+        <span aria-hidden="true">06</span>
+        <strong>导入</strong>
+      </span>
+    </nav>
+    <section class="authoring-stage" aria-labelledby="author-articles-title">
+      <header class="authoring-heading">
+        <div>
+          <p class="authoring-folio">01 / 06</p>
+          <h1 id="author-articles-title">我的文章</h1>
+        </div>
+      </header>
+      {% include "authoring/partials/article_workspace.html" %}
+    </section>
+  </div>
+{% endblock %}

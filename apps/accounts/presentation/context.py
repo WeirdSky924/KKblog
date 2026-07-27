@@ -9,6 +9,7 @@ def account_theme(request):
             "initial_theme": "light",
             "theme_source": "visitor",
             "shell_account": None,
+            "shell_is_author": False,
             "shell_is_administrator": False,
             "shell_return_path": request.get_full_path(),
             "shell_session_id": None,
@@ -17,6 +18,9 @@ def account_theme(request):
         "initial_theme": account.theme.casefold().replace("_", "-"),
         "theme_source": "account",
         "shell_account": public_account_identity(account.id),
+        "shell_is_author": account.roles.filter(
+            role=RoleAssignment.Role.AUTHOR
+        ).exists(),
         "shell_is_administrator": account.roles.filter(
             role=RoleAssignment.Role.ADMINISTRATOR
         ).exists(),

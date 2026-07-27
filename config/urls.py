@@ -31,6 +31,7 @@ urlpatterns = [
     path("accounts/", include("config.account_urls")),
     path("", include("apps.analytics.urls")),
     path("notifications/", include("apps.notifications.urls")),
+    path("author/", include("apps.authoring.urls")),
     path("admin/", include("apps.administration.urls")),
     path("", include("apps.media.urls")),
     path("", include("apps.operations.urls")),

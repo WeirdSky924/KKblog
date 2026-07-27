@@ -11,6 +11,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.administration",
     "apps.analytics",
+    "apps.authoring",
     "apps.comments",
     "apps.content",
     "apps.core",
