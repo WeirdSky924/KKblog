@@ -8,7 +8,9 @@ from django.core.exceptions import ValidationError
 from apps.media.models import MediaPurpose
 
 UploadAccessPort = Callable[[UUID | None], bool]
+UploadTargetAccessPort = Callable[[UUID | None, str], bool]
 _ADAPTER_KEY = re.compile(r"^[a-z][a-z0-9-]{0,31}$")
+_QUERY_PARAMETER = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +19,8 @@ class MediaUploadAdapter:
     purpose: MediaPurpose
     input_name: str
     access: UploadAccessPort
+    target_query_parameter: str | None = None
+    target_access: UploadTargetAccessPort | None = None
 
 
 class MediaUploadAdapterRegistry:
@@ -29,6 +33,18 @@ class MediaUploadAdapterRegistry:
             or _ADAPTER_KEY.fullmatch(adapter.key) is None
             or not adapter.input_name.isidentifier()
             or not callable(adapter.access)
+            or (
+                adapter.target_query_parameter is not None
+                and _QUERY_PARAMETER.fullmatch(adapter.target_query_parameter) is None
+            )
+            or (
+                (adapter.target_query_parameter is None)
+                != (adapter.target_access is None)
+            )
+            or (
+                adapter.target_access is not None
+                and not callable(adapter.target_access)
+            )
         ):
             raise ValidationError("媒体上传适配器不合法")
         try:

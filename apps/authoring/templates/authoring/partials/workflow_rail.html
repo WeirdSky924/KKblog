@@ -1,0 +1,26 @@
+<nav class="authoring-rail" aria-label="作者工作流程">
+  <a class="authoring-rail__step{% if current_author_step == 1 %} is-current{% endif %}" href="{% url 'authoring:articles' %}"{% if current_author_step == 1 %} aria-current="page"{% endif %}>
+    <span aria-hidden="true">01</span><strong>我的文章</strong>
+  </a>
+  {% if editor_article_id %}
+    <a class="authoring-rail__step{% if current_author_step == 2 %} is-current{% endif %}" href="{% url 'authoring:edit' article_id=editor_article_id %}"{% if current_author_step == 2 %} aria-current="page"{% endif %}>
+      <span aria-hidden="true">02</span><strong>编辑</strong>
+    </a>
+  {% else %}
+    <a class="authoring-rail__step{% if current_author_step == 2 %} is-current{% endif %}" href="{% url 'authoring:create' %}"{% if current_author_step == 2 %} aria-current="page"{% endif %}>
+      <span aria-hidden="true">02</span><strong>编辑</strong>
+    </a>
+  {% endif %}
+  <span class="authoring-rail__step" aria-disabled="true">
+    <span aria-hidden="true">03</span><strong>发布审查</strong>
+  </span>
+  <span class="authoring-rail__step" aria-disabled="true">
+    <span aria-hidden="true">04</span><strong>版本</strong>
+  </span>
+  <span class="authoring-rail__step" aria-disabled="true">
+    <span aria-hidden="true">05</span><strong>评论</strong>
+  </span>
+  <span class="authoring-rail__step" aria-disabled="true">
+    <span aria-hidden="true">06</span><strong>导入</strong>
+  </span>
+</nav>

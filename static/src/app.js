@@ -3,6 +3,7 @@ import "htmx.org";
 import {
   ArrowLeft,
   Bell,
+  Bold,
   Bookmark,
   ChevronDown,
   ChevronLeft,
@@ -12,9 +13,15 @@ import {
   Copy,
   Eye,
   ExternalLink,
+  FilePlus2,
   Flag,
+  Heading2,
   ImageUp,
   Info,
+  Italic,
+  List,
+  ListOrdered,
+  LockKeyhole,
   LogIn,
   LogOut,
   Menu,
@@ -22,14 +29,21 @@ import {
   MonitorSmartphone,
   Moon,
   NotebookPen,
+  PencilLine,
+  Quote,
+  Redo2,
   Reply,
   RotateCw,
+  Save,
   Search,
   Settings,
   ShieldCheck,
+  SquareCode,
+  Strikethrough,
   Sun,
   Trash2,
   TriangleAlert,
+  Undo2,
   UserPlus,
   UserRound,
   X,
@@ -42,10 +56,12 @@ import {
   initializeCommentForms,
   initializeCommentThreads,
 } from "./comments.js";
+import { initializeAuthorEditors } from "./authoring-editor.js";
 
 const availableIcons = {
   ArrowLeft,
   Bell,
+  Bold,
   Bookmark,
   ChevronDown,
   ChevronLeft,
@@ -55,9 +71,15 @@ const availableIcons = {
   Copy,
   Eye,
   ExternalLink,
+  FilePlus2,
   Flag,
+  Heading2,
   ImageUp,
   Info,
+  Italic,
+  List,
+  ListOrdered,
+  LockKeyhole,
   LogIn,
   LogOut,
   Menu,
@@ -65,14 +87,21 @@ const availableIcons = {
   MonitorSmartphone,
   Moon,
   NotebookPen,
+  PencilLine,
+  Quote,
+  Redo2,
   Reply,
   RotateCw,
+  Save,
   Search,
   Settings,
   ShieldCheck,
+  SquareCode,
+  Strikethrough,
   Sun,
   Trash2,
   TriangleAlert,
+  Undo2,
   UserPlus,
   UserRound,
   X,
@@ -562,6 +591,17 @@ function initializeMediaPickers(root = document) {
           remove?.removeAttribute("hidden");
           retry?.setAttribute("hidden", "");
           setMediaPickerState(picker, "ready");
+          picker.dispatchEvent(
+            new CustomEvent("kaj:media-ready", {
+              bubbles: true,
+              detail: {
+                adapter: picker.dataset.mediaPicker,
+                assetId: responseNode.dataset.assetId,
+                inputName: picker.dataset.mediaInputName,
+                file: selectedFile,
+              },
+            }),
+          );
           if (
             picker.dataset.mediaFavicon === "true" &&
             favicon instanceof HTMLLinkElement &&
@@ -856,6 +896,10 @@ document.addEventListener("kaj:theme-request", (event) => {
   applyTheme(event.detail?.theme);
 });
 
+document.addEventListener("kaj:editor-preview", (event) => {
+  initializeIcons(event.detail?.root ?? document);
+});
+
 document.addEventListener("kaj:notification-read", (event) => {
   const notificationId = event.detail?.notificationId;
   if (notificationId) {
@@ -934,6 +978,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeCopyLinks(root);
   initializeCharacterCounts(root);
   initializeMediaPickers(root);
+  initializeAuthorEditors(root);
   initializeCommentForms(root);
   initializeCommentThreads(root);
   focusInsertedError(root);
@@ -996,6 +1041,7 @@ initializeConfirmDialogs();
 initializeCopyLinks();
 initializeCharacterCounts();
 initializeMediaPickers();
+initializeAuthorEditors();
 initializeCommentForms();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

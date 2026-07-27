@@ -15,7 +15,11 @@ from apps.operations.public import require_image_creation_capacity
 
 
 def _render_upload(
-    request: HttpRequest, *, purpose: MediaPurpose, input_name: str
+    request: HttpRequest,
+    *,
+    purpose: MediaPurpose,
+    input_name: str,
+    target_id: str | None = None,
 ) -> HttpResponse:
     if request.method != "POST":
         response = render(
@@ -44,6 +48,7 @@ def _render_upload(
             declared_content_type=uploaded.content_type or "",
             chunks=uploaded.chunks(),
             storage=FilesystemMediaStorage(settings.MEDIA_ROOT),
+            target_id=target_id,
             capacity_check=partial(
                 require_image_creation_capacity, settings.MEDIA_ROOT
             ),
@@ -82,10 +87,19 @@ def upload_for_adapter(request: HttpRequest, adapter: str) -> HttpResponse:
         response = HttpResponse(status=404)
         response.headers["Cache-Control"] = "private, no-store"
         return response
+    target_id = None
+    if configured.target_query_parameter is not None:
+        target_id = request.GET.get(configured.target_query_parameter, "")
+        assert configured.target_access is not None
+        if not target_id or not configured.target_access(actor_id, target_id):
+            response = HttpResponse(status=404)
+            response.headers["Cache-Control"] = "private, no-store"
+            return response
     return _render_upload(
         request,
         purpose=configured.purpose,
         input_name=configured.input_name,
+        target_id=target_id,
     )
 
 

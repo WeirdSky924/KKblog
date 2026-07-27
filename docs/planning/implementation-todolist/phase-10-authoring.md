@@ -16,7 +16,7 @@
 - 证据：聚焦 RED `pytest apps/authoring/tests/test_aut001.py -q` 首次退出 2，准确报告 content 的作者列表公开契约缺失；content owner 随后新增本人四状态分页、计数和 capability DTO，authoring 只做展示编排，个人菜单与 view/content query 双重重判角色。聚焦 GREEN 退出 0、`4 passed`；AUT-001、CNT-002/004/008、ACC-011 与架构联合回归退出 0、`36 passed`，Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回本人已发布/草稿/定时/冷静期各 1、他人文章 0，撤销作者角色后公开文章仍可读而同一浏览器会话工作台立即 403。`blog-playwright-cli` 由 `blog-browser` 运行，读回访客登录回跳、普通用户 403、作者四 tabs 的真实 HTMX URL/内容、空态与角色撤销；390px 浅色/深色/护眼和 1440px 护眼原尺寸截图位于 `output/playwright/p10-aut001/`，390px 页面宽度读回 `390/390`，首个 Tab 聚焦跳转主要内容。未执行生产 migration、生产服务、提交、推送、部署或真实邮件。
 
 ### AUT-002 集成 Markdown/TipTap 编辑器与安全实时预览
-- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：新建先选不可变格式；桌面编辑/预览并列，手机分段切换；共用标题/摘要/封面/可见性/分区/标签/评论设置/媒体；预览使用发布同一sanitizer。
 - 来源：访谈 Q036-Q037、Q219-Q222、Q263、Q316；`modules/07-authoring-workbench.md` §编辑器；`03-frontend-design-system.md` §编辑器。
 - 依赖：前置 `AUT-001`、`MED-005`、`MED-007`、`CNT-002`；后续 `AUT-003`、`AUT-004`、`AUT-005`、`QA-003`、`QA-006`。
@@ -26,9 +26,10 @@
 - 测试/验收：组件RED两格式序列化/预览等价/XSS；Playwright桌面/手机输入、媒体、长文、错误、键盘/焦点。
 - 风险/停止：预览与发布规则分叉、编辑器状态丢失或手机隐藏预览后不可切回即停止。
 - 授权：`否`。
+- 证据：组件 RED `pytest apps/authoring/tests/test_aut002.py -q` 首次退出 2，准确报告 content 缺少 `preview_article_body` 公开契约；实现后聚焦 GREEN 退出 0、`5 passed`，AUT-002、CNT-002/007、MED-003/004/005 与架构联合回归退出 0、`36 passed`。content preview DTO 对 Markdown/TipTap 调用发布同一 renderer/sanitizer，组件读回 HTML 与发布 renderer 完全一致、脚本/事件/危险 scheme 消失，图片 1 张但正文计数不含图片；新建格式写入首修订，普通编辑由 form 与 content 双重拒绝切换。隔离 PostgreSQL 读回 Markdown `row_version=2/sequence=2`、同一正文图片分别绑定两个不可变修订，TipTap 保存为 JSON object、文本“富文本正文”及 `bold` mark。`blog-playwright-cli` 由 `blog-browser` 运行，完成 Markdown/TipTap 输入、工具栏、正文图片上传插入、实时预览、创建/二次保存、2 MiB 长文 422、390 编辑/预览双向切换、三主题和 768/1440 截图；390 读回 `viewportWidth=390/scrollWidth=390`，正文聚焦时保存栏 `sticky` 且 `bottom=709 < visualViewportHeight=844`，未聚焦不遮挡页面。截图位于 `output/playwright/p10-aut002/`。Ruff lint/format、Django check、migration drift、npm build、秘密模式和 `git diff --check` 均退出 0；未执行生产 migration、生产服务、提交、推送、部署或真实邮件。
 
 ### AUT-003 实现浏览器本地自动保存、显式云草稿与恢复
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：内容变化debounce写本地键(user/article/base/format)；仅点击保存写云Revision；恢复先本地否则自动云稿；发布、删云稿、清浏览器数据时按规则清本地。
 - 来源：访谈 Q262、Q297；`modules/07-authoring-workbench.md` §本地与云草稿；`contracts/03-frontend-contract-map.md` §本地键。
 - 依赖：前置 `AUT-002`、`CNT-002`；后续 `AUT-004`、`AUT-005`、`QA-003`、`QA-006`。

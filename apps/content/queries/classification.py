@@ -55,3 +55,12 @@ def tag_reference(tag_id) -> TagItem | None:
     except (Tag.DoesNotExist, ValueError, TypeError):
         return None
     return TagItem(tag.id, tag.name, tag.state)
+
+
+def selectable_tag_list() -> tuple[TagItem, ...]:
+    return tuple(
+        TagItem(tag.id, tag.name, tag.state)
+        for tag in Tag.objects.filter(
+            state__in=(Tag.State.PENDING, Tag.State.ACTIVE)
+        ).order_by("normalized_name", "id")
+    )

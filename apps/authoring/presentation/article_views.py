@@ -1,36 +1,17 @@
-from urllib.parse import urlencode
-
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponse, HttpResponseNotAllowed
-from django.shortcuts import redirect, render
-from django.urls import reverse
-from django.utils.cache import patch_vary_headers
+from django.http import Http404, HttpResponseNotAllowed
+from django.shortcuts import render
 
 from apps.authoring.presenters import article_workspace
 from apps.content.public import ArticleNotFound
 
-
-def _private(response):
-    response.headers["Cache-Control"] = "private, no-store"
-    patch_vary_headers(response, ("HX-Request",))
-    return response
-
-
-def _login_required(request):
-    target = (
-        f"{reverse('accounts:login')}?{urlencode({'next': request.get_full_path()})}"
-    )
-    if request.headers.get("HX-Request") == "true":
-        response = _private(HttpResponse(status=204))
-        response.headers["HX-Redirect"] = target
-        return response
-    return _private(redirect(target))
+from .access import author_id_or_response, private_response
 
 
 def articles(request):
-    actor_id = getattr(request, "account_id", None)
-    if actor_id is None:
-        return _login_required(request)
+    actor_id, response = author_id_or_response(request)
+    if response is not None:
+        return response
     try:
         workspace = article_workspace(
             actor_id=actor_id,
@@ -42,10 +23,10 @@ def articles(request):
     except ValueError:
         raise Http404 from None
     if request.method != "GET":
-        return _private(HttpResponseNotAllowed(("GET",)))
+        return private_response(HttpResponseNotAllowed(("GET",)))
     template = (
         "authoring/partials/article_workspace.html"
         if request.headers.get("HX-Request") == "true"
         else "authoring/articles.html"
     )
-    return _private(render(request, template, {"workspace": workspace}))
+    return private_response(render(request, template, {"workspace": workspace}))

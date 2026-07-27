@@ -1,0 +1,25 @@
+<section id="editor-live-preview" class="author-editor-preview" data-editor-preview aria-live="polite" aria-busy="false">
+  <header class="author-editor-pane__header">
+    <strong>实时预览</strong>
+    {% if editor_preview %}
+      <span data-editor-body-metric>{{ editor_preview.text_character_count }} 字 · {{ editor_preview.body_bytes }} 字节 · {{ editor_preview.media_count }} 张图片</span>
+    {% else %}
+      <span data-editor-body-metric>0 字 · 0 字节 · 0 张图片</span>
+    {% endif %}
+  </header>
+  {% if editor_preview_error %}
+    <div class="author-editor-preview__error" role="alert" data-preview-error>
+      <i data-lucide="triangle-alert"></i>
+      <p>{{ editor_preview_error }}</p>
+    </div>
+  {% else %}
+    <article class="article-body author-editor-preview__body" data-preview-body>
+      {% if editor_preview_title %}<h1>{{ editor_preview_title }}</h1>{% endif %}
+      {% if editor_preview.html %}
+        {{ editor_preview.html|safe }}
+      {% else %}
+        <p class="author-editor-preview__empty">暂无正文</p>
+      {% endif %}
+    </article>
+  {% endif %}
+</section>

@@ -4,6 +4,7 @@ from .authoring import (
     AuthorArticleItem,
     AuthorArticlePage,
     author_article_page,
+    authoring_access,
 )
 from .classification import (
     SectionItem,
@@ -11,6 +12,7 @@ from .classification import (
     active_tag,
     section_by_id,
     section_list,
+    selectable_tag_list,
     tag_reference,
     tags_for_article,
 )
@@ -46,6 +48,7 @@ from .imports import (
     resolve_import_metadata,
     validate_import_mapping,
 )
+from .preview import ArticlePreviewError, AuthorArticlePreview, preview_article_body
 from .publication import PublishedRevision, published_revision
 from .revisions import RevisionTimelineItem, revision_timeline
 
@@ -54,10 +57,12 @@ __all__ = [
     "ArticleCommentTarget",
     "ArticleLoginRequired",
     "ArticleNotFound",
+    "ArticlePreviewError",
     "ArticleView",
     "AuthorArticleCounts",
     "AuthorArticleItem",
     "AuthorArticlePage",
+    "AuthorArticlePreview",
     "PublicArticleCacheSnapshot",
     "PublicArticleRender",
     "PublicArticleRevisionIdentity",
@@ -83,6 +88,7 @@ __all__ = [
     "article_for_author",
     "article_for_reader",
     "author_article_page",
+    "authoring_access",
     "current_public_article_revisions",
     "public_article_cache_snapshot",
     "public_article_sitemap_items",
@@ -90,6 +96,7 @@ __all__ = [
     "sanitized_article_plain_text",
     "section_by_id",
     "section_list",
+    "selectable_tag_list",
     "tag_reference",
     "tags_for_article",
     "search_visible_titles",
@@ -98,6 +105,7 @@ __all__ = [
     "visible_articles_by_ids",
     "visible_filter_tags",
     "published_revision",
+    "preview_article_body",
     "revision_timeline",
     "import_conflict_facts",
     "export_article_snapshots",

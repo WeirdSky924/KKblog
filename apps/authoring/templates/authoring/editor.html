@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{% if editor_mode == "create" %}新建文章{% else %}编辑文章{% endif %} · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main authoring-main--editor{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout authoring-layout--editor">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=2 editor_article_id=editor_article_id %}
+    <section class="authoring-stage authoring-stage--editor" aria-labelledby="author-editor-title">
+      <header class="authoring-heading authoring-heading--editor">
+        <div>
+          <p class="authoring-folio">02 / 06</p>
+          <h1 id="author-editor-title">{% if editor_mode == "create" %}新建文章{% else %}编辑文章{% endif %}</h1>
+        </div>
+        <div class="author-editor-status">
+          <span class="author-format-lock"><i data-lucide="lock-keyhole"></i>已锁定为{{ editor_format_label }}</span>
+          {% if editor_saved %}<span class="author-save-state"><i data-lucide="circle-check"></i>云端草稿已保存</span>{% endif %}
+        </div>
+      </header>
+
+      <form
+        class="author-editor-form"
+        method="post"
+        action="{% if editor_mode == 'create' %}{% url 'authoring:create' %}{% else %}{% url 'authoring:edit' article_id=editor_article_id %}{% endif %}"
+        data-submit-once
+        data-author-editor="{{ editor_format }}"
+        data-editor-preview-url="{% url 'authoring:preview' %}"
+        data-editor-body-limit="{{ editor_body_limit }}"
+        data-editor-frozen="{% if editor_frozen %}true{% else %}false{% endif %}"
+      >
+        {% csrf_token %}
+        {{ editor_form.content_format }}
+        {{ editor_form.upload_scope }}
+        {{ editor_form.edit_token }}
+
+        {% if editor_form.errors %}
+          <div class="author-editor-errors" role="alert" tabindex="-1" data-error-focus>
+            <i data-lucide="triangle-alert"></i>
+            <div>
+              {% if editor_form.non_field_errors %}
+                {{ editor_form.non_field_errors }}
+              {% else %}
+                <p>请检查标出的字段后重试。</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="author-editor-metadata">
+          <div class="field-group author-editor-title-field">
+            <label for="{{ editor_form.title.id_for_label }}">标题</label>
+            {{ editor_form.title }}
+            {{ editor_form.title.errors }}
+          </div>
+          <div class="field-group">
+            <label for="{{ editor_form.visibility.id_for_label }}">可见范围</label>
+            {{ editor_form.visibility }}
+            {{ editor_form.visibility.errors }}
+          </div>
+          <div class="field-group">
+            <label for="{{ editor_form.summary_mode.id_for_label }}">摘要</label>
+            {{ editor_form.summary_mode }}
+            {{ editor_form.summary_mode.errors }}
+          </div>
+          <div class="field-group" data-custom-summary-field>
+            <label for="{{ editor_form.custom_summary.id_for_label }}">自定义摘要</label>
+            {{ editor_form.custom_summary }}
+            {{ editor_form.custom_summary.errors }}
+          </div>
+          <div class="field-group">
+            <label for="{{ editor_form.section_id.id_for_label }}">分区</label>
+            {{ editor_form.section_id }}
+            {{ editor_form.section_id.errors }}
+          </div>
+          <fieldset class="field-group author-editor-tags">
+            <legend>标签</legend>
+            {{ editor_form.tag_ids }}
+            <span class="field-help" data-editor-tag-count>已选择 0 / 10</span>
+            {{ editor_form.tag_ids.errors }}
+          </fieldset>
+        </div>
+
+        <section class="author-editor-media" aria-labelledby="editor-media-title">
+          <header>
+            <h2 id="editor-media-title">文章媒体</h2>
+            <p>单张最大 2 MiB</p>
+          </header>
+          <div class="author-editor-media__grid">
+            {% include "media/partials/picker.html" with adapter="article-cover" upload_url=cover_upload_url input_name="cover_asset_id" label="文章封面" picker_id="article-cover" current_asset_id=editor_form.cover_asset_id.value current_preview_url=cover_preview_url favicon_preview=False %}
+            {% include "media/partials/picker.html" with adapter="article-body" upload_url=body_upload_url input_name="body_asset_id" label="正文图片" picker_id="article-body" current_asset_id="" current_preview_url="" favicon_preview=False %}
+          </div>
+        </section>
+
+        <fieldset class="author-editor-comments">
+          <legend>评论设置</legend>
+          <label>{{ editor_form.comments_enabled }}<span>开启评论</span></label>
+          <label>{{ editor_form.comments_view_login }}<span>登录后查看评论</span></label>
+          <label>{{ editor_form.comments_post_login }}<span>登录后发表评论</span></label>
+        </fieldset>
+
+        <div class="author-editor-mobile-modes" role="group" aria-label="编辑器视图">
+          <button type="button" data-editor-mode="edit" aria-pressed="true">编辑</button>
+          <button type="button" data-editor-mode="preview" aria-pressed="false">预览</button>
+        </div>
+
+        <div class="author-editor-canvas" data-editor-canvas>
+          <section class="author-editor-pane author-editor-pane--edit" data-editor-pane="edit">
+            <header class="author-editor-pane__header">
+              <strong>{{ editor_format_label }}</strong>
+              <span data-editor-local-state>尚未修改</span>
+            </header>
+            {% if editor_format == "TIPTAP_JSON" %}
+              <div class="author-tiptap-toolbar" role="toolbar" aria-label="富文本格式">
+                <button type="button" data-editor-command="bold" aria-label="粗体" title="粗体"><i data-lucide="bold"></i></button>
+                <button type="button" data-editor-command="italic" aria-label="斜体" title="斜体"><i data-lucide="italic"></i></button>
+                <button type="button" data-editor-command="strike" aria-label="删除线" title="删除线"><i data-lucide="strikethrough"></i></button>
+                <button type="button" data-editor-command="heading" aria-label="二级标题" title="二级标题"><i data-lucide="heading-2"></i></button>
+                <button type="button" data-editor-command="bulletList" aria-label="无序列表" title="无序列表"><i data-lucide="list"></i></button>
+                <button type="button" data-editor-command="orderedList" aria-label="有序列表" title="有序列表"><i data-lucide="list-ordered"></i></button>
+                <button type="button" data-editor-command="blockquote" aria-label="引用" title="引用"><i data-lucide="quote"></i></button>
+                <button type="button" data-editor-command="codeBlock" aria-label="代码块" title="代码块"><i data-lucide="square-code"></i></button>
+                <span aria-hidden="true"></span>
+                <button type="button" data-editor-command="undo" aria-label="撤销" title="撤销"><i data-lucide="undo-2"></i></button>
+                <button type="button" data-editor-command="redo" aria-label="重做" title="重做"><i data-lucide="redo-2"></i></button>
+              </div>
+              <textarea name="body" id="{{ editor_form.body.id_for_label }}" data-editor-source hidden>{{ editor_form.body.value|default_if_none:"" }}</textarea>
+              <div class="author-tiptap" data-tiptap-editor aria-label="文章正文"></div>
+            {% else %}
+              {{ editor_form.body }}
+            {% endif %}
+            {{ editor_form.body.errors }}
+          </section>
+
+          <div class="author-editor-pane author-editor-pane--preview" data-editor-pane="preview">
+            {% include "authoring/partials/editor_preview.html" with editor_preview=editor_preview editor_preview_error=editor_preview_error editor_preview_title=editor_form.title.value %}
+          </div>
+        </div>
+
+        <div class="author-editor-actions" data-editor-actions>
+          <a class="button button--secondary" href="{% url 'authoring:articles' %}">
+            <i data-lucide="arrow-left"></i><span>返回我的文章</span>
+          </a>
+          <button class="button button--primary" type="submit" {% if editor_frozen %}disabled{% endif %}>
+            <i data-lucide="save"></i>
+            <span>{% if editor_mode == "create" %}创建草稿{% else %}保存草稿{% endif %}</span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+{% endblock %}

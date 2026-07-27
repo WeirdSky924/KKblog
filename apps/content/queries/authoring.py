@@ -102,6 +102,14 @@ def _actor(value) -> UUID:
     return actor
 
 
+def authoring_access(actor_id) -> bool:
+    try:
+        actor = UUID(str(actor_id))
+    except (TypeError, ValueError):
+        return False
+    return is_active_author(actor) and not author_is_content_masked(actor)
+
+
 def _counts(queryset) -> AuthorArticleCounts:
     values = queryset.aggregate(
         published=Count(

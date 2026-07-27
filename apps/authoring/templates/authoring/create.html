@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}新建文章 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=2 %}
+    <section class="authoring-stage" aria-labelledby="author-create-title">
+      <header class="authoring-heading">
+        <div>
+          <p class="authoring-folio">02 / 06</p>
+          <h1 id="author-create-title">选择写作格式</h1>
+        </div>
+        <a class="button button--secondary" href="{% url 'authoring:articles' %}">
+          <i data-lucide="arrow-left"></i><span>返回我的文章</span>
+        </a>
+      </header>
+      <div class="author-format-grid">
+        <a class="author-format-option" href="{% url 'authoring:create' %}?format=MARKDOWN" data-format-choice="MARKDOWN">
+          <span class="author-format-option__number" aria-hidden="true">01</span>
+          <span>
+            <strong>Markdown</strong>
+            <small>纯文本源文 · Markdown</small>
+          </span>
+          <i data-lucide="chevron-right"></i>
+        </a>
+        <a class="author-format-option" href="{% url 'authoring:create' %}?format=TIPTAP_JSON" data-format-choice="TIPTAP_JSON">
+          <span class="author-format-option__number" aria-hidden="true">02</span>
+          <span>
+            <strong>富文本</strong>
+            <small>结构化文档 · TipTap JSON</small>
+          </span>
+          <i data-lucide="chevron-right"></i>
+        </a>
+      </div>
+      <p class="author-format-note">
+        格式会写入文章首个修订，普通编辑流程中不能切换。
+      </p>
+    </section>
+  </div>
+{% endblock %}

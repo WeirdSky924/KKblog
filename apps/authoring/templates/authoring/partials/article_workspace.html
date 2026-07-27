@@ -54,7 +54,11 @@
                 <i data-lucide="eye"></i><span>阅读</span>
               </a>
             {% endif %}
-            {% if item.can_edit %}<span class="author-capability">可编辑</span>{% endif %}
+            {% if item.can_edit %}
+              <a class="button button--secondary" href="{% url 'authoring:edit' article_id=item.article_id %}">
+                <i data-lucide="pencil-line"></i><span>编辑</span>
+              </a>
+            {% endif %}
             {% if item.can_restore %}<span class="author-capability">可恢复</span>{% endif %}
           </div>
         </article>
