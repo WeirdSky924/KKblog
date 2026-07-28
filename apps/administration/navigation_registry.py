@@ -34,6 +34,7 @@ ADMIN_NAVIGATION = (
     AdminNavigationGroup(
         label="账号与访问",
         items=(
+            AdminNavigationItem("users", "用户管理", "admin:users"),
             AdminNavigationItem("invites", "邀请码", "admin:invites"),
             AdminNavigationItem("ip-blocks", "IP 封禁", "admin:ip-blocks"),
         ),

@@ -3,7 +3,7 @@
 退出门禁：管理后台、导航树、站点设置和所有领域写操作均重判权限并与审计同成败。
 
 ### ADM-001 实现无仪表盘的管理后台外壳与统一权限
-- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：唯一管理员从个人菜单直达功能入口；桌面窄侧栏、手机横向/菜单模块导航；普通用户/作者所有管理URL和HTMX均服务端拒绝。
 - 来源：访谈 Q104、Q168、Q241-Q253；`modules/08-administration-navigation.md` §后台原则/UI；原型全部管理页。
 - 依赖：前置 `RUN-005`、`ACC-001`、`FND-004`；后续 `ADM-002`、`ADM-003`、`ADM-004`、`ADM-005`、`ADM-006`、`ADM-007`、`ADM-008`、`QA-003`、`QA-006`。
@@ -12,10 +12,11 @@
 - 影响：数据无事实；权限：admin全入口；审计由领域写服务；缓存禁用户串；异步/媒体/通知仅展示槽。
 - 测试/验收：RED 普通用户/作者直接GET/POST/HTMX；Playwright桌面/390/768导航、焦点、长ID、空/错误/禁用。
 - 风险/停止：任一管理写绕过service/audit、手机主要操作不可达或UI路由成为授权即停止。
+- 证据：RED `.venv/bin/pytest -q apps/administration/tests/test_adm001.py` 在实现前退出 1，准确因 `admin:index` 不存在触发 `NoReverseMatch`；最小实现加入代码导航注册表、统一 `administrator_required`、无仪表盘直达入口、共享管理布局和响应式模块导航，领域写端点仍由原 owner service 最终授权与审计。当前 GREEN 同命令退出 0，`2 passed in 6.75s`；相关 administration/accounts/analytics/operations/前端与 HTTP 安全回归退出 0，`38 passed in 17.37s`；目标 Ruff 与 format 检查分别退出 0，26 个文件格式正确。隔离 PostgreSQL/Redis/Mailpit 中以真实 visitor/user/author/admin 身份读回：管理员 `/admin/` 302 到 `/admin/invites/`，其余三身份均 403，GET/POST/HTMX 权限探针均拒绝；授权页响应 `private, no-store` 且 `Vary: Cookie`。`blog-playwright-cli` 真实 Chrome 验证 1440 light、768 eye-care、390 dark：文档宽分别等于视口，桌面侧栏与移动横向导航按断点互斥，390 导航 `390/510` 可受控横滚，表单控件保持 16px 安全边距且提交按钮 44px；空邀请码、IP、群发、错误页面均保留壳层，审计非法日期诚实返回 422，未配置 Umami 诚实返回 503；首个 Tab 聚焦跳转链接，Enter 后焦点为 `#main-content`。临时 RED/GREEN 测试和浏览器运行产物均已清理/忽略；未执行生产数据、生产 migration、真实邮件、部署、提交或推送。后续模块仅扩展注册表和 owner DTO，不改变本卡权限边界。
 - 授权：`否`。
 
 ### ADM-002 实现用户、作者角色、禁用/启用与账户删除管理
-- 元数据：状态 `待处理`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：管理员按邮箱/昵称搜索、正常/禁用筛选，授予/撤销作者、禁用/启用、删除非管理员；删除作者前明确文章处理/可选导出提醒。
 - 来源：访谈 Q130-Q134、Q284-Q301；`contracts/03-frontend-contract-map.md` §admin:users；原型 users。
 - 依赖：前置 `ADM-001`、`ACC-007`、`ACC-011`、`CNT-009`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。

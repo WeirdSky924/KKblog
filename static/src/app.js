@@ -436,20 +436,35 @@ function initializeConfirmDialogs(root = document) {
       dialog.querySelector("[data-dialog-cancel]")?.addEventListener("click", () => {
         dialog.close("cancel");
       });
+      dialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        dialog.close("cancel");
+      });
       dialog.addEventListener("close", () => {
-        const trigger = dialog.id
-          ? document.querySelector(
-              `[data-dialog-trigger][aria-controls="${dialog.id}"]`,
-            )
-          : document.querySelector("[data-dialog-trigger]");
+        const returnFocusId = dialog.dataset.dialogReturnFocus || "";
+        const trigger =
+          (returnFocusId && document.getElementById(returnFocusId)) ||
+          (dialog.id
+            ? document.querySelector(
+                `[data-dialog-trigger][aria-controls="${dialog.id}"]`,
+              )
+            : document.querySelector("[data-dialog-trigger]"));
         if (dialog.returnValue === "cancel") {
-          const url = new URL(window.location.href);
-          url.searchParams.delete("confirm");
-          url.hash =
-            trigger instanceof HTMLElement
-              ? trigger.dataset.dialogReturnHash || ""
-              : "";
-          window.history.replaceState(null, "", url);
+          if (dialog.dataset.dialogReturnUrl) {
+            window.history.replaceState(
+              null,
+              "",
+              dialog.dataset.dialogReturnUrl,
+            );
+          } else {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("confirm");
+            url.hash =
+              trigger instanceof HTMLElement
+                ? trigger.dataset.dialogReturnHash || ""
+                : "";
+            window.history.replaceState(null, "", url);
+          }
         }
         if (trigger instanceof HTMLElement) {
           requestAnimationFrame(() => trigger.focus({ preventScroll: true }));

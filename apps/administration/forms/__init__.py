@@ -8,8 +8,18 @@ from .notifications import (
     BroadcastForm,
     BroadcastVisibilityForm,
 )
+from .users import (
+    AccountDeletionConfirmationForm,
+    AccountRoleConfirmationForm,
+    AccountStatusConfirmationForm,
+    AdminUserFilterForm,
+)
 
 __all__ = [
+    "AccountDeletionConfirmationForm",
+    "AccountRoleConfirmationForm",
+    "AccountStatusConfirmationForm",
+    "AdminUserFilterForm",
     "IpBlockConfirmationForm",
     "IpBlockForm",
     "IpUnblockConfirmationForm",

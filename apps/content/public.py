@@ -70,6 +70,8 @@ from .queries import (
     visible_filter_tags,
 )
 from .services import (
+    AccountArticleDispositionError,
+    AdminAuthorArticleCount,
     ArticleDeletionError,
     ArticleDeletionResult,
     ArticleModerationAction,
@@ -110,6 +112,8 @@ from .services import (
     TagRestoreResult,
     TagResult,
     VisibilityChangeResult,
+    admin_author_article_counts,
+    apply_account_deletion_disposition,
     cancel_schedule,
     change_visibility,
     create_article,
@@ -123,6 +127,7 @@ from .services import (
     import_article_item,
     imported_article_result,
     open_edit_session,
+    prepare_account_deletion_disposition,
     prepare_article_moderation_action,
     prepare_publication,
     prepare_restore_revision,
@@ -153,6 +158,10 @@ from .snapshots import (
 )
 
 __all__ = [
+    "AccountArticleDispositionError",
+    "AdminAuthorArticleCount",
+    "admin_author_article_counts",
+    "apply_account_deletion_disposition",
     "AUTHOR_ARTICLE_STATES",
     "ArticleBodyLimit",
     "ArticleCommentTarget",
@@ -242,6 +251,7 @@ __all__ = [
     "propose_tag",
     "prepare_publication",
     "prepare_article_moderation_action",
+    "prepare_account_deletion_disposition",
     "prepare_restore_revision",
     "publish_article",
     "publish_scheduled_article",

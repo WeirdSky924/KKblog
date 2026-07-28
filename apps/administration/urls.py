@@ -12,12 +12,14 @@ from apps.administration.views.index import index
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
 from apps.administration.views.notifications import notifications
+from apps.administration.views.users import users
 from apps.analytics.presentation.admin_view import analytics_dashboard
 
 app_name = "admin"
 
 urlpatterns = [
     path("", administrator_required(index), name="index"),
+    path("users/", administrator_required(users), name="users"),
     path(
         "analytics/",
         administrator_required(analytics_dashboard),

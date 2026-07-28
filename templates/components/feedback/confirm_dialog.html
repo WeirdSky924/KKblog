@@ -3,6 +3,8 @@
   class="confirm-dialog"
   data-confirm-dialog
   {% if dialog_open %}open data-auto-modal{% endif %}
+  {% if dialog_return_focus_id %}data-dialog-return-focus="{{ dialog_return_focus_id }}"{% endif %}
+  {% if dialog_return_url %}data-dialog-return-url="{{ dialog_return_url }}"{% endif %}
   aria-labelledby="{{ dialog_id }}-title"
   aria-describedby="{{ dialog_id }}-description"
 >
@@ -22,6 +24,7 @@
     {% for hidden in confirmation_form.hidden_fields %}{{ hidden }}{% endfor %}
     <h2 id="{{ dialog_id }}-title">{{ dialog_title }}</h2>
     <p id="{{ dialog_id }}-description">{{ dialog_description }}</p>
+    {% if dialog_details %}<p>{{ dialog_details }}</p>{% endif %}
     {{ confirmation_form.confirm.errors }}
     {{ confirmation_form.non_field_errors }}
     {% if dialog_feedback_id %}

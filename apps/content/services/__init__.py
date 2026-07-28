@@ -1,3 +1,10 @@
+from .account_deletion import (
+    AccountArticleDispositionError,
+    AdminAuthorArticleCount,
+    admin_author_article_counts,
+    apply_account_deletion_disposition,
+    prepare_account_deletion_disposition,
+)
 from .articles import ContentCommandError, create_article, save_revision
 from .classification import (
     SectionCommandError,
@@ -88,6 +95,10 @@ from .tags import (
 from .visibility import VisibilityChangeResult, change_visibility
 
 __all__ = [
+    "AccountArticleDispositionError",
+    "AdminAuthorArticleCount",
+    "admin_author_article_counts",
+    "apply_account_deletion_disposition",
     "ContentCommandError",
     "ArticleDeletionError",
     "ArticleDeletionResult",
@@ -140,6 +151,7 @@ __all__ = [
     "propose_tag",
     "prepare_publication",
     "prepare_article_moderation_action",
+    "prepare_account_deletion_disposition",
     "prepare_restore_revision",
     "publish_article",
     "publish_scheduled_article",

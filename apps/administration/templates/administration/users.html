@@ -1,0 +1,111 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}用户管理 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-users" aria-labelledby="admin-users-title">
+    <header class="admin-users__header">
+      <p>管理 · 账户与角色</p>
+      <h1 id="admin-users-title">用户管理</h1>
+      <p>搜索账户、调整作者角色，并管理账户生命周期。</p>
+      {% if saved == "author-granted" %}<p role="status">作者角色已授予。</p>{% endif %}
+      {% if saved == "author-revoked" %}<p role="status">作者角色已撤销。</p>{% endif %}
+      {% if saved == "disabled" %}<p role="status">账户已禁用，现有会话已撤销。</p>{% endif %}
+      {% if saved == "enabled" %}<p role="status">账户已启用，旧会话未恢复。</p>{% endif %}
+      {% if saved == "deleted" %}<p role="status">账户及其关联内容已删除。</p>{% endif %}
+    </header>
+
+    <form method="get" class="admin-users__filters" role="search">
+      <div>
+        {{ filter_form.q.label_tag }}
+        {{ filter_form.q }}
+        {{ filter_form.q.errors }}
+      </div>
+      <div>
+        {{ filter_form.status.label_tag }}
+        {{ filter_form.status }}
+        {{ filter_form.status.errors }}
+      </div>
+      <button class="button button--secondary" type="submit">搜索</button>
+    </form>
+
+    {% if page_error %}<p class="admin-users__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    <div class="admin-users__summary">
+      <p>共 {{ presentation.page.total_items }} 个账户</p>
+    </div>
+
+    {% if presentation.rows %}
+      <div id="user-list" class="admin-users__table-wrap" tabindex="0" aria-label="用户管理列表">
+        <table class="admin-users__table">
+          <thead>
+            <tr>
+              <th>用户</th>
+              <th>身份</th>
+              <th>状态</th>
+              <th>文章</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in presentation.rows %}
+              <tr>
+                <td>
+                  <strong>{{ row.account.display_name }}</strong>
+                  <span>{{ row.account.email }}</span>
+                  <small>注册于 {{ row.account.created_at|date:"Y-m-d" }}</small>
+                </td>
+                <td>
+                  {% if row.account.is_administrator %}管理员{% elif row.account.is_author %}作者{% else %}用户{% endif %}
+                </td>
+                <td>{% if row.account.status == "ACTIVE" %}正常{% else %}禁用{% endif %}</td>
+                <td>{{ row.article_count }}</td>
+                <td>
+                  {% if row.can_manage %}
+                    <div class="admin-users__actions">
+                      {% if row.account.is_author %}
+                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">撤销作者</a>
+                      {% else %}
+                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">授予作者</a>
+                      {% endif %}
+                      {% if row.account.status == "ACTIVE" %}
+                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">禁用</a>
+                      {% else %}
+                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">启用</a>
+                      {% endif %}
+                      <a id="account-delete-{{ row.account.account_id }}" href="?confirm_action=delete&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">删除</a>
+                    </div>
+                  {% else %}
+                    <span>唯一管理员受保护</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if presentation.page.total_pages > 1 %}
+        <nav class="admin-users__pagination" aria-label="用户列表分页">
+          {% if presentation.page.has_previous %}
+            <a href="?q={{ presentation.page.keyword|urlencode }}&amp;status={{ presentation.page.selected_status }}&amp;page={{ presentation.page.page_number|add:'-1' }}">上一页</a>
+          {% endif %}
+          <span>第 {{ presentation.page.page_number }} / {{ presentation.page.total_pages }} 页</span>
+          {% if presentation.page.has_next %}
+            <a href="?q={{ presentation.page.keyword|urlencode }}&amp;status={{ presentation.page.selected_status }}&amp;page={{ presentation.page.page_number|add:'1' }}">下一页</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="admin-users__empty" id="user-list">
+        <h2>没有找到匹配账户</h2>
+        <p>调整邮箱、昵称或状态条件后重新搜索。</p>
+        <a href="{% url 'admin:users' %}">清除筛选</a>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="account-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}
