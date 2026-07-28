@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{% if publication_immediate %}发布完成{% else %}排期完成{% endif %} · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main authoring-main--publication{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout authoring-layout--publication">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=3 editor_article_id=editor_article_id %}
+    <section class="authoring-stage author-publication-result" aria-labelledby="publication-result-title">
+      <p class="authoring-folio">03 / 06</p>
+      <i data-lucide="circle-check-big"></i>
+      <h1 id="publication-result-title">{% if publication_immediate %}文章已发布{% else %}文章已排期{% endif %}</h1>
+      {% if publication_immediate %}
+        <p>读者现在看到版本 {{ article.revision_id }}；对应云端草稿已完成发布。</p>
+        <p data-author-draft-clear-result aria-live="polite">正在清理这个浏览器中的对应本地稿。</p>
+        <span hidden data-author-draft-clear-request data-user-id="{{ draft_clear_user_id }}" data-article-key="{{ article.article_id }}"></span>
+      {% else %}
+        <p>当前修订已锁定，将在 <time datetime="{{ article.scheduled_for|date:'c' }}">{{ article.scheduled_for|date:"Y-m-d H:i" }}</time> 执行发布。</p>
+      {% endif %}
+      <div class="author-publication__actions">
+        {% if publication_immediate %}<a class="button button--primary" href="{% url 'article:detail' article.article_id %}"><i data-lucide="eye"></i><span>查看文章</span></a>{% endif %}
+        <a class="button button--secondary" href="{% url 'authoring:versions' article_id=article.article_id %}"><i data-lucide="history"></i><span>查看版本</span></a>
+        <a class="button button--secondary" href="{% url 'authoring:articles' %}"><i data-lucide="arrow-left"></i><span>返回我的文章</span></a>
+      </div>
+    </section>
+  </div>
+{% endblock %}

@@ -1,5 +1,6 @@
 {% load static %}
 <div id="author-article-workspace" class="article-workspace" aria-live="polite">
+  {% if request.GET.cancelled == "1" %}<p class="author-editor-resolution" role="status">定时发布已取消，文章已回到草稿。</p>{% endif %}
   <nav class="authoring-tabs" aria-label="文章状态">
     {% for tab in workspace.tabs %}
       <a
@@ -58,6 +59,19 @@
               <a class="button button--secondary" href="{% url 'authoring:edit' article_id=item.article_id %}">
                 <i data-lucide="pencil-line"></i><span>编辑</span>
               </a>
+            {% endif %}
+            {% if item.can_review %}
+              <a class="button button--secondary" href="{% url 'authoring:review' article_id=item.article_id %}">
+                <i data-lucide="send"></i><span>审查</span>
+              </a>
+              <a class="button button--secondary" href="{% url 'authoring:versions' article_id=item.article_id %}">
+                <i data-lucide="history"></i><span>版本</span>
+              </a>
+            {% endif %}
+            {% if item.state == "SCHEDULED" %}
+              <form method="post" action="{% url 'authoring:cancel-schedule' article_id=item.article_id %}" data-submit-once>
+                {% csrf_token %}<button class="button button--secondary" type="submit"><i data-lucide="calendar-x-2"></i><span>取消排期</span></button>
+              </form>
             {% endif %}
             {% if item.can_restore %}<span class="author-capability">可恢复</span>{% endif %}
           </div>

@@ -13,6 +13,7 @@
 | `normalized_nickname` | text | 是 | 由 `nickname` 以唯一共享函数产生 Unicode `casefold` 规范值；大小写不敏感唯一约束和冲突裁决作用于此字段 |
 | `status` | enum | 否 | `ACTIVE`、`DISABLED`；删除账户物理移除并保留匿名历史引用 |
 | `theme` | enum | 否 | `LIGHT`、`DARK`、`EYE_CARE`，默认 `LIGHT` |
+| `auto_republish_enabled` | bool | 否 | 默认关闭；仅普通已发布文章的显式云保存可自动重发，首次发布与历史恢复仍强制终稿审查 |
 | `avatar_asset_id` | media id | 是 | 只能绑定本人头像用途资产 |
 | `nickname_changed_at` | timestamptz | 是 | 7 天冷却判断来源 |
 | `must_change_password` | bool | 否 | 首次管理员登录前为真 |

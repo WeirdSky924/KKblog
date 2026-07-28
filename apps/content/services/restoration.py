@@ -53,6 +53,10 @@ class RestorePreview:
     changed_fields: tuple[str, ...]
     source: ArticleSnapshot
     current: ArticleSnapshot
+    source_section_name: str
+    current_section_name: str
+    source_tag_names: tuple[str, ...]
+    current_tag_names: tuple[str, ...]
 
 
 def _digest(value: str) -> str:
@@ -187,15 +191,33 @@ def prepare_restore_revision(
         grant.token_digest = _digest(token)
         grant.save(force_insert=True)
     return RestorePreview(
-        grant.id,
-        token,
-        grant.expires_at,
-        source_revision.id,
-        current_revision.id,
-        article.row_version,
-        _changed_fields(source_snapshot, current_snapshot),
-        source_snapshot,
-        current_snapshot,
+        grant_id=grant.id,
+        token=token,
+        expires_at=grant.expires_at,
+        source_revision_id=source_revision.id,
+        current_revision_id=current_revision.id,
+        row_version=article.row_version,
+        changed_fields=_changed_fields(source_snapshot, current_snapshot),
+        source=source_snapshot,
+        current=current_snapshot,
+        source_section_name=(
+            source_revision.section.name if source_revision.section_id else "未知分区"
+        ),
+        current_section_name=(
+            current_revision.section.name if current_revision.section_id else "未知分区"
+        ),
+        source_tag_names=tuple(
+            row.tag.name
+            for row in source_revision.tag_snapshots.select_related("tag").order_by(
+                "tag_id"
+            )
+        ),
+        current_tag_names=tuple(
+            row.tag.name
+            for row in current_revision.tag_snapshots.select_related("tag").order_by(
+                "tag_id"
+            )
+        ),
     )
 
 

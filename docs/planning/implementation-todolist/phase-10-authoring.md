@@ -42,7 +42,7 @@
 - 证据：初始 RED `pytest apps/authoring/tests/test_aut003.py -q` 收集期退出 2，准确报告云草稿删除契约缺失；实现本地键 `user/article/base revision/format`、500ms debounce、本地优先/云 working revision 回退、显式云保存 pending/失败保留，以及 content owner 下的无冷静期云草稿删除。聚焦 GREEN `5 passed`，AUT-003、CNT-002/003/006/008 与架构联合回归 `32 passed`；首发前删除事务内物理清理 Article/全部 Revision/评论/媒体引用，已发布文章仅把 working pointer 恢复到 published pointer并保留完整历史，错误作者、禁用作者、遮罩、排期、未解冲突和 stale row version 均关闭失败。隔离浏览器完成断网/崩溃、跨账户、同文章多基线、本地优先/云回退、云保存失败保留、确认取消/焦点恢复和手动删云稿；PostgreSQL 与浏览器读回删除后 Article/Revision 为 `0|0`、文章全部本地基线键和 pending marker 均清空。收口审计先以真实创建/保存流 RED 读回显式云保存错误删除本地键，修复为只确认并清除 session pending marker 后，全新浏览器 GREEN 读回旧基线 localStorage 键仍存在、pending marker 已清；随后手动删云稿再次读回本地键为空、数据库 `0|0`。390/768/1440、三主题、成功态焦点和无横向溢出已验证；Ruff、format、Django check、migration drift、npm build 与 `git diff --check` 退出 0。成功发布由 AUT-005 的真实入口发出同一 `kaj:author-draft-clear` 事件；AUT-005 和 P10 最终审计必须重新读回发布后全部本地基线键清空，否则阶段不得完成。未执行生产 migration、生产数据/媒体、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-004 实现 409 冲突冻结与版本基线选择界面
-- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：保存冲突后禁止继续保存/发布，展示当前工作版、用户基线和历史元数据；作者选一版覆盖编辑画布并取得新令牌，未发布本地输入可明确保留/比较。
 - 来源：访谈 Q296；`modules/07-authoring-workbench.md` §并发冲突；`contracts/03-frontend-contract-map.md` §HTMX 409。
 - 依赖：前置 `CNT-006`、`AUT-002`、`AUT-003`；后续 `AUT-005`、`QA-003`、`QA-006`。
@@ -52,9 +52,10 @@
 - 测试/验收：两浏览器Playwright并发保存→一成功一409→选基线→继续；取消/刷新/已发布读者版稳定。
 - 风险/停止：冲突后按钮仍可提交、选择版本丢本地稿无提示或published被覆盖即停止。
 - 授权：`否`。
+- 证据：临时聚焦 RED `pytest apps/authoring/tests/test_aut004.py -q` 在缺少 authoring 冲突恢复入口和展示契约时退出 1；实现 conflict grant 恢复、版本元数据 presenter、409 partial、编辑区冻结、明确的本地稿保留选择和基线令牌桥接后，AUT-004 四用例与 CNT-006 三用例组合 GREEN 退出 0，`7 passed`。本次新鲜复核中，CNT-006 聚焦退出 0，`3 passed`；CNT-002/003/004/006/007 相关回归退出 0，`29 passed`；目标 Ruff lint/format、Django check、migration drift、完整前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回修订数 4、`row_version=4`、working 版本 4、published 版本 1、未解决 conflict grant 为 0；选择版本 1 的 HTMX 响应显示“已选择版本 1”、画布加载“读者稳定版本”且保存恢复可用，刷新安全回到当前云 working revision。真实文章页继续读回“读者稳定版本”，证明选择基线未移动发布指针。`blog-playwright-cli` 由 `blog-browser` 运行，重新核验 390 护眼、768 深色、1440 浅色原尺寸截图无重叠、裁切或横向溢出，冲突区自动聚焦、编辑/保存冻结、键盘可达且 Lucide 图标完整；专用浏览器与 runserver 已关闭，回归数据库不存在、Redis DB 15 为 0。未执行生产 migration、生产数据、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-005 实现终稿审查、立即/定时发布与版本时间线 UI
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：完整文章审查可返回编辑；确认必选立即或定时；关闭未确认保留草稿；版本时间线可预览/恢复并再次审查；自动重发偏好仅用于已发布普通编辑。
 - 来源：访谈 Q050-Q053、Q263-Q264、Q298；`modules/07-authoring-workbench.md` §发布审查；原型 editor/authorlist。
 - 依赖：前置 `AUT-001`、`AUT-002`、`AUT-003`、`AUT-004`、`CNT-003`、`CNT-004`、`CNT-007`；后续 `QA-003`、`QA-006`。

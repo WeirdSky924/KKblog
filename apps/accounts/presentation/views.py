@@ -10,6 +10,7 @@ from apps.accounts.audit import record_profile_audit
 from apps.accounts.policies.registration import RegistrationPolicy
 from apps.accounts.presentation.cookies import delete_session_cookie, set_session_cookie
 from apps.accounts.presentation.forms import (
+    AuthorPreferenceForm,
     ChangeEmailForm,
     ChangePasswordForm,
     CodeLoginForm,
@@ -25,6 +26,7 @@ from apps.accounts.presentation.forms import (
     RevokeSessionForm,
     ThemeForm,
 )
+from apps.accounts.public import is_active_author
 from apps.accounts.queries.profile import public_account_identity
 from apps.accounts.queries.sessions import session_list
 from apps.accounts.services.authentication import (
@@ -32,6 +34,11 @@ from apps.accounts.services.authentication import (
     authenticate_code,
     authenticate_password,
     request_login_code,
+)
+from apps.accounts.services.author_preferences import (
+    AuthorPreferenceError,
+    author_preferences,
+    change_author_preferences,
 )
 from apps.accounts.services.credentials import (
     CredentialError,
@@ -334,13 +341,18 @@ def _render_settings(
     email_form=None,
     profile_form=None,
     theme_form=None,
+    author_preference_form=None,
     code_sent=False,
     active_tab=None,
     status=200,
 ):
     account = request.account
     selected_tab = active_tab or request.GET.get("tab", "profile")
-    if selected_tab not in {"profile", "credentials", "theme"}:
+    is_author = is_active_author(account.id)
+    allowed_tabs = {"profile", "credentials", "theme"}
+    if is_author:
+        allowed_tabs.add("authoring")
+    if selected_tab not in allowed_tabs:
         selected_tab = "profile"
     profile_form = profile_form or ProfileForm(
         initial={
@@ -350,6 +362,15 @@ def _render_settings(
     )
     theme_form = theme_form or ThemeForm(
         initial={"theme": account.theme.casefold().replace("_", "-")}
+    )
+    author_preference_form = author_preference_form or AuthorPreferenceForm(
+        initial={
+            "auto_republish_enabled": (
+                author_preferences(account_id=account.id).auto_republish_enabled
+                if is_author
+                else False
+            )
+        }
     )
     submitted_avatar_id = profile_form["avatar_asset_id"].value() or None
     identity = public_account_identity(account.id)
@@ -362,6 +383,8 @@ def _render_settings(
             "email_form": email_form or ChangeEmailForm(),
             "profile_form": profile_form,
             "theme_form": theme_form,
+            "author_preference_form": author_preference_form,
+            "is_author": is_author,
             "code_sent": code_sent,
             "account": account,
             "active_tab": selected_tab,
@@ -375,6 +398,9 @@ def _render_settings(
             "credentials_saved": request.GET.get("saved") == "1",
             "profile_saved": request.GET.get("profile_saved") == "1",
             "theme_saved": request.GET.get("theme_saved") == "1",
+            "author_preference_saved": (
+                request.GET.get("author_preference_saved") == "1"
+            ),
         },
         status=status,
     )
@@ -446,6 +472,34 @@ def settings_view(request: HttpRequest) -> HttpResponse:
                 request, theme_form=form, active_tab="theme", status=422
             )
         return redirect(f"{reverse('accounts:settings')}?tab=theme&theme_saved=1")
+    if action == "change_author_preference":
+        form = AuthorPreferenceForm(request.POST)
+        if not form.is_valid():
+            return _render_settings(
+                request,
+                author_preference_form=form,
+                active_tab="authoring",
+                status=422,
+            )
+        try:
+            change_author_preferences(
+                account_id=request.account_id,
+                auto_republish_enabled=form.cleaned_data["auto_republish_enabled"],
+                client_ip=client_ip,
+                trace_code=trace_code,
+                audit_writer=record_profile_audit,
+            )
+        except AuthorPreferenceError as exc:
+            form.add_error(None, str(exc))
+            return _render_settings(
+                request,
+                author_preference_form=form,
+                active_tab="authoring",
+                status=422,
+            )
+        return redirect(
+            f"{reverse('accounts:settings')}?tab=authoring&author_preference_saved=1"
+        )
     if action == "send_email_code":
         form = NewEmailCodeForm(request.POST)
         if not form.is_valid():

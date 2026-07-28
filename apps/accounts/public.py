@@ -20,6 +20,12 @@ from apps.accounts.queries.security_events import (
     security_event_detail,
     security_event_list,
 )
+from apps.accounts.services.author_preferences import (
+    AuthorPreferenceError,
+    AuthorPreferences,
+    author_preferences,
+    change_author_preferences,
+)
 from apps.accounts.services.ip_blocks import block_ip, unblock_ip
 from apps.accounts.services.lifecycle import (
     AccountLifecycleError,
@@ -76,12 +82,16 @@ __all__ = [
     "active_administrator_id",
     "AccountDeletionDisposition",
     "AccountLifecycleError",
+    "AuthorPreferenceError",
+    "AuthorPreferences",
     "AuthorArticleDecision",
     "PublicAccountIdentity",
     "PublicAccountNotFound",
     "clear_account_restrictions",
     "clear_ip_send_restriction",
     "default_restriction_store",
+    "author_preferences",
+    "change_author_preferences",
     "delete_account",
     "ip_block_detail",
     "ip_block_list",

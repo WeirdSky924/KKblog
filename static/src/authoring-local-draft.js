@@ -333,3 +333,27 @@ document.addEventListener("kaj:author-draft-clear", (event) => {
     }
   }
 });
+
+export function initializeArticleDraftClears(root = document) {
+  const markers = [];
+  if (root instanceof HTMLElement && root.matches("[data-author-draft-clear-request]")) {
+    markers.push(root);
+  }
+  root.querySelectorAll?.("[data-author-draft-clear-request]").forEach((item) =>
+    markers.push(item),
+  );
+  markers.forEach((marker) => {
+    if (!(marker instanceof HTMLElement) || marker.dataset.clearDispatched === "true") {
+      return;
+    }
+    marker.dataset.clearDispatched = "true";
+    document.dispatchEvent(
+      new CustomEvent("kaj:author-draft-clear", {
+        detail: {
+          userId: marker.dataset.userId,
+          articleKey: marker.dataset.articleKey,
+        },
+      }),
+    );
+  });
+}

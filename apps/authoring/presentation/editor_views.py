@@ -25,11 +25,13 @@ from apps.content.public import (
     ContentFormat,
     EditConflictError,
     EditTokenError,
+    PublicationCommandError,
     article_for_author,
     create_article,
     discard_cloud_draft,
     open_edit_session,
     preview_article_body,
+    republish_saved_revision,
     resolve_edit_conflict,
     revision_timeline,
     save_revision_with_token,
@@ -75,6 +77,8 @@ def _editor_context(
     skip_local_restore: bool = False,
     conflict_local_baseline: str = "",
     conflict_resolved_sequence: int | None = None,
+    auto_published: bool = False,
+    auto_publish_error: str = "",
 ) -> dict:
     preview, preview_error = preview_from_form(form, content_format)
     upload_scope = form["upload_scope"].value() or ""
@@ -122,6 +126,8 @@ def _editor_context(
         "editor_skip_local_restore": skip_local_restore,
         "editor_conflict_local_baseline": conflict_local_baseline,
         "editor_conflict_resolved_sequence": conflict_resolved_sequence,
+        "editor_auto_published": auto_published,
+        "editor_auto_publish_error": auto_publish_error,
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
         "cover_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-cover'})}?{query}"
@@ -352,6 +358,24 @@ def edit(request, article_id: str):
             form.add_error(None, str(exc))
             frozen = True
         else:
+            auto_published = False
+            auto_publish_error = ""
+            if article.published_revision_id is not None:
+                if request.account.auto_republish_enabled:
+                    try:
+                        republished = republish_saved_revision(
+                            actor_id=actor_id,
+                            article_id=article_id,
+                            revision_id=result.write.revision_id,
+                            expected_row_version=result.write.row_version,
+                            auto_republish_enabled=True,
+                            trace_code=getattr(request, "trace_code", ""),
+                        )
+                    except PublicationCommandError as exc:
+                        if exc.code != "content.final_review_required.v1":
+                            auto_publish_error = exc.safe_message
+                    else:
+                        auto_published = republished.published
             saved_article = article_for_author(
                 actor_id=actor_id,
                 article_id=article_id,
@@ -361,7 +385,7 @@ def edit(request, article_id: str):
                 locked_format=article.content_format,
                 **choices,
             )
-            return _render_editor(
+            response = _render_editor(
                 request,
                 **_editor_context(
                     form=form,
@@ -372,8 +396,22 @@ def edit(request, article_id: str):
                     saved=True,
                     row_version=result.next_session.row_version,
                     can_discard_cloud_draft=(saved_article.can_discard_cloud_draft),
+                    auto_published=auto_published,
+                    auto_publish_error=auto_publish_error,
                 ),
             )
+            if auto_published and request.headers.get("HX-Request") == "true":
+                response.headers["HX-Trigger-After-Swap"] = json.dumps(
+                    {
+                        "kaj:author-draft-clear": {
+                            "userId": str(actor_id),
+                            "articleKey": article_id,
+                        }
+                    },
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                )
+            return response
     return _render_editor(
         request,
         status=409 if frozen else 422,

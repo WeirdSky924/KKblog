@@ -181,3 +181,11 @@ class ThemeForm(forms.Form):
         ),
         widget=ThemeRadioSelect,
     )
+
+
+class AuthorPreferenceForm(forms.Form):
+    auto_republish_enabled = forms.BooleanField(
+        label="自动发布已保存的文章修改",
+        required=False,
+        help_text="仅用于已发布文章的普通编辑；首次发布和历史版本恢复仍需终稿审查。",
+    )

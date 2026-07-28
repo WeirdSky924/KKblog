@@ -60,11 +60,15 @@ class ArticleView:
     deleted_at: datetime | None
     cover_asset_id: str | None
     published_at: datetime | None
+    scheduled_for: datetime | None
+    published_revision_id: str | None
+    scheduled_revision_id: str | None
     can_edit: bool
     can_publish: bool
     admin_read_only: bool
     row_version: int
     can_discard_cloud_draft: bool
+    has_unpublished_changes: bool
     rendered_body_html: str | None = None
     readable_cover_asset_id: str | None = None
 
@@ -132,23 +136,30 @@ def _view(
         )
     )
     return ArticleView(
-        article.id,
-        revision.id,
-        article.author_id,
-        revision.title,
-        revision.content_format,
-        revision.body_markdown,
-        revision.body_tiptap,
-        revision.visibility,
-        article.publication_state,
-        article.deleted_at,
-        revision.cover_asset_id,
-        article.published_at,
-        can_edit,
-        can_edit,
-        admin_read_only,
-        article.row_version,
-        can_discard_cloud_draft,
+        article_id=article.id,
+        revision_id=revision.id,
+        author_id=article.author_id,
+        title=revision.title,
+        content_format=revision.content_format,
+        body_markdown=revision.body_markdown,
+        body_tiptap=revision.body_tiptap,
+        visibility=revision.visibility,
+        publication_state=article.publication_state,
+        deleted_at=article.deleted_at,
+        cover_asset_id=revision.cover_asset_id,
+        published_at=article.published_at,
+        scheduled_for=article.scheduled_for,
+        published_revision_id=article.published_revision_id,
+        scheduled_revision_id=article.scheduled_revision_id,
+        can_edit=can_edit,
+        can_publish=can_edit,
+        admin_read_only=admin_read_only,
+        row_version=article.row_version,
+        can_discard_cloud_draft=can_discard_cloud_draft,
+        has_unpublished_changes=(
+            article.published_revision_id is None
+            or article.working_revision_id != article.published_revision_id
+        ),
     )
 
 

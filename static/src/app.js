@@ -5,10 +5,12 @@ import {
   Bell,
   Bold,
   Bookmark,
+  CalendarX2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  CircleCheckBig,
   CircleX,
   Copy,
   Eye,
@@ -17,6 +19,7 @@ import {
   Flag,
   GitCompareArrows,
   Heading2,
+  History,
   ImageUp,
   Info,
   Italic,
@@ -36,7 +39,9 @@ import {
   Replace,
   Reply,
   RotateCw,
+  RotateCcw,
   Save,
+  Send,
   Search,
   Settings,
   ShieldCheck,
@@ -44,6 +49,7 @@ import {
   Strikethrough,
   Sun,
   Trash2,
+  Timer,
   TriangleAlert,
   Undo2,
   UserPlus,
@@ -62,16 +68,19 @@ import {
   destroyAuthorEditors,
   initializeAuthorEditors,
 } from "./authoring-editor.js";
+import { initializeArticleDraftClears } from "./authoring-local-draft.js";
 
 const availableIcons = {
   ArrowLeft,
   Bell,
   Bold,
   Bookmark,
+  CalendarX2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  CircleCheckBig,
   CircleX,
   Copy,
   Eye,
@@ -80,6 +89,7 @@ const availableIcons = {
   Flag,
   GitCompareArrows,
   Heading2,
+  History,
   ImageUp,
   Info,
   Italic,
@@ -99,7 +109,9 @@ const availableIcons = {
   Replace,
   Reply,
   RotateCw,
+  RotateCcw,
   Save,
+  Send,
   Search,
   Settings,
   ShieldCheck,
@@ -107,6 +119,7 @@ const availableIcons = {
   Strikethrough,
   Sun,
   Trash2,
+  Timer,
   TriangleAlert,
   Undo2,
   UserPlus,
@@ -229,6 +242,25 @@ function initializeCharacterCounts(root = document) {
       counter.textContent = `${field.value.length} / ${field.maxLength}`;
     };
     field.addEventListener("input", update);
+    update();
+  });
+}
+
+function initializePublicationForms(root = document) {
+  root.querySelectorAll?.(".author-publication-form").forEach((form) => {
+    if (!(form instanceof HTMLFormElement) || form.dataset.publicationBound === "true") {
+      return;
+    }
+    form.dataset.publicationBound = "true";
+    const field = form.querySelector("[data-schedule-field]");
+    const input = form.elements.namedItem("scheduled_local");
+    const update = () => {
+      const mode = form.elements.namedItem("publication_mode");
+      const scheduled = mode instanceof RadioNodeList && mode.value === "SCHEDULED";
+      if (field instanceof HTMLElement) field.hidden = !scheduled;
+      if (input instanceof HTMLInputElement) input.disabled = !scheduled;
+    };
+    form.addEventListener("change", update);
     update();
   });
 }
@@ -986,6 +1018,8 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
   initializeCharacterCounts(root);
+  initializePublicationForms(root);
+  initializeArticleDraftClears(root);
   initializeAuthorEditors(root);
   initializeMediaPickers(root);
   initializeCommentForms(root);
@@ -1066,6 +1100,8 @@ initializeNotificationDialogs();
 initializeConfirmDialogs();
 initializeCopyLinks();
 initializeCharacterCounts();
+initializePublicationForms();
+initializeArticleDraftClears();
 initializeAuthorEditors();
 initializeMediaPickers();
 initializeCommentForms();

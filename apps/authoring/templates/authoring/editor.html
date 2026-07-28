@@ -18,11 +18,11 @@
           <span
             class="author-save-state"
             data-editor-cloud-label
-            data-cloud-state="{% if editor_conflict %}conflict{% elif editor_cloud_error %}error{% elif editor_saved %}saved{% elif editor_mode == 'edit' %}loaded{% else %}empty{% endif %}"
+            data-cloud-state="{% if editor_conflict %}conflict{% elif editor_cloud_error or editor_auto_publish_error %}error{% elif editor_auto_published %}published{% elif editor_saved %}saved{% elif editor_mode == 'edit' %}loaded{% else %}empty{% endif %}"
             aria-live="polite"
           >
             <i data-lucide="save"></i>
-            {% if editor_conflict %}检测到编辑冲突，本地稿已保留{% elif editor_cloud_error %}云端保存失败，本地稿已保留{% elif editor_saved %}云端草稿已保存{% elif editor_mode == "edit" %}云端草稿已加载{% else %}尚未创建云端草稿{% endif %}
+            {% if editor_conflict %}检测到编辑冲突，本地稿已保留{% elif editor_cloud_error %}云端保存失败，本地稿已保留{% elif editor_auto_publish_error %}云端草稿已保存，自动发布失败{% elif editor_auto_published %}云端草稿已保存，文章已自动发布{% elif editor_saved %}云端草稿已保存{% elif editor_mode == "edit" %}云端草稿已加载{% else %}尚未创建云端草稿{% endif %}
           </span>
         </div>
       </header>
@@ -74,6 +74,9 @@
           <p class="author-editor-resolution" role="status">
             已选择版本 {{ editor_conflict_resolved_sequence }} 作为新的编辑基线。
           </p>
+        {% endif %}
+        {% if editor_auto_publish_error %}
+          <p class="author-editor-resolution author-editor-resolution--error" role="alert">{{ editor_auto_publish_error }} 请进入终稿审查后重试。</p>
         {% endif %}
 
         <div class="author-editor-fields" {% if editor_frozen %}inert aria-disabled="true"{% endif %}>
@@ -182,12 +185,24 @@
               <i data-lucide="trash-2"></i><span>删除云端草稿</span>
             </a>
           {% endif %}
+          {% if editor_mode == "edit" %}
+            <a class="button button--secondary" href="{% url 'authoring:versions' article_id=editor_article_id %}">
+              <i data-lucide="history"></i><span>版本</span>
+            </a>
+            <a class="button button--secondary" href="{% url 'authoring:review' article_id=editor_article_id %}">
+              <i data-lucide="send"></i><span>终稿审查</span>
+            </a>
+          {% endif %}
           <button class="button button--primary" type="submit" {% if editor_frozen %}disabled{% endif %}>
             <i data-lucide="save"></i>
             <span>{% if editor_mode == "create" %}创建草稿{% else %}保存草稿{% endif %}</span>
           </button>
         </div>
       </form>
+      {% if editor_auto_published %}
+        <p data-author-draft-clear-result aria-live="polite">正在清理这个浏览器中的对应本地稿。</p>
+        <span hidden data-author-draft-clear-request data-user-id="{{ editor_actor_id }}" data-article-key="{{ editor_article_id }}"></span>
+      {% endif %}
       {% if editor_conflict %}
         {% include "authoring/partials/edit_conflict.html" %}
       {% endif %}

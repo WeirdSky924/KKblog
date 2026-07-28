@@ -11,12 +11,21 @@
       <span aria-hidden="true">02</span><strong>编辑</strong>
     </a>
   {% endif %}
-  <span class="authoring-rail__step" aria-disabled="true">
-    <span aria-hidden="true">03</span><strong>发布审查</strong>
-  </span>
-  <span class="authoring-rail__step" aria-disabled="true">
-    <span aria-hidden="true">04</span><strong>版本</strong>
-  </span>
+  {% if editor_article_id %}
+    <a class="authoring-rail__step{% if current_author_step == 3 %} is-current{% endif %}" href="{% url 'authoring:review' article_id=editor_article_id %}"{% if current_author_step == 3 %} aria-current="page"{% endif %}>
+      <span aria-hidden="true">03</span><strong>发布审查</strong>
+    </a>
+    <a class="authoring-rail__step{% if current_author_step == 4 %} is-current{% endif %}" href="{% url 'authoring:versions' article_id=editor_article_id %}"{% if current_author_step == 4 %} aria-current="page"{% endif %}>
+      <span aria-hidden="true">04</span><strong>版本</strong>
+    </a>
+  {% else %}
+    <span class="authoring-rail__step" aria-disabled="true">
+      <span aria-hidden="true">03</span><strong>发布审查</strong>
+    </span>
+    <span class="authoring-rail__step" aria-disabled="true">
+      <span aria-hidden="true">04</span><strong>版本</strong>
+    </span>
+  {% endif %}
   <span class="authoring-rail__step" aria-disabled="true">
     <span aria-hidden="true">05</span><strong>评论</strong>
   </span>

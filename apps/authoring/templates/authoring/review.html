@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}终稿审查 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main authoring-main--publication{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout authoring-layout--publication">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=3 editor_article_id=editor_article_id %}
+    <section class="authoring-stage author-publication" aria-labelledby="author-review-title">
+      <header class="authoring-heading author-publication__heading">
+        <div>
+          <p class="authoring-folio">03 / 06</p>
+          <h1 id="author-review-title">终稿审查</h1>
+        </div>
+        {% if review %}
+          <span class="author-publication__expiry">
+            <i data-lucide="timer"></i>
+            审查有效至 <time datetime="{{ review.expires_at|date:'c' }}">{{ review.expires_at|date:"H:i" }}</time>
+          </span>
+        {% endif %}
+      </header>
+
+      {% if review_restored %}
+        <p class="author-publication__notice" role="status">历史版本已复制为新的工作版本，请完成终稿审查后再发布。</p>
+      {% endif %}
+
+      {% if review_error %}
+        <div class="author-publication__error" role="alert" tabindex="-1" data-error-focus>
+          <i data-lucide="triangle-alert"></i>
+          <div><h2>暂时不能进入审查</h2><p>{{ review_error }}</p></div>
+        </div>
+        <div class="author-publication__actions">
+          <a class="button button--secondary" href="{% url 'authoring:edit' article_id=editor_article_id %}"><i data-lucide="arrow-left"></i><span>返回编辑</span></a>
+          <a class="button button--secondary" href="{% url 'authoring:versions' article_id=editor_article_id %}"><i data-lucide="history"></i><span>查看版本</span></a>
+        </div>
+      {% else %}
+        <article class="author-review-article" aria-labelledby="review-article-title">
+          <header class="author-review-article__header">
+            <div>
+              <p>{% if review.first_publication %}首次发布{% else %}重新发布{% endif %} · {{ review.format_label }}</p>
+              <h2 id="review-article-title">{{ review.title }}</h2>
+            </div>
+            <dl class="author-review-facts">
+              <div><dt>可见范围</dt><dd>{{ review.visibility_label }}</dd></div>
+              <div><dt>分区</dt><dd>{{ review.section_name }}</dd></div>
+              <div><dt>摘要</dt><dd>{{ review.summary_label }}</dd></div>
+              <div><dt>评论</dt><dd>{{ review.comments_label }}</dd></div>
+            </dl>
+            {% if review.tag_names %}
+              <p class="author-review-tags"><strong>标签</strong>{% for tag in review.tag_names %}<span>{{ tag }}</span>{% endfor %}</p>
+            {% endif %}
+            {% if review.custom_summary %}<p class="author-review-summary">{{ review.custom_summary }}</p>{% endif %}
+          </header>
+          {% if review.cover_asset_id %}
+            <figure class="author-review-cover"><img src="/_kaj/media/{{ review.cover_asset_id }}" alt="《{{ review.title }}》封面"></figure>
+          {% else %}
+            <figure class="author-review-cover"><img src="{% static 'media/brand/default-cover.png' %}" alt=""></figure>
+          {% endif %}
+          <section class="author-review-body" aria-label="终稿正文">{{ review.sanitized_html|safe }}</section>
+        </article>
+
+        <form method="post" data-submit-once class="author-publication-form" novalidate>
+          {% csrf_token %}
+          {{ review_form.revision_id }}
+          {{ review_form.expected_row_version }}
+          {{ review_form.review_token }}
+          {% if review_form.non_field_errors %}<div class="author-publication__error" role="alert">{{ review_form.non_field_errors }}</div>{% endif %}
+          <fieldset>
+            <legend>{{ review_form.publication_mode.label }}</legend>
+            <div class="author-publication-modes">
+              {% for choice in review_form.publication_mode %}
+                <label class="author-publication-mode">
+                  {{ choice.tag }}
+                  <span><strong>{{ choice.choice_label }}</strong><small>{% if choice.data.value == "IMMEDIATE" %}确认后立即更新读者版本{% else %}按上海时间锁定当前修订{% endif %}</small></span>
+                </label>
+              {% endfor %}
+            </div>
+            {{ review_form.publication_mode.errors }}
+          </fieldset>
+          <div class="author-schedule-field" data-schedule-field>
+            <label for="{{ review_form.scheduled_local.id_for_label }}">{{ review_form.scheduled_local.label }}</label>
+            {{ review_form.scheduled_local }}
+            <p>使用 Asia/Shanghai；必须晚于当前时间。</p>
+            {{ review_form.scheduled_local.errors }}
+          </div>
+          <div class="author-publication__actions">
+            <a class="button button--secondary" href="{% url 'authoring:edit' article_id=editor_article_id %}"><i data-lucide="arrow-left"></i><span>返回编辑</span></a>
+            <button class="button button--primary" type="submit"><i data-lucide="send"></i><span>确认发布方式</span></button>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

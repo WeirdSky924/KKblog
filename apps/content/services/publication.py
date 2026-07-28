@@ -47,6 +47,17 @@ class PublicationReview:
     expires_at: datetime
     title: str
     sanitized_html: str
+    content_format: str
+    summary_mode: str
+    custom_summary: str | None
+    visibility: str
+    section_name: str
+    tag_names: tuple[str, ...]
+    cover_asset_id: str | None
+    comments_enabled: bool
+    comments_view_login: bool
+    comments_post_login: bool
+    first_publication: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,13 +269,27 @@ def prepare_publication(
         grant.token_digest = _digest(token)
         grant.save(force_insert=True)
     return PublicationReview(
-        grant.id,
-        revision.id,
-        article.row_version,
-        token,
-        grant.expires_at,
-        revision.title,
-        sanitized_html,
+        grant_id=grant.id,
+        revision_id=revision.id,
+        row_version=article.row_version,
+        token=token,
+        expires_at=grant.expires_at,
+        title=revision.title,
+        sanitized_html=sanitized_html,
+        content_format=revision.content_format,
+        summary_mode=revision.summary_mode,
+        custom_summary=revision.custom_summary,
+        visibility=revision.visibility,
+        section_name=revision.section.name if revision.section_id else "未知分区",
+        tag_names=tuple(
+            row.tag.name
+            for row in revision.tag_snapshots.select_related("tag").order_by("tag_id")
+        ),
+        cover_asset_id=revision.cover_asset_id,
+        comments_enabled=revision.comments_enabled,
+        comments_view_login=revision.comments_view_login,
+        comments_post_login=revision.comments_post_login,
+        first_publication=article.published_revision_id is None,
     )
 
 
@@ -421,9 +446,9 @@ def republish_saved_revision(
             revision_id=revision_key,
             expected_row_version=version,
         )
-        if (
-            article.published_revision_id is None
-            or revision.restore_source_id is not None
+        if article.published_revision_id is None or _restore_requires_review(
+            article=article,
+            revision=revision,
         ):
             raise PublicationCommandError(
                 "content.final_review_required.v1", "该修订必须先完成终稿审查。"
@@ -438,3 +463,23 @@ def republish_saved_revision(
             clock=active_clock,
         )
     return PreferenceRepublishResult(True, article.id, revision.id)
+
+
+def _restore_requires_review(*, article: Article, revision: ArticleRevision) -> bool:
+    current = revision
+    visited: set[str] = set()
+    for _ in range(1000):
+        if current.id == article.published_revision_id:
+            return False
+        if current.id in visited or current.restore_source_id is not None:
+            return True
+        visited.add(current.id)
+        if current.based_on_id is None:
+            return False
+        try:
+            current = ArticleRevision.objects.only(
+                "id", "article_id", "based_on_id", "restore_source_id"
+            ).get(pk=current.based_on_id, article=article)
+        except ArticleRevision.DoesNotExist:
+            return True
+    return True

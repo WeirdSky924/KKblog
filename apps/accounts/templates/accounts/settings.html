@@ -31,6 +31,13 @@
         href="{% url 'accounts:settings' %}?tab=theme"
         aria-selected="{% if active_tab == 'theme' %}true{% else %}false{% endif %}"
       >主题</a>
+      {% if is_author %}
+        <a
+          role="tab"
+          href="{% url 'accounts:settings' %}?tab=authoring"
+          aria-selected="{% if active_tab == 'authoring' %}true{% else %}false{% endif %}"
+        >创作</a>
+      {% endif %}
     </nav>
 
     {% if active_tab == "profile" %}
@@ -92,7 +99,7 @@
           </section>
         </div>
       </section>
-    {% else %}
+    {% elif active_tab == "theme" %}
       <section class="settings-section" role="tabpanel" aria-labelledby="theme-settings-title">
         <div class="settings-section__heading">
           <p class="account-kicker">跨设备偏好</p>
@@ -109,6 +116,28 @@
             {{ theme_form.theme.errors }}
           </fieldset>
           <button class="button button--primary" type="submit">保存主题</button>
+        </form>
+      </section>
+    {% else %}
+      <section class="settings-section" role="tabpanel" aria-labelledby="author-settings-title">
+        <div class="settings-section__heading">
+          <p class="account-kicker">发布偏好</p>
+          <h2 id="author-settings-title">文章修改</h2>
+          <p>默认关闭；开启后，已发布文章的普通编辑会在云端保存成功后自动重发。</p>
+        </div>
+        {% if author_preference_saved %}<p class="account-status" role="status">创作偏好已保存。</p>{% endif %}
+        <form method="post" data-submit-once class="account-form settings-form">
+          {% csrf_token %}<input type="hidden" name="action" value="change_author_preference">
+          {{ author_preference_form.non_field_errors }}
+          <label class="settings-toggle">
+            {{ author_preference_form.auto_republish_enabled }}
+            <span>
+              <strong>{{ author_preference_form.auto_republish_enabled.label }}</strong>
+              <small>{{ author_preference_form.auto_republish_enabled.help_text }}</small>
+            </span>
+          </label>
+          {{ author_preference_form.auto_republish_enabled.errors }}
+          <button class="button button--primary" type="submit">保存创作偏好</button>
         </form>
       </section>
     {% endif %}

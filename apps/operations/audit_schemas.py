@@ -49,6 +49,11 @@ def register_builtin_audit_schemas() -> None:
             frozenset({"nickname_present", "theme", "avatar_present"}),
         ),
         AuditSchema(
+            "accounts.author_preference.change",
+            "account",
+            frozenset({"auto_republish_enabled"}),
+        ),
+        AuditSchema(
             "notifications.broadcast.create",
             "notification",
             frozenset({"state", "recipient_count"}),

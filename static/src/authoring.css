@@ -392,7 +392,8 @@
 }
 
 .author-save-state[data-cloud-state="loaded"],
-.author-save-state[data-cloud-state="saved"] {
+.author-save-state[data-cloud-state="saved"],
+.author-save-state[data-cloud-state="published"] {
   border-color: var(--success);
   color: var(--success);
 }
@@ -785,6 +786,11 @@
   border-inline-start: 4px solid var(--accent);
   background: var(--surface-muted);
   color: var(--text-primary);
+}
+
+.author-editor-resolution--error {
+  border-inline-start-color: var(--danger);
+  color: var(--danger);
 }
 
 .author-conflict {

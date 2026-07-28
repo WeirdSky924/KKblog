@@ -15,6 +15,7 @@
 @import "./administration.css";
 @import "./analytics.css";
 @import "./authoring.css";
+@import "./authoring-publication.css";
 
 @source "../../templates";
 @source "../../apps";

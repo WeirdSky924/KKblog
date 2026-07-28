@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from django import forms
 
@@ -27,6 +28,74 @@ _VISIBILITY_CHOICES = (
     (Visibility.AUTHENTICATED, "登录可见"),
     (Visibility.PRIVATE, "仅自己"),
 )
+_PUBLICATION_CHOICES = (
+    ("IMMEDIATE", "立即发布"),
+    ("SCHEDULED", "定时发布"),
+)
+
+
+class PublicationReviewForm(forms.Form):
+    revision_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    review_token = forms.CharField(max_length=128, widget=forms.HiddenInput)
+    publication_mode = forms.ChoiceField(
+        label="发布方式",
+        choices=_PUBLICATION_CHOICES,
+        widget=forms.RadioSelect,
+    )
+    scheduled_local = forms.CharField(
+        label="上海时间",
+        required=False,
+        widget=forms.DateTimeInput(
+            attrs={"type": "datetime-local", "step": "60"},
+            format="%Y-%m-%dT%H:%M",
+        ),
+    )
+
+    def clean_revision_id(self) -> str:
+        try:
+            return normalize_ulid(self.cleaned_data["revision_id"])
+        except (TypeError, ValueError):
+            raise forms.ValidationError("终稿审查已失效，请重新审查。") from None
+
+    def clean_review_token(self) -> str:
+        value = self.cleaned_data["review_token"]
+        if value.count(".") != 1:
+            raise forms.ValidationError("终稿审查已失效，请重新审查。")
+        return value
+
+    def clean(self):
+        values = super().clean()
+        raw = (values.get("scheduled_local") or "").strip()
+        if values.get("publication_mode") != "SCHEDULED":
+            values["scheduled_local"] = None
+            return values
+        if not raw:
+            self.add_error("scheduled_local", "请选择定时发布的上海时间。")
+            return values
+        try:
+            values["scheduled_local"] = datetime.strptime(raw, "%Y-%m-%dT%H:%M")
+        except ValueError:
+            self.add_error("scheduled_local", "请选择有效的上海日期和时间。")
+        return values
+
+
+class RestoreRevisionForm(forms.Form):
+    source_revision_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    restore_token = forms.CharField(max_length=128, widget=forms.HiddenInput)
+
+    def clean_source_revision_id(self) -> str:
+        try:
+            return normalize_ulid(self.cleaned_data["source_revision_id"])
+        except (TypeError, ValueError):
+            raise forms.ValidationError("历史版本选择已失效，请重试。") from None
+
+    def clean_restore_token(self) -> str:
+        value = self.cleaned_data["restore_token"]
+        if value.count(".") != 1:
+            raise forms.ValidationError("恢复审查已失效，请重新操作。")
+        return value
 
 
 class CloudDraftDiscardForm(forms.Form):

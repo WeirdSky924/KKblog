@@ -331,6 +331,35 @@
   justify-self: start;
 }
 
+.settings-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface-panel);
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.25rem;
+  accent-color: var(--accent);
+}
+
+.settings-toggle strong,
+.settings-toggle small {
+  display: block;
+}
+
+.settings-toggle small {
+  margin-block-start: 0.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
 .settings-form fieldset {
   padding: 0;
   border: 0;
