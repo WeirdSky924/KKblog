@@ -16,7 +16,7 @@
 - 授权：`否`。
 
 ### ADM-002 实现用户、作者角色、禁用/启用与账户删除管理
-- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：管理员按邮箱/昵称搜索、正常/禁用筛选，授予/撤销作者、禁用/启用、删除非管理员；删除作者前明确文章处理/可选导出提醒。
 - 来源：访谈 Q130-Q134、Q284-Q301；`contracts/03-frontend-contract-map.md` §admin:users；原型 users。
 - 依赖：前置 `ADM-001`、`ACC-007`、`ACC-011`、`CNT-009`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。
@@ -25,10 +25,11 @@
 - 影响：数据：委托账户/角色/删除；权限：admin；审计：每写；缓存：账户/内容失效事件；异步：删除收敛；媒体：头像/文章清理；通知：角色变化。
 - 测试/验收：Playwright搜索/筛选/授予/撤销/禁用/启用/删除确认，普通用户伪造POST；三方DB/通知/审计读回。
 - 风险/停止：删除提示遗漏文章后果、部分跨域成功或禁用后会话/文章仍可见即停止。
+- 证据：RED `.venv/bin/pytest -q tests/test_adm002_temp.py` 在实现前退出 1，`3 failed`，均因 `admin:users` 路由缺失；实现 accounts 管理查询、administration presenter/form/view/template 以及 content owner 的账户文章事务处置，管理页仅委托既有账户生命周期与审计/Outbox 端口，不提供第二管理员、自删、会话/收藏代看或文章转移。聚焦 GREEN 同一临时测试退出 0，`4 passed in 9.73s`；新增逐文章缓存失效事件的聚焦测试退出 0，`1 passed in 6.04s`；administration/accounts/notifications/架构相关回归退出 0，`17 passed in 12.20s`，content 删除/禁用与架构回归退出 0，`14 passed in 13.16s`。目标 Ruff lint/format、Django check、migration drift、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL/Redis/Mailpit 真实读回：角色授予后撤销、账户禁用后启用，最终目标账户为 ACTIVE 且非作者；永久删除另一作者后账户与 1 篇文章均不存在，`AccountDeletion=delete_all/article_count=1`，角色/状态/删除 AuditEntry 分别 2/2/1，角色通知 Receipt 2；Outbox 两批 `5+2` 条全部发布、失败 0、待发布 0，物理文章清理另写 `article.purge_requested.v1` 供 discovery 失效。`blog-playwright-cli` 以真实管理员验证邮箱/昵称搜索、角色授予/撤销、禁用/启用、删除 1 篇文章后果及导出提醒、唯一管理员保护和成功态；确认框初始焦点为取消，Escape/取消清理确认参数并精确恢复原触发点。1440 light、768 eye-care、390 dark 文档宽等于视口，表格只在本地横滚，操作控件高度至少 44px，无重叠/裁切；临时测试、浏览器、runserver 与 P11 隔离容器均已清理。实现提交 `fecd60a` 已 fast-forward 进入远端 `main`；未执行生产账户、生产 migration、真实邮件、部署或服务重启。
 - 授权：`否`；生产账户管理动作 `是`。
 
 ### ADM-003 实现邀请码、IP 与临时安全限制管理
-- 元数据：状态 `待处理`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：提供邀请码1..1000生成/一次原码/状态筛选/批量撤销/使用者详情；IP掩码列表/完整详情/备注/解封；清账户/IP验证码限制与登录限制。
 - 来源：访谈 Q126-Q134、Q226-Q229、Q292-Q294；`contracts/03-frontend-contract-map.md` §invites/ip；原型 notifications/users。
 - 依赖：前置 `ADM-001`、`ACC-002`、`ACC-009`、`ACC-010`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。
