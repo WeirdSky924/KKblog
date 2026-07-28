@@ -18,11 +18,11 @@
           <span
             class="author-save-state"
             data-editor-cloud-label
-            data-cloud-state="{% if editor_cloud_error %}error{% elif editor_saved %}saved{% elif editor_mode == 'edit' %}loaded{% else %}empty{% endif %}"
+            data-cloud-state="{% if editor_conflict %}conflict{% elif editor_cloud_error %}error{% elif editor_saved %}saved{% elif editor_mode == 'edit' %}loaded{% else %}empty{% endif %}"
             aria-live="polite"
           >
             <i data-lucide="save"></i>
-            {% if editor_cloud_error %}云端保存失败，本地稿已保留{% elif editor_saved %}云端草稿已保存{% elif editor_mode == "edit" %}云端草稿已加载{% else %}尚未创建云端草稿{% endif %}
+            {% if editor_conflict %}检测到编辑冲突，本地稿已保留{% elif editor_cloud_error %}云端保存失败，本地稿已保留{% elif editor_saved %}云端草稿已保存{% elif editor_mode == "edit" %}云端草稿已加载{% else %}尚未创建云端草稿{% endif %}
           </span>
         </div>
       </header>

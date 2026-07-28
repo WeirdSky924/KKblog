@@ -383,7 +383,7 @@ def edit(request, article_id: str):
             content_format=article.content_format,
             mode="edit",
             article_id=article_id,
-            cloud_error=True,
+            cloud_error=not frozen,
             frozen=frozen,
             row_version=article.row_version,
             can_discard_cloud_draft=(article.can_discard_cloud_draft and not frozen),

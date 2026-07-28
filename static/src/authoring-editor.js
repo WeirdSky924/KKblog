@@ -349,10 +349,12 @@ function initializeAuthorEditor(root) {
   });
   updateMetric();
   if (localDraft?.restored) {
-    if (root.dataset.cloudError === "true") {
-      setCloudState("error", "云端保存失败，本地稿已保留");
-    } else {
-      setCloudState("dirty", "云端尚未包含已恢复的本地稿");
+    if (cloudState?.dataset.cloudState !== "conflict") {
+      if (root.dataset.cloudError === "true") {
+        setCloudState("error", "云端保存失败，本地稿已保留");
+      } else {
+        setCloudState("dirty", "云端尚未包含已恢复的本地稿");
+      }
     }
     requestPreview();
   }
