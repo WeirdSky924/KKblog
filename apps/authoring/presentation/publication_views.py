@@ -22,6 +22,7 @@ from apps.content.public import (
     revision_timeline,
     schedule_article,
 )
+from apps.core.time import to_shanghai
 
 from .access import author_id_or_response, private_response
 
@@ -51,19 +52,22 @@ def _prepare(actor_id, article_id):
 
 
 def _form(review, data=None):
-    initial = {
+    review_values = {
         "revision_id": review.revision_id,
         "expected_row_version": review.row_version,
         "review_token": review.review_token,
-        "publication_mode": "IMMEDIATE",
     }
     if data is None:
-        return PublicationReviewForm(initial=initial)
+        return PublicationReviewForm(
+            initial={**review_values, "publication_mode": "IMMEDIATE"}
+        )
     rebound = data.copy()
-    for name, value in initial.items():
+    for name, value in review_values.items():
         rebound[name] = value
     form = PublicationReviewForm(rebound)
     form.is_valid()
+    if form.errors.get("scheduled_local"):
+        form.fields["scheduled_local"].widget.attrs["data-error-focus"] = ""
     return form
 
 
@@ -235,6 +239,7 @@ def publication_result(request, article_id: str):
         valid = (
             article.publication_state == "SCHEDULED"
             and article.scheduled_revision_id == article.revision_id
+            and article.scheduled_for is not None
         )
     if not valid:
         raise Http404
@@ -247,6 +252,9 @@ def publication_result(request, article_id: str):
                 "publication_immediate": immediate,
                 "editor_article_id": article_id,
                 "draft_clear_user_id": str(actor_id) if immediate else "",
+                "scheduled_for_local": (
+                    to_shanghai(article.scheduled_for) if not immediate else None
+                ),
             },
         )
     )
