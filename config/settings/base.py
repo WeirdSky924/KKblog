@@ -47,6 +47,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "apps.accounts.presentation.context.account_theme",
+                "apps.administration.presentation.context.administration_shell",
                 "apps.analytics.presentation.context.analytics_tracking",
                 "apps.navigation.presentation.context.site_shell",
             ]

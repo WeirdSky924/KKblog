@@ -1,0 +1,20 @@
+<nav
+  class="administration-navigation administration-navigation--{{ navigation_variant }}"
+  aria-label="管理模块"
+>
+  {% for group in admin_navigation_groups %}
+    <section class="administration-navigation__group" aria-labelledby="admin-nav-{{ navigation_variant }}-{{ forloop.counter }}">
+      <h2 id="admin-nav-{{ navigation_variant }}-{{ forloop.counter }}">{{ group.label }}</h2>
+      <ul>
+        {% for item in group.items %}
+          <li>
+            <a
+              href="{{ item.url }}"
+              {% if item.route_name == admin_current_route %}aria-current="page"{% endif %}
+            >{{ item.label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+</nav>

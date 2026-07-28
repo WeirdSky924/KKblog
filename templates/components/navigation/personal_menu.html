@@ -15,7 +15,7 @@
       <a href="{% url 'accounts:sessions' %}"><i data-lucide="monitor-smartphone"></i><span>设备会话</span></a>
       {% if shell_is_administrator %}
         <a href="{% url 'admin:notifications' %}"><i data-lucide="bell"></i><span>通知管理</span></a>
-        <a href="{% url 'admin:invites' %}"><i data-lucide="shield-check"></i><span>管理</span></a>
+        <a href="{% url 'admin:index' %}"><i data-lucide="shield-check"></i><span>管理</span></a>
       {% endif %}
     </nav>
     <form method="post" action="{% url 'accounts:sessions' %}" data-submit-once>

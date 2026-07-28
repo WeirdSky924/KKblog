@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block body_class %}site-shell administration-page{% endblock %}
+{% block main_class %}administration-main{% endblock %}
+
+{% block content %}
+  <div class="administration-shell" data-admin-shell>
+    <aside class="administration-sidebar">
+      <div class="administration-sidebar__heading">
+        <p>站点管理</p>
+        <strong>{{ shell_account.display_name }}</strong>
+      </div>
+      {% include "administration/partials/module_navigation.html" with navigation_variant="sidebar" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route only %}
+    </aside>
+    <div class="administration-mobile-navigation">
+      {% include "administration/partials/module_navigation.html" with navigation_variant="mobile" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route only %}
+    </div>
+    <div class="administration-workspace">
+      {% block admin_content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
