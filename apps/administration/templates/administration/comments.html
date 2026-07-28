@@ -1,0 +1,94 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}评论管理 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue" aria-labelledby="admin-comments-title">
+    <header class="admin-queue__header">
+      <p>管理 · 评论与留言</p>
+      <h1 id="admin-comments-title">评论管理</h1>
+      <p>处理全站缓冲评论，并按文章或留言板查看完整评论树。</p>
+      {% if saved == "deleted" %}<p role="status">评论已终局删除，相关账户已进入通知队列。</p>{% endif %}
+    </header>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    <nav class="admin-queue__tabs" aria-label="评论管理视图">
+      <a href="?tab=buffered#comment-workspace" {% if tab == "buffered" %}aria-current="page"{% endif %}>缓冲评论</a>
+      <a href="?tab=threads#comment-workspace" {% if tab == "threads" %}aria-current="page"{% endif %}>按内容分组</a>
+    </nav>
+
+    <div id="comment-workspace">
+      {% if tab == "buffered" %}
+        {% if buffered_rows %}
+          <div class="admin-queue__cards">
+            {% for row in buffered_rows %}
+              <article class="admin-queue__comment">
+                <header><strong>{{ row.author_label }}</strong><span>{{ row.target_label }}</span></header>
+                <p>{{ row.comment.body }}</p>
+                <dl><div><dt>公开时间</dt><dd>{{ row.comment.visible_at|date:"Y-m-d H:i:s" }}</dd></div><div><dt>来源 IP</dt><dd>{{ row.comment.masked_ip }}</dd></div></dl>
+                <div class="admin-queue__actions">
+                  <a href="?tab=buffered&amp;detail={{ row.comment.id }}#comment-detail">查看详情</a>
+                  <a id="comment-delete-{{ row.comment.id }}" href="?tab=buffered&amp;confirm={{ row.comment.id }}#comment-workspace" data-dialog-trigger data-dialog-return-hash="comment-workspace" aria-controls="comment-delete-dialog">直接删除</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="admin-queue__empty"><h2>当前没有缓冲评论</h2><p>新评论进入十分钟缓冲期后会显示在这里。</p></div>
+        {% endif %}
+      {% else %}
+        {% if thread_rows %}
+          <div class="admin-queue__table-wrap" tabindex="0" aria-label="评论内容分组列表">
+            <table class="admin-queue__table">
+              <thead><tr><th>内容</th><th>缓冲</th><th>公开</th><th>已删除</th><th>最近活动</th><th>操作</th></tr></thead>
+              <tbody>
+                {% for row in thread_rows %}
+                  <tr><td><strong>{{ row.label }}</strong><small>{{ row.thread.target_type }}</small></td><td>{{ row.thread.buffered_count }}</td><td>{{ row.thread.visible_count }}</td><td>{{ row.thread.deleted_count }}</td><td>{{ row.thread.latest_at|date:"Y-m-d H:i"|default:"无" }}</td><td><a href="?tab=threads&amp;target_type={{ row.thread.target_type }}&amp;target_id={{ row.thread.target_id }}#target-comments">管理评论</a></td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="admin-queue__empty"><h2>当前没有评论分组</h2><p>文章或留言板建立评论线程后会显示在这里。</p></div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% if selected_type %}
+      <section id="target-comments" class="admin-queue__detail" aria-labelledby="target-comments-title">
+        <header><p>{{ selected_type }}</p><h2 id="target-comments-title">{{ selected_label }}</h2><p>共 {{ comment_rows|length }} 条评论，删除节点保留原位置。</p></header>
+        {% if comment_rows %}
+          <div class="admin-queue__cards">
+            {% for row in comment_rows %}
+              <article class="admin-queue__comment">
+                <header><strong>{{ row.author_label }}</strong><span>深度 {{ row.comment.depth }} · {{ row.comment.state }}</span></header>
+                <p>{% if row.comment.state == "DELETED" %}该评论已删除{% else %}{{ row.comment.body }}{% endif %}</p>
+                <p><small>来源 IP {{ row.comment.masked_ip }} · {{ row.comment.created_at|date:"Y-m-d H:i:s" }}</small></p>
+                <div class="admin-queue__actions">
+                  <a href="?tab=threads&amp;target_type={{ selected_type }}&amp;target_id={{ selected_id }}&amp;detail={{ row.comment.id }}#comment-detail">查看详情</a>
+                  {% if row.comment.state != "DELETED" %}<a id="comment-delete-{{ row.comment.id }}" href="?tab=threads&amp;target_type={{ selected_type }}&amp;target_id={{ selected_id }}&amp;confirm={{ row.comment.id }}#target-comments" data-dialog-trigger data-dialog-return-hash="target-comments" aria-controls="comment-delete-dialog">直接删除</a>{% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}<p>这个评论线程当前为空。</p>{% endif %}
+      </section>
+    {% endif %}
+
+    {% if detail %}
+      <aside id="comment-detail" class="admin-queue__detail" aria-labelledby="comment-detail-title">
+        <header><p>{{ detail_label }}</p><h2 id="comment-detail-title">评论详情</h2></header>
+        <dl class="admin-queue__metadata">
+          <div><dt>评论 ID</dt><dd>{{ detail.id }}</dd></div><div><dt>状态</dt><dd>{{ detail.state }}</dd></div>
+          <div><dt>完整 IP</dt><dd>{{ detail.client_ip }}</dd></div><div><dt>父评论</dt><dd>{{ detail.parent_id|default:"顶层评论" }}</dd></div>
+          <div><dt>回复数</dt><dd>{{ detail.reply_count }}</dd></div><div><dt>删除原因</dt><dd>{{ detail.deletion_reason|default:"未填写" }}</dd></div>
+        </dl>
+        <p><a href="{% url 'admin:comments' %}?tab={{ tab }}#comment-workspace">关闭详情</a></p>
+      </aside>
+    {% endif %}
+  </section>
+
+  {% if confirmation_form %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="comment-delete-dialog" dialog_open=True dialog_title="确认终局删除这条评论？" dialog_description="评论正文将清空并保留删除占位，关联图片立即解绑。" dialog_details="直接删除不可申诉；已登录评论作者与内容所有者会收到去重后的站内通知。" dialog_return_focus_id="comment-delete-"|add:confirmation_detail.id dialog_return_url=confirmation_return_url action_value="comment_delete" confirmation_form=confirmation_form dialog_field=confirmation_form.reason confirm_label="确认删除" %}
+  {% endif %}
+{% endblock %}

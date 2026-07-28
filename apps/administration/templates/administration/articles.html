@@ -1,0 +1,96 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}文章管理 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue" aria-labelledby="admin-articles-title">
+    <header class="admin-queue__header">
+      <p>管理 · 内容裁决</p>
+      <h1 id="admin-articles-title">文章管理</h1>
+      <p>查看所有文章状态，并处理管理员隐藏、删除、恢复与申诉终局。</p>
+      {% if saved == "hide" %}<p role="status">文章已隐藏并通知作者。</p>{% endif %}
+      {% if saved == "delete" %}<p role="status">文章已进入删除冷静期并通知作者。</p>{% endif %}
+      {% if saved == "restored" %}<p role="status">文章已恢复到操作前状态。</p>{% endif %}
+      {% if saved == "appeal-reviewed" %}<p role="status">文章申诉已完成终局复审。</p>{% endif %}
+    </header>
+
+    <form method="get" class="admin-queue__filters" role="search">
+      <div>{{ filter_form.q.label_tag }}{{ filter_form.q }}{{ filter_form.q.errors }}</div>
+      <div>{{ filter_form.state.label_tag }}{{ filter_form.state }}{{ filter_form.state.errors }}</div>
+      <button class="button button--secondary" type="submit">搜索</button>
+    </form>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    {% if rows %}
+      <div id="article-list" class="admin-queue__table-wrap" tabindex="0" aria-label="文章管理列表">
+        <table class="admin-queue__table admin-queue__table--articles">
+          <thead><tr><th>文章</th><th>作者</th><th>状态</th><th>案件</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><strong>{{ row.article.title }}</strong><small>{{ row.article.id }}</small></td>
+                <td>{{ row.author_label }}</td>
+                <td>
+                  {% if row.article.deleted_at %}删除冷静期{% else %}{{ row.article.publication_state }}{% endif %}
+                  <small>{{ row.article.visibility }}</small>
+                </td>
+                <td>
+                  {% if row.case %}{{ row.case.action }} · {{ row.case.state }}{% else %}无生效案件{% endif %}
+                  {% if row.case.reason %}<small>已填写操作原因</small>{% endif %}
+                </td>
+                <td><div class="admin-queue__actions">
+                  {% if row.article.has_working_revision %}<a id="article-view-working-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=working#article-detail">查看工作版本</a>{% endif %}
+                  {% if row.article.has_published_revision %}<a id="article-view-published-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=published#article-detail">查看发布版本</a>{% endif %}
+                  {% if row.can_hide %}<a id="article-hide-{{ row.article.id }}" href="?confirm_action=hide&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">隐藏</a>{% endif %}
+                  {% if row.can_delete %}<a id="article-delete-{{ row.article.id }}" href="?confirm_action=delete&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">删除</a>{% endif %}
+                  {% if row.can_restore %}<a id="article-restore-{{ row.article.id }}" href="?confirm_action=restore&amp;case_id={{ row.case.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">恢复</a>{% endif %}
+                  {% if row.can_review_appeal %}
+                    <a href="?case_detail={{ row.case.id }}#article-case-detail">查看申诉详情</a>
+                  {% endif %}
+                </div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="admin-queue__empty" id="article-list"><h2>没有匹配文章</h2><p>调整标题、作者或状态条件后重新搜索。</p><a href="{% url 'admin:articles' %}">清除筛选</a></div>
+    {% endif %}
+
+    {% if detail %}
+      <section id="article-detail" class="admin-queue__detail" aria-labelledby="article-detail-title">
+        <header>
+          <p>{{ detail_revision|upper }} · 只读</p>
+          <h2 id="article-detail-title">{{ detail.title }}</h2>
+          <p>{{ detail.publication_state }} · {{ detail.visibility }} · 修订 {{ detail.revision_id }}</p>
+        </header>
+        {% if detail.readable_cover_asset_id %}<img class="admin-queue__cover" src="/_kaj/media/{{ detail.readable_cover_asset_id }}" alt="《{{ detail.title }}》封面">{% endif %}
+        <article class="admin-queue__article-body">{{ detail.rendered_body_html|safe }}</article>
+        <p><a href="{% url 'admin:articles' %}#article-list">关闭详情</a></p>
+      </section>
+    {% endif %}
+
+    {% if selected_case %}
+      <section id="article-case-detail" class="admin-queue__detail" aria-labelledby="article-case-detail-title">
+        <header><p>{{ selected_case.action }} · {{ selected_case.state }}</p><h2 id="article-case-detail-title">{{ selected_case_article.title }}的管理案件</h2><p><code>{{ selected_case.id }}</code></p></header>
+        <dl class="admin-queue__metadata"><div><dt>管理员原因</dt><dd>{{ selected_case.reason|default:"未填写" }}</dd></div><div><dt>操作时间</dt><dd>{{ selected_case.acted_at|date:"Y-m-d H:i:s" }}</dd></div><div><dt>恢复错误</dt><dd>{{ selected_case.recovery_error_code|default:"无" }}</dd></div><div><dt>关闭原因</dt><dd>{{ selected_case.closure_reason|default:"无" }}</dd></div></dl>
+        {% if selected_case.appeal %}
+          <section class="admin-queue__evidence" aria-labelledby="article-appeal-evidence-title"><h3 id="article-appeal-evidence-title">作者申诉</h3><p>{{ selected_case.appeal.statement|default:"未填写申诉说明" }}</p>
+            {% if case_evidence %}<ul>{% for item in case_evidence %}<li><a href="/_kaj/media/{{ item.asset_id }}" target="_blank" rel="noopener">查看申诉证据 {{ forloop.counter }}</a></li>{% endfor %}</ul>{% else %}<p>未上传图片证据。</p>{% endif %}
+          </section>
+        {% endif %}
+        <div class="admin-queue__actions admin-queue__actions--primary">
+          {% if selected_case.state == "APPEALED" and selected_case.appeal %}
+            <a id="article-appeal-granted-{{ selected_case.article_id }}" href="?case_detail={{ selected_case.id }}&amp;confirm_action=appeal-granted&amp;case_id={{ selected_case.id }}#article-case-detail" data-dialog-trigger data-dialog-return-hash="article-case-detail" aria-controls="article-action-dialog">准许申诉</a>
+            <a id="article-appeal-rejected-{{ selected_case.article_id }}" href="?case_detail={{ selected_case.id }}&amp;confirm_action=appeal-rejected&amp;case_id={{ selected_case.id }}#article-case-detail" data-dialog-trigger data-dialog-return-hash="article-case-detail" aria-controls="article-action-dialog">驳回申诉</a>
+          {% endif %}
+          <a href="{% url 'admin:articles' %}#article-list">关闭详情</a>
+        </div>
+      </section>
+    {% endif %}
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="article-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}

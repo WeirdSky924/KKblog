@@ -57,9 +57,10 @@ class ArticleRestoreConfirmationForm(forms.Form):
 
 
 class ArticleAppealReviewConfirmationForm(forms.Form):
+    case_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
     appeal_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
     outcome = forms.ChoiceField(
-        choices=(("UPHELD", "准许"), ("REJECTED", "驳回")),
+        choices=(("GRANTED", "准许"), ("REJECTED", "驳回")),
         widget=forms.HiddenInput,
     )
     decision_reason = forms.CharField(

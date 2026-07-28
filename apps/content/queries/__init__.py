@@ -1,7 +1,10 @@
 from .administration import (
     ADMIN_ARTICLE_STATES,
     AdminArticleItem,
+    AdminArticleTitle,
+    admin_article_item,
     admin_article_page,
+    admin_article_titles,
 )
 from .authoring import (
     AUTHOR_ARTICLE_STATES,
@@ -61,6 +64,7 @@ __all__ = [
     "ADMIN_ARTICLE_STATES",
     "AUTHOR_ARTICLE_STATES",
     "AdminArticleItem",
+    "AdminArticleTitle",
     "ArticleCommentTarget",
     "ArticleLoginRequired",
     "ArticleNotFound",
@@ -89,7 +93,9 @@ __all__ = [
     "ExportRevisionPayload",
     "ExportRevisionTag",
     "active_tag",
+    "admin_article_item",
     "admin_article_page",
+    "admin_article_titles",
     "article_comment_target",
     "article_ids_by_author_for_cache",
     "article_for_admin",

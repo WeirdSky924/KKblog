@@ -383,9 +383,14 @@ def article_for_admin(
                     },
                     clock=active_clock,
                 )
-    return _view(
-        article,
-        selected,
-        can_edit=actor == article.author_id and article.deleted_at is None,
-        admin_read_only=actor != article.author_id,
+    rendered_body_html, readable_cover_asset_id = _reader_media(selected)
+    return replace(
+        _view(
+            article,
+            selected,
+            can_edit=actor == article.author_id and article.deleted_at is None,
+            admin_read_only=actor != article.author_id,
+        ),
+        rendered_body_html=rendered_body_html,
+        readable_cover_asset_id=readable_cover_asset_id,
     )

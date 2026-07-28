@@ -35,6 +35,7 @@ ALLOWED_APP_DEPENDENCIES = {
     "administration": {
         "accounts",
         "analytics",
+        "comments",
         "content",
         "core",
         "media",

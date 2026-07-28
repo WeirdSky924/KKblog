@@ -5,6 +5,7 @@ from uuid import UUID
 from django.db.models import Q
 
 from apps.accounts.public import is_administrator
+from apps.core.ids import normalize_ulid
 
 from ..models import Article
 
@@ -29,6 +30,12 @@ class AdminArticleItem:
     can_restore_deleted: bool
 
 
+@dataclass(frozen=True, slots=True)
+class AdminArticleTitle:
+    id: str
+    title: str
+
+
 def _keyword(value: str) -> str:
     if not isinstance(value, str):
         raise ValueError("Invalid administrator article query")
@@ -36,6 +43,71 @@ def _keyword(value: str) -> str:
     if len(normalized) > 100:
         raise ValueError("Invalid administrator article query")
     return normalized
+
+
+def _item(article: Article) -> AdminArticleItem | None:
+    revision = article.working_revision or article.published_revision
+    if revision is None:
+        return None
+    active = article.deleted_at is None
+    published = (
+        active
+        and article.publication_state == Article.PublicationState.PUBLISHED
+        and article.published_revision_id is not None
+    )
+    return AdminArticleItem(
+        id=article.id,
+        author_id=article.author_id,
+        title=revision.title,
+        publication_state=article.publication_state,
+        visibility=revision.visibility,
+        deleted_at=article.deleted_at,
+        purge_after=article.purge_after,
+        published_at=article.published_at,
+        updated_at=article.updated_at,
+        has_working_revision=article.working_revision_id is not None,
+        has_published_revision=article.published_revision_id is not None,
+        can_hide=published,
+        can_delete=active,
+        can_restore_deleted=not active,
+    )
+
+
+def admin_article_item(*, actor_id, article_id: str) -> AdminArticleItem:
+    if not is_administrator(actor_id):
+        raise PermissionError("Administrator article access denied")
+    article = (
+        Article.objects.select_related("working_revision", "published_revision")
+        .filter(pk=article_id)
+        .first()
+    )
+    item = _item(article) if article is not None else None
+    if item is None:
+        raise LookupError("Administrator article not found")
+    return item
+
+
+def admin_article_titles(
+    *, actor_id, article_ids: tuple[str, ...]
+) -> tuple[AdminArticleTitle, ...]:
+    if not is_administrator(actor_id):
+        raise PermissionError("Administrator article access denied")
+    if not isinstance(article_ids, tuple) or len(article_ids) > 500:
+        raise ValueError("Invalid administrator article identities")
+    try:
+        identities = tuple(
+            dict.fromkeys(normalize_ulid(value) for value in article_ids)
+        )
+    except (TypeError, ValueError):
+        raise ValueError("Invalid administrator article identities") from None
+    rows = Article.objects.select_related(
+        "working_revision", "published_revision"
+    ).filter(pk__in=identities)
+    return tuple(
+        AdminArticleTitle(id=item.id, title=item.title)
+        for article in rows
+        if (item := _item(article)) is not None
+    )
 
 
 def admin_article_page(
@@ -69,36 +141,15 @@ def admin_article_page(
         )
 
     rows = queryset.order_by("-updated_at", "-id")[:limit]
-    items = []
-    for article in rows:
-        revision = article.working_revision or article.published_revision
-        if revision is None:
-            continue
-        active = article.deleted_at is None
-        published = (
-            active
-            and article.publication_state == Article.PublicationState.PUBLISHED
-            and article.published_revision_id is not None
-        )
-        items.append(
-            AdminArticleItem(
-                id=article.id,
-                author_id=article.author_id,
-                title=revision.title,
-                publication_state=article.publication_state,
-                visibility=revision.visibility,
-                deleted_at=article.deleted_at,
-                purge_after=article.purge_after,
-                published_at=article.published_at,
-                updated_at=article.updated_at,
-                has_working_revision=article.working_revision_id is not None,
-                has_published_revision=article.published_revision_id is not None,
-                can_hide=published,
-                can_delete=active,
-                can_restore_deleted=not active,
-            )
-        )
+    items = [item for article in rows if (item := _item(article)) is not None]
     return tuple(items)
 
 
-__all__ = ["ADMIN_ARTICLE_STATES", "AdminArticleItem", "admin_article_page"]
+__all__ = [
+    "ADMIN_ARTICLE_STATES",
+    "AdminArticleItem",
+    "AdminArticleTitle",
+    "admin_article_item",
+    "admin_article_page",
+    "admin_article_titles",
+]

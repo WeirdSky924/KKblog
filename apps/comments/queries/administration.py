@@ -4,11 +4,11 @@ from uuid import UUID
 
 from django.db.models import Count, Max, Q
 
-from apps.accounts.public import is_administrator
 from apps.core.errors.redaction import DEFAULT_REDACTION_POLICY
 from apps.core.ids import normalize_ulid
 
 from ..models import Comment, DiscussionThread
+from ..ports import CommentAccountPolicy, default_comment_account_policy
 from ..targets import GUESTBOOK_TARGET_ID, DiscussionTargetType
 
 
@@ -64,8 +64,14 @@ class AdminCommentWorkspace:
     threads: tuple[AdminCommentThreadItem, ...]
 
 
-def _require_administrator(actor_id) -> None:
-    if not is_administrator(actor_id):
+def _require_administrator(
+    actor_id,
+    *,
+    account_policy: CommentAccountPolicy,
+) -> None:
+    if not account_policy.is_active_account(
+        actor_id
+    ) or not account_policy.is_administrator(actor_id):
         raise PermissionError("Administrator comment access denied")
 
 
@@ -88,9 +94,14 @@ def _item(comment: Comment) -> AdminCommentItem:
 
 
 def admin_comment_workspace(
-    *, actor_id, buffered_limit: int = 100, thread_limit: int = 200
+    *,
+    actor_id,
+    buffered_limit: int = 100,
+    thread_limit: int = 200,
+    account_policy: CommentAccountPolicy | None = None,
 ) -> AdminCommentWorkspace:
-    _require_administrator(actor_id)
+    accounts = account_policy or default_comment_account_policy()
+    _require_administrator(actor_id, account_policy=accounts)
     if (
         isinstance(buffered_limit, bool)
         or not 1 <= buffered_limit <= 200
@@ -151,9 +162,15 @@ def _target(target_type: str, target_id: str) -> tuple[str, str]:
 
 
 def admin_comments_for_target(
-    *, actor_id, target_type: str, target_id: str, limit: int = 300
+    *,
+    actor_id,
+    target_type: str,
+    target_id: str,
+    limit: int = 300,
+    account_policy: CommentAccountPolicy | None = None,
 ) -> tuple[AdminCommentItem, ...]:
-    _require_administrator(actor_id)
+    accounts = account_policy or default_comment_account_policy()
+    _require_administrator(actor_id, account_policy=accounts)
     normalized_type, normalized_id = _target(target_type, target_id)
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator comment query limit")
@@ -171,8 +188,14 @@ def admin_comments_for_target(
     return tuple(_item(comment) for comment in comments)
 
 
-def admin_comment_detail(*, actor_id, comment_id: str) -> AdminCommentDetail:
-    _require_administrator(actor_id)
+def admin_comment_detail(
+    *,
+    actor_id,
+    comment_id: str,
+    account_policy: CommentAccountPolicy | None = None,
+) -> AdminCommentDetail:
+    accounts = account_policy or default_comment_account_policy()
+    _require_administrator(actor_id, account_policy=accounts)
     try:
         identity = normalize_ulid(comment_id)
     except (TypeError, ValueError):

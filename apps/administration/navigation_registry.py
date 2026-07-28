@@ -40,6 +40,14 @@ ADMIN_NAVIGATION = (
         ),
     ),
     AdminNavigationGroup(
+        label="内容与互动",
+        items=(
+            AdminNavigationItem("articles", "文章管理", "admin:articles"),
+            AdminNavigationItem("comments", "评论管理", "admin:comments"),
+            AdminNavigationItem("reports", "举报与申诉", "admin:reports"),
+        ),
+    ),
+    AdminNavigationGroup(
         label="沟通",
         items=(
             AdminNavigationItem("notifications", "群发通知", "admin:notifications"),

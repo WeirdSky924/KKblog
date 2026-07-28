@@ -42,7 +42,7 @@
 - 授权：`否`；真实IP封禁/解封 `是`。
 
 ### ADM-004 实现文章、评论、举报和申诉管理队列
-- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：管理员查看任意文章并触发按日通知，只能隐藏已发布、删除/恢复；管理缓冲/按文章评论、直接删除理由、举报初审/申诉终局与证据详情。
 - 来源：访谈 Q105-Q125、Q302-Q313；`contracts/03-frontend-contract-map.md` §admin articles/comments/reports；原型 moderation/interactive-report。
 - 依赖：前置 `ADM-001`、`CNT-005`、`CMT-006`、`CMT-008`、`CMT-009`、`CMT-010`、`CMT-011`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。
@@ -51,10 +51,11 @@
 - 影响：数据：委托案件/内容/评论；权限：admin例外；审计：全部写；缓存：内容即时失效；异步：通知/清理；媒体：证据/评论图；通知：作者/双方。
 - 测试/验收：Playwright 查看同日去重、隐藏/恢复/删除/申诉、举报隐私/终局、直接删原因；伪造禁用动作。
 - 风险/停止：管理页拥有第二套状态机、举报人泄露或管理员越权代编即停止。
+- 证据：聚焦 RED `tests/test_adm004_temp.py` 在实现前退出 1，准确因 `admin:articles`、`admin:comments`、`admin:reports` 路由缺失触发 `NoReverseMatch`；实现扩展 content/comments/moderation owner 的管理员 query DTO，administration 只组合只读展示、表单和既有 `article_for_admin`、文章案件、评论直删、举报初审/终局 service。实现中发现 `docs/architecture/01-system-directory.md` 与可执行依赖门禁遗漏任务卡/前端契约明确要求的 `administration -> comments`，已同步补齐该允许边；comments 自身仍通过既有 `CommentAccountPolicy` 访问账户能力，没有形成反向依赖或第二状态机。聚焦 GREEN 覆盖普通账户三路由 GET/POST 403、只读查看上海日去重、隐藏/恢复、删除后文章申诉准许、评论直删可选原因、举报列表隐私/详情身份与完整 IP、初审删除恢复快照和终局撤销恢复，退出 0，`4 passed in 8.46s`；三类超长原因均 422、保留输入且不改事实。最终 CNT-005、CMT-001..004、媒体私有访问、审计、架构、前端与 HTTP 安全相关回归退出 0，`56 passed in 28.58s`；目标 Ruff lint/format、Django check、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL/Redis/Mailpit 真实读回：管理员对同一私人文章重复查看只有 1 条 `AdminArticleViewReceipt` 和 1 个日去重通知回执；隐藏案件终态 `RESTORED`，删除申诉案件终态 `FINAL_REJECTED`，两篇文章均恢复为 `PUBLISHED/deleted_at=NULL`；两条直接删除评论均为 `DELETED/ADMIN`，一条保留可选原因、一条使用通用原因；举报分别为 `UPHELD` 与 `FINAL_UPHELD`，终局申诉同为 `FINAL_UPHELD`，初审成立案件保留 1 份受限恢复快照。11 条 Outbox 全部发布、0 待处理/失败，并生成文章查看/裁决/恢复、评论删除、举报初审/终局通知回执；12 条相关 AuditEntry 与全部 Outbox payload 均不含 4 个目标完整 IP。`blog-playwright-cli` 真实 Chrome 验证文章查看、隐藏/恢复、文章申诉详情/准许，评论缓冲/按内容分组/掩码列表/完整 IP 详情/直删，以及举报列表隐私/详情/初审/终局；确认框初始焦点为取消，Escape 精确恢复触发点，成功重定向保留案件或线程读回上下文。三路由在 1440 light、768 eye-care、390 dark 均为 HTTP 200、文档宽等于视口、无重复 ID；密集表格只在局部横滚，390 举报表为 `358→1024` 且 ArrowRight 可达，操作控件高度至少 44px，最终控制台 0 错误。临时测试、runserver、浏览器与临时脚本已清理；P11 隔离支持容器保留给下一任务。未执行生产内容裁决、生产 migration、真实邮件、部署、提交或推送。
 - 授权：`否`；生产内容裁决 `是`。
 
 ### ADM-005 实现标签审核/历史与分区管理界面
-- 元数据：状态 `待处理`；阶段 P11；owner `administration`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P1。
 - 目标/行为：待审标签通过/驳回、全站标签新增/删除/恢复及冲突；分区唯一新增/删除并明确文章转未知分区；列表含空/错误/重复提交状态。
 - 来源：访谈 Q054-Q061、Q256-Q258；`contracts/03-frontend-contract-map.md` §admin tags/sections；原型 adminrecords。
 - 依赖：前置 `ADM-001`、`CNT-010`、`CNT-011`、`OBS-004`；后续 `ADM-006`、`QA-003`、`QA-006`。

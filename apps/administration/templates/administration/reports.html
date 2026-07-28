@@ -1,0 +1,85 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}举报与申诉 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue" aria-labelledby="admin-reports-title">
+    <header class="admin-queue__header">
+      <p>管理 · 举报裁决</p>
+      <h1 id="admin-reports-title">举报与申诉</h1>
+      <p>查看受限证据和举报人身份，完成初审及一次终局复审。</p>
+      {% if saved == "reviewed" %}<p role="status">举报初审已完成。</p>{% endif %}
+      {% if saved == "finalized" %}<p role="status">举报申诉已完成终局复审。</p>{% endif %}
+    </header>
+
+    <form method="get" class="admin-queue__filters">
+      <div>{{ filter_form.state.label_tag }}{{ filter_form.state }}{{ filter_form.state.errors }}</div>
+      <button class="button button--secondary" type="submit">筛选</button>
+    </form>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    {% if rows %}
+      <div class="admin-queue__table-wrap" tabindex="0" aria-label="举报与申诉队列">
+        <table class="admin-queue__table admin-queue__table--reports">
+          <thead><tr><th>举报</th><th>原因</th><th>状态</th><th>申诉</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><code>{{ row.id }}</code><small>评论 {{ row.target_comment_id }}</small></td>
+                <td>{{ row.reason_label }}</td><td>{{ row.state }}</td><td>{{ row.appeal_state|default:"无" }}</td>
+                <td>{{ row.created_at|date:"Y-m-d H:i" }}</td><td><a href="?{% if filter_form.state.value %}state={{ filter_form.state.value }}&amp;{% endif %}detail={{ row.id }}#report-detail">查看受限详情</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="admin-queue__empty"><h2>当前没有匹配举报</h2><p>切换案件状态查看其他记录。</p><a href="{% url 'admin:reports' %}">清除筛选</a></div>
+    {% endif %}
+
+    {% if detail %}
+      <section id="report-detail" class="admin-queue__detail" aria-labelledby="report-detail-title">
+        <header><p>{{ detail.reason_label }} · {{ detail.state }}</p><h2 id="report-detail-title">举报详情</h2><p><code>{{ detail.id }}</code></p></header>
+        <dl class="admin-queue__metadata">
+          <div><dt>举报人</dt><dd>{% if reporter %}{{ reporter.display_name }} · {{ reporter.email }}{% else %}账户已删除{% endif %}</dd></div>
+          <div><dt>被举报账户</dt><dd>{% if reported_author %}{{ reported_author.display_name }} · {{ reported_author.email }}{% elif detail.reported_author_id %}账户已删除{% else %}访客{% endif %}</dd></div>
+          <div><dt>举报说明</dt><dd>{{ detail.description|default:"未填写" }}</dd></div><div><dt>初审说明</dt><dd>{{ detail.decision_reason|default:"未填写" }}</dd></div>
+          <div><dt>关闭原因</dt><dd>{{ detail.closure_reason|default:"无" }}</dd></div><div><dt>恢复快照</dt><dd>{% if recovery_snapshot.exists %}存在且仅管理员可读{% else %}不存在{% endif %}</dd></div>
+        </dl>
+
+        <section class="admin-queue__evidence" aria-labelledby="report-evidence-title"><h3 id="report-evidence-title">初次举报证据</h3>
+          {% if report_evidence %}<ul>{% for item in report_evidence %}<li><a href="/_kaj/media/{{ item.asset_id }}" target="_blank" rel="noopener">查看证据 {{ forloop.counter }}</a></li>{% endfor %}</ul>{% else %}<p>未上传图片证据。</p>{% endif %}
+        </section>
+
+        {% if target_comment %}
+          <section class="admin-queue__evidence" aria-labelledby="report-comment-title"><h3 id="report-comment-title">目标评论</h3>
+            <p>{% if target_comment.state == "DELETED" %}该评论已删除{% else %}{{ target_comment.body }}{% endif %}</p>
+            <dl class="admin-queue__metadata"><div><dt>完整 IP</dt><dd>{{ target_comment.client_ip }}</dd></div><div><dt>状态</dt><dd>{{ target_comment.state }}</dd></div></dl>
+          </section>
+        {% else %}<p>目标评论已不可用，案件元数据仍保留。</p>{% endif %}
+
+        {% if detail.appeal %}
+          <section class="admin-queue__evidence" aria-labelledby="report-appeal-title"><h3 id="report-appeal-title">申诉资料</h3>
+            <p>{{ detail.appeal.statement|default:"未填写申诉说明" }}</p><p>依据初审：{{ detail.appeal.basis_outcome }} · 状态：{{ detail.appeal.state }}</p>
+            {% if appeal_evidence %}<ul>{% for item in appeal_evidence %}<li><a href="/_kaj/media/{{ item.asset_id }}" target="_blank" rel="noopener">查看申诉证据 {{ forloop.counter }}</a></li>{% endfor %}</ul>{% else %}<p>未上传申诉图片证据。</p>{% endif %}
+          </section>
+        {% endif %}
+
+        <div class="admin-queue__actions admin-queue__actions--primary">
+          {% if detail.state == "PENDING" %}
+            <a id="report-review-upheld-{{ detail.id }}" href="?detail={{ detail.id }}&amp;confirm_action=review-upheld&amp;report_id={{ detail.id }}#report-detail" data-dialog-trigger data-dialog-return-hash="report-detail" aria-controls="report-action-dialog">初审成立</a>
+            <a id="report-review-rejected-{{ detail.id }}" href="?detail={{ detail.id }}&amp;confirm_action=review-rejected&amp;report_id={{ detail.id }}#report-detail" data-dialog-trigger data-dialog-return-hash="report-detail" aria-controls="report-action-dialog">初审驳回</a>
+          {% elif detail.state == "APPEAL_PENDING" %}
+            <a id="report-final-upheld-{{ detail.id }}" href="?detail={{ detail.id }}&amp;confirm_action=final-upheld&amp;report_id={{ detail.id }}#report-detail" data-dialog-trigger data-dialog-return-hash="report-detail" aria-controls="report-action-dialog">终局成立</a>
+            <a id="report-final-rejected-{{ detail.id }}" href="?detail={{ detail.id }}&amp;confirm_action=final-rejected&amp;report_id={{ detail.id }}#report-detail" data-dialog-trigger data-dialog-return-hash="report-detail" aria-controls="report-action-dialog">终局驳回</a>
+          {% endif %}
+          <a href="{% url 'admin:reports' %}">关闭详情</a>
+        </div>
+      </section>
+    {% endif %}
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="report-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}
