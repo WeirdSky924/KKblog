@@ -68,7 +68,7 @@
 - 证据：真实浏览器 RED 先读回排期 422 被重置为“立即发布”、错误字段未聚焦，且 UTC `2099-07-30 01:30` 被列表/回执错误展示；修复后临时聚焦 `pytest apps/authoring/tests/test_aut005.py -q` 退出 0、`2 passed`，证明 422 保留定时选择、标记错误焦点及两个真实模板输出上海 `09:30/+08:00`，临时测试和 `__pycache__` 随后删除。CNT-003/004/007 与架构联合回归退出 0、`19 passed`；目标 Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。`blog-playwright-cli` 由 `blog-browser` 完成返回编辑、未确认退出、立即发布、读者旧版稳定、版本元数据延迟加载、历史恢复创建新修订并再次审查、排期/取消和自动重发；恢复确认前读者仍见第三版，恢复发布后读者见第一版，自动重发后数据库为 `PUBLISHED|published_revision_id=working_revision_id|sequence=5` 且读者正文为“自动重发读者正文”。排期列表与成功回执显示 `2099-07-30 09:30/+08:00`，PostgreSQL 仍保存 UTC `01:30`，取消后状态回到 DRAFT 且排期字段为空。立即/自动发布均清除目标文章全部本地基线键和 pending marker，同时保留另一文章控制键。390 深色审查、768 护眼版本、1440 浅色创作偏好原尺寸截图位于 `output/playwright/p10-aut005/`；三视口页面宽度等于视口、Lucide 残留 0、跳到主内容焦点正确、控制台 0 error/0 warning。全仓 Ruff 仍准确报告基线已有的 `apps/comments/tests/test_cmt004.py` 导入顺序问题，该文件无本轮差异且按测试文件交付规则未修改；AUT-005 隔离 PostgreSQL 两库已定向删除，专用 Redis DB 15 从 3 键清至 0。未执行生产 migration、生产服务、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-006 实现作者评论管理与导入编排页面
-- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P1。
 - 目标/行为：评论管理首版只有“10分钟缓冲卡片”和“按文章”两tabs，可关闭评论/删除；导入页面完成上传、逐项预览/选择/映射/结果编排。
 - 来源：访谈 Q105-Q106、Q262、Q275-Q280；`modules/07-authoring-workbench.md` §作者评论/导入；原型 authorops。
 - 依赖：前置 `CMT-004`、`CMT-005`、`CMT-006`、`EXC-001`、`EXC-002`、`EXC-003`；后续 `QA-003`、`QA-006`。
@@ -78,5 +78,6 @@
 - 测试/验收：Playwright缓冲倒计时/按文章/删除确认/关闭；混合导入预览→部分成功结果，桌面/手机。
 - 风险/停止：管理页复制领域逻辑、导入预览直接写文章或响应假完成即停止。
 - 授权：`否`。
+- 证据：初始聚焦 RED `pytest apps/authoring/tests/test_aut006.py -q` 为 `2 failed, 2 passed`，准确报告评论管理 URL 缺失和导入表单错误读取分区 DTO；实现 comments owner 的本人文章工作区、发布修订级评论设置同步和 article/comment 双目标删除后，authoring 仅编排公开 query/service，评论页只保留“10 分钟缓冲/按文章”两 tabs，并闭合真实倒计时、评论树、顶层/回复游标分页、关闭开关、删除确认与占位。导入页只调用 `config.exchange_integrations`，上传 `.md/.zip` 后预览不写 Article/Tag/正式媒体，逐项支持 include、SKIP/UPDATE/CREATE、分区、已有标签和新标签映射；确认后先显示真实 `PROCESSING`，再由 `apps.exchange.process_import_job` 进入 `COMPLETED/PARTIAL/FAILED`。聚焦 GREEN 与最终复核均为 `7 passed`；浏览器发现预览总计误显示 0 和安全失败原因过于笼统后，新增 RED 准确失败，修复 Django filter 链及 `content.snapshot_invalid.v1` 文案后为 `1 passed`。相关回归：comments 全模块 `24 passed`、content 全模块 `68 passed`、架构/Outbox/任务入口 `20 passed`、TaskRun `11 passed`；目标 Ruff lint、format、Django check、migration drift、npm build 和 `git diff --check` 均退出 0。隔离 PostgreSQL 读回关闭评论后既有树与缓冲项不变，真实 `dispatch_due_comments -> publish_due_comment` 两级 Celery 任务均 `succeeded/attempt=1` 且缓冲评论最终为 `VISIBLE`；混合 ZIP 确认前作者 Article 数仍为 1，任务后为 `PARTIAL`、`success=1/skipped=1/failed=1`，成功文章关联“浏览器验收”分区、“已有标签”和“新增标签”，正式媒体目录为空，导入 TaskRun 同样 `succeeded/attempt=1`。`blog-playwright-cli` 由 `blog-browser` 运行，验证访客登录回跳、普通用户 403、他人文章/Job 隐私 404、倒计时递减、删除取消焦点恢复、两类 HTMX 加载更多、关闭后无新评论入口但缓冲到期公开、422 错误聚焦与有效上传恢复、真实 PROCESSING 和 PARTIAL 逐项结果；390 深色、768 护眼、1440 浅色页面宽度等于视口，skip link、switch 键盘操作、Lucide 未替换节点 0、成功路径控制台 0 error/0 warning。原尺寸截图位于 `output/playwright/p10-aut006/`。专用浏览器/服务/worker 已关闭，隔离数据库已删除，Redis DB 15 读回 0，临时目录已移入回收站，一次性测试和浏览器 settings 已删除。未执行生产 migration、生产服务、部署、真实邮件或本轮 Git 交付。
 
 [返回总索引](../implementation-todolist.md)

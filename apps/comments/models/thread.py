@@ -20,6 +20,12 @@ class DiscussionThread(models.Model):
     comments_enabled = models.BooleanField(default=True)
     view_login_required = models.BooleanField(default=False)
     post_login_required = models.BooleanField(default=False)
+    settings_revision_id = models.CharField(
+        max_length=26,
+        null=True,
+        blank=True,
+        editable=False,
+    )
     deep_thread_alerted_at = models.DateTimeField(
         null=True,
         blank=True,

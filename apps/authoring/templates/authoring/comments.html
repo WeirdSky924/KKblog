@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}评论管理 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=5 %}
+    <section class="authoring-stage author-operations" aria-labelledby="author-comments-title">
+      <header class="authoring-heading">
+        <div>
+          <p class="authoring-folio">05 / 06</p>
+          <h1 id="author-comments-title">评论管理</h1>
+        </div>
+        <span class="author-operation-count">{{ comment_workspace.articles|length }} 篇文章</span>
+      </header>
+
+      <nav class="author-operation-tabs" aria-label="评论管理视图">
+        <a href="{% url 'authoring:comments-buffer' %}"{% if comments_tab == "buffer" %} aria-current="page"{% endif %}>
+          10 分钟缓冲
+          <span>{{ comment_workspace.buffered_items|length }}</span>
+        </a>
+        <a href="{% url 'authoring:comments-article' %}"{% if comments_tab == "articles" %} aria-current="page"{% endif %}>
+          按文章
+          <span>{{ comment_workspace.articles|length }}</span>
+        </a>
+      </nav>
+
+      {% if comment_deleted %}
+        <p class="author-operation-feedback" role="status" tabindex="-1">评论已删除，原位置会显示删除占位。</p>
+      {% endif %}
+      {% if comment_settings_saved %}
+        <p class="author-operation-feedback" role="status" tabindex="-1">评论设置已保存。</p>
+      {% endif %}
+
+      {% if comments_tab == "buffer" %}
+        <section id="managed-comments" class="author-buffer-workspace" aria-labelledby="buffer-title">
+          <header class="author-operation-section-heading">
+            <div>
+              <h2 id="buffer-title">等待公开</h2>
+              <p>到期后仍按原计划公开；关闭文章评论不会删除已进入缓冲的内容。</p>
+            </div>
+          </header>
+          {% if comment_workspace.buffered_items %}
+            <ol class="author-buffer-list">
+              {% for item in comment_workspace.buffered_items %}
+                <li id="buffer-{{ item.comment_id }}" class="author-buffer-card">
+                  <div class="author-buffer-card__time">
+                    <span aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                    {% timezone "Asia/Shanghai" %}
+                      <time
+                        datetime="{{ item.visible_at|date:'c' }}"
+                        data-buffer-countdown
+                        data-visible-at="{{ item.visible_at|date:'c' }}"
+                      >{{ item.visible_at|date:"H:i" }}</time>
+                    {% endtimezone %}
+                  </div>
+                  <article class="author-buffer-card__content">
+                    <header>
+                      <div>
+                        <strong>{{ item.author_label }}</strong>
+                        {% if item.is_reply %}<span>回复</span>{% else %}<span>评论</span>{% endif %}
+                      </div>
+                      <a href="{% url 'authoring:comments-article' %}?article={{ item.article_id }}">{{ item.article_title }}</a>
+                    </header>
+                    <p>{{ item.body }}</p>
+                  </article>
+                  <a
+                    id="delete-trigger-{{ item.comment_id }}"
+                    class="icon-button author-operation-danger"
+                    href="{% url 'authoring:comments-buffer' %}?confirm={{ item.comment_id }}#buffer-{{ item.comment_id }}"
+                    data-dialog-trigger
+                    data-dialog-return-hash="buffer-{{ item.comment_id }}"
+                    aria-controls="managed-delete-{{ item.comment_id }}"
+                    aria-label="删除这条缓冲评论"
+                    title="删除"
+                  ><i data-lucide="trash-2"></i></a>
+                  {% if comment_confirm_id == item.comment_id %}
+                    <dialog
+                      id="managed-delete-{{ item.comment_id }}"
+                      class="confirm-dialog"
+                      data-confirm-dialog
+                      data-auto-modal
+                      open
+                      aria-labelledby="managed-delete-{{ item.comment_id }}-title"
+                      aria-describedby="managed-delete-{{ item.comment_id }}-description"
+                    >
+                      <form
+                        class="confirm-dialog__content"
+                        method="post"
+                        action="{% url 'authoring:comments-delete' article_id=item.article_id comment_id=item.comment_id %}"
+                        data-submit-once
+                      >
+                        {% csrf_token %}
+                        <input type="hidden" name="confirm" value="delete">
+                        <input type="hidden" name="return_to" value="buffer">
+                        <h2 id="managed-delete-{{ item.comment_id }}-title">删除这条缓冲评论？</h2>
+                        <p id="managed-delete-{{ item.comment_id }}-description">删除后不会公开，并在文章评论树中保留占位。</p>
+                        <div class="confirm-dialog__actions">
+                          <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+                          <button class="button button--primary" type="submit">确认删除</button>
+                        </div>
+                      </form>
+                    </dialog>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <div class="author-operation-empty">
+              <i data-lucide="timer"></i>
+              <h3>当前没有缓冲评论</h3>
+              <p>新评论进入 10 分钟缓冲后会显示在这里。</p>
+            </div>
+          {% endif %}
+        </section>
+      {% else %}
+        <div id="managed-comments" class="author-comment-workspace">
+          <nav class="author-comment-articles" aria-label="有评论的文章">
+            <h2>文章</h2>
+            {% if comment_workspace.articles %}
+              <ol>
+                {% for item in comment_workspace.articles %}
+                  <li>
+                    <a href="?article={{ item.article_id }}"{% if managed_article.article_id == item.article_id %} aria-current="page"{% endif %}>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.total_count }} 条</span>
+                      <small>{{ item.buffered_count }} 缓冲 · {{ item.visible_count }} 公开 · {{ item.deleted_count }} 删除</small>
+                    </a>
+                  </li>
+                {% endfor %}
+              </ol>
+            {% else %}
+              <div class="author-comment-articles__empty">
+                <p>还没有文章评论。</p>
+                <a href="{% url 'authoring:articles' %}">返回我的文章</a>
+              </div>
+            {% endif %}
+          </nav>
+
+          <section class="author-comment-detail" aria-labelledby="managed-article-title">
+            {% if managed_article %}
+              <header class="author-comment-detail__heading">
+                <div>
+                  <p>评论树</p>
+                  <h2 id="managed-article-title">{{ managed_article.title }}</h2>
+                </div>
+                <form method="post" action="{% url 'authoring:comments-settings' article_id=managed_article.article_id %}" data-submit-once>
+                  {% csrf_token %}
+                  <label class="author-operation-switch">
+                    <input type="checkbox" name="enabled"{% if managed_comment_panel.comments_enabled %} checked{% endif %}>
+                    <span aria-hidden="true"></span>
+                    <strong>允许新评论</strong>
+                  </label>
+                  <button class="button button--secondary" type="submit">保存设置</button>
+                </form>
+              </header>
+              <p class="author-comment-detail__notice">关闭后不再接受新评论；已有评论、回复和缓冲倒计时保持不变。</p>
+              <nav class="author-comment-sort" aria-label="评论排序">
+                <a href="?article={{ managed_article.article_id }}&amp;sort=earliest"{% if managed_comment_sort == "earliest" %} aria-current="page"{% endif %}>最早</a>
+                <a href="?article={{ managed_article.article_id }}&amp;sort=latest"{% if managed_comment_sort == "latest" %} aria-current="page"{% endif %}>最新</a>
+                <a href="?article={{ managed_article.article_id }}&amp;sort=hottest"{% if managed_comment_sort == "hottest" %} aria-current="page"{% endif %}>回复最多</a>
+              </nav>
+              {% if managed_comment_panel.public_page.items %}
+                <ol class="author-managed-comments">
+                  {% include "authoring/partials/managed_root_batch.html" with managed_article_id=managed_article.article_id managed_comment_page=managed_comment_panel.public_page %}
+                </ol>
+              {% else %}
+                <div class="author-operation-empty author-operation-empty--compact">
+                  <i data-lucide="message-circle"></i>
+                  <h3>还没有公开评论</h3>
+                  <p>{% if managed_comment_panel.buffered_items %}缓冲评论会在到期后出现在评论树中。{% else %}这篇文章当前没有评论。{% endif %}</p>
+                </div>
+              {% endif %}
+            {% else %}
+              <div class="author-operation-empty">
+                <i data-lucide="message-circle"></i>
+                <h2 id="managed-article-title">选择一篇文章</h2>
+                <p>打开文章后可查看评论树、保留删除占位并调整评论开关。</p>
+              </div>
+            {% endif %}
+          </section>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% load tz %}
+<article class="author-managed-comment__content">
+  <header class="author-managed-comment__meta">
+    {% if managed_comment.author.profile_url %}
+      <a href="{{ managed_comment.author.profile_url }}">{{ managed_comment.author.label }}</a>
+    {% else %}
+      <strong>{{ managed_comment.author.label }}</strong>
+    {% endif %}
+    {% timezone "Asia/Shanghai" %}
+      <time datetime="{{ managed_comment.created_at|date:'c' }}">{{ managed_comment.created_at|date:"Y-m-d H:i" }}</time>
+    {% endtimezone %}
+    {% if managed_comment.depth > 0 %}<span>第 {{ managed_comment.depth }} 层回复</span>{% endif %}
+  </header>
+  {% if managed_comment.is_deleted %}
+    <p class="author-managed-comment__placeholder">
+      <i data-lucide="trash-2"></i><span>该评论已删除</span>
+    </p>
+  {% else %}
+    <p class="author-managed-comment__body">{{ managed_comment.body }}</p>
+    {% if managed_comment.image_urls %}
+      <ul class="author-managed-comment__images" aria-label="评论图片">
+        {% for image_url in managed_comment.image_urls %}
+          <li>
+            <a href="{{ image_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="{{ image_url }}" alt="{{ managed_comment.author.label }}的评论图片 {{ forloop.counter }}" loading="lazy">
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if managed_comment.deletion_mode %}
+      <footer class="author-managed-comment__actions">
+        <a
+          id="delete-trigger-{{ managed_comment.id }}"
+          class="button button--secondary author-operation-danger"
+          href="{% url 'authoring:comments-article' %}?article={{ managed_article_id }}&amp;confirm={{ managed_comment.id }}#comment-{{ managed_comment.id }}"
+          data-dialog-trigger
+          data-dialog-return-hash="comment-{{ managed_comment.id }}"
+          aria-controls="managed-delete-{{ managed_comment.id }}"
+        >
+          <i data-lucide="trash-2"></i><span>删除</span>
+        </a>
+      </footer>
+    {% endif %}
+  {% endif %}
+</article>
+{% if comment_confirm_id == managed_comment.id and not managed_comment.is_deleted %}
+  <dialog
+    id="managed-delete-{{ managed_comment.id }}"
+    class="confirm-dialog"
+    data-confirm-dialog
+    data-auto-modal
+    open
+    aria-labelledby="managed-delete-{{ managed_comment.id }}-title"
+    aria-describedby="managed-delete-{{ managed_comment.id }}-description"
+  >
+    <form
+      class="confirm-dialog__content"
+      method="post"
+      action="{% url 'authoring:comments-delete' article_id=managed_article_id comment_id=managed_comment.id %}"
+      data-submit-once
+    >
+      {% csrf_token %}
+      <input type="hidden" name="confirm" value="delete">
+      <input type="hidden" name="return_to" value="article">
+      <h2 id="managed-delete-{{ managed_comment.id }}-title">删除这条评论？</h2>
+      <p id="managed-delete-{{ managed_comment.id }}-description">评论在原位置显示删除占位，回复结构保持不变。</p>
+      <div class="confirm-dialog__actions">
+        <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+        <button class="button button--primary" type="submit">确认删除</button>
+      </div>
+    </form>
+  </dialog>
+{% endif %}

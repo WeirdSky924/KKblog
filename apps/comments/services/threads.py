@@ -20,13 +20,34 @@ def sync_article_thread(
         "comments_enabled": target.comments_enabled,
         "view_login_required": target.view_login_required,
         "post_login_required": target.post_login_required,
+        "settings_revision_id": target.revision_id,
     }
     with transaction.atomic():
-        thread, _ = DiscussionThread.objects.update_or_create(
+        thread, created = DiscussionThread.objects.select_for_update().get_or_create(
             target_type=DiscussionTargetType.ARTICLE,
             target_id=target.article_id,
             defaults=defaults,
         )
+        if not created:
+            update_fields = []
+            if thread.owner_id != target.owner_id:
+                thread.owner_id = target.owner_id
+                update_fields.append("owner")
+            if thread.settings_revision_id != target.revision_id:
+                thread.comments_enabled = target.comments_enabled
+                thread.view_login_required = target.view_login_required
+                thread.post_login_required = target.post_login_required
+                thread.settings_revision_id = target.revision_id
+                update_fields.extend(
+                    (
+                        "comments_enabled",
+                        "view_login_required",
+                        "post_login_required",
+                        "settings_revision_id",
+                    )
+                )
+            if update_fields:
+                thread.save(update_fields=(*update_fields, "updated_at"))
     return thread, target
 
 

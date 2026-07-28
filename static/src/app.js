@@ -69,6 +69,7 @@ import {
   initializeAuthorEditors,
 } from "./authoring-editor.js";
 import { initializeArticleDraftClears } from "./authoring-local-draft.js";
+import { initializeAuthorOperations } from "./authoring-operations.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -1024,6 +1025,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeMediaPickers(root);
   initializeCommentForms(root);
   initializeCommentThreads(root);
+  initializeAuthorOperations(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
 });
@@ -1105,5 +1107,6 @@ initializeArticleDraftClears();
 initializeAuthorEditors();
 initializeMediaPickers();
 initializeCommentForms();
+initializeAuthorOperations();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

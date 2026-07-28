@@ -1,0 +1,23 @@
+{% for item in managed_comment_page.items %}
+  <li id="comment-{{ item.id }}" class="author-managed-comment author-managed-comment--root">
+    {% include "authoring/partials/managed_comment_content.html" with managed_comment=item %}
+    {% if item.reply_page.items or item.reply_page.next_cursor %}
+      <ol class="author-managed-replies" aria-label="{{ item.author.label }}的回复">
+        {% include "authoring/partials/managed_reply_batch.html" with managed_reply_page=item.reply_page managed_reply_root_id=item.id %}
+      </ol>
+    {% endif %}
+  </li>
+{% endfor %}
+{% if managed_comment_page.next_cursor %}
+  <li class="author-operation-more" id="comment-root-more">
+    <button
+      class="button button--secondary"
+      type="button"
+      hx-get="{% url 'authoring:comments-article-page' article_id=managed_article_id %}?sort={{ managed_comment_sort }}&amp;cursor={{ managed_comment_page.next_cursor|urlencode }}"
+      hx-target="#comment-root-more"
+      hx-swap="outerHTML"
+      hx-indicator="#comment-root-more-status"
+    >加载更多评论</button>
+    <span id="comment-root-more-status" class="htmx-indicator" role="status">正在加载</span>
+  </li>
+{% endif %}

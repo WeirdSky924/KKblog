@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}文章导入 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}site-shell authoring-shell{% endblock %}
+{% block main_class %}authoring-main{% endblock %}
+
+{% block content %}
+  <div class="authoring-layout">
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=6 %}
+    <section class="authoring-stage author-operations" aria-labelledby="author-import-title">
+      <header class="authoring-heading">
+        <div>
+          <p class="authoring-folio">06 / 06</p>
+          <h1 id="author-import-title">文章导入</h1>
+        </div>
+        {% if import_page %}
+          <a class="button button--secondary" href="{% url 'authoring:import' %}">
+            <i data-lucide="file-plus-2"></i><span>新建导入</span>
+          </a>
+        {% endif %}
+      </header>
+
+      {% if import_page %}
+        {% include "authoring/partials/import_job_panel.html" %}
+      {% else %}
+        <section class="author-import-upload" aria-labelledby="import-upload-title">
+          <header>
+            <span aria-hidden="true">01</span>
+            <div>
+              <h2 id="import-upload-title">选择导入文件</h2>
+              <p>支持单个 Markdown 或 ZIP 包；ZIP 最多 64 MiB、1000 项和 8 层目录。</p>
+            </div>
+          </header>
+          <form method="post" enctype="multipart/form-data" data-submit-once>
+            {% csrf_token %}
+            <div class="author-import-file">
+              <label for="{{ import_upload_form.source.id_for_label }}">{{ import_upload_form.source.label }}</label>
+              {{ import_upload_form.source }}
+              <p class="field-help">解析只创建预览；确认前不会写入文章、标签或正式媒体目录。</p>
+              {% if import_upload_form.source.errors %}
+                <ul class="author-operation-errors" role="alert" tabindex="-1" data-error-focus>
+                  {% for error in import_upload_form.source.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+            {% if import_upload_form.non_field_errors %}
+              <ul class="author-operation-errors" role="alert" tabindex="-1" data-error-focus>
+                {% for error in import_upload_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <button class="button button--primary" type="submit">
+              <i data-lucide="eye"></i><span>解析并预览</span>
+            </button>
+          </form>
+        </section>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

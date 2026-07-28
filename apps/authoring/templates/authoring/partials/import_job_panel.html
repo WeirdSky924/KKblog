@@ -1,0 +1,140 @@
+<section
+  id="import-job-panel"
+  class="author-import-job"
+  aria-labelledby="import-job-title"
+  aria-live="polite"
+  {% if import_page.processing %}
+    aria-busy="true"
+    hx-get="{% url 'authoring:import-status' job_id=import_page.job_id %}"
+    hx-trigger="load delay:1s"
+    hx-target="this"
+    hx-swap="outerHTML"
+  {% endif %}
+>
+  <header class="author-import-job__heading">
+    <div>
+      <p>导入任务</p>
+      <h2 id="import-job-title">{{ import_page.status_label }}</h2>
+    </div>
+    <span data-import-status="{{ import_page.status }}">{{ import_page.items|length }} 篇</span>
+  </header>
+
+  {% if import_error %}
+    <p class="author-import-error" role="alert" tabindex="-1" data-error-focus>{{ import_error }}</p>
+  {% endif %}
+  {% if import_updated %}<p class="author-operation-feedback" role="status">条目选择已保存。</p>{% endif %}
+  {% if import_confirmed %}<p class="author-operation-feedback" role="status">导入已确认，正在读取真实任务状态。</p>{% endif %}
+
+  {% if import_page.editable %}
+    <dl class="author-import-summary">
+      <div><dt>总计</dt><dd>{{ import_page.preview_summary.total|default:0 }}</dd></div>
+      <div><dt>可预览</dt><dd>{{ import_page.preview_summary.valid|default:0 }}</dd></div>
+      <div><dt>无法导入</dt><dd>{{ import_page.preview_summary.invalid|default:0 }}</dd></div>
+      <div><dt>已选</dt><dd>{{ import_selected_count }}</dd></div>
+    </dl>
+    <ol class="author-import-items">
+      {% for row in import_rows %}
+        <li class="author-import-item" data-import-classification="{{ row.item.classification }}">
+          <header class="author-import-item__heading">
+            <span aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+            <div>
+              <h3>{{ row.item.title }}</h3>
+              <p>{{ row.item.classification_label }}</p>
+            </div>
+          </header>
+          {% if row.item.conflict_label %}<p class="author-import-item__notice">{{ row.item.conflict_label }}</p>{% endif %}
+          {% if row.item.issue_label %}<p class="author-import-item__error">{{ row.item.issue_label }}</p>{% endif %}
+          {% if row.item.preview_html %}
+            <details class="author-import-preview">
+              <summary>查看正文预览</summary>
+              <div>{{ row.item.preview_html|safe }}</div>
+            </details>
+          {% endif %}
+          {% if row.form %}
+            <form
+              class="author-import-decision"
+              method="post"
+              action="{% url 'authoring:import-item' job_id=import_page.job_id item_id=row.item.item_id %}"
+              data-import-decision-form
+              data-submit-once
+            >
+              {% csrf_token %}
+              {{ row.form.expected_preview_version }}
+              {% if row.form.non_field_errors %}
+                <ul class="author-operation-errors" role="alert" tabindex="-1" data-error-focus>
+                  {% for error in row.form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+              {% endif %}
+              <label class="author-import-include" for="{{ row.form.included.id_for_label }}">
+                {{ row.form.included }}<span>导入此项</span>
+              </label>
+              <div class="author-import-decision__grid">
+                <div class="field-group">
+                  <label for="{{ row.form.decision.id_for_label }}">{{ row.form.decision.label }}</label>
+                  {{ row.form.decision }}
+                  {% if row.form.decision.errors %}<p class="field-error">{{ row.form.decision.errors|join:"；" }}</p>{% endif %}
+                </div>
+                <div class="field-group">
+                  <label for="{{ row.form.section_id.id_for_label }}">{{ row.form.section_id.label }}</label>
+                  {{ row.form.section_id }}
+                  {% if row.form.section_id.errors %}<p class="field-error">{{ row.form.section_id.errors|join:"；" }}</p>{% endif %}
+                </div>
+                <fieldset class="author-import-tags">
+                  <legend>{{ row.form.tag_ids.label }}</legend>
+                  {{ row.form.tag_ids }}
+                  {% if row.form.tag_ids.errors %}<p class="field-error">{{ row.form.tag_ids.errors|join:"；" }}</p>{% endif %}
+                </fieldset>
+                <div class="field-group">
+                  <label for="{{ row.form.proposed_tag_names.id_for_label }}">{{ row.form.proposed_tag_names.label }}</label>
+                  {{ row.form.proposed_tag_names }}
+                  <p class="field-help">不存在的标签会作为待审标签创建并立即关联。</p>
+                  {% if row.form.proposed_tag_names.errors %}<p class="field-error">{{ row.form.proposed_tag_names.errors|join:"；" }}</p>{% endif %}
+                </div>
+              </div>
+              <button class="button button--secondary" type="submit"><i data-lucide="save"></i><span>保存此项</span></button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    <form
+      class="author-import-confirm"
+      method="post"
+      action="{% url 'authoring:import-confirm' job_id=import_page.job_id %}"
+      data-submit-once
+    >
+      {% csrf_token %}
+      {{ import_confirm_form.expected_preview_version }}
+      <p>将处理 {{ import_selected_count }} 篇；未选、无效或设为跳过的条目会记录为已跳过。</p>
+      <button class="button button--primary" type="submit"><i data-lucide="circle-check-big"></i><span>确认导入</span></button>
+    </form>
+  {% elif import_page.processing %}
+    <div class="author-import-processing" role="status">
+      <i data-lucide="rotate-cw"></i>
+      <div>
+        <h3>正在逐篇导入</h3>
+        <p>页面会继续读取任务状态；完成前不会显示成功结果。</p>
+      </div>
+    </div>
+  {% else %}
+    <dl class="author-import-summary">
+      <div><dt>成功</dt><dd>{{ import_page.result_summary.success|default:0 }}</dd></div>
+      <div><dt>跳过</dt><dd>{{ import_page.result_summary.skipped|default:0 }}</dd></div>
+      <div><dt>失败</dt><dd>{{ import_page.result_summary.failed|default:0 }}</dd></div>
+    </dl>
+    <ol class="author-import-results">
+      {% for row in import_rows %}
+        <li data-import-result="{{ row.item.result_status }}">
+          <span aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+          <div>
+            <h3>{{ row.item.title }}</h3>
+            <p><strong>{{ row.item.result_label }}</strong>{% if row.item.result_reason_label %} · {{ row.item.result_reason_label }}{% endif %}</p>
+          </div>
+          {% if row.item.result_article_id %}
+            <a class="button button--secondary" href="{% url 'authoring:edit' article_id=row.item.result_article_id %}"><i data-lucide="pencil-line"></i><span>打开文章</span></a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
+</section>

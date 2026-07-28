@@ -26,10 +26,10 @@
       <span aria-hidden="true">04</span><strong>版本</strong>
     </span>
   {% endif %}
-  <span class="authoring-rail__step" aria-disabled="true">
+  <a class="authoring-rail__step{% if current_author_step == 5 %} is-current{% endif %}" href="{% url 'authoring:comments-buffer' %}"{% if current_author_step == 5 %} aria-current="page"{% endif %}>
     <span aria-hidden="true">05</span><strong>评论</strong>
-  </span>
-  <span class="authoring-rail__step" aria-disabled="true">
+  </a>
+  <a class="authoring-rail__step{% if current_author_step == 6 %} is-current{% endif %}" href="{% url 'authoring:import' %}"{% if current_author_step == 6 %} aria-current="page"{% endif %}>
     <span aria-hidden="true">06</span><strong>导入</strong>
-  </span>
+  </a>
 </nav>

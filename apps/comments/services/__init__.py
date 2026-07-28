@@ -5,6 +5,7 @@ from .deletion import (
     CommentReportRecoveryError,
     ReportCommentDeletionSnapshot,
     ReportCommentRecoveryResult,
+    delete_article_comment_as_owner,
     delete_comment_as_admin,
     delete_comment_as_owner,
     delete_comment_for_report,
@@ -25,6 +26,11 @@ from .publication import (
 )
 from .purge import purge_article_comments
 from .replies import ReplyCommentResult, reply_to_comment
+from .settings import (
+    ArticleCommentSettingsError,
+    ArticleCommentSettingsResult,
+    set_article_comments_enabled,
+)
 from .threads import (
     GuestbookUnavailableError,
     sync_article_thread,
@@ -41,6 +47,8 @@ __all__ = [
     "ReportCommentDeletionSnapshot",
     "CommentPublicationOutcome",
     "CommentPublicationResult",
+    "ArticleCommentSettingsError",
+    "ArticleCommentSettingsResult",
     "ReplyCommentResult",
     "TopLevelCommentResult",
     "GuestbookSettingsError",
@@ -50,6 +58,7 @@ __all__ = [
     "delete_comment_as_admin",
     "delete_comment_for_report",
     "delete_comment_as_owner",
+    "delete_article_comment_as_owner",
     "delete_own_comment",
     "due_buffered_comment_ids",
     "purge_article_comments",
@@ -57,6 +66,7 @@ __all__ = [
     "reply_to_comment",
     "restore_comment_from_report",
     "stage_top_level_comment_image",
+    "set_article_comments_enabled",
     "sync_article_thread",
     "sync_guestbook_thread",
     "update_guestbook_settings",

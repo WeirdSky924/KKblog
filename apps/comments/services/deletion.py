@@ -216,6 +216,8 @@ def _delete_comment(
     client_ip: str,
     trace_code: str,
     mode: _DeletionMode,
+    expected_target_type: str | None = None,
+    expected_target_id: str | None = None,
     reason=None,
     account_policy: CommentAccountPolicy | None = None,
     media_gateway: CommentMediaGateway | None = None,
@@ -245,6 +247,14 @@ def _delete_comment(
     with transaction.atomic():
         thread = DiscussionThread.objects.select_for_update().get(pk=snapshot.thread_id)
         comment = Comment.objects.select_for_update().get(pk=identity, thread=thread)
+        if expected_target_type is not None and (
+            thread.target_type != expected_target_type
+            or thread.target_id != expected_target_id
+        ):
+            raise CommentDeletionError(
+                "comments.delete_not_allowed.v1",
+                "当前评论无法删除。",
+            )
         _authorize_comment(
             actor_id=actor,
             mode=mode,
@@ -330,6 +340,24 @@ def delete_own_comment(**kwargs) -> CommentDeletionResult:
 
 def delete_comment_as_owner(**kwargs) -> CommentDeletionResult:
     return _delete_comment(mode=_DeletionMode.OWNER, **kwargs)
+
+
+def delete_article_comment_as_owner(
+    *, article_id: str, **kwargs
+) -> CommentDeletionResult:
+    try:
+        target_id = normalize_ulid(article_id)
+    except (TypeError, ValueError):
+        raise CommentDeletionError(
+            "comments.delete_not_allowed.v1",
+            "当前评论无法删除。",
+        ) from None
+    return _delete_comment(
+        mode=_DeletionMode.OWNER,
+        expected_target_type=DiscussionTargetType.ARTICLE,
+        expected_target_id=target_id,
+        **kwargs,
+    )
 
 
 def delete_comment_as_admin(**kwargs) -> CommentDeletionResult:

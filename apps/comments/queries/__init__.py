@@ -1,3 +1,10 @@
+from .management import (
+    OwnerBufferedComment,
+    OwnerCommentArticle,
+    OwnerCommentWorkspace,
+    OwnerCommentWorkspaceError,
+    owner_comment_workspace,
+)
 from .panels import (
     BufferedCommentItem,
     CommentPanel,
@@ -31,6 +38,10 @@ __all__ = [
     "CommentReportTargetError",
     "CommentSort",
     "CommentThreadAccess",
+    "OwnerBufferedComment",
+    "OwnerCommentArticle",
+    "OwnerCommentWorkspace",
+    "OwnerCommentWorkspaceError",
     "PublicCommentItem",
     "PublicCommentPage",
     "PublicReplyPage",
@@ -41,6 +52,7 @@ __all__ = [
     "comment_thread_panel",
     "guestbook_comment_access",
     "guestbook_comment_panel",
+    "owner_comment_workspace",
     "public_comment_page",
     "public_reply_page",
     "reportable_comment_target",

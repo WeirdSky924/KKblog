@@ -1,0 +1,21 @@
+{% for reply in managed_reply_page.items %}
+  <li
+    id="comment-{{ reply.id }}"
+    class="author-managed-comment author-managed-comment--reply author-managed-comment--depth-{{ reply.visual_depth }}"
+  >
+    {% include "authoring/partials/managed_comment_content.html" with managed_comment=reply %}
+  </li>
+{% endfor %}
+{% if managed_reply_page.next_cursor %}
+  <li class="author-operation-more" id="reply-more-{{ managed_reply_root_id }}">
+    <button
+      class="button button--secondary"
+      type="button"
+      hx-get="{% url 'authoring:comments-article-replies' article_id=managed_article_id root_id=managed_reply_root_id %}?cursor={{ managed_reply_page.next_cursor|urlencode }}"
+      hx-target="#reply-more-{{ managed_reply_root_id }}"
+      hx-swap="outerHTML"
+      hx-indicator="#reply-more-status-{{ managed_reply_root_id }}"
+    >加载更多回复</button>
+    <span id="reply-more-status-{{ managed_reply_root_id }}" class="htmx-indicator" role="status">正在加载</span>
+  </li>
+{% endif %}
