@@ -6,6 +6,7 @@ from apps.authoring.presentation.editor_views import (
     discard_draft,
     edit,
     preview,
+    resolve_conflict,
 )
 
 app_name = "authoring"
@@ -15,6 +16,11 @@ urlpatterns = [
     path("articles/new/", create, name="create"),
     path("articles/preview/", preview, name="preview"),
     path("articles/<str:article_id>/edit/", edit, name="edit"),
+    path(
+        "articles/<str:article_id>/conflict/resolve/",
+        resolve_conflict,
+        name="resolve-conflict",
+    ),
     path(
         "articles/<str:article_id>/draft/discard/",
         discard_draft,

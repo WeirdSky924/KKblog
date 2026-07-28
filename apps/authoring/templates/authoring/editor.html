@@ -42,6 +42,8 @@
         data-editor-preview-url="{% url 'authoring:preview' %}"
         data-editor-body-limit="{{ editor_body_limit }}"
         data-editor-frozen="{% if editor_frozen %}true{% else %}false{% endif %}"
+        data-editor-skip-local-restore="{% if editor_skip_local_restore %}true{% else %}false{% endif %}"
+        data-editor-conflict-local-baseline="{{ editor_conflict_local_baseline }}"
         {% if editor_mode == "edit" %}
           hx-post="{% url 'authoring:edit' article_id=editor_article_id %}"
           hx-target="#author-editor-workspace"
@@ -68,7 +70,14 @@
           </div>
         {% endif %}
 
-        <div class="author-editor-metadata">
+        {% if editor_conflict_resolved_sequence %}
+          <p class="author-editor-resolution" role="status">
+            已选择版本 {{ editor_conflict_resolved_sequence }} 作为新的编辑基线。
+          </p>
+        {% endif %}
+
+        <div class="author-editor-fields" {% if editor_frozen %}inert aria-disabled="true"{% endif %}>
+          <div class="author-editor-metadata">
           <div class="field-group author-editor-title-field">
             <label for="{{ editor_form.title.id_for_label }}">标题</label>
             {{ editor_form.title }}
@@ -100,9 +109,9 @@
             <span class="field-help" data-editor-tag-count>已选择 0 / 10</span>
             {{ editor_form.tag_ids.errors }}
           </fieldset>
-        </div>
+          </div>
 
-        <section class="author-editor-media" aria-labelledby="editor-media-title">
+          <section class="author-editor-media" aria-labelledby="editor-media-title">
           <header>
             <h2 id="editor-media-title">文章媒体</h2>
             <p>单张最大 2 MiB</p>
@@ -111,21 +120,21 @@
             {% include "media/partials/picker.html" with adapter="article-cover" upload_url=cover_upload_url input_name="cover_asset_id" label="文章封面" picker_id="article-cover" current_asset_id=editor_form.cover_asset_id.value current_preview_url=cover_preview_url favicon_preview=False %}
             {% include "media/partials/picker.html" with adapter="article-body" upload_url=body_upload_url input_name="body_asset_id" label="正文图片" picker_id="article-body" current_asset_id="" current_preview_url="" favicon_preview=False %}
           </div>
-        </section>
+          </section>
 
-        <fieldset class="author-editor-comments">
+          <fieldset class="author-editor-comments">
           <legend>评论设置</legend>
           <label>{{ editor_form.comments_enabled }}<span>开启评论</span></label>
           <label>{{ editor_form.comments_view_login }}<span>登录后查看评论</span></label>
           <label>{{ editor_form.comments_post_login }}<span>登录后发表评论</span></label>
-        </fieldset>
+          </fieldset>
 
-        <div class="author-editor-mobile-modes" role="group" aria-label="编辑器视图">
+          <div class="author-editor-mobile-modes" role="group" aria-label="编辑器视图">
           <button type="button" data-editor-mode="edit" aria-pressed="true">编辑</button>
           <button type="button" data-editor-mode="preview" aria-pressed="false">预览</button>
-        </div>
+          </div>
 
-        <div class="author-editor-canvas" data-editor-canvas>
+          <div class="author-editor-canvas" data-editor-canvas>
           <section class="author-editor-pane author-editor-pane--edit" data-editor-pane="edit">
             <header class="author-editor-pane__header">
               <strong>{{ editor_format_label }}</strong>
@@ -156,6 +165,7 @@
           <div class="author-editor-pane author-editor-pane--preview" data-editor-pane="preview">
             {% include "authoring/partials/editor_preview.html" with editor_preview=editor_preview editor_preview_error=editor_preview_error editor_preview_title=editor_form.title.value %}
           </div>
+          </div>
         </div>
 
         <div class="author-editor-actions" data-editor-actions>
@@ -178,6 +188,9 @@
           </button>
         </div>
       </form>
+      {% if editor_conflict %}
+        {% include "authoring/partials/edit_conflict.html" %}
+      {% endif %}
       {% if editor_discard_form %}
         {% include "components/feedback/confirm_dialog.html" with dialog_id="discard-cloud-draft-dialog" dialog_open=editor_discard_open dialog_title="删除云端草稿？" dialog_description="首发前草稿会立即删除且不能恢复；已发布文章只会撤销未发布的工作稿，历史版本仍会保留。" action_value="discard" confirmation_form=editor_discard_form confirm_label="确认删除" dialog_action=editor_discard_url dialog_hx_post=editor_discard_url dialog_hx_target="#author-editor-workspace" dialog_feedback_id="discard-cloud-draft-feedback" dialog_feedback=editor_discard_error %}
       {% endif %}

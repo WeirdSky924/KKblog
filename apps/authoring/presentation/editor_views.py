@@ -5,9 +5,14 @@ from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from apps.authoring.forms import ArticleEditorForm, CloudDraftDiscardForm
+from apps.authoring.forms import (
+    ArticleEditorForm,
+    CloudDraftDiscardForm,
+    EditConflictResolutionForm,
+)
 from apps.authoring.presenters import (
     FORMAT_LABELS,
+    conflict_workspace,
     initial_from_session,
     preview_from_form,
 )
@@ -25,6 +30,8 @@ from apps.content.public import (
     discard_cloud_draft,
     open_edit_session,
     preview_article_body,
+    resolve_edit_conflict,
+    revision_timeline,
     save_revision_with_token,
     section_list,
     selectable_tag_list,
@@ -41,6 +48,7 @@ _DISCARD_ERRORS = {
     "content.cloud_draft_scheduled.v1": "定时发布内容需先取消排期。",
     "content.cloud_draft_missing.v1": "当前没有可删除的云端草稿。",
 }
+_CONFLICT_ERROR = "冲突选择已失效，请刷新页面后重试。"
 
 
 def _choices() -> dict:
@@ -61,6 +69,12 @@ def _editor_context(
     can_discard_cloud_draft: bool = False,
     discard_open: bool = False,
     discard_error: str = "",
+    conflict=None,
+    conflict_form=None,
+    conflict_error: str = "",
+    skip_local_restore: bool = False,
+    conflict_local_baseline: str = "",
+    conflict_resolved_sequence: int | None = None,
 ) -> dict:
     preview, preview_error = preview_from_form(form, content_format)
     upload_scope = form["upload_scope"].value() or ""
@@ -94,6 +108,20 @@ def _editor_context(
             if discard_form is not None
             else ""
         ),
+        "editor_conflict": conflict,
+        "editor_conflict_form": conflict_form,
+        "editor_conflict_error": conflict_error,
+        "editor_conflict_url": (
+            reverse(
+                "authoring:resolve-conflict",
+                kwargs={"article_id": article_id},
+            )
+            if conflict_form is not None
+            else ""
+        ),
+        "editor_skip_local_restore": skip_local_restore,
+        "editor_conflict_local_baseline": conflict_local_baseline,
+        "editor_conflict_resolved_sequence": conflict_resolved_sequence,
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
         "cover_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-cover'})}?{query}"
@@ -106,6 +134,27 @@ def _editor_context(
             if form["cover_asset_id"].value()
             else ""
         ),
+    }
+
+
+def _conflict_context(*, actor_id, conflict, session, error: str = "") -> dict:
+    workspace = conflict_workspace(
+        conflict,
+        revision_timeline(actor_id=actor_id, article_id=conflict.article_id),
+    )
+    form = EditConflictResolutionForm(
+        initial={
+            "conflict_token": session.token,
+            "local_baseline_revision_id": conflict.baseline.revision_id,
+            "selected_revision_id": conflict.current.revision_id,
+            "preserve_local_input": True,
+        },
+        revisions=workspace.revisions,
+    )
+    return {
+        "conflict": workspace,
+        "conflict_form": form,
+        "conflict_error": error,
     }
 
 
@@ -214,6 +263,39 @@ def edit(request, article_id: str):
     if request.method == "GET":
         try:
             session = open_edit_session(actor_id=actor_id, article_id=article_id)
+        except EditConflictError as exc:
+            session = exc.session
+            form = ArticleEditorForm(
+                initial=initial_from_session(session),
+                locked_format=article.content_format,
+                **choices,
+            )
+            conflict = _conflict_context(
+                actor_id=actor_id,
+                conflict=exc.conflict,
+                session=session,
+                error=(
+                    _CONFLICT_ERROR
+                    if request.GET.get("conflict_error") == "invalid"
+                    else ""
+                ),
+            )
+            return _render_editor(
+                request,
+                status=409,
+                **_editor_context(
+                    form=form,
+                    actor_id=actor_id,
+                    content_format=article.content_format,
+                    mode="edit",
+                    article_id=article_id,
+                    frozen=True,
+                    row_version=article.row_version,
+                    conflict=conflict["conflict"],
+                    conflict_form=conflict["conflict_form"],
+                    conflict_error=conflict["conflict_error"],
+                ),
+            )
         except EditTokenError:
             raise Http404 from None
         form = ArticleEditorForm(
@@ -244,6 +326,11 @@ def edit(request, article_id: str):
         **choices,
     )
     frozen = False
+    conflict_state = {
+        "conflict": None,
+        "conflict_form": None,
+        "conflict_error": "",
+    }
     if form.is_valid():
         try:
             result = save_revision_with_token(
@@ -254,7 +341,14 @@ def edit(request, article_id: str):
             )
         except ContentCommandError as exc:
             form.add_error(None, exc.safe_message)
-        except (EditTokenError, EditConflictError) as exc:
+        except EditConflictError as exc:
+            conflict_state = _conflict_context(
+                actor_id=actor_id,
+                conflict=exc.conflict,
+                session=exc.session,
+            )
+            frozen = True
+        except EditTokenError as exc:
             form.add_error(None, str(exc))
             frozen = True
         else:
@@ -293,6 +387,100 @@ def edit(request, article_id: str):
             frozen=frozen,
             row_version=article.row_version,
             can_discard_cloud_draft=(article.can_discard_cloud_draft and not frozen),
+            conflict=conflict_state["conflict"],
+            conflict_form=conflict_state["conflict_form"],
+            conflict_error=conflict_state["conflict_error"],
+        ),
+    )
+
+
+def _conflict_resolution_error(
+    request,
+    *,
+    article_id: str,
+    message: str,
+    status: int,
+):
+    if request.headers.get("HX-Request") != "true":
+        query = urlencode({"conflict_error": "invalid"})
+        return redirect(
+            f"{reverse('authoring:edit', kwargs={'article_id': article_id})}?{query}"
+        )
+    response = render(
+        request,
+        "authoring/partials/conflict_resolution_error.html",
+        {"conflict_error": message},
+        status=status,
+    )
+    response.headers["HX-Retarget"] = "#edit-conflict-feedback"
+    response.headers["HX-Reswap"] = "innerHTML"
+    response.headers["X-Kaj-Inline-Error"] = "true"
+    return private_response(response)
+
+
+def resolve_conflict(request, article_id: str):
+    actor_id, response = author_id_or_response(request)
+    if response is not None:
+        return response
+    if request.method != "POST":
+        return private_response(HttpResponseNotAllowed(("POST",)))
+    try:
+        article = article_for_author(actor_id=actor_id, article_id=article_id)
+        timeline = revision_timeline(actor_id=actor_id, article_id=article_id)
+    except ArticleNotFound:
+        raise Http404 from None
+    if not article.can_edit:
+        raise Http404
+    form = EditConflictResolutionForm(request.POST, revisions=timeline)
+    if not form.is_valid():
+        return _conflict_resolution_error(
+            request,
+            article_id=article_id,
+            message=_CONFLICT_ERROR,
+            status=422,
+        )
+    try:
+        session = resolve_edit_conflict(
+            actor_id=actor_id,
+            article_id=article_id,
+            conflict_token=form.cleaned_data["conflict_token"],
+            selected_revision_id=form.cleaned_data["selected_revision_id"],
+        )
+    except EditTokenError:
+        return _conflict_resolution_error(
+            request,
+            article_id=article_id,
+            message=_CONFLICT_ERROR,
+            status=409,
+        )
+    selected = next(
+        item
+        for item in timeline
+        if item.revision_id == form.cleaned_data["selected_revision_id"]
+    )
+    article = article_for_author(actor_id=actor_id, article_id=article_id)
+    editor_form = ArticleEditorForm(
+        initial=initial_from_session(session),
+        locked_format=article.content_format,
+        **_choices(),
+    )
+    return _render_editor(
+        request,
+        **_editor_context(
+            form=editor_form,
+            actor_id=actor_id,
+            content_format=article.content_format,
+            mode="edit",
+            article_id=article_id,
+            row_version=session.row_version,
+            can_discard_cloud_draft=article.can_discard_cloud_draft,
+            skip_local_restore=True,
+            conflict_local_baseline=(
+                form.cleaned_data["local_baseline_revision_id"]
+                if form.cleaned_data["preserve_local_input"]
+                else ""
+            ),
+            conflict_resolved_sequence=selected.sequence,
         ),
     )
 

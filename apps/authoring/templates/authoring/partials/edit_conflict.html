@@ -1,0 +1,75 @@
+<section
+  class="author-conflict"
+  aria-labelledby="edit-conflict-title"
+  tabindex="-1"
+  data-error-focus
+>
+  <header class="author-conflict__heading">
+    <div>
+      <p class="authoring-folio">需要选择</p>
+      <h2 id="edit-conflict-title">编辑冲突已冻结</h2>
+    </div>
+    <i data-lucide="git-compare-arrows" aria-hidden="true"></i>
+  </header>
+  <p>
+    另一窗口已经保存了新版本。当前画布保留冲突前的本地输入，但在选择新的编辑基线前不能继续编辑、保存或发布。
+  </p>
+  <form
+    method="post"
+    action="{{ editor_conflict_url }}"
+    hx-post="{{ editor_conflict_url }}"
+    hx-target="#author-editor-workspace"
+    hx-select="#author-editor-workspace"
+    hx-swap="outerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    {{ editor_conflict_form.conflict_token }}
+    {{ editor_conflict_form.local_baseline_revision_id }}
+    <fieldset class="author-conflict__versions">
+      <legend>选择新的编辑基线</legend>
+      {% for revision in editor_conflict.revisions %}
+        <label class="author-conflict__version">
+          <input
+            type="radio"
+            name="selected_revision_id"
+            value="{{ revision.revision_id }}"
+            {% if revision.is_current %}checked{% endif %}
+            required
+          >
+          <span class="author-conflict__version-main">
+            <strong>版本 {{ revision.sequence }}</strong>
+            <time datetime="{{ revision.created_at|date:'c' }}">{{ revision.created_at|date:"Y-m-d H:i" }}</time>
+          </span>
+          <span class="author-conflict__version-meta">
+            <span>{{ revision.format_label }}</span>
+            <span>{{ revision.visibility_label }}</span>
+            {% if revision.is_current %}<span>当前工作版</span>{% endif %}
+            {% if revision.is_baseline %}<span>你的编辑基线</span>{% endif %}
+            {% if revision.is_published %}<span>读者当前版本</span>{% endif %}
+            {% if revision.is_scheduled %}<span>已排期</span>{% endif %}
+            {% if revision.is_restored %}<span>历史恢复版本</span>{% endif %}
+          </span>
+        </label>
+      {% endfor %}
+    </fieldset>
+    <label class="author-conflict__preserve">
+      {{ editor_conflict_form.preserve_local_input }}
+      <span>
+        <strong>选择后恢复冲突前的本地输入</strong>
+        <small>本地内容仍未保存到云端；取消勾选会在画布中加载所选云端版本，本地键仍保留到发布或删云稿。</small>
+      </span>
+    </label>
+    <div id="edit-conflict-feedback" class="author-conflict__feedback" aria-live="polite">
+      {% if editor_conflict_error %}
+        {% include "authoring/partials/conflict_resolution_error.html" with conflict_error=editor_conflict_error %}
+      {% endif %}
+    </div>
+    <div class="author-conflict__actions">
+      <a class="button button--secondary" href="{% url 'authoring:articles' %}">稍后处理</a>
+      <button class="button button--primary" type="submit">
+        <i data-lucide="replace"></i><span>采用所选版本</span>
+      </button>
+    </div>
+  </form>
+</section>

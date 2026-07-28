@@ -37,6 +37,43 @@ class CloudDraftDiscardForm(forms.Form):
     )
 
 
+class EditConflictResolutionForm(forms.Form):
+    conflict_token = forms.CharField(max_length=128, widget=forms.HiddenInput)
+    local_baseline_revision_id = forms.CharField(
+        max_length=26,
+        widget=forms.HiddenInput,
+    )
+    selected_revision_id = forms.ChoiceField(
+        label="选择新的编辑基线",
+        widget=forms.RadioSelect,
+    )
+    preserve_local_input = forms.BooleanField(
+        label="选择后恢复冲突前的本地输入",
+        required=False,
+        initial=True,
+    )
+
+    def __init__(self, *args, revisions=(), **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["selected_revision_id"].choices = tuple(
+            (item.revision_id, item.revision_id) for item in revisions
+        )
+
+    def clean_conflict_token(self) -> str:
+        value = self.cleaned_data["conflict_token"]
+        if value.count(".") != 1:
+            raise forms.ValidationError("冲突选择已失效，请刷新页面后重试。")
+        return value
+
+    def clean_local_baseline_revision_id(self) -> str:
+        try:
+            return normalize_ulid(self.cleaned_data["local_baseline_revision_id"])
+        except (TypeError, ValueError):
+            raise forms.ValidationError(
+                "本地稿基线已失效，请刷新页面后重试。"
+            ) from None
+
+
 class ArticleEditorForm(forms.Form):
     content_format = forms.ChoiceField(
         choices=_FORMAT_CHOICES,

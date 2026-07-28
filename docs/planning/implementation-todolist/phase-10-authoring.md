@@ -29,7 +29,7 @@
 - 证据：组件 RED `pytest apps/authoring/tests/test_aut002.py -q` 首次退出 2，准确报告 content 缺少 `preview_article_body` 公开契约；实现后聚焦 GREEN 退出 0、`5 passed`，AUT-002、CNT-002/007、MED-003/004/005 与架构联合回归退出 0、`36 passed`。content preview DTO 对 Markdown/TipTap 调用发布同一 renderer/sanitizer，组件读回 HTML 与发布 renderer 完全一致、脚本/事件/危险 scheme 消失，图片 1 张但正文计数不含图片；新建格式写入首修订，普通编辑由 form 与 content 双重拒绝切换。隔离 PostgreSQL 读回 Markdown `row_version=2/sequence=2`、同一正文图片分别绑定两个不可变修订，TipTap 保存为 JSON object、文本“富文本正文”及 `bold` mark。`blog-playwright-cli` 由 `blog-browser` 运行，完成 Markdown/TipTap 输入、工具栏、正文图片上传插入、实时预览、创建/二次保存、2 MiB 长文 422、390 编辑/预览双向切换、三主题和 768/1440 截图；390 读回 `viewportWidth=390/scrollWidth=390`，正文聚焦时保存栏 `sticky` 且 `bottom=709 < visualViewportHeight=844`，未聚焦不遮挡页面。截图位于 `output/playwright/p10-aut002/`。Ruff lint/format、Django check、migration drift、npm build、秘密模式和 `git diff --check` 均退出 0；未执行生产 migration、生产服务、提交、推送、部署或真实邮件。
 
 ### AUT-003 实现浏览器本地自动保存、显式云草稿与恢复
-- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：内容变化debounce写本地键(user/article/base/format)；仅点击保存写云Revision；恢复先本地否则自动云稿；发布、删云稿、清浏览器数据时按规则清本地。
 - 来源：访谈 Q262、Q297；`modules/07-authoring-workbench.md` §本地与云草稿；`contracts/03-frontend-contract-map.md` §本地键。
 - 依赖：前置 `AUT-002`、`CNT-002`；后续 `AUT-004`、`AUT-005`、`QA-003`、`QA-006`。
@@ -39,9 +39,10 @@
 - 测试/验收：Playwright模拟断网/崩溃/多账户/同文章多基线、本地优先/云回退、成功发布清理；DB读回显式保存。
 - 风险/停止：键过粗串稿、保存失败删除本地或UI虚报已云保存即停止。
 - 授权：`否`。
+- 证据：初始 RED `pytest apps/authoring/tests/test_aut003.py -q` 收集期退出 2，准确报告云草稿删除契约缺失；实现本地键 `user/article/base revision/format`、500ms debounce、本地优先/云 working revision 回退、显式云保存 pending/失败保留，以及 content owner 下的无冷静期云草稿删除。聚焦 GREEN `5 passed`，AUT-003、CNT-002/003/006/008 与架构联合回归 `32 passed`；首发前删除事务内物理清理 Article/全部 Revision/评论/媒体引用，已发布文章仅把 working pointer 恢复到 published pointer并保留完整历史，错误作者、禁用作者、遮罩、排期、未解冲突和 stale row version 均关闭失败。隔离浏览器完成断网/崩溃、跨账户、同文章多基线、本地优先/云回退、云保存失败保留、确认取消/焦点恢复和手动删云稿；PostgreSQL 与浏览器读回删除后 Article/Revision 为 `0|0`、文章全部本地基线键和 pending marker 均清空。收口审计先以真实创建/保存流 RED 读回显式云保存错误删除本地键，修复为只确认并清除 session pending marker 后，全新浏览器 GREEN 读回旧基线 localStorage 键仍存在、pending marker 已清；随后手动删云稿再次读回本地键为空、数据库 `0|0`。390/768/1440、三主题、成功态焦点和无横向溢出已验证；Ruff、format、Django check、migration drift、npm build 与 `git diff --check` 退出 0。成功发布由 AUT-005 的真实入口发出同一 `kaj:author-draft-clear` 事件；AUT-005 和 P10 最终审计必须重新读回发布后全部本地基线键清空，否则阶段不得完成。未执行生产 migration、生产数据/媒体、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-004 实现 409 冲突冻结与版本基线选择界面
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：保存冲突后禁止继续保存/发布，展示当前工作版、用户基线和历史元数据；作者选一版覆盖编辑画布并取得新令牌，未发布本地输入可明确保留/比较。
 - 来源：访谈 Q296；`modules/07-authoring-workbench.md` §并发冲突；`contracts/03-frontend-contract-map.md` §HTMX 409。
 - 依赖：前置 `CNT-006`、`AUT-002`、`AUT-003`；后续 `AUT-005`、`QA-003`、`QA-006`。

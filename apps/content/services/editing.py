@@ -42,14 +42,6 @@ class EditConflict:
     current: RevisionMetadata
 
 
-class EditConflictError(RuntimeError):
-    code = "content.edit_conflict.v1"
-
-    def __init__(self, conflict: EditConflict) -> None:
-        self.conflict = conflict
-        super().__init__("文章已在其他会话中保存，请选择编辑基线。")
-
-
 @dataclass(frozen=True, slots=True)
 class EditSession:
     grant_id: str
@@ -59,6 +51,15 @@ class EditSession:
     token: str
     expires_at: datetime
     snapshot: ArticleSnapshot
+
+
+class EditConflictError(RuntimeError):
+    code = "content.edit_conflict.v1"
+
+    def __init__(self, conflict: EditConflict, session: EditSession) -> None:
+        self.conflict = conflict
+        self.session = session
+        super().__init__("文章已在其他会话中保存，请选择编辑基线。")
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +135,7 @@ def _issue_grant(
     revision: ArticleRevision,
     actor_id: UUID,
     clock: Clock,
+    state: str = ArticleEditGrant.State.ACTIVE,
 ) -> EditSession:
     now = clock.now()
     grant = ArticleEditGrant(
@@ -141,6 +143,7 @@ def _issue_grant(
         baseline_revision=revision,
         actor_id=actor_id,
         row_version=article.row_version,
+        state=state,
         expires_at=now + EDIT_TOKEN_LIFETIME,
     )
     secret = secrets.token_urlsafe(32)
@@ -181,6 +184,7 @@ def open_edit_session(
     actor = _actor(actor_id)
     identity = _article_id(article_id)
     active_clock = clock or SystemClock()
+    conflict_error: EditConflictError | None = None
     with transaction.atomic():
         try:
             article = Article.objects.select_for_update().get(
@@ -193,15 +197,49 @@ def open_edit_session(
             raise EditTokenError from None
         if article_is_reader_masked(article.id):
             raise EditTokenError
-        if article.edit_grants.filter(state=ArticleEditGrant.State.CONFLICT).exists():
-            raise EditTokenError
-        revision = ArticleRevision.objects.get(pk=article.working_revision_id)
-        return _issue_grant(
-            article=article,
-            revision=revision,
-            actor_id=actor,
-            clock=active_clock,
+        conflict_grant = (
+            article.edit_grants.select_related("baseline_revision")
+            .filter(
+                actor_id=actor,
+                state=ArticleEditGrant.State.CONFLICT,
+            )
+            .order_by("-updated_at", "-id")
+            .first()
         )
+        current = ArticleRevision.objects.get(pk=article.working_revision_id)
+        if conflict_grant is not None:
+            baseline = conflict_grant.baseline_revision
+            ArticleEditGrant.objects.filter(
+                article=article,
+                state=ArticleEditGrant.State.CONFLICT,
+            ).update(state=ArticleEditGrant.State.REPLACED)
+            session = _issue_grant(
+                article=article,
+                revision=baseline,
+                actor_id=actor,
+                clock=active_clock,
+                state=ArticleEditGrant.State.CONFLICT,
+            )
+            conflict_error = EditConflictError(
+                EditConflict(
+                    article.id,
+                    _metadata(baseline),
+                    _metadata(current),
+                ),
+                session,
+            )
+        elif article.edit_grants.filter(state=ArticleEditGrant.State.CONFLICT).exists():
+            raise EditTokenError
+        else:
+            session = _issue_grant(
+                article=article,
+                revision=current,
+                actor_id=actor,
+                clock=active_clock,
+            )
+    if conflict_error is not None:
+        raise conflict_error
+    return session
 
 
 def save_revision_with_token(
@@ -217,7 +255,7 @@ def save_revision_with_token(
     identity = _article_id(article_id)
     active_clock = clock or SystemClock()
     now = active_clock.now()
-    conflict: EditConflict | None = None
+    conflict_error: EditConflictError | None = None
     with transaction.atomic():
         try:
             article = Article.objects.select_for_update().get(
@@ -248,6 +286,16 @@ def save_revision_with_token(
                 _metadata(baseline),
                 _metadata(current),
             )
+            conflict_session = EditSession(
+                grant.id,
+                article.id,
+                baseline.id,
+                grant.row_version,
+                edit_token,
+                grant.expires_at,
+                _snapshot(baseline),
+            )
+            conflict_error = EditConflictError(conflict, conflict_session)
         else:
             try:
                 write = save_revision(
@@ -270,8 +318,8 @@ def save_revision_with_token(
                 actor_id=actor,
                 clock=active_clock,
             )
-    if conflict is not None:
-        raise EditConflictError(conflict)
+    if conflict_error is not None:
+        raise conflict_error
     return EditSaveResult(write, next_session)
 
 
@@ -316,7 +364,6 @@ def resolve_edit_conflict(
             raise EditTokenError from None
         ArticleEditGrant.objects.filter(
             article=article,
-            actor_id=actor,
             state=ArticleEditGrant.State.CONFLICT,
         ).update(state=ArticleEditGrant.State.REPLACED)
         return _issue_grant(

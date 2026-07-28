@@ -158,7 +158,7 @@ function parseStored(storage, key) {
   return serialized === null ? null : JSON.parse(serialized);
 }
 
-function clearSuccessfulPending(form, identity) {
+function acknowledgeSuccessfulPending(form, identity) {
   if (form.dataset.cloudSaved !== "true") return true;
   try {
     const pending = parseStored(window.sessionStorage, PENDING_SAVE_KEY);
@@ -170,7 +170,6 @@ function clearSuccessfulPending(form, identity) {
       typeof pending.key === "string" &&
       pending.key.startsWith(DRAFT_PREFIX)
     ) {
-      window.localStorage.removeItem(pending.key);
       window.sessionStorage.removeItem(PENDING_SAVE_KEY);
     }
     return true;
@@ -199,16 +198,34 @@ export function initializeLocalDraft(form) {
   let restored = false;
 
   preserveCreateScope(identity);
-  const cleanupSucceeded = clearSuccessfulPending(form, identity);
+  const cloudSaveAcknowledged = acknowledgeSuccessfulPending(form, identity);
+  const skipLocalRestore = form.dataset.editorSkipLocalRestore === "true";
+  const conflictBaseline = form.dataset.editorConflictLocalBaseline || "";
   try {
-    const draft = parseStored(window.localStorage, key);
-    if (draft !== null) {
-      if (!validDraft(draft, identity)) throw new Error("invalid local draft");
+    if (conflictBaseline && !ULID.test(conflictBaseline)) {
+      throw new Error("invalid conflict baseline");
+    }
+    const recoveryIdentity = conflictBaseline
+      ? { ...identity, baselineRevisionId: conflictBaseline }
+      : skipLocalRestore
+        ? null
+        : identity;
+    const draft = recoveryIdentity
+      ? parseStored(window.localStorage, keyFor(recoveryIdentity))
+      : null;
+    if (draft !== null && recoveryIdentity !== null) {
+      if (!validDraft(draft, recoveryIdentity)) throw new Error("invalid local draft");
       applyDraft(form, draft.values);
       restored = true;
-      setLocalState(form, "restored", "已恢复本地稿");
-    } else if (!cleanupSucceeded) {
-      setLocalState(form, "error", "本地稿清理失败");
+      setLocalState(
+        form,
+        "restored",
+        conflictBaseline ? "已保留冲突前本地稿" : "已恢复本地稿",
+      );
+    } else if (conflictBaseline) {
+      setLocalState(form, "error", "冲突前本地稿不可用，已加载所选云端版本");
+    } else if (!cloudSaveAcknowledged) {
+      setLocalState(form, "error", "云端保存状态无法确认，本地稿仍保留");
     }
   } catch {
     setLocalState(form, "error", "本地稿无法读取");
