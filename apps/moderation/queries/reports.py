@@ -1,0 +1,162 @@
+from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
+
+from apps.core.ids import normalize_ulid
+
+from ..models import Report, ReportAppeal, ReportReason
+from ..ports import ModerationAccountPolicy, default_moderation_account_policy
+
+
+class AdminReportNotFound(LookupError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class AdminReportListItem:
+    id: str
+    target_comment_id: str
+    reason: str
+    reason_label: str
+    state: str
+    has_appeal: bool
+    appeal_state: str | None
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class AdminReportAppealDetail:
+    id: str
+    appellant_id: UUID
+    basis_outcome: str
+    statement: str
+    state: str
+    decision_reason: str
+    recovery_error_code: str
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class AdminReportDetail(AdminReportListItem):
+    reporter_id: UUID
+    reported_author_id: UUID | None
+    description: str
+    reviewed_by_id: UUID | None
+    reviewed_at: datetime | None
+    decision_reason: str
+    closure_reason: str
+    appeal: AdminReportAppealDetail | None
+
+
+def _actor(value, *, account_policy: ModerationAccountPolicy) -> UUID:
+    try:
+        actor = UUID(str(value))
+    except (TypeError, ValueError):
+        raise PermissionError("Administrator report access denied") from None
+    if not account_policy.is_active_account(
+        actor
+    ) or not account_policy.is_administrator(actor):
+        raise PermissionError("Administrator report access denied")
+    return actor
+
+
+def _identity(value) -> str:
+    try:
+        return normalize_ulid(value)
+    except (TypeError, ValueError):
+        raise AdminReportNotFound from None
+
+
+def _appeal(report: Report) -> ReportAppeal | None:
+    try:
+        return report.appeal
+    except ReportAppeal.DoesNotExist:
+        return None
+
+
+def _list_item(report: Report) -> AdminReportListItem:
+    appeal = _appeal(report)
+    return AdminReportListItem(
+        id=report.id,
+        target_comment_id=report.target_comment_id,
+        reason=report.reason,
+        reason_label=ReportReason(report.reason).label,
+        state=report.state,
+        has_appeal=appeal is not None,
+        appeal_state=appeal.state if appeal is not None else None,
+        created_at=report.created_at,
+    )
+
+
+def admin_report_list(
+    *,
+    actor_id,
+    state: str = "",
+    limit: int = 200,
+    account_policy: ModerationAccountPolicy | None = None,
+) -> tuple[AdminReportListItem, ...]:
+    accounts = account_policy or default_moderation_account_policy()
+    _actor(actor_id, account_policy=accounts)
+    if state and state not in Report.State.values:
+        raise ValueError("Invalid administrator report state")
+    if isinstance(limit, bool) or not 1 <= limit <= 500:
+        raise ValueError("Invalid administrator report limit")
+    queryset = Report.objects.select_related("appeal")
+    if state:
+        queryset = queryset.filter(state=state)
+    return tuple(
+        _list_item(report) for report in queryset.order_by("-created_at", "-id")[:limit]
+    )
+
+
+def admin_report_detail(
+    *,
+    actor_id,
+    report_id: str,
+    account_policy: ModerationAccountPolicy | None = None,
+) -> AdminReportDetail:
+    accounts = account_policy or default_moderation_account_policy()
+    _actor(actor_id, account_policy=accounts)
+    report = (
+        Report.objects.select_related("appeal").filter(pk=_identity(report_id)).first()
+    )
+    if report is None:
+        raise AdminReportNotFound
+    item = _list_item(report)
+    appeal = _appeal(report)
+    appeal_detail = None
+    if appeal is not None:
+        appeal_detail = AdminReportAppealDetail(
+            id=appeal.id,
+            appellant_id=appeal.appellant_id,
+            basis_outcome=appeal.basis_outcome,
+            statement=appeal.statement,
+            state=appeal.state,
+            decision_reason=appeal.decision_reason,
+            recovery_error_code=appeal.recovery_error_code,
+            created_at=appeal.created_at,
+        )
+    return AdminReportDetail(
+        **{
+            field: getattr(item, field)
+            for field in AdminReportListItem.__dataclass_fields__
+        },
+        reporter_id=report.reporter_id,
+        reported_author_id=report.reported_author_id,
+        description=report.description,
+        reviewed_by_id=report.reviewed_by_id,
+        reviewed_at=report.reviewed_at,
+        decision_reason=report.decision_reason,
+        closure_reason=report.closure_reason,
+        appeal=appeal_detail,
+    )
+
+
+__all__ = [
+    "AdminReportAppealDetail",
+    "AdminReportDetail",
+    "AdminReportListItem",
+    "AdminReportNotFound",
+    "admin_report_detail",
+    "admin_report_list",
+]

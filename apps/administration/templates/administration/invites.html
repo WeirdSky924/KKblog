@@ -58,8 +58,8 @@
       {% if rows %}
         <form method="post" data-submit-once class="space-y-4">
           {% csrf_token %}<input type="hidden" name="action" value="preview_revoke">
-          <div class="overflow-x-auto" tabindex="0" aria-label="邀请码记录列表">
-            <table class="w-full">
+          <div class="admin-access-table-wrap" tabindex="0" aria-label="邀请码记录列表">
+            <table class="admin-access-table">
               <thead><tr><th>选择</th><th>尾号</th><th>状态</th><th>创建时间</th><th>到期时间</th><th>操作</th></tr></thead>
               <tbody>
                 {% for row in rows %}

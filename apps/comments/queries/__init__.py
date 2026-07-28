@@ -1,3 +1,13 @@
+from .administration import (
+    AdminCommentDetail,
+    AdminCommentItem,
+    AdminCommentNotFound,
+    AdminCommentThreadItem,
+    AdminCommentWorkspace,
+    admin_comment_detail,
+    admin_comment_workspace,
+    admin_comments_for_target,
+)
 from .management import (
     OwnerBufferedComment,
     OwnerCommentArticle,
@@ -32,6 +42,11 @@ from .threads import (
 )
 
 __all__ = [
+    "AdminCommentDetail",
+    "AdminCommentItem",
+    "AdminCommentNotFound",
+    "AdminCommentThreadItem",
+    "AdminCommentWorkspace",
     "BufferedCommentItem",
     "CommentCursorError",
     "CommentPanel",
@@ -47,6 +62,9 @@ __all__ = [
     "PublicReplyPage",
     "ReportableCommentTarget",
     "article_comment_access",
+    "admin_comment_detail",
+    "admin_comment_workspace",
+    "admin_comments_for_target",
     "article_comment_panel",
     "comment_thread_access",
     "comment_thread_panel",

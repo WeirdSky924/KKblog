@@ -29,7 +29,7 @@
 - 授权：`否`；生产账户管理动作 `是`。
 
 ### ADM-003 实现邀请码、IP 与临时安全限制管理
-- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：提供邀请码1..1000生成/一次原码/状态筛选/批量撤销/使用者详情；IP掩码列表/完整详情/备注/解封；清账户/IP验证码限制与登录限制。
 - 来源：访谈 Q126-Q134、Q226-Q229、Q292-Q294；`contracts/03-frontend-contract-map.md` §invites/ip；原型 notifications/users。
 - 依赖：前置 `ADM-001`、`ACC-002`、`ACC-009`、`ACC-010`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。
@@ -38,10 +38,11 @@
 - 影响：数据：委托Invite/IpBlock/Redis限制；权限：admin；审计：全部写；缓存：清Redis；异步无；媒体/通知无。
 - 测试/验收：Playwright批量边界、状态/掩码/详情、撤销/解封/清限；DB+Redis+审计读回。
 - 风险/停止：原码可回看、列表泄露IP、清除所有用户限制或普通管理员URL绕过即停止。
+- 证据：聚焦 RED `.venv/bin/pytest -q tests/test_adm003_temp.py` 在实现前退出 1，`3 failed`，分别准确暴露已用邀请码缺少账户详情、账户限制确认返回 404 和 IP 清限预览返回 422；实现只扩展 accounts owner 的邀请码 query/service 门面、限制清理端口和既有 administration form/view/template，不复制邀请码、封禁或 Redis 算法。聚焦 GREEN 同命令退出 0，`3 passed in 6.60s`；最终权限/安全错误探针与 ACC-002/009/010、现有 administration 回归退出 0，`27 passed in 15.78s`，其中普通账户对三页 GET/POST 均 403，限制 service 二次授权，未处理异常进入不泄密 500。目标 Ruff lint/format、Django check、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL/Redis/Mailpit 与真实 Chrome 读回：生成响应一次展示 16 字符 Crockford 原码，离开后历史只显示尾号；当前 2 条 REVOKED、1 条 USED，使用记录打开 `adm003-user@kaj.test` 详情；账户清限后密码失败、一小时登录限制和该账户邮箱计数三个键均不存在且登录不受限，目标 IP 计数为 0，另有 2 个邮箱键和 2 个 IP 键各保留值 1；旧 `198.51.100.201` 封禁已解除，新 `198.51.100.202` 封禁保持有效。10 条相关 AuditEntry 覆盖生成/撤销/封禁/解封/清限，审计安全字段不含目标完整 IP，邀请码持久字段只有 digest/尾号等且没有原码。`blog-playwright-cli` 验证 1440 light、768 eye-care、390 dark：三页文档宽等于视口，访问管理表在 390 为 `358→736` 局部滚动且键盘 ArrowRight 可达，三页无重复 ID，IP 输入各有唯一 label；撤销/清限确认初始焦点为取消，Escape 清理 query 并精确恢复触发点；无效 IP 与筛选返回 422、保留输入/显示安全错误，最终控制台 0 错误。浏览器、runserver、临时测试和截图已清理；P11 隔离支持容器留给下一任务。未执行生产 IP 封禁/解封、生产限制清理、生产 migration、真实邮件、部署、提交或推送。
 - 授权：`否`；真实IP封禁/解封 `是`。
 
 ### ADM-004 实现文章、评论、举报和申诉管理队列
-- 元数据：状态 `待处理`；阶段 P11；owner `administration`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P0。
 - 目标/行为：管理员查看任意文章并触发按日通知，只能隐藏已发布、删除/恢复；管理缓冲/按文章评论、直接删除理由、举报初审/申诉终局与证据详情。
 - 来源：访谈 Q105-Q125、Q302-Q313；`contracts/03-frontend-contract-map.md` §admin articles/comments/reports；原型 moderation/interactive-report。
 - 依赖：前置 `ADM-001`、`CNT-005`、`CMT-006`、`CMT-008`、`CMT-009`、`CMT-010`、`CMT-011`、`OBS-004`；后续 `QA-002`、`QA-003`、`QA-006`。

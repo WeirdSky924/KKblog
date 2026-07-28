@@ -164,6 +164,23 @@
   font-weight: 650;
 }
 
+.admin-access-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.administration-workspace .account-panel > * {
+  min-width: 0;
+}
+
+.admin-access-table {
+  width: 100%;
+  min-width: 46rem;
+}
+
 .administration-workspace .broadcast-header h1 {
   font-size: 2rem;
 }

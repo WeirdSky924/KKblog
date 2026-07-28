@@ -22,10 +22,16 @@ from .ports import (
     ReportEvidenceUpload,
 )
 from .queries import (
+    AdminReportAppealDetail,
+    AdminReportDetail,
+    AdminReportListItem,
+    AdminReportNotFound,
     ArticleAppealDetail,
     ArticleCaseDetail,
     ArticleCaseListItem,
     ArticleCaseNotFound,
+    admin_report_detail,
+    admin_report_list,
     article_case_detail,
     article_case_list,
 )
@@ -68,6 +74,10 @@ from .services import (
 )
 
 __all__ = [
+    "AdminReportAppealDetail",
+    "AdminReportDetail",
+    "AdminReportListItem",
+    "AdminReportNotFound",
     "ArticleAction",
     "ArticleAppeal",
     "ArticleAppealDetail",
@@ -106,6 +116,8 @@ __all__ = [
     "ReportSubmissionError",
     "DeletedAccountIdentity",
     "appeal_article_action",
+    "admin_report_detail",
+    "admin_report_list",
     "article_administrative_action_allowed",
     "article_case_detail",
     "article_case_list",

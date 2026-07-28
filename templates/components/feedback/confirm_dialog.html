@@ -25,6 +25,13 @@
     <h2 id="{{ dialog_id }}-title">{{ dialog_title }}</h2>
     <p id="{{ dialog_id }}-description">{{ dialog_description }}</p>
     {% if dialog_details %}<p>{{ dialog_details }}</p>{% endif %}
+    {% if dialog_field %}
+      <div>
+        {{ dialog_field.label_tag }}
+        {{ dialog_field.errors }}
+        {{ dialog_field }}
+      </div>
+    {% endif %}
     {{ confirmation_form.confirm.errors }}
     {{ confirmation_form.non_field_errors }}
     {% if dialog_feedback_id %}

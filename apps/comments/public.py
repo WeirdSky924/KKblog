@@ -21,6 +21,11 @@ from .presentation import (
     guestbook_comment_context,
 )
 from .queries import (
+    AdminCommentDetail,
+    AdminCommentItem,
+    AdminCommentNotFound,
+    AdminCommentThreadItem,
+    AdminCommentWorkspace,
     BufferedCommentItem,
     CommentCursorError,
     CommentPanel,
@@ -34,6 +39,9 @@ from .queries import (
     PublicCommentPage,
     PublicReplyPage,
     ReportableCommentTarget,
+    admin_comment_detail,
+    admin_comment_workspace,
+    admin_comments_for_target,
     article_comment_access,
     article_comment_panel,
     comment_thread_access,
@@ -85,6 +93,11 @@ from .targets import (
 )
 
 __all__ = [
+    "AdminCommentDetail",
+    "AdminCommentItem",
+    "AdminCommentNotFound",
+    "AdminCommentThreadItem",
+    "AdminCommentWorkspace",
     "CommentAccountPolicy",
     "CommentAuthorIdentity",
     "CommentAuthorPresentation",
@@ -129,6 +142,9 @@ __all__ = [
     "ReplyCommentForm",
     "TopLevelCommentResult",
     "article_comment_access",
+    "admin_comment_detail",
+    "admin_comment_workspace",
+    "admin_comments_for_target",
     "article_comment_context",
     "article_comment_panel",
     "comment_context_for_target",
