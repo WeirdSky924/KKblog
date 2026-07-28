@@ -79,9 +79,18 @@ class AccountDeletionConfirmationForm(forms.Form):
     )
 
 
+class AccountRestrictionConfirmationForm(forms.Form):
+    account_id = forms.UUIDField(widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("restriction", "确认清除限制"),),
+        widget=forms.HiddenInput,
+    )
+
+
 __all__ = [
     "AccountDeletionConfirmationForm",
     "AccountRoleConfirmationForm",
+    "AccountRestrictionConfirmationForm",
     "AccountStatusConfirmationForm",
     "AdminUserFilterForm",
 ]

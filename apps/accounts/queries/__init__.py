@@ -7,7 +7,7 @@ from .administration import (
     admin_account_detail,
     admin_account_page,
 )
-from .invites import InviteListItem, invite_list
+from .invites import InviteDetail, InviteListItem, invite_detail, invite_list
 from .ip_blocks import IpBlockDetail, IpBlockListItem, ip_block_detail, ip_block_list
 from .security_events import (
     SecurityEventDetail,
@@ -23,6 +23,7 @@ __all__ = [
     "AccountAdministrationQueryError",
     "AdminAccountItem",
     "AdminAccountPage",
+    "InviteDetail",
     "admin_account_detail",
     "admin_account_page",
     "InviteListItem",
@@ -32,6 +33,7 @@ __all__ = [
     "SecurityEventListItem",
     "SessionListItem",
     "invite_list",
+    "invite_detail",
     "ip_block_detail",
     "ip_block_list",
     "security_event_detail",

@@ -1,9 +1,15 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.accounts.models import InviteCode
+from apps.accounts.queries.administration import (
+    AccountAdministrationQueryError,
+    AdminAccountItem,
+    admin_account_detail,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +20,17 @@ class InviteListItem:
     expires_at: datetime
     redeemed_by_id: str | None
     created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class InviteDetail:
+    id: str
+    display_suffix: str
+    state: str
+    expires_at: datetime
+    created_at: datetime
+    redeemed_at: datetime | None
+    redeemed_account: AdminAccountItem | None
 
 
 def invite_list(*, state: str = "", now=None, limit: int = 200) -> list[InviteListItem]:
@@ -53,3 +70,30 @@ def invite_list(*, state: str = "", now=None, limit: int = 200) -> list[InviteLi
         )
         for invite in queryset
     ]
+
+
+def invite_detail(*, invite_id, actor_id, now=None) -> InviteDetail:
+    # Reuse the administrator account query as the owner-level permission check.
+    admin_account_detail(actor_id=actor_id, account_id=actor_id)
+    try:
+        invite = InviteCode.objects.get(pk=invite_id)
+    except (InviteCode.DoesNotExist, ValidationError):
+        raise AccountAdministrationQueryError("邀请码不存在") from None
+    redeemed_account = None
+    if invite.redeemed_by_id is not None:
+        redeemed_account = admin_account_detail(
+            actor_id=actor_id,
+            account_id=invite.redeemed_by_id,
+        )
+    return InviteDetail(
+        id=str(invite.id),
+        display_suffix=invite.display_suffix,
+        state=invite.state(now=now or timezone.now()),
+        expires_at=invite.expires_at,
+        created_at=invite.created_at,
+        redeemed_at=invite.redeemed_at,
+        redeemed_account=redeemed_account,
+    )
+
+
+__all__ = ["InviteDetail", "InviteListItem", "invite_detail", "invite_list"]

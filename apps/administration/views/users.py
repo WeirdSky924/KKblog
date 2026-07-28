@@ -6,6 +6,9 @@ from django.urls import reverse
 from apps.accounts.public import (
     AccountAdministrationQueryError,
     AccountLifecycleError,
+    RestrictionError,
+    clear_account_restrictions,
+    default_restriction_store,
     delete_account,
     is_administrator,
     set_account_enabled,
@@ -13,6 +16,7 @@ from apps.accounts.public import (
 )
 from apps.administration.forms.users import (
     AccountDeletionConfirmationForm,
+    AccountRestrictionConfirmationForm,
     AccountRoleConfirmationForm,
     AccountStatusConfirmationForm,
     AdminUserFilterForm,
@@ -73,6 +77,18 @@ def _dialog(kind: str, target, form) -> dict[str, str]:
             "return_focus_id": f"account-status-{target.account.account_id}",
             "return_url": f"{reverse('admin:users')}#user-list",
         }
+    if kind == "restriction":
+        return {
+            "title": "清除这个账户的临时安全限制？",
+            "description": (
+                f"账户 {display} 的密码登录失败计数、一小时登录限制和当日邮箱验证码发送计数会被清除。"
+            ),
+            "details": "其他账户、IP 验证码计数和永久 IP 封禁不会受影响。",
+            "action": "clear_restrictions",
+            "label": "确认清除",
+            "return_focus_id": f"account-restriction-{target.account.account_id}",
+            "return_url": f"{reverse('admin:users')}#user-list",
+        }
     return {
         "title": "确认永久删除这个账户？",
         "description": (
@@ -94,7 +110,7 @@ def _get_confirmation(request: HttpRequest, actor_id):
         actor_id=actor_id,
         account_id=request.GET.get("account_id", ""),
     )
-    if not target.can_manage:
+    if not target.can_manage and kind != "restriction":
         raise Http404
     if kind == "role":
         enabled = request.GET.get("enabled", "")
@@ -124,6 +140,13 @@ def _get_confirmation(request: HttpRequest, actor_id):
                 "account_id": target.account.account_id,
                 "expected_article_count": target.article_count,
                 "confirm": "delete",
+            }
+        )
+    elif kind == "restriction":
+        form = AccountRestrictionConfirmationForm(
+            initial={
+                "account_id": target.account.account_id,
+                "confirm": "restriction",
             }
         )
     else:
@@ -256,6 +279,30 @@ def _post(request: HttpRequest) -> HttpResponse:
         except AccountLifecycleError as exc:
             return _action_error(request, kind="status", form=form, message=str(exc))
         saved = "enabled" if result.status == "ACTIVE" else "disabled"
+    elif action == "clear_restrictions":
+        form = AccountRestrictionConfirmationForm(request.POST)
+        if not form.is_valid():
+            return _action_error(
+                request,
+                kind="restriction",
+                form=form,
+                message="请重新确认账户临时限制清理。",
+            )
+        try:
+            clear_account_restrictions(
+                actor_id=actor_id,
+                target_account_id=form.cleaned_data["account_id"],
+                store=default_restriction_store(),
+                **_meta(request),
+            )
+        except RestrictionError as exc:
+            return _action_error(
+                request,
+                kind="restriction",
+                form=form,
+                message=str(exc),
+            )
+        saved = "restrictions-cleared"
     elif action == "delete":
         form = AccountDeletionConfirmationForm(request.POST)
         if not form.is_valid():

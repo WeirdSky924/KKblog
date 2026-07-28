@@ -13,6 +13,7 @@
       {% if saved == "disabled" %}<p role="status">账户已禁用，现有会话已撤销。</p>{% endif %}
       {% if saved == "enabled" %}<p role="status">账户已启用，旧会话未恢复。</p>{% endif %}
       {% if saved == "deleted" %}<p role="status">账户及其关联内容已删除。</p>{% endif %}
+      {% if saved == "restrictions-cleared" %}<p role="status">账户的临时登录与邮箱验证码限制已清除。</p>{% endif %}
     </header>
 
     <form method="get" class="admin-users__filters" role="search">
@@ -61,8 +62,8 @@
                 <td>{% if row.account.status == "ACTIVE" %}正常{% else %}禁用{% endif %}</td>
                 <td>{{ row.article_count }}</td>
                 <td>
-                  {% if row.can_manage %}
-                    <div class="admin-users__actions">
+                  <div class="admin-users__actions">
+                    {% if row.can_manage %}
                       {% if row.account.is_author %}
                         <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">撤销作者</a>
                       {% else %}
@@ -74,10 +75,11 @@
                         <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">启用</a>
                       {% endif %}
                       <a id="account-delete-{{ row.account.account_id }}" href="?confirm_action=delete&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">删除</a>
-                    </div>
-                  {% else %}
-                    <span>唯一管理员受保护</span>
-                  {% endif %}
+                    {% else %}
+                      <span>唯一管理员受保护</span>
+                    {% endif %}
+                    <a id="account-restriction-{{ row.account.account_id }}" href="?confirm_action=restriction&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">清除临时限制</a>
+                  </div>
                 </td>
               </tr>
             {% endfor %}

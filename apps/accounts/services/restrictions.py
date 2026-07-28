@@ -7,6 +7,7 @@ from ipaddress import ip_address
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from redis import Redis
 
@@ -324,7 +325,11 @@ def clear_account_restrictions(
     audit_writer,
     clock: Clock | None = None,
 ) -> int:
-    account = Account.objects.get(pk=target_account_id)
+    _require_administrator(actor_id)
+    try:
+        account = Account.objects.get(pk=target_account_id)
+    except (Account.DoesNotExist, ValidationError):
+        raise RestrictionError("账户不存在") from None
     return _clear_with_audit(
         actor_id=actor_id,
         target_id=str(account.id),

@@ -11,8 +11,26 @@ class InviteGenerationForm(forms.Form):
 
 
 class InviteRevocationForm(forms.Form):
-    invite_ids = forms.MultipleChoiceField(label="选择邀请码")
+    invite_ids = forms.MultipleChoiceField(
+        label="选择邀请码",
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     def __init__(self, *args, invite_choices=(), **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["invite_ids"].choices = invite_choices
+
+
+class InviteRevocationConfirmationForm(InviteRevocationForm):
+    invite_ids = forms.MultipleChoiceField(widget=forms.MultipleHiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("revoke", "确认撤销"),),
+        widget=forms.HiddenInput,
+    )
+
+
+__all__ = [
+    "InviteGenerationForm",
+    "InviteRevocationConfirmationForm",
+    "InviteRevocationForm",
+]

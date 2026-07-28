@@ -3,56 +3,119 @@
 {% block title %}邀请码 · {{ site_presentation.site_name }}{% endblock %}
 
 {% block admin_content %}
-  <section class="space-y-8" aria-labelledby="invite-title">
-    <header>
-      <p class="text-sm text-[var(--text-secondary)]">管理 · 账号</p>
-      <h1 id="invite-title" class="text-3xl font-semibold">邀请码</h1>
-      <p>原码只在生成成功后显示一次，请立即安全交付。</p>
+  <section class="account-page account-page--wide" aria-labelledby="invite-title">
+    <header class="account-header">
+      <p class="account-kicker">管理 · 账号访问</p>
+      <h1 id="invite-title">邀请码</h1>
+      <p>生成后只展示一次原码；历史列表只保留尾号、状态和使用记录。</p>
+      {% if saved == "revoked" %}<p class="account-status" role="status">所选邀请码已撤销。</p>{% endif %}
+      {% if error %}<p role="alert" tabindex="-1">{{ error }}</p>{% endif %}
     </header>
-    {% if error %}<p role="alert" tabindex="-1">{{ error }}</p>{% endif %}
-    <form method="post" data-submit-once class="grid gap-4 md:grid-cols-3">
-      {% csrf_token %}<input type="hidden" name="action" value="generate">
-      {{ generation_form.as_div }}
-      <button class="button button--primary" type="submit">生成邀请码</button>
-    </form>
+
+    <section class="account-panel" aria-labelledby="invite-generate-title">
+      <div>
+        <h2 id="invite-generate-title">生成邀请码</h2>
+        <p>每次可生成 1 至 1000 个；离开结果页后不能再次查看原码。</p>
+      </div>
+      <form method="post" data-submit-once class="account-form account-form--inline">
+        {% csrf_token %}<input type="hidden" name="action" value="generate">
+        {{ generation_form.as_div }}
+        <button class="button button--primary" type="submit">生成邀请码</button>
+      </form>
+    </section>
+
     {% if issued %}
-      <section aria-labelledby="issued-title" class="space-y-3">
-        <h2 id="issued-title">本次生成结果</h2>
-        <p role="status">这些原码离开本页后无法再次查看。</p>
-        <ul class="grid gap-2 md:grid-cols-2">
-          {% for item in issued %}
-            <li><code>{{ item.raw_code }}</code> · {{ item.expires_at }}</li>
-          {% endfor %}
-        </ul>
-      </section>
-    {% endif %}
-    <nav aria-label="邀请码状态筛选" class="flex flex-wrap gap-3">
-      <a href="?">全部</a><a href="?state=ACTIVE">有效</a>
-      <a href="?state=USED">已使用</a><a href="?state=REVOKED">已撤销</a>
-      <a href="?state=EXPIRED">已过期</a>
-    </nav>
-    {% if rows %}
-      <form method="post" data-submit-once class="space-y-4">
-        {% csrf_token %}<input type="hidden" name="action" value="revoke">
-        <div class="overflow-x-auto">
+      <section class="account-panel" aria-labelledby="issued-title">
+        <div>
+          <h2 id="issued-title">本次生成结果</h2>
+          <p role="status" tabindex="-1">请立即安全交付；这些原码离开本页后无法再次查看。</p>
+        </div>
+        <div class="overflow-x-auto" tabindex="0" aria-label="本次生成的邀请码原码">
           <table class="w-full">
-            <thead><tr><th>选择</th><th>尾号</th><th>状态</th><th>到期</th><th>使用者</th></tr></thead>
+            <thead><tr><th>原码</th><th>到期时间</th></tr></thead>
             <tbody>
-              {% for row in rows %}
-                <tr>
-                  <td>{% if row.state == "ACTIVE" %}<input type="checkbox" name="invite_ids" value="{{ row.id }}" aria-label="选择尾号 {{ row.display_suffix }}">{% endif %}</td>
-                  <td>•••• {{ row.display_suffix }}</td><td>{{ row.state }}</td>
-                  <td>{{ row.expires_at }}</td><td>{{ row.redeemed_by_id|default:"—" }}</td>
-                </tr>
+              {% for item in issued %}
+                <tr><td><code>{{ item.raw_code }}</code></td><td>{{ item.expires_at|date:"Y-m-d H:i" }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        {% if revoke_form.errors %}<div role="alert">{{ revoke_form.errors }}</div>{% endif %}
-        <button class="button button--secondary" type="submit">撤销所选</button>
-      </form>
-    {% else %}
-      <p>当前没有符合条件的邀请码，可以先生成一批。</p>
+      </section>
+    {% endif %}
+
+    <section class="account-panel" aria-labelledby="invite-history-title">
+      <div>
+        <h2 id="invite-history-title">邀请码记录</h2>
+        <p>可筛选状态；仍有效的邀请码支持单独或批量撤销。</p>
+      </div>
+      <nav aria-label="邀请码状态筛选" class="flex flex-wrap gap-3">
+        <a href="?" {% if not selected_state %}aria-current="page"{% endif %}>全部</a>
+        <a href="?state=ACTIVE" {% if selected_state == "ACTIVE" %}aria-current="page"{% endif %}>有效</a>
+        <a href="?state=USED" {% if selected_state == "USED" %}aria-current="page"{% endif %}>已使用</a>
+        <a href="?state=REVOKED" {% if selected_state == "REVOKED" %}aria-current="page"{% endif %}>已撤销</a>
+        <a href="?state=EXPIRED" {% if selected_state == "EXPIRED" %}aria-current="page"{% endif %}>已过期</a>
+      </nav>
+      {% if rows %}
+        <form method="post" data-submit-once class="space-y-4">
+          {% csrf_token %}<input type="hidden" name="action" value="preview_revoke">
+          <div class="overflow-x-auto" tabindex="0" aria-label="邀请码记录列表">
+            <table class="w-full">
+              <thead><tr><th>选择</th><th>尾号</th><th>状态</th><th>创建时间</th><th>到期时间</th><th>操作</th></tr></thead>
+              <tbody>
+                {% for row in rows %}
+                  <tr>
+                    <td>{% if row.state == "ACTIVE" %}<input type="checkbox" name="invite_ids" value="{{ row.id }}" aria-label="选择尾号 {{ row.display_suffix }}">{% else %}—{% endif %}</td>
+                    <td><code>•••• {{ row.display_suffix }}</code></td>
+                    <td>{{ row.state }}</td>
+                    <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>{{ row.expires_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                      {% if row.state == "ACTIVE" %}
+                        <a id="invite-revoke-{{ row.id }}" href="?{% if selected_state %}state={{ selected_state }}&amp;{% endif %}confirm={{ row.id }}#invite-history-title" data-dialog-trigger data-dialog-return-hash="invite-history-title" aria-controls="invite-revoke-dialog">单独撤销</a>
+                      {% elif row.state == "USED" %}
+                        <a href="?state=USED&amp;detail={{ row.id }}#invite-detail">查看使用账户</a>
+                      {% else %}—{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if has_revoke_choices %}
+            {{ revoke_form.invite_ids.errors }}
+            {{ revoke_form.non_field_errors }}
+            <button id="invite-revoke-selected" class="button button--secondary" type="submit">撤销所选</button>
+          {% endif %}
+        </form>
+      {% else %}
+        <div class="session-empty">
+          <h3>当前没有符合条件的邀请码</h3>
+          <p>{% if selected_state %}切换状态筛选查看其他记录。{% else %}可以先生成一批邀请码。{% endif %}</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if detail %}
+      <aside id="invite-detail" class="account-panel" aria-labelledby="invite-detail-title">
+        <div>
+          <p class="account-kicker">尾号 {{ detail.display_suffix }}</p>
+          <h2 id="invite-detail-title">使用账户详情</h2>
+        </div>
+        <dl class="session-meta">
+          <div><dt>账户</dt><dd>{{ detail.redeemed_account.display_name }}</dd></div>
+          <div><dt>邮箱</dt><dd>{{ detail.redeemed_account.email }}</dd></div>
+          <div><dt>账户状态</dt><dd>{{ detail.redeemed_account.status }}</dd></div>
+          <div><dt>使用时间</dt><dd>{{ detail.redeemed_at|date:"Y-m-d H:i:s" }}</dd></div>
+        </dl>
+        <span class="flex flex-wrap gap-3">
+          <a href="{% url 'admin:users' %}?q={{ detail.redeemed_account.email|urlencode }}">前往用户管理</a>
+          <a href="?state=USED">关闭详情</a>
+        </span>
+      </aside>
     {% endif %}
   </section>
+
+  {% if revoke_confirmation %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="invite-revoke-dialog" dialog_open=revocation_dialog_open dialog_title=revocation_title dialog_description="撤销后邀请码立即失效，历史记录仍会保留；已使用或已失效的邀请码不会被修改。" dialog_return_focus_id=confirmation_focus_id dialog_return_url=revocation_return_url action_value="revoke" confirmation_form=revoke_confirmation confirm_label="确认撤销" %}
+  {% endif %}
 {% endblock %}
