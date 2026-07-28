@@ -1,4 +1,4 @@
-{% load static %}
+{% load static tz %}
 <div id="author-article-workspace" class="article-workspace" aria-live="polite">
   {% if request.GET.cancelled == "1" %}<p class="author-editor-resolution" role="status">定时发布已取消，文章已回到草稿。</p>{% endif %}
   <nav class="authoring-tabs" aria-label="文章状态">
@@ -42,7 +42,7 @@
               <div><dt>版本</dt><dd>第 {{ item.sequence }} 版</dd></div>
               <div>
                 <dt>{{ item.timing_label }}</dt>
-                <dd><time datetime="{{ item.timing_value|date:'c' }}">{{ item.timing_value|date:"Y-m-d H:i" }}</time></dd>
+                <dd>{% timezone "Asia/Shanghai" %}<time datetime="{{ item.timing_value|date:'c' }}">{{ item.timing_value|date:"Y-m-d H:i" }}</time>{% endtimezone %}</dd>
               </div>
             </dl>
             {% if item.has_unpublished_changes %}

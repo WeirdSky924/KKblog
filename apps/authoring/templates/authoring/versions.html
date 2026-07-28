@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static tz %}
 
 {% block title %}版本时间线 · {{ site_presentation.site_name }}{% endblock %}
 {% block body_class %}site-shell authoring-shell{% endblock %}
@@ -25,7 +25,7 @@
                 <span class="author-version-number">{{ item.sequence|stringformat:"02d" }}</span>
                 <span class="author-version-main">
                   <strong>版本 {{ item.sequence }}</strong>
-                  <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"Y-m-d H:i" }}</time>
+                  {% timezone "Asia/Shanghai" %}<time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"Y-m-d H:i" }}</time>{% endtimezone %}
                   <small>{{ item.format_label }} · {{ item.visibility_label }}</small>
                 </span>
                 <span class="author-version-flags">

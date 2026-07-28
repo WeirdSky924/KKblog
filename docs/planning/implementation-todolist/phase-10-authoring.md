@@ -55,7 +55,7 @@
 - 证据：临时聚焦 RED `pytest apps/authoring/tests/test_aut004.py -q` 在缺少 authoring 冲突恢复入口和展示契约时退出 1；实现 conflict grant 恢复、版本元数据 presenter、409 partial、编辑区冻结、明确的本地稿保留选择和基线令牌桥接后，AUT-004 四用例与 CNT-006 三用例组合 GREEN 退出 0，`7 passed`。本次新鲜复核中，CNT-006 聚焦退出 0，`3 passed`；CNT-002/003/004/006/007 相关回归退出 0，`29 passed`；目标 Ruff lint/format、Django check、migration drift、完整前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回修订数 4、`row_version=4`、working 版本 4、published 版本 1、未解决 conflict grant 为 0；选择版本 1 的 HTMX 响应显示“已选择版本 1”、画布加载“读者稳定版本”且保存恢复可用，刷新安全回到当前云 working revision。真实文章页继续读回“读者稳定版本”，证明选择基线未移动发布指针。`blog-playwright-cli` 由 `blog-browser` 运行，重新核验 390 护眼、768 深色、1440 浅色原尺寸截图无重叠、裁切或横向溢出，冲突区自动聚焦、编辑/保存冻结、键盘可达且 Lucide 图标完整；专用浏览器与 runserver 已关闭，回归数据库不存在、Redis DB 15 为 0。未执行生产 migration、生产数据、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-005 实现终稿审查、立即/定时发布与版本时间线 UI
-- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P10；owner `authoring`；优先级 P0。
 - 目标/行为：完整文章审查可返回编辑；确认必选立即或定时；关闭未确认保留草稿；版本时间线可预览/恢复并再次审查；自动重发偏好仅用于已发布普通编辑。
 - 来源：访谈 Q050-Q053、Q263-Q264、Q298；`modules/07-authoring-workbench.md` §发布审查；原型 editor/authorlist。
 - 依赖：前置 `AUT-001`、`AUT-002`、`AUT-003`、`AUT-004`、`CNT-003`、`CNT-004`、`CNT-007`；后续 `QA-003`、`QA-006`。
@@ -65,9 +65,10 @@
 - 测试/验收：Playwright返回编辑/关闭/立即/排期/恢复/自动重发，读者并行验证旧版到确认前不变；390/1440。
 - 风险/停止：审查令牌可重放、退出丢稿、排期时区错或UI在Job前显示发布完成即停止。
 - 授权：`否`。
+- 证据：真实浏览器 RED 先读回排期 422 被重置为“立即发布”、错误字段未聚焦，且 UTC `2099-07-30 01:30` 被列表/回执错误展示；修复后临时聚焦 `pytest apps/authoring/tests/test_aut005.py -q` 退出 0、`2 passed`，证明 422 保留定时选择、标记错误焦点及两个真实模板输出上海 `09:30/+08:00`，临时测试和 `__pycache__` 随后删除。CNT-003/004/007 与架构联合回归退出 0、`19 passed`；目标 Ruff lint/format、Django check、migration drift、npm build 与 `git diff --check` 均退出 0。`blog-playwright-cli` 由 `blog-browser` 完成返回编辑、未确认退出、立即发布、读者旧版稳定、版本元数据延迟加载、历史恢复创建新修订并再次审查、排期/取消和自动重发；恢复确认前读者仍见第三版，恢复发布后读者见第一版，自动重发后数据库为 `PUBLISHED|published_revision_id=working_revision_id|sequence=5` 且读者正文为“自动重发读者正文”。排期列表与成功回执显示 `2099-07-30 09:30/+08:00`，PostgreSQL 仍保存 UTC `01:30`，取消后状态回到 DRAFT 且排期字段为空。立即/自动发布均清除目标文章全部本地基线键和 pending marker，同时保留另一文章控制键。390 深色审查、768 护眼版本、1440 浅色创作偏好原尺寸截图位于 `output/playwright/p10-aut005/`；三视口页面宽度等于视口、Lucide 残留 0、跳到主内容焦点正确、控制台 0 error/0 warning。全仓 Ruff 仍准确报告基线已有的 `apps/comments/tests/test_cmt004.py` 导入顺序问题，该文件无本轮差异且按测试文件交付规则未修改；AUT-005 隔离 PostgreSQL 两库已定向删除，专用 Redis DB 15 从 3 键清至 0。未执行生产 migration、生产服务、部署、真实邮件或本轮 Git 交付。
 
 ### AUT-006 实现作者评论管理与导入编排页面
-- 元数据：状态 `待处理`；阶段 P10；owner `authoring`；优先级 P1。
+- 元数据：状态 `进行中`；阶段 P10；owner `authoring`；优先级 P1。
 - 目标/行为：评论管理首版只有“10分钟缓冲卡片”和“按文章”两tabs，可关闭评论/删除；导入页面完成上传、逐项预览/选择/映射/结果编排。
 - 来源：访谈 Q105-Q106、Q262、Q275-Q280；`modules/07-authoring-workbench.md` §作者评论/导入；原型 authorops。
 - 依赖：前置 `CMT-004`、`CMT-005`、`CMT-006`、`EXC-001`、`EXC-002`、`EXC-003`；后续 `QA-003`、`QA-006`。

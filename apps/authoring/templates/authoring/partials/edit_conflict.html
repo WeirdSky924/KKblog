@@ -1,3 +1,4 @@
+{% load tz %}
 <section
   class="author-conflict"
   aria-labelledby="edit-conflict-title"
@@ -39,7 +40,7 @@
           >
           <span class="author-conflict__version-main">
             <strong>版本 {{ revision.sequence }}</strong>
-            <time datetime="{{ revision.created_at|date:'c' }}">{{ revision.created_at|date:"Y-m-d H:i" }}</time>
+            {% timezone "Asia/Shanghai" %}<time datetime="{{ revision.created_at|date:'c' }}">{{ revision.created_at|date:"Y-m-d H:i" }}</time>{% endtimezone %}
           </span>
           <span class="author-conflict__version-meta">
             <span>{{ revision.format_label }}</span>

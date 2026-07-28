@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static tz %}
 
 {% block title %}终稿审查 · {{ site_presentation.site_name }}{% endblock %}
 {% block body_class %}site-shell authoring-shell{% endblock %}
@@ -17,7 +17,7 @@
         {% if review %}
           <span class="author-publication__expiry">
             <i data-lucide="timer"></i>
-            审查有效至 <time datetime="{{ review.expires_at|date:'c' }}">{{ review.expires_at|date:"H:i" }}</time>
+            审查有效至 {% timezone "Asia/Shanghai" %}<time datetime="{{ review.expires_at|date:'c' }}">{{ review.expires_at|date:"H:i" }}</time>{% endtimezone %}
           </span>
         {% endif %}
       </header>
