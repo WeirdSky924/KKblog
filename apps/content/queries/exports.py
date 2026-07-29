@@ -7,6 +7,7 @@ from apps.core.ids import normalize_ulid
 from apps.media.public import render_tiptap
 
 from ..models import Article, ArticleRevision
+from ..rendering_policy import configured_content_embed_policy
 from .discovery import sanitized_article_plain_text
 
 
@@ -210,7 +211,10 @@ def export_revision_payloads(*, revision_ids) -> tuple[ExportRevisionPayload, ..
         convenience_markdown = revision.body_markdown or ""
         if tiptap_source is not None:
             convenience_markdown = sanitized_article_plain_text(
-                render_tiptap(tiptap_source).html
+                render_tiptap(
+                    tiptap_source,
+                    embed_policy=configured_content_embed_policy(),
+                ).html
             )
         tags = tuple(
             ExportRevisionTag(item.tag_id, item.tag.name, item.tag.state)

@@ -23,7 +23,9 @@ class BackupRecordItem:
     restore_verified: bool = False
 
 
-def backup_records(*, limit: int = 100) -> tuple[BackupRecordItem, ...]:
+def backup_records(*, is_admin: bool, limit: int = 100) -> tuple[BackupRecordItem, ...]:
+    if not is_admin:
+        raise PermissionError("Backup record access denied")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
         raise ValueError("Backup record limit is invalid")
     return tuple(

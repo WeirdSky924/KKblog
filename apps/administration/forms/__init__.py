@@ -27,3 +27,20 @@ __all__ = [
     "BroadcastForm",
     "BroadcastVisibilityForm",
 ]
+from .site_settings import (
+    FriendLinkDeleteForm,
+    FriendLinkForm,
+    GuestbookSettingsForm,
+    SiteConfigurationForm,
+    StaticPageForm,
+    TrustedSourceForm,
+)
+
+__all__ = [
+    "FriendLinkDeleteForm",
+    "FriendLinkForm",
+    "GuestbookSettingsForm",
+    "SiteConfigurationForm",
+    "StaticPageForm",
+    "TrustedSourceForm",
+]

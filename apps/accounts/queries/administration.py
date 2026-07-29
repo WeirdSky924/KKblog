@@ -50,6 +50,13 @@ class AdminAccountPage:
     has_next: bool
 
 
+@dataclass(frozen=True, slots=True)
+class AdminAuthorChoice:
+    account_id: UUID
+    email: str
+    display_name: str
+
+
 def _administrator(value) -> UUID:
     try:
         actor_id = UUID(str(value))
@@ -146,12 +153,38 @@ def admin_account_detail(*, actor_id, account_id) -> AdminAccountItem:
     return _item(account)
 
 
+def admin_author_choices(
+    *, actor_id, limit: int = 500
+) -> tuple[AdminAuthorChoice, ...]:
+    _administrator(actor_id)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+        raise AccountAdministrationQueryError("作者选项数量无效")
+    rows = (
+        Account.objects.filter(
+            status=Account.Status.ACTIVE,
+            roles__role=RoleAssignment.Role.AUTHOR,
+        )
+        .order_by("email", "id")
+        .distinct()[:limit]
+    )
+    return tuple(
+        AdminAuthorChoice(
+            account_id=account.id,
+            email=account.email,
+            display_name=account.nickname or account.email.split("@", 1)[0],
+        )
+        for account in rows
+    )
+
+
 __all__ = [
     "ADMIN_ACCOUNT_PAGE_SIZES",
     "ADMIN_ACCOUNT_STATUSES",
     "AccountAdministrationQueryError",
     "AdminAccountItem",
     "AdminAccountPage",
+    "AdminAuthorChoice",
     "admin_account_detail",
     "admin_account_page",
+    "admin_author_choices",
 ]

@@ -191,7 +191,7 @@ ANALYTICS_ENABLED = False
 ANALYTICS_DATABASE_URL = ""
 ANALYTICS_WEBSITE_ID = ""
 NAVIGATION_SITE_PRESENTATION_PROVIDER = (
-    "apps.navigation.public.default_site_presentation"
+    "apps.navigation.presentation.provider.database_site_presentation"
 )
 
 LOGGING = {

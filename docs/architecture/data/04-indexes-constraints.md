@@ -23,7 +23,7 @@
 | `report_appeal` | `report_id` 唯一 |
 | `notification_receipt` | `(notification_id, recipient_id)` 唯一 |
 | `task_run` | `(task_name, idempotency_key)` 唯一 |
-| `export_job` | `state=RUNNING` 全局部分唯一 |
+| `export_job` | `state IN (RUNNING, CANCEL_REQUESTED)` 全局部分唯一 |
 | `navigation_node` | 深度 `0..2`；父子不能形成环由延迟触发器或服务加锁校验 |
 
 “恰好一个管理员”“每篇最多十标签”“父评论同线程”“修订指针同文章”在普通 `CHECK` 难以完整表达时，使用以下优先级：原生唯一/外键约束、延迟约束触发器、加锁的领域服务、数据库回归测试。不要只在表单层校验。
@@ -40,7 +40,7 @@
 | 评论回复 | 锁 parent 或 thread；计算 depth 并原子增加根评论 reply_count |
 | 评论缓冲公开 | 条件更新 `BUFFERED -> VISIBLE`，重复运行影响行数为零 |
 | 举报裁决 | 锁 Report；只允许从当前状态走一条合法边 |
-| 单全局导出 | 先插入 `RUNNING`，以部分唯一冲突作为最终并发裁决 |
+| 单全局导出 | 先插入 `RUNNING`，并让 `RUNNING/CANCEL_REQUESTED` 共用部分唯一约束作为最终并发裁决 |
 | 软删除到期清理 | `skip_locked` 小批量领取；每个文章独立事务与幂等文件清理 |
 
 默认使用 PostgreSQL `READ COMMITTED` 加显式行锁，不为“看起来更安全”全局升到 SERIALIZABLE。只有已证明的跨行写偏差再局部采用更高隔离级别。

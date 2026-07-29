@@ -38,13 +38,13 @@
     {% if site_presentation.navigation %}
       <div class="site-nav site-nav--desktop">
         <nav aria-label="站点导航">
-          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False mobile=False only %}
         </nav>
       </div>
       <details class="site-nav site-nav--mobile">
         <summary><i data-lucide="menu"></i><span>站点导航</span></summary>
         <nav aria-label="站点导航">
-          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+          {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False mobile=True only %}
         </nav>
       </details>
     {% endif %}

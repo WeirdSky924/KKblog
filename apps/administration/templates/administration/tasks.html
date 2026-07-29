@@ -1,0 +1,161 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}任务与健康 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-operations" aria-labelledby="tasks-title">
+    <header class="admin-operations__header">
+      <p>管理 · 运行状态</p>
+      <h1 id="tasks-title">任务与健康</h1>
+      <p>后台任务只显示持久化状态，最终失败由既有告警流程处理。</p>
+    </header>
+
+    <dl class="admin-operations__summary">
+      <div><dt>当前列表</dt><dd>{{ task_rows|length }}</dd></div>
+      <div><dt>容量来源</dt><dd>{{ monitoring.capacity|length }}</dd></div>
+      <div><dt>活动告警</dt><dd>{{ monitoring.active_alerts|length }}</dd></div>
+    </dl>
+
+    <section class="admin-operations__section" aria-labelledby="health-title">
+      <div class="admin-operations__section-heading">
+        <div>
+          <span aria-hidden="true">01</span>
+          <h2 id="health-title">健康与容量</h2>
+        </div>
+      </div>
+
+      <div class="admin-operations__split">
+        <div>
+          <h3>容量</h3>
+          {% if monitoring.capacity %}
+            <div class="admin-operations__table-wrap" tabindex="0" aria-label="容量状态列表">
+              <table>
+                <thead><tr><th>来源</th><th>状态</th><th>剩余</th><th>采样时间</th></tr></thead>
+                <tbody>
+                  {% for row in monitoring.capacity %}
+                    <tr>
+                      <td>{{ row.source_key }}</td>
+                      <td>
+                        <strong data-operation-state="{{ row.state }}">
+                          {% if row.state == "normal" %}正常{% elif row.state == "warn" %}告警{% elif row.state == "no_image" %}暂停图片创建{% else %}只读{% endif %}
+                        </strong>
+                      </td>
+                      <td>{{ row.free_bytes|filesizeformat }} / {{ row.total_bytes|filesizeformat }}</td>
+                      <td>{{ row.observed_at|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="admin-operations__empty">尚无容量采样。</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <h3>服务</h3>
+          {% if monitoring.services %}
+            <div class="admin-operations__table-wrap" tabindex="0" aria-label="服务健康列表">
+              <table>
+                <thead><tr><th>服务</th><th>状态</th><th>连续失败</th><th>最近检查</th></tr></thead>
+                <tbody>
+                  {% for row in monitoring.services %}
+                    <tr>
+                      <td>{{ row.source_key }}</td>
+                      <td>
+                        <strong data-operation-state="{{ row.status }}">
+                          {% if row.status == "healthy" %}正常{% else %}不可用{% endif %}
+                        </strong>
+                      </td>
+                      <td>{{ row.consecutive_failures }}</td>
+                      <td>{{ row.last_checked_at|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="admin-operations__empty">尚无服务健康采样。</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-operations__alerts">
+        <h3>活动告警</h3>
+        {% if monitoring.active_alerts %}
+          <div class="admin-operations__table-wrap" tabindex="0" aria-label="活动告警列表">
+            <table>
+              <thead><tr><th>来源</th><th>类型</th><th>级别</th><th>状态</th><th>最近发生</th></tr></thead>
+              <tbody>
+                {% for row in monitoring.active_alerts %}
+                  <tr>
+                    <td>{{ row.source_key }}</td>
+                    <td>
+                      {% if row.kind == "task_final_failed" %}任务最终失败{% elif row.kind == "capacity" %}容量{% elif row.kind == "service_health" %}服务健康{% else %}未知{% endif %}
+                    </td>
+                    <td>
+                      <strong data-operation-state="{{ row.severity }}">
+                        {% if row.severity == "warning" %}警告{% elif row.severity == "critical" %}严重{% else %}未知{% endif %}
+                      </strong>
+                    </td>
+                    <td>
+                      {% if row.kind == "task_final_failed" %}最终失败{% elif row.state_code == "normal" %}正常{% elif row.state_code == "warn" %}告警{% elif row.state_code == "no_image" %}暂停图片创建{% elif row.state_code == "read_only" %}只读{% elif row.state_code == "healthy" %}正常{% elif row.state_code == "unavailable" %}不可用{% else %}未知{% endif %}
+                    </td>
+                    <td>{{ row.last_seen_at|date:"Y-m-d H:i:s" }} · {{ row.occurrence_count }} 次</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="admin-operations__empty">当前没有活动告警。</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="admin-operations__section" aria-labelledby="task-list-title">
+      <div class="admin-operations__section-heading">
+        <div>
+          <span aria-hidden="true">02</span>
+          <h2 id="task-list-title">任务记录</h2>
+        </div>
+        <p>最多显示最近 200 条</p>
+      </div>
+      <form method="get" class="admin-operations__filter">
+        <div>
+          {{ task_filter_form.status.label_tag }}
+          {{ task_filter_form.status.errors }}
+          {{ task_filter_form.status }}
+        </div>
+        <button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+      </form>
+      {% if task_rows %}
+        <div class="admin-operations__table-wrap" tabindex="0" aria-label="后台任务记录">
+          <table class="admin-operations__task-table">
+            <thead><tr><th>任务</th><th>状态</th><th>尝试</th><th>时间</th><th>诊断</th></tr></thead>
+            <tbody>
+              {% for row in task_rows %}
+                <tr id="task-{{ row.run_id }}">
+                  <td><strong>{{ row.task_name }}</strong><small>{{ row.business_object }}</small></td>
+                  <td>
+                    <strong data-operation-state="{{ row.status }}">
+                      {% if row.status == "pending" %}等待执行{% elif row.status == "running" %}进行中{% elif row.status == "retry_wait" %}等待重试{% elif row.status == "succeeded" %}已成功{% else %}最终失败{% endif %}
+                    </strong>
+                  </td>
+                  <td>{{ row.attempt }}</td>
+                  <td>
+                    <span>计划 {{ row.scheduled_at|date:"Y-m-d H:i:s" }}</span>
+                    {% if row.completed_at %}<small>结束 {{ row.completed_at|date:"Y-m-d H:i:s" }}</small>{% endif %}
+                  </td>
+                  <td><code>{{ row.trace_code }}</code>{% if row.last_error_code %}<small>{{ row.last_error_code }}</small>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="admin-operations__empty">当前条件下没有任务记录。</p>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}

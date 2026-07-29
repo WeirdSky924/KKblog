@@ -1,0 +1,66 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}公共导航树 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue navigation-manager" aria-labelledby="admin-navigation-title">
+    <header class="admin-queue__header">
+      <p>管理 · 公开站点结构</p>
+      <h1 id="admin-navigation-title">公共导航树</h1>
+      <p>管理站内页、文章分区和安全外链节点。</p>
+      {% if saved == "created" %}<p role="status">导航节点已创建。</p>{% endif %}
+      {% if saved == "edited" %}<p role="status">导航节点已更新。</p>{% endif %}
+      {% if saved == "hidden" %}<p role="status">导航子树已从公开 Header 隐藏。</p>{% endif %}
+      {% if saved == "shown" %}<p role="status">导航子树已恢复公开展示。</p>{% endif %}
+      {% if saved == "moved" %}<p role="status">导航子树已移动并重新连续排序。</p>{% endif %}
+      {% if saved == "deleted" %}<p role="status">已删除 {{ deleted_count }} 个导航节点。</p>{% endif %}
+    </header>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if tree_unavailable and trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
+
+    {% if not tree_unavailable %}
+      <form method="post" class="navigation-manager__create" data-submit-once data-navigation-node-form>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="navigation_create">
+        {% for hidden in create_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div>{{ create_form.label.label_tag }}{{ create_form.label.errors }}{{ create_form.label }}</div>
+        <div>{{ create_form.node_type.label_tag }}{{ create_form.node_type.errors }}{{ create_form.node_type }}</div>
+        <div data-navigation-target="url">{{ create_form.target_url.label_tag }}{{ create_form.target_url.errors }}{{ create_form.target_url }}{% if create_form.target_url.help_text %}<p class="form-help">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
+        <div data-navigation-target="section">{{ create_form.section_id.label_tag }}{{ create_form.section_id.errors }}{{ create_form.section_id }}</div>
+        <div>{{ create_form.parent_id.label_tag }}{{ create_form.parent_id.errors }}{{ create_form.parent_id }}</div>
+        <div>{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}</div>
+        {{ create_form.non_field_errors }}
+        <button class="button button--primary" type="submit">新增导航节点</button>
+      </form>
+
+      <div class="navigation-manager__legend" aria-label="导航状态说明">
+        <span>树版本 {{ tree.tree_version }}</span>
+        <span>{{ tree.flat_nodes|length }} 个节点</span>
+      </div>
+
+      <section id="navigation-tree" class="navigation-manager__workspace" aria-labelledby="navigation-tree-title">
+        <header><h2 id="navigation-tree-title">当前导航结构</h2></header>
+        {% if rows %}
+          <ol class="navigation-tree" data-navigation-tree>
+            {% for row in rows %}{% include "administration/partials/navigation_node.html" with row=row tree=tree csrf_token=csrf_token only %}{% endfor %}
+          </ol>
+        {% else %}
+          <div class="admin-queue__empty"><h3>公共导航当前为空</h3><p>登录、注册和个人菜单由系统管理，不属于公共导航树。</p></div>
+        {% endif %}
+      </section>
+
+      <form method="post" data-navigation-drag-form hidden>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="navigation_move">
+        <input type="hidden" name="node_id" value="">
+        <input type="hidden" name="new_parent_id" value="">
+        <input type="hidden" name="new_position" value="0">
+        <input type="hidden" name="expected_tree_version" value="{{ tree.tree_version }}">
+        <input type="hidden" name="expected_versions" value="{{ tree.version_snapshot }}">
+      </form>
+    {% endif %}
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="navigation-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_form_fields=dialog.form_fields dialog_node_form=dialog.form_fields confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}

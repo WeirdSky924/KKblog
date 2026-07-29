@@ -68,9 +68,10 @@ presentation (templates/views/htmx)
 
 ```text
 authoring --------> content / media / comments / exchange
-administration ---> accounts / content / comments / moderation / notifications / navigation / operations
+administration ---> accounts / content / comments / exchange / moderation / notifications / navigation / operations
 discovery --------> content public queries / comments public queries / navigation public queries
 content ----------> accounts public / media public / operations public
+navigation -------> accounts public / content public / operations public
 media/comments/moderation -------------> operations public
 domain app -------> core protocols
 domain event -----> outbox -----> other domain consumer

@@ -8,6 +8,7 @@ from apps.discovery.profile_identity import configure_profile_identity_provider
 from apps.operations.public import capture_runtime_error, record_audit_entry
 from config.comment_integrations import configure_comment_integrations
 from config.moderation_integrations import configure_moderation_integrations
+from config.navigation_integrations import configure_navigation_integrations
 
 
 def _public_profile_identity(account_id):
@@ -22,6 +23,7 @@ configure_runtime_error_sink(capture_runtime_error)
 configure_profile_identity_provider(_public_profile_identity)
 configure_comment_integrations()
 configure_moderation_integrations()
+configure_navigation_integrations()
 
 handler403 = permission_denied
 handler404 = not_found

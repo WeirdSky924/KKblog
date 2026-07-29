@@ -13,6 +13,8 @@
 @import "./comments.css";
 @import "./moderation.css";
 @import "./administration.css";
+@import "./administration-navigation.css";
+@import "./administration-operations.css";
 @import "./analytics.css";
 @import "./authoring.css";
 @import "./authoring-publication.css";

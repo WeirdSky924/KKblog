@@ -1,13 +1,15 @@
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.audit import record_profile_audit
-from apps.accounts.policies.registration import RegistrationPolicy
+from apps.accounts.policies.registration import (
+    RegistrationPolicy,
+    configured_registration_policy,
+)
 from apps.accounts.presentation.cookies import delete_session_cookie, set_session_cookie
 from apps.accounts.presentation.forms import (
     AuthorPreferenceForm,
@@ -71,9 +73,7 @@ def _safe_next(request: HttpRequest) -> str:
 
 
 def _policy() -> RegistrationPolicy:
-    return RegistrationPolicy(
-        direct_enabled=bool(getattr(settings, "DIRECT_REGISTRATION_ENABLED", False))
-    )
+    return configured_registration_policy()
 
 
 def _user_agent_summary(request: HttpRequest) -> str:

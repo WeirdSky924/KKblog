@@ -1,5 +1,6 @@
 from .archive_storage import ExportArchiveBoundaryError, ExportArchiveStorage
 from .consumers import consume_export_task_final_failure
+from .queries import ExportJobItem, export_job_detail, export_job_records
 from .services import (
     DEFAULT_IMPORT_LIMITS,
     ExportBuildResult,
@@ -79,6 +80,7 @@ __all__ = [
     "ExportExpireResult",
     "ExportFailureResult",
     "ExportLifecycleError",
+    "ExportJobItem",
     "consume_export_task_final_failure",
     "ImportStaging",
     "classify_import_preview",
@@ -89,6 +91,8 @@ __all__ = [
     "due_export_expiry_ids",
     "expire_export",
     "export_download",
+    "export_job_detail",
+    "export_job_records",
     "import_preview",
     "process_import_job",
     "mark_export_task_final_failed",

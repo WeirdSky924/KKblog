@@ -9,6 +9,7 @@ from apps.exchange.public import consume_export_task_final_failure
 from apps.moderation.consumers.account_deletion import (
     consume_account_deleted as consume_moderation_account_deleted,
 )
+from apps.navigation.consumers import consume_navigation_section_event
 from apps.notifications.public import (
     consume_account_deleted,
     consume_author_role_changed,
@@ -78,6 +79,7 @@ _TERMINAL_EVENTS = frozenset(
         "article.scheduled.v1",
         "article.schedule_cancelled.v1",
         "comment.created.v1",
+        "navigation.changed.v1",
     }
 )
 
@@ -127,6 +129,8 @@ def _routes(event_type: str) -> tuple[EventConsumer, ...]:
         return (consume_moderation_account_deleted, consume_account_deleted)
     if event_type in _ARTICLE_MODERATION_EVENTS:
         return (consume_discovery_cache_event, consume_domain_notification)
+    if event_type == "section.changed.v1":
+        return (consume_discovery_cache_event, consume_navigation_section_event)
     if event_type in _DISCOVERY_EVENTS:
         return (consume_discovery_cache_event,)
     if event_type in _DOMAIN_NOTIFICATION_EVENTS:

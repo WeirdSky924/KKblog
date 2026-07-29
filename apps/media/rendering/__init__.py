@@ -4,11 +4,16 @@ import json
 from enum import StrEnum
 from typing import Any
 
-from .embeds import TrustedEmbedPolicy
+from .embeds import (
+    TrustedEmbedPolicy,
+    configure_trusted_embed_policy_provider,
+    configured_trusted_embed_policy,
+)
 from .html_policy import (
     SANITIZER_VERSION,
     RenderedContent,
     RenderingError,
+    configured_rendering_version,
     render_author_html,
     render_cache_key,
 )
@@ -62,6 +67,9 @@ __all__ = [
     "RenderingError",
     "SANITIZER_VERSION",
     "TrustedEmbedPolicy",
+    "configure_trusted_embed_policy_provider",
+    "configured_rendering_version",
+    "configured_trusted_embed_policy",
     "render_author_html",
     "render_cache_key",
     "render_import_preview",

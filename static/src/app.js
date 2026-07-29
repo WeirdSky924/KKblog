@@ -13,11 +13,13 @@ import {
   CircleCheckBig,
   CircleX,
   Copy,
+  Download,
   Eye,
   ExternalLink,
   FilePlus2,
   Flag,
   GitCompareArrows,
+  GripVertical,
   Heading2,
   History,
   ImageUp,
@@ -31,6 +33,7 @@ import {
   Menu,
   MessageCircle,
   MonitorSmartphone,
+  Move,
   Moon,
   NotebookPen,
   PencilLine,
@@ -70,6 +73,13 @@ import {
 } from "./authoring-editor.js";
 import { initializeArticleDraftClears } from "./authoring-local-draft.js";
 import { initializeAuthorOperations } from "./authoring-operations.js";
+import {
+  initializeNavigationTrees,
+  initializeNodeForms,
+  initializeSiteSubmenus,
+} from "./administration-navigation.js";
+import { initializeAdministrationSettings } from "./administration-settings.js";
+import { initializeAdministrationOperations } from "./administration-operations.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -84,11 +94,13 @@ const availableIcons = {
   CircleCheckBig,
   CircleX,
   Copy,
+  Download,
   Eye,
   ExternalLink,
   FilePlus2,
   Flag,
   GitCompareArrows,
+  GripVertical,
   Heading2,
   History,
   ImageUp,
@@ -102,6 +114,7 @@ const availableIcons = {
   Menu,
   MessageCircle,
   MonitorSmartphone,
+  Move,
   Moon,
   NotebookPen,
   PencilLine,
@@ -1041,12 +1054,21 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeCommentForms(root);
   initializeCommentThreads(root);
   initializeAuthorOperations(root);
+  initializeNodeForms(root);
+  initializeNavigationTrees(root);
+  initializeSiteSubmenus(root);
+  initializeAdministrationOperations(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
 });
 
 document.addEventListener("htmx:load", (event) => {
-  initializeCommentThreads(event.detail?.elt ?? document);
+  const root = event.detail?.elt ?? document;
+  initializeCommentThreads(root);
+  initializeNodeForms(root);
+  initializeNavigationTrees(root);
+  initializeSiteSubmenus(root);
+  initializeAdministrationOperations(root);
 });
 
 document.addEventListener("htmx:beforeRequest", (event) => {
@@ -1123,5 +1145,10 @@ initializeAuthorEditors();
 initializeMediaPickers();
 initializeCommentForms();
 initializeAuthorOperations();
+initializeNodeForms();
+initializeNavigationTrees();
+initializeSiteSubmenus();
+initializeAdministrationSettings();
+initializeAdministrationOperations();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

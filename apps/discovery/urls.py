@@ -8,11 +8,21 @@ from apps.comments.guestbook_views import (
 )
 from apps.discovery.seo import public_sitemap
 from apps.discovery.views import home, public_profile, search, section, tag
+from apps.navigation.presentation.public import (
+    about_page,
+    friend_links_page,
+    privacy_page,
+    terms_page,
+)
 
 app_name = "public"
 
 urlpatterns = [
     path("", home, name="home"),
+    path("about/", about_page, name="about"),
+    path("friend-links/", friend_links_page, name="friend-links"),
+    path("privacy/", privacy_page, name="privacy"),
+    path("terms/", terms_page, name="terms"),
     path("guestbook/", guestbook_page, name="guestbook"),
     path(
         "guestbook/comments/",

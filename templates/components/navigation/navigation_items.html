@@ -1,4 +1,8 @@
-<ul class="site-nav__list{% if nested %} site-nav__list--nested{% endif %}">
+<ul
+  class="site-nav__list{% if nested %} site-nav__list--nested{% endif %}"
+  {% if mobile and submenu_id %}id="site-submenu-{{ submenu_id }}"{% endif %}
+  {% if mobile and submenu_id %}hidden{% endif %}
+>
   {% for item in items %}
     <li class="site-nav__item{% if item.children %} site-nav__item--parent{% endif %}">
       <a
@@ -8,8 +12,20 @@
         <span>{{ item.label }}</span>
         {% if item.external %}<i data-lucide="external-link"></i>{% endif %}
       </a>
+      {% if mobile and item.children and item.key %}
+        <button
+          class="icon-button site-nav__submenu-toggle"
+          type="button"
+          aria-label="展开{{ item.label }}子菜单"
+          title="展开{{ item.label }}子菜单"
+          aria-controls="site-submenu-{{ item.key }}"
+          aria-expanded="false"
+          data-site-submenu-toggle
+          data-submenu-label="{{ item.label }}子菜单"
+        ><i data-lucide="chevron-down"></i></button>
+      {% endif %}
       {% if item.children %}
-        {% include "components/navigation/navigation_items.html" with items=item.children nested=True only %}
+        {% include "components/navigation/navigation_items.html" with items=item.children nested=True mobile=mobile submenu_id=item.key only %}
       {% endif %}
     </li>
   {% endfor %}

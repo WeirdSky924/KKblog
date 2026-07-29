@@ -1,0 +1,58 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}文章分区 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue" aria-labelledby="admin-sections-title">
+    <header class="admin-queue__header">
+      <p>管理 · 内容分类</p>
+      <h1 id="admin-sections-title">文章分区</h1>
+      <p>维护大小写不敏感的唯一分区；删除分区只移除分类关联，不删除文章。</p>
+      {% if saved == "created" %}<p role="status">文章分区已创建。</p>{% endif %}
+      {% if saved == "renamed" %}<p role="status">文章分区已重命名。</p>{% endif %}
+      {% if saved == "deleted" %}<p role="status">分区已删除，{{ affected_articles }} 篇文章的 {{ affected_revisions }} 个修订已转为未知分区。</p>{% endif %}
+    </header>
+
+    <form method="post" class="admin-queue__create" data-submit-once>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="section_create">
+      <div>{{ create_form.name.label_tag }}{{ create_form.name.errors }}{{ create_form.name }}</div>
+      {{ create_form.non_field_errors }}
+      <button class="button button--primary" type="submit">新增分区</button>
+    </form>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    {% if items %}
+      <div id="section-list" class="admin-queue__table-wrap" tabindex="0" aria-label="文章分区列表">
+        <table class="admin-queue__table admin-queue__table--sections">
+          <thead><tr><th>分区</th><th>关联文章</th><th>关联修订</th><th>最近更新</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td><strong>{{ item.name }}</strong><small>{{ item.id }}</small></td>
+                <td>{{ item.affected_article_count }}</td>
+                <td>{{ item.affected_revision_count }}</td>
+                <td>{{ item.updated_at|date:"Y-m-d H:i" }}</td>
+                <td><div class="admin-queue__actions">
+                  <a id="section-rename-{{ item.id }}" href="?confirm_action=rename&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">重命名</a>
+                  <a id="section-delete-{{ item.id }}" href="?confirm_action=delete&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">删除</a>
+                </div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div id="section-list" class="admin-queue__empty"><h2>当前没有文章分区</h2><p>使用上方表单建立首个分区；文章发布前必须选择分区。</p></div>
+    {% endif %}
+
+    <aside class="admin-queue__detail" aria-labelledby="unknown-section-title">
+      <header><p>删除语义</p><h2 id="unknown-section-title">未知分区不是可管理分区</h2></header>
+      <p>删除分区后，文章仍保留在首页和标签发现中，但不会出现在分区导航或分区列表。系统不会创建名为“未知分区”的占位记录。</p>
+    </aside>
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="section-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}

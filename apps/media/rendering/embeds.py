@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from hashlib import sha256
 from html import escape
@@ -33,6 +34,34 @@ class TrustedEmbedPolicy:
         if normalized_source == "bilibili":
             return _render_bilibili(url)
         return None
+
+
+TrustedEmbedPolicyProvider = Callable[[], TrustedEmbedPolicy]
+
+
+def _default_trusted_embed_policy() -> TrustedEmbedPolicy:
+    return TrustedEmbedPolicy()
+
+
+_trusted_embed_policy_provider: TrustedEmbedPolicyProvider = (
+    _default_trusted_embed_policy
+)
+
+
+def configure_trusted_embed_policy_provider(
+    provider: TrustedEmbedPolicyProvider,
+) -> None:
+    if not callable(provider):
+        raise TypeError("trusted embed policy provider must be callable")
+    global _trusted_embed_policy_provider
+    _trusted_embed_policy_provider = provider
+
+
+def configured_trusted_embed_policy() -> TrustedEmbedPolicy:
+    policy = _trusted_embed_policy_provider()
+    if not isinstance(policy, TrustedEmbedPolicy):
+        raise TypeError("trusted embed policy provider returned an invalid value")
+    return policy
 
 
 def _render_bilibili(url: str) -> str | None:

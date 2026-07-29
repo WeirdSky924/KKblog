@@ -2,14 +2,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from django.db.models import Q
+from django.db.models import Case, Count, IntegerField, Q, When
 
 from apps.accounts.public import is_administrator
 from apps.core.ids import normalize_ulid
 
-from ..models import Article
+from ..models import Article, Section, Tag, TagAssociationHistory, TagRestoreConflict
 
 ADMIN_ARTICLE_STATES = ("DRAFT", "SCHEDULED", "PUBLISHED", "DELETED")
+ADMIN_TAG_STATES = tuple(Tag.State.values)
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,60 @@ class AdminArticleItem:
 class AdminArticleTitle:
     id: str
     title: str
+
+
+@dataclass(frozen=True, slots=True)
+class AdminTagItem:
+    id: UUID
+    name: str
+    state: str
+    proposed_by_id: UUID | None
+    reviewed_by_id: UUID | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    current_article_count: int
+    association_history_count: int
+    pending_history_count: int
+    open_conflict_count: int
+    can_review: bool
+    can_delete: bool
+    can_restore: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AdminTagAssociationHistoryItem:
+    article_id: str
+    article_title: str
+    removed_at: datetime
+    restored_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class AdminTagRestoreConflictItem:
+    article_id: str
+    article_title: str
+    reason: str
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class AdminTagDetail:
+    tag: AdminTagItem
+    association_history: tuple[AdminTagAssociationHistoryItem, ...]
+    open_conflicts: tuple[AdminTagRestoreConflictItem, ...]
+    history_truncated: bool
+    conflicts_truncated: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AdminSectionItem:
+    id: UUID
+    name: str
+    affected_article_count: int
+    affected_revision_count: int
+    created_at: datetime
+    updated_at: datetime
 
 
 def _keyword(value: str) -> str:
@@ -145,11 +200,201 @@ def admin_article_page(
     return tuple(items)
 
 
+def _require_classification_administrator(actor_id) -> None:
+    if not is_administrator(actor_id):
+        raise PermissionError("Administrator classification access denied")
+
+
+def _classification_id(value, *, object_name: str) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        raise LookupError(f"Administrator {object_name} not found") from None
+
+
+def _admin_tag_queryset():
+    return Tag.objects.annotate(
+        current_article_count=Count("current_articles", distinct=True),
+        association_history_count=Count("association_history", distinct=True),
+        pending_history_count=Count(
+            "association_history",
+            filter=Q(association_history__restored_at__isnull=True),
+            distinct=True,
+        ),
+        open_conflict_count=Count(
+            "restore_conflicts",
+            filter=Q(restore_conflicts__resolved_at__isnull=True),
+            distinct=True,
+        ),
+    )
+
+
+def _tag_item(tag: Tag) -> AdminTagItem:
+    current_count = int(tag.current_article_count)
+    history_count = int(tag.association_history_count)
+    pending_count = int(tag.pending_history_count)
+    conflict_count = int(tag.open_conflict_count)
+    return AdminTagItem(
+        id=tag.id,
+        name=tag.name,
+        state=tag.state,
+        proposed_by_id=tag.proposed_by_id,
+        reviewed_by_id=tag.reviewed_by_id,
+        reviewed_at=tag.reviewed_at,
+        created_at=tag.created_at,
+        updated_at=tag.updated_at,
+        current_article_count=current_count,
+        association_history_count=history_count,
+        pending_history_count=pending_count,
+        open_conflict_count=conflict_count,
+        can_review=tag.state == Tag.State.PENDING,
+        can_delete=tag.state == Tag.State.ACTIVE,
+        can_restore=(
+            tag.state == Tag.State.DELETED or pending_count > 0 or conflict_count > 0
+        ),
+    )
+
+
+def admin_tag_page(
+    *, actor_id, state: str = "", limit: int = 300
+) -> tuple[AdminTagItem, ...]:
+    _require_classification_administrator(actor_id)
+    if state and state not in ADMIN_TAG_STATES:
+        raise ValueError("Invalid administrator tag state")
+    if isinstance(limit, bool) or not 1 <= limit <= 500:
+        raise ValueError("Invalid administrator tag limit")
+    rows = _admin_tag_queryset()
+    if state:
+        rows = rows.filter(state=state)
+    rows = rows.annotate(
+        state_order=Case(
+            When(state=Tag.State.PENDING, then=0),
+            When(state=Tag.State.ACTIVE, then=1),
+            When(state=Tag.State.DELETED, then=2),
+            default=3,
+            output_field=IntegerField(),
+        )
+    ).order_by("state_order", "normalized_name", "id")[:limit]
+    return tuple(_tag_item(tag) for tag in rows)
+
+
+def admin_tag_item(*, actor_id, tag_id) -> AdminTagItem:
+    _require_classification_administrator(actor_id)
+    identity = _classification_id(tag_id, object_name="tag")
+    tag = _admin_tag_queryset().filter(pk=identity).first()
+    if tag is None:
+        raise LookupError("Administrator tag not found")
+    return _tag_item(tag)
+
+
+def _article_titles(article_ids: tuple[str, ...]) -> dict[str, str]:
+    rows = Article.objects.select_related(
+        "working_revision", "published_revision"
+    ).filter(pk__in=article_ids)
+    return {
+        item.id: item.title for article in rows if (item := _item(article)) is not None
+    }
+
+
+def admin_tag_detail(*, actor_id, tag_id, limit: int = 200) -> AdminTagDetail:
+    tag = admin_tag_item(actor_id=actor_id, tag_id=tag_id)
+    if isinstance(limit, bool) or not 1 <= limit <= 500:
+        raise ValueError("Invalid administrator tag detail limit")
+    histories = tuple(
+        TagAssociationHistory.objects.filter(tag_id=tag.id).order_by(
+            "-removed_at", "-id"
+        )[: limit + 1]
+    )
+    conflicts = tuple(
+        TagRestoreConflict.objects.filter(
+            tag_id=tag.id, resolved_at__isnull=True
+        ).order_by("-created_at", "-id")[: limit + 1]
+    )
+    visible_histories = histories[:limit]
+    visible_conflicts = conflicts[:limit]
+    titles = _article_titles(
+        tuple(
+            dict.fromkeys(
+                item.article_id for item in (*visible_histories, *visible_conflicts)
+            )
+        )
+    )
+    return AdminTagDetail(
+        tag=tag,
+        association_history=tuple(
+            AdminTagAssociationHistoryItem(
+                article_id=item.article_id,
+                article_title=titles.get(item.article_id, "文章已永久删除"),
+                removed_at=item.removed_at,
+                restored_at=item.restored_at,
+            )
+            for item in visible_histories
+        ),
+        open_conflicts=tuple(
+            AdminTagRestoreConflictItem(
+                article_id=item.article_id,
+                article_title=titles.get(item.article_id, "文章已永久删除"),
+                reason=item.reason,
+                created_at=item.created_at,
+            )
+            for item in visible_conflicts
+        ),
+        history_truncated=len(histories) > limit,
+        conflicts_truncated=len(conflicts) > limit,
+    )
+
+
+def _admin_section_queryset():
+    return Section.objects.annotate(
+        affected_article_count=Count("revisions__article_id", distinct=True),
+        affected_revision_count=Count("revisions", distinct=True),
+    )
+
+
+def _section_item(section: Section) -> AdminSectionItem:
+    return AdminSectionItem(
+        id=section.id,
+        name=section.name,
+        affected_article_count=int(section.affected_article_count),
+        affected_revision_count=int(section.affected_revision_count),
+        created_at=section.created_at,
+        updated_at=section.updated_at,
+    )
+
+
+def admin_section_page(*, actor_id, limit: int = 300) -> tuple[AdminSectionItem, ...]:
+    _require_classification_administrator(actor_id)
+    if isinstance(limit, bool) or not 1 <= limit <= 500:
+        raise ValueError("Invalid administrator section limit")
+    rows = _admin_section_queryset().order_by("normalized_name", "id")[:limit]
+    return tuple(_section_item(section) for section in rows)
+
+
+def admin_section_item(*, actor_id, section_id) -> AdminSectionItem:
+    _require_classification_administrator(actor_id)
+    identity = _classification_id(section_id, object_name="section")
+    section = _admin_section_queryset().filter(pk=identity).first()
+    if section is None:
+        raise LookupError("Administrator section not found")
+    return _section_item(section)
+
+
 __all__ = [
     "ADMIN_ARTICLE_STATES",
+    "ADMIN_TAG_STATES",
     "AdminArticleItem",
     "AdminArticleTitle",
+    "AdminSectionItem",
+    "AdminTagAssociationHistoryItem",
+    "AdminTagDetail",
+    "AdminTagItem",
+    "AdminTagRestoreConflictItem",
     "admin_article_item",
     "admin_article_page",
     "admin_article_titles",
+    "admin_section_item",
+    "admin_section_page",
+    "admin_tag_detail",
+    "admin_tag_item",
+    "admin_tag_page",
 ]

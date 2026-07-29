@@ -55,7 +55,7 @@
 - 授权：`否`；生产内容裁决 `是`。
 
 ### ADM-005 实现标签审核/历史与分区管理界面
-- 元数据：状态 `进行中`；阶段 P11；owner `administration`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P1。
 - 目标/行为：待审标签通过/驳回、全站标签新增/删除/恢复及冲突；分区唯一新增/删除并明确文章转未知分区；列表含空/错误/重复提交状态。
 - 来源：访谈 Q054-Q061、Q256-Q258；`contracts/03-frontend-contract-map.md` §admin tags/sections；原型 adminrecords。
 - 依赖：前置 `ADM-001`、`CNT-010`、`CNT-011`、`OBS-004`；后续 `ADM-006`、`QA-003`、`QA-006`。
@@ -64,10 +64,11 @@
 - 影响：数据：委托分类；权限：admin；审计：全部写；缓存：列表/文章失效；异步：标签通知；媒体无；通知：作者/冲突。
 - 测试/验收：Playwright待审→通过/驳回、删除→旧链接空→恢复、分区删除→未知；DB/通知/审计读回。
 - 风险/停止：确认文案与真实级联不符、UI静默丢关联或缓存不更新即停止。
+- 证据：仓库外临时 RED 首次因 `/tmp` 根目录未加载项目 pytest 配置而在收集阶段退出 2，显式指定 `-c pyproject.toml` 后有效 RED 退出 1，准确因 `admin:tags` 缺失触发 `NoReverseMatch`；实现扩展 content owner 的管理员标签/分区 DTO，读出提议/审核身份、当前关联、删除历史、待恢复历史、开放冲突以及分区受影响文章/修订计数，administration 只组合表单、确认框和既有 `create/review/delete/restore_tag`、`create/rename/delete_section` 服务，没有直接写分类表或复制状态机。聚焦 GREEN 覆盖普通账户两路由 GET/POST 403、待审通过/驳回、大小写唯一、重复 POST、删除历史、十标签恢复冲突及重试、分区创建/重命名/删除和未知分区，退出 0，`4 passed in 9.08s`；CNT-010/CNT-011、administration wiring、架构、前端和 HTTP 安全回归退出 0，`20 passed in 12.29s`。目标 Ruff lint/format、Django check、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL/Redis/Mailpit 真实读回：浏览器通过/驳回标签分别为 `ACTIVE/REJECTED`，删除后完整恢复标签为 `ACTIVE` 且历史已闭合；十标签冲突标签保持 `ACTIVE`、关联未写入，保留 1 条未解决 `MAX_TAGS` 冲突与待恢复历史；删除分区的 4 篇文章/5 个不可变修订均转 `section_id=NULL`，目标分区消失而已发布文章仍为 `PUBLISHED`。相关分类动作审计为标签审核 2、目标标签删除 1、标签恢复 2、分区重命名/删除各 1；隔离库 26 条 Outbox 全部发布、0 待处理/失败，其中 3 个分类通知事件全部发布并生成 3 条 Notification/Receipt，安全审计字段和全部 Outbox payload 均不含完整测试 IP。`blog-playwright-cli` 真实 Chrome 验证待审通过/驳回、唯一冲突 422 保留输入、标签旧链接 `1→0→1`、完整恢复历史、十标签冲突文章/原因、分区重命名和删除确认；确认框初始焦点为取消，Escape 精确恢复触发点。两路由在 1440 light、768 eye-care、390 dark 均为 HTTP 200、文档宽等于视口、无重复 ID；密集表格只在局部横滚，390 标签表为 `358→1152`、分区表为 `358→864`，ArrowRight 可达，操作控件高度至少 44px，原尺寸截图无重叠/裁切，最终控制台 0 错误。临时测试、种子/读回脚本、浏览器、runserver 和截图均已清理；隔离支持容器与 `kaj_test_adm005_browser` 数据库保留给下一任务。未执行生产分类写入、生产 migration、真实邮件、部署、提交或推送。
 - 授权：`否`。
 
 ### ADM-006 实现三层公共导航树拖拽、隐藏与并发保护
-- 元数据：状态 `待处理`；阶段 P11；owner `navigation`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P11；owner `navigation`；优先级 P1。
 - 目标/行为：管理员管理站内页/分区/外链节点，任意合法位置、最多三层、可隐藏；拖拽提交子树版本令牌，无环/连续排序；移动端子项可展开。
 - 来源：访谈 Q241、Q247-Q248；`modules/08-administration-navigation.md` §导航树；`data/04-indexes-constraints.md` §navigation。
 - 依赖：前置 `ADM-001`、`ADM-005`、`DSC-001`、`DSC-003`、`OBS-004`；后续 `QA-001`、`QA-003`、`QA-006`。
@@ -76,10 +77,11 @@
 - 影响：数据：树/排序/version；权限：admin写/公众读；审计：整棵受影响前后；缓存：Header失效；异步无；媒体无；通知无。
 - 测试/验收：RED环/深度4/并发拖拽/隐藏/删除目标/恶意URL；Playwright拖放、键盘替代、390展开。
 - 风险/停止：树损坏导致全站导航不可用、无键盘路径或冲突last-write-wins即停止。
+- 证据：聚焦 RED `/tmp/test_adm006_temp.py` 在路由接入前因 `admin:navigation` 缺失退出 1；实现 navigation owner 的单例树状态、三层节点 schema/约束、版本化 query/service、权限重判、逐节点审计、`navigation.changed.v1` Outbox、提交后缓存失效和分区删除消费者，administration 只负责表单、树展示、拖拽/键盘编排。最终聚焦 GREEN 退出 0，`7 passed in 11.01s`，覆盖普通用户/作者 GET/POST 403、503 no-store、三层成功/第四层拒绝、环和恶意 URL、隐藏/恢复、分区失效、连续排序、树/子树旧版本冲突、双线程同快照唯一胜者、自父数据库约束、逐节点安全审计与子树删除；浏览器发现键盘移动表单因递归 `{% include ... only %}` 丢失 CSRF，以及桌面/移动双树复用 submenu ID，均先以独立 RED 精确复现，再分别通过显式传递 token 和仅给移动树设置 ID 修复，两个回归各 `1 passed`。相关 content/架构/前端/HTTP 安全回归退出 0，`19 passed in 11.89s`；administration wiring、分类事件、通知消费者和 Outbox 回归退出 0，`35 passed in 15.87s`。目标 Ruff lint/format、Django check、migration drift、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL/Redis 读回树版本 11、4 个节点深度 `[0,0,1,2]`、同层位置连续且全可见，公开缓存版本同为 11；16 条导航 AuditEntry 覆盖创建/移动/显隐，10 条导航 Outbox payload 形状安全，审计安全字段不含外链原路径或测试 IP。`blog-playwright-cli` 真实 Chrome 验证隐藏/恢复即时 Header 读回、编辑类型字段切换、键盘移动、DragEvent 拖放、外链 `_blank`/`noopener noreferrer`，以及双标签页版本 10 对版本 11 的真实 HTTP 409 冲突和最新树回显；1440 light、768 eye-care、390 dark 的文档宽均等于视口，管理导航只在本地横滚，原尺寸截图无重叠/裁切、无重复 ID，关键移动端控件为 44px；390 两级独立展开的 `aria-expanded`/`hidden` 正确，父级折叠后子级状态保留，最终新会话控制台 0 错误/0 警告。临时测试、种子、截图、浏览器与 runserver 已清理；隔离支持容器和浏览器数据库保留给下一任务。未执行生产导航写入、生产 migration、真实邮件、部署、提交或推送。
 - 授权：`否`。
 
 ### ADM-007 实现站点设置、品牌、静态页、友情链接、可信嵌入与留言设置
-- 元数据：状态 `待处理`；阶段 P11；owner `navigation`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P11；owner `navigation`；优先级 P1。
 - 目标/行为：分组设置站名/空描述/版权/注册开关/正文限制（默认 `2 MiB`，仅可配 `64 KiB` 至 `2 MiB`）/Logo/favicon；About/Privacy/Terms 富文本或 Markdown 且空时隐藏；友情链接 CRUD；Bilibili 来源；留言开关/登录要求。
 - 来源：访谈 Q158-Q165、Q209-Q210、Q231-Q240、Q253、Q312-Q314；`modules/08-administration-navigation.md` §站点与公开内容；DEC-004/005。
 - 依赖：前置 `ADM-001`、`MED-005`、`MED-007`、`CMT-007`、`OBS-004`、`DEC-004`、`DEC-005`；后续 `QA-003`、`QA-006`。
@@ -88,10 +90,11 @@
 - 影响：数据：配置/静态页/链接/来源；权限：admin写/公众已发布读；审计：全部写；缓存：Header/渲染失效；异步无；媒体：Logo/Friend；通知无。
 - 测试/验收：服务端 RED 拒绝正文限制 `<64 KiB` 或 `>2 MiB`；Playwright 配置→前台即时读回、备份目标仅 `local` 且不可构造外部值、空/非空页面、Logo/favicon、恶意 URL、正文限制；1440/390 三主题。
 - 风险/停止：设置JSON大桶、秘密进入审计/页面、空法律链接出现或旧嵌入继续执行即停止。
+- 证据：初始聚焦 RED `/tmp/test_adm007_red.py` 在实现前退出 1，准确因 `admin:site-settings` 路由缺失；实现 navigation owner 的 `SiteConfiguration`、`StaticPage`、`FriendLink`、`TrustedEmbedSource` 强类型事实、数据库约束、query/service、审计与媒体网关，administration 只组合分组表单和页面，accounts/content/exchange/comments 通过配置注入消费注册、正文上限、可信嵌入和留言策略，没有 JSON 设置大桶或第二领域实现。浏览器验收发现并以额外 RED 修复三项真实回归：友情链接无改动保存会遗留临时偏移位置、仅改描述因安全审计快照不含描述而假成功、Logo 隐藏字段错误与已上传引用在 422 后不可恢复；外链模板还改用已注册的 `external-link` Lucide 图标。最终聚焦套件退出 0，`7 passed in 11.05s`；注册/正文渲染/媒体选择与嵌入/评论 HTTP/架构/前端基础/HTTP 安全相关回归退出 0，`56 passed in 19.70s`；目标 Ruff lint/format、Django check、migration drift、正式前端 build 与 `git diff --check` 均退出 0。隔离 PostgreSQL 读回站名/描述/版权、直接注册、`65536` 字节正文上限、`local` 备份目标和版本；About Markdown、Privacy 富文本粗体、Terms Markdown 均发布，Bilibili 最终启用，留言最终为启用且访客可发；友情链接创建→无改动保存位置仍为 0→描述编辑公开页即时读回→删除为 0 条，Logo 媒体为 ACTIVE `1600x900` 且绑定 `site_brand/site/logo`。导航审计覆盖配置/页面/链接/来源，友情链接审计键仅含名称、host、位置、Logo 和版本，不含 URL path/描述；静态页审计仅含 digest，不含正文。`blog-playwright-cli` 经隔离 Caddy 真实媒体授权链验证 Logo/Header/favicon、空页面 404 与非空 200、法律 Footer、富文本、XSS 清洗、恶意 URL 422、Logo 必填与恢复、Bilibili iframe→`来源不可用`→恢复、注册直接/邀请码模式、留言开启/关闭/需登录和删除取消/成功；1440 light、768 eye-care、390 dark 文档宽等于视口，无重复 ID、越界控件或重叠裁切，390 主按钮均至少 44px，skip link Enter 后焦点进入 main，最终正常页控制台 0 error/0 warning。浏览器、runserver、临时 Caddy、截图、测试和本轮 5 个媒体文件均已清理；支持容器和隔离浏览器数据库留给下一任务。未执行生产数据、生产 migration、真实备份/邮件、部署、提交或推送。
 - 授权：`否`；真实品牌素材/外部URL确认按需要 `是`。
 
 ### ADM-008 整合通知、审计、错误、任务、备份、交换与 Umami 管理入口
-- 元数据：状态 `待处理`；阶段 P11；owner `administration`；优先级 P1。
+- 元数据：状态 `完成`；阶段 P11；owner `administration`；优先级 P1。
 - 目标/行为：在统一管理外壳中提供群发/读回、审计/错误/任务/健康、导入导出、备份只读记录与Umami入口；后台Job只显示真实状态，无网页重试/恢复/部署按钮。
 - 来源：访谈 Q140、Q189、Q195-Q203、Q224-Q225、Q253；`contracts/03-frontend-contract-map.md` §管理员页面；原型 notifications/exchange/operations。
 - 依赖：前置 `ADM-001`、`OBS-002`、`OBS-003`、`OBS-004`、`OBS-005`、`OBS-006`、`OBS-007`、`EXC-004`、`EXC-005`、`EXC-006`、`EXC-007`；后续 `QA-003`、`QA-006`。
@@ -100,6 +103,7 @@
 - 影响：数据：只读/委托；权限：admin；审计：写动作owner；缓存无；异步：状态展示；媒体：导出下载；通知：群发/告警。
 - 测试/验收：Playwright每入口、空/运行/失败/过期/权限态、390/768/1440；对应DB/文件/Umami代理读回。
 - 风险/停止：页面显示假完成、绕过owner下载/查看、把内部endpoint/JSON暴露给管理员主界面即停止。
+- 证据：聚焦 RED `/tmp/test_adm008_red.py` 首次因 `/tmp` 未自动发现项目 pytest 配置而在收集期退出 2；显式指定 `--ds=config.settings.test` 后有效 RED 退出 1，`2 failed` 均准确因 `admin:tasks`、`admin:exchange` 缺失触发 `NoReverseMatch`。实现仅在 administration 外壳中组合 notifications、operations、exchange 与 analytics 的公开 query/service，新增任务/健康/活动告警和导出/只读备份页面，下载先由 exchange owner 逐次授权再流式打开归档，未加入网页重试、备份恢复、环境编辑或部署按钮。扩展回归初跑曾因测试误将全局主题 POST 表单视为任务重试入口而 `1 failed, 4 passed`；核对页面后把断言收窄到实际 retry action，这属于探针缺陷而非产品修复。最终聚焦 GREEN 同一命令退出 0，`5 passed in 10.82s`；隔离环境全量 pytest 退出 0，`361 passed, 1 skipped in 110.25s`，唯一跳过为本轮未配置 `KAJ_TEST_UMAMI_DATABASE_URL` 的可选真实 Umami 保留测试；显式架构守卫退出 0，`3 passed in 1.72s`。真实 PostgreSQL/文件读回：完成任务 `01KYNSA9JKN6YJB2V8MR707CZR` 选择 4 篇文章、5 个修订，归档 8454 字节且浏览器下载副本经 `python -m zipfile -t` 完整；请求/下载审计各 1。取消任务 `01KYNT5GEXFQGSAHGVPZT44PGJ` 最终为 `CANCELLED`、归档不存在，请求/取消审计各 1；完成归档仍保留以匹配数据库事实，Redis DB 12 定向清理后为 0。`blog-playwright-cli` 真实 Chrome 验证 tasks/exchange/notifications/audit/errors 入口，未配置 analytics 诚实返回 503；1440 light、768 eye-care、390 dark 文档宽均等于视口，密集表格只局部滚动，桌面健康分栏从 `572→672` 溢出修正为 `572→572`，活动告警不再泄漏英文内部枚举，390 主控件至少 44px；skip link、确认框安全初始焦点、Escape 清理与精确焦点恢复均通过，新会话控制台 0 error/0 warning。阶段审计读回 102 个任务、P11 8 项、0 缺失前置、0 未完成前置、0 未来依赖、0 前后不互认、0 环；322 条需求/验收 ID 与 42 路由双表均一一覆盖。审计同时修正 `export_job` 的 `RUNNING/CANCEL_REQUESTED` 全局唯一约束文档，以及系统目录遗漏的 `administration -> exchange` 允许边；模型、migration、owner 与运行时行为未改变。P11 变更的 77 个 Python 文件 Ruff 退出 0，全仓 format check `604 files`、Django check、migration drift、正式前端 build、`git diff --check` 和 55 个未跟踪文本文件尾随空白检查均退出 0；全仓 Ruff 仍仅被未修改基线 `apps/comments/tests/test_cmt004.py` 的既有 import 排序阻断，留给 P12 全局收口。本轮未执行真实 Umami/生产备份、生产 migration、真实邮件、部署、服务重启、提交或推送；临时浏览器、runserver、下载副本和截图已清理。
 - 授权：`否`；真实Umami/备份/导出运行按各任务授权。
 
 [返回总索引](../implementation-todolist.md)

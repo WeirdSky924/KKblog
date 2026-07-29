@@ -24,6 +24,7 @@ from apps.operations.public import require_text_creation_capacity
 
 from ..models import Article, ArticleRevision, ArticleTag, RevisionTag, Section, Tag
 from ..policies import article_is_reader_masked
+from ..rendering_policy import configured_content_embed_policy
 from ..snapshots import (
     ArticleBodyLimit,
     ArticleSnapshot,
@@ -217,10 +218,18 @@ def _validate_snapshot(
     try:
         if content_format == ContentFormat.MARKDOWN:
             referenced = markdown_media_ids(snapshot.body)
-            render_markdown(snapshot.body, allowed_media_ids=set(body_ids))
+            render_markdown(
+                snapshot.body,
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=set(body_ids),
+            )
         else:
             referenced = tiptap_media_ids(snapshot.body)
-            render_tiptap(snapshot.body, allowed_media_ids=set(body_ids))
+            render_tiptap(
+                snapshot.body,
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=set(body_ids),
+            )
     except (RenderingError, TypeError, ValueError, RecursionError):
         raise ContentCommandError(
             "content.body_invalid.v1", "正文格式不合法。"

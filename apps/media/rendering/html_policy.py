@@ -10,7 +10,7 @@ import nh3
 
 from apps.core.ids import normalize_ulid
 
-from .embeds import TrustedEmbedPolicy
+from .embeds import TrustedEmbedPolicy, configured_trusted_embed_policy
 
 SANITIZER_VERSION = "kaj-html-v1"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
@@ -134,7 +134,7 @@ def sanitize_candidate_html(
         raise RenderingError("Rendered candidate must be text")
     if len(candidate_html.encode("utf-8")) > MAX_CANDIDATE_BYTES:
         raise RenderingError("Rendered candidate exceeds the safety limit")
-    policy = embed_policy or TrustedEmbedPolicy()
+    policy = embed_policy or configured_trusted_embed_policy()
     normalized_media_ids = _normalize_media_ids(allowed_media_ids)
     cleaned = nh3.clean(
         candidate_html,
@@ -173,6 +173,11 @@ def render_author_html(
         embed_policy=embed_policy,
         allowed_media_ids=allowed_media_ids,
     )
+
+
+def configured_rendering_version() -> str:
+    fingerprint = configured_trusted_embed_policy().fingerprint[:16]
+    return f"{SANITIZER_VERSION}-p{fingerprint}"
 
 
 def _normalize_media_ids(media_ids: object) -> frozenset[str]:

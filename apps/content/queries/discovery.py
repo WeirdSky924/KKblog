@@ -18,6 +18,7 @@ from apps.media.public import render_markdown, render_tiptap
 
 from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, Tag
 from ..policies import apply_article_reader_scope
+from ..rendering_policy import configured_content_embed_policy
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
 FILTERABLE_TAG_STATES = (Tag.State.ACTIVE, Tag.State.PENDING)
@@ -425,7 +426,13 @@ def _card_summary(revision: ArticleRevision) -> str | None:
     if revision.summary_mode == ArticleRevision.SummaryMode.CUSTOM:
         return revision.custom_summary
     if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
-        rendered = render_markdown(revision.body_markdown or "")
+        rendered = render_markdown(
+            revision.body_markdown or "",
+            embed_policy=configured_content_embed_policy(),
+        )
     else:
-        rendered = render_tiptap(revision.body_tiptap or {})
+        rendered = render_tiptap(
+            revision.body_tiptap or {},
+            embed_policy=configured_content_embed_policy(),
+        )
     return sanitized_article_plain_text(rendered.html)[:100]

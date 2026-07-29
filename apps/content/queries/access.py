@@ -18,7 +18,6 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.core.time.shanghai import shanghai_business_date
 from apps.media.public import (
-    SANITIZER_VERSION,
     MediaPurpose,
     MediaTargetType,
     render_markdown,
@@ -29,6 +28,10 @@ from apps.media.public import (
 from ..events import ARTICLE_ADMIN_VIEWED
 from ..models import AdminArticleViewReceipt, Article, ArticleRevision
 from ..policies import article_is_reader_masked, author_is_content_masked
+from ..rendering_policy import (
+    configured_content_embed_policy,
+    content_rendering_version,
+)
 
 
 class ArticleNotFound(LookupError):
@@ -243,7 +246,7 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
         visibility=revision.visibility,
         published_at=article.published_at,
         readable_cover_asset_id=readable_cover_asset_id,
-        sanitizer_version=SANITIZER_VERSION,
+        sanitizer_version=content_rendering_version(),
     )
 
 
@@ -266,7 +269,7 @@ def render_public_article_body(
         article_id=article.id,
         revision_id=revision.id,
         html=rendered_body_html,
-        sanitizer_version=SANITIZER_VERSION,
+        sanitizer_version=content_rendering_version(),
     )
 
 
@@ -297,11 +300,15 @@ def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
     active_body_ids, readable_cover_asset_id = _reader_media_bindings(revision)
     if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
         rendered = render_markdown(
-            revision.body_markdown or "", allowed_media_ids=active_body_ids
+            revision.body_markdown or "",
+            embed_policy=configured_content_embed_policy(),
+            allowed_media_ids=active_body_ids,
         )
     else:
         rendered = render_tiptap(
-            revision.body_tiptap or {}, allowed_media_ids=active_body_ids
+            revision.body_tiptap or {},
+            embed_policy=configured_content_embed_policy(),
+            allowed_media_ids=active_body_ids,
         )
     return rendered.html, readable_cover_asset_id
 

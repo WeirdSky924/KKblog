@@ -27,6 +27,7 @@ from apps.media.public import (
 from ..events import ARTICLE_PUBLISHED
 from ..models import Article, ArticleRevision, PublicationReviewGrant, Tag
 from ..policies import article_is_reader_masked, author_is_content_masked
+from ..rendering_policy import configured_content_embed_policy
 
 REVIEW_LIFETIME = timedelta(minutes=15)
 
@@ -191,12 +192,16 @@ def _render_for_publication(revision: ArticleRevision) -> str:
         if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
             referenced = set(markdown_media_ids(revision.body_markdown or ""))
             rendered = render_markdown(
-                revision.body_markdown or "", allowed_media_ids=body_ids
+                revision.body_markdown or "",
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=body_ids,
             )
         else:
             referenced = set(tiptap_media_ids(revision.body_tiptap or {}))
             rendered = render_tiptap(
-                revision.body_tiptap or {}, allowed_media_ids=body_ids
+                revision.body_tiptap or {},
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=body_ids,
             )
     except RenderingError:
         raise PublicationCommandError(

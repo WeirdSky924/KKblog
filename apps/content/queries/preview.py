@@ -12,6 +12,7 @@ from apps.media.public import (
     tiptap_media_ids,
 )
 
+from ..rendering_policy import configured_content_embed_policy
 from ..snapshots import ArticleBodyLimit, ContentFormat
 from .discovery import sanitized_article_plain_text
 
@@ -82,9 +83,17 @@ def preview_article_body(
         if submitted and set(submitted) != set(referenced):
             raise ArticlePreviewError("正文图片引用与提交列表不一致。")
         rendered = (
-            render_markdown(body, allowed_media_ids=allowed)
+            render_markdown(
+                body,
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=allowed,
+            )
             if normalized_format == ContentFormat.MARKDOWN
-            else render_tiptap(body, allowed_media_ids=allowed)
+            else render_tiptap(
+                body,
+                embed_policy=configured_content_embed_policy(),
+                allowed_media_ids=allowed,
+            )
         )
     except ArticlePreviewError:
         raise

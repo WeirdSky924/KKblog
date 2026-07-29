@@ -45,12 +45,22 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem("articles", "文章管理", "admin:articles"),
             AdminNavigationItem("comments", "评论管理", "admin:comments"),
             AdminNavigationItem("reports", "举报与申诉", "admin:reports"),
+            AdminNavigationItem("tags", "标签审核", "admin:tags"),
+            AdminNavigationItem("sections", "文章分区", "admin:sections"),
         ),
     ),
     AdminNavigationGroup(
-        label="沟通",
+        label="站点结构",
+        items=(
+            AdminNavigationItem("navigation", "公共导航", "admin:navigation"),
+            AdminNavigationItem("site-settings", "站点设置", "admin:site-settings"),
+        ),
+    ),
+    AdminNavigationGroup(
+        label="沟通与数据",
         items=(
             AdminNavigationItem("notifications", "群发通知", "admin:notifications"),
+            AdminNavigationItem("exchange", "数据交换", "admin:exchange"),
         ),
     ),
     AdminNavigationGroup(
@@ -58,6 +68,7 @@ ADMIN_NAVIGATION = (
         items=(
             AdminNavigationItem("audit", "操作审计", "admin:audit"),
             AdminNavigationItem("errors", "运行错误", "admin:errors"),
+            AdminNavigationItem("tasks", "任务与健康", "admin:tasks"),
             AdminNavigationItem("analytics", "访问分析", "admin:analytics"),
         ),
     ),

@@ -1,0 +1,236 @@
+.navigation-manager__create {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+}
+
+.navigation-manager__create > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.375rem;
+}
+
+.navigation-manager__create > .button {
+  align-self: end;
+  justify-self: start;
+}
+
+.navigation-manager__create .errorlist,
+.navigation-tree__move .errorlist {
+  margin: 0;
+  padding: 0;
+  color: var(--danger);
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.navigation-manager__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.navigation-manager__workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.navigation-manager__workspace > header > * {
+  margin: 0;
+}
+
+.navigation-manager__workspace > header {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.navigation-tree,
+.navigation-tree__children {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 0.625rem;
+  list-style: none;
+}
+
+.navigation-tree__children {
+  margin-block-start: 0.625rem;
+  margin-inline-start: 1.375rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 1px solid var(--line);
+}
+
+.navigation-tree__item {
+  min-width: 0;
+}
+
+.navigation-tree__node {
+  display: grid;
+  min-width: 0;
+  gap: 0.875rem;
+  padding: 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+}
+
+.navigation-tree__node--hidden {
+  border-style: dashed;
+  background: var(--surface-muted);
+}
+
+.navigation-tree__node--missing {
+  border-inline-start: 3px solid var(--danger);
+}
+
+.navigation-tree__node > header {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navigation-tree__node > header > div:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.navigation-tree__node > header strong,
+.navigation-tree__node > header span {
+  overflow-wrap: anywhere;
+}
+
+.navigation-tree__node > header span {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.navigation-tree__handle {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: grab;
+}
+
+.navigation-tree__handle:active {
+  cursor: grabbing;
+}
+
+.navigation-tree__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.375rem;
+}
+
+.navigation-tree__badges span {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.navigation-tree__node dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  gap: 0.75rem;
+}
+
+.navigation-tree__node dt {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.navigation-tree__node dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.navigation-tree__move > summary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.navigation-tree__move form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 0.5fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.navigation-tree__move form > div {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.navigation-tree__drop {
+  display: none;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-block: 0.375rem;
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 0.8125rem;
+}
+
+.navigation-tree.is-dragging .navigation-tree__drop {
+  display: flex;
+}
+
+.navigation-tree__drop.is-active {
+  border-style: solid;
+  background: var(--surface-muted);
+  font-weight: 650;
+}
+
+.navigation-tree__node.is-drag-source {
+  opacity: 0.52;
+}
+
+@media (max-width: 30rem) {
+  .navigation-manager__create,
+  .navigation-tree__node dl,
+  .navigation-tree__move form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .navigation-manager__create > .button,
+  .navigation-tree__move .button {
+    width: 100%;
+  }
+
+  .navigation-tree__children {
+    margin-inline-start: 0.5rem;
+    padding-inline-start: 0.625rem;
+  }
+
+  .navigation-tree__node > header {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .navigation-tree__badges {
+    grid-column: 1 / -1;
+    justify-content: start;
+  }
+}

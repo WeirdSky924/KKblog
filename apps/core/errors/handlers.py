@@ -43,6 +43,7 @@ def render_error_response(
     retry_after: int | None = None,
 ) -> HttpResponse:
     trace_code = _request_trace(request)
+    request.kaj_error_shell = True
     is_htmx = request.headers.get("HX-Request", "").casefold() == "true"
     template = "errors/partial.html" if is_htmx else "errors/page.html"
     response = render(

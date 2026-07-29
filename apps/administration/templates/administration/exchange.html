@@ -1,0 +1,148 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}数据交换 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-operations admin-exchange" aria-labelledby="exchange-title">
+    <header class="admin-operations__header">
+      <p>管理 · 数据与归档</p>
+      <h1 id="exchange-title">数据交换</h1>
+      <p>导出包含所选范围的完整文章历史和媒体；归档保留三天。</p>
+      {% if saved == "requested" %}<p role="status">导出任务已创建，状态会由后台任务更新。</p>{% endif %}
+      {% if saved == "cancelled" %}<p role="status">导出任务已取消，临时归档已清理。</p>{% endif %}
+      {% if page_error %}<p class="admin-operations__error" role="alert" tabindex="-1" data-error-focus>{{ page_error }}</p>{% endif %}
+    </header>
+
+    <section class="admin-operations__section" aria-labelledby="export-request-title">
+      <div class="admin-operations__section-heading">
+        <div>
+          <span aria-hidden="true">01</span>
+          <h2 id="export-request-title">创建导出</h2>
+        </div>
+      </div>
+      <form method="post" class="admin-exchange__form" data-submit-once data-export-scope-form>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="request">
+        {{ export_request_form.non_field_errors }}
+        <div>
+          {{ export_request_form.scope.label_tag }}
+          {{ export_request_form.scope.errors }}
+          {{ export_request_form.scope }}
+        </div>
+        <div data-export-scope-field="AUTHOR">
+          {{ export_request_form.scope_author_id.label_tag }}
+          {{ export_request_form.scope_author_id.errors }}
+          {{ export_request_form.scope_author_id }}
+        </div>
+        <div data-export-scope-field="SECTION">
+          {{ export_request_form.scope_section_id.label_tag }}
+          {{ export_request_form.scope_section_id.errors }}
+          {{ export_request_form.scope_section_id }}
+        </div>
+        <div data-export-scope-field="ARTICLES">
+          {{ export_request_form.article_ids.label_tag }}
+          {{ export_request_form.article_ids.errors }}
+          {{ export_request_form.article_ids }}
+        </div>
+        <button class="button button--primary" type="submit"><i data-lucide="file-plus-2"></i><span>创建导出</span></button>
+      </form>
+    </section>
+
+    <section class="admin-operations__section" aria-labelledby="export-history-title">
+      <div class="admin-operations__section-heading">
+        <div>
+          <span aria-hidden="true">02</span>
+          <h2 id="export-history-title">导出记录</h2>
+        </div>
+        <p>{{ export_jobs|length }} 条最近记录</p>
+      </div>
+      {% if export_jobs %}
+        <div class="admin-operations__table-wrap" tabindex="0" aria-label="导出任务记录">
+          <table class="admin-exchange__table">
+            <thead><tr><th>范围</th><th>状态</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+              {% for row in export_jobs %}
+                <tr id="export-{{ row.item.job_id }}">
+                  <td><strong>{{ row.scope_label }}</strong></td>
+                  <td>
+                    <strong data-operation-state="{{ row.item.state }}">
+                      {% if row.item.state == "RUNNING" %}进行中{% elif row.item.state == "CANCEL_REQUESTED" %}取消中{% elif row.item.state == "COMPLETED" %}已完成{% elif row.item.state == "CANCELLED" %}已取消{% elif row.item.state == "FAILED" %}失败{% else %}已过期{% endif %}
+                    </strong>
+                    {% if row.item.error_code %}<small>{{ row.item.error_code }}</small>{% endif %}
+                  </td>
+                  <td>
+                    <span>{{ row.item.selected_count }} 篇文章</span>
+                    {% if row.item.archive_size_bytes is not None %}<small>{{ row.item.archive_size_bytes|filesizeformat }}</small>{% endif %}
+                  </td>
+                  <td>
+                    <span>{{ row.item.started_at|date:"Y-m-d H:i:s" }}</span>
+                    {% if row.item.expires_at %}<small>到期 {{ row.item.expires_at|date:"Y-m-d H:i:s" }}</small>{% endif %}
+                  </td>
+                  <td>
+                    <div class="admin-exchange__actions">
+                      {% if row.item.can_download %}
+                        <a class="button button--secondary" href="{% url 'admin:exchange-download' job_id=row.item.job_id %}"><i data-lucide="download"></i><span>下载</span></a>
+                      {% endif %}
+                      {% if row.item.can_cancel %}
+                        <a
+                          id="export-cancel-{{ row.item.job_id }}"
+                          class="button button--danger"
+                          href="?confirm={{ row.item.job_id }}#export-{{ row.item.job_id }}"
+                          data-dialog-trigger
+                          data-dialog-return-hash="export-{{ row.item.job_id }}"
+                          aria-controls="export-cancel-dialog"
+                        ><i data-lucide="x"></i><span>取消</span></a>
+                      {% endif %}
+                      {% if not row.item.can_download and not row.item.can_cancel %}<span>无可用操作</span>{% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="admin-operations__empty">还没有导出记录。</p>
+      {% endif %}
+    </section>
+
+    <section class="admin-operations__section" aria-labelledby="backup-history-title">
+      <div class="admin-operations__section-heading">
+        <div>
+          <span aria-hidden="true">03</span>
+          <h2 id="backup-history-title">备份记录</h2>
+        </div>
+        <p>只读</p>
+      </div>
+      {% if backup_rows %}
+        <div class="admin-operations__table-wrap" tabindex="0" aria-label="备份记录">
+          <table class="admin-exchange__backup-table">
+            <thead><tr><th>周期</th><th>状态</th><th>大小</th><th>文件</th><th>完成时间</th></tr></thead>
+            <tbody>
+              {% for row in backup_rows %}
+                <tr>
+                  <td><strong>{{ row.week_id }}</strong><small>{{ row.destination }}</small></td>
+                  <td>
+                    <strong data-operation-state="{{ row.state }}">
+                      {% if row.state == "RUNNING" %}进行中{% elif row.state == "COMPLETED" %}已完成{% elif row.state == "FAILED" %}失败{% else %}已过期{% endif %}
+                    </strong>
+                    {% if row.error_code %}<small>{{ row.error_code }}</small>{% endif %}
+                  </td>
+                  <td>{% if row.archive_size_bytes is not None %}{{ row.archive_size_bytes|filesizeformat }}{% else %}—{% endif %}</td>
+                  <td>{% if row.media_file_count is not None %}{{ row.media_file_count }}{% else %}—{% endif %}</td>
+                  <td>{% if row.completed_at %}{{ row.completed_at|date:"Y-m-d H:i:s" }}{% else %}—{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="admin-operations__empty">还没有备份记录。</p>
+      {% endif %}
+    </section>
+  </section>
+
+  {% if export_confirmation_job %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="export-cancel-dialog" dialog_open=True dialog_title="确认取消这次导出？" dialog_description="取消会清理临时归档并保留任务记录。" action_value="cancel" confirmation_form=export_cancellation_form confirm_label="确认取消" dialog_return_focus_id="export-cancel-"|add:export_confirmation_job.job_id %}
+  {% endif %}
+{% endblock %}

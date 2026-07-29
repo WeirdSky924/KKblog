@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -11,6 +12,15 @@ from .models import ArticleRevision
 MIN_BODY_BYTES = 64 * 1024
 MAX_BODY_BYTES = 2 * 1024 * 1024
 DEFAULT_BODY_BYTES = MAX_BODY_BYTES
+
+ArticleBodyLimitProvider = Callable[[], int]
+
+
+def _settings_article_body_limit() -> int:
+    return getattr(settings, "ARTICLE_BODY_MAX_BYTES", DEFAULT_BODY_BYTES)
+
+
+_article_body_limit_provider: ArticleBodyLimitProvider = _settings_article_body_limit
 
 ContentFormat = ArticleRevision.ContentFormat
 SummaryMode = ArticleRevision.SummaryMode
@@ -31,7 +41,14 @@ class ArticleBodyLimit:
 
     @classmethod
     def configured(cls) -> ArticleBodyLimit:
-        return cls(getattr(settings, "ARTICLE_BODY_MAX_BYTES", DEFAULT_BODY_BYTES))
+        return cls(_article_body_limit_provider())
+
+
+def configure_article_body_limit_provider(provider: ArticleBodyLimitProvider) -> None:
+    if not callable(provider):
+        raise TypeError("article body limit provider must be callable")
+    global _article_body_limit_provider
+    _article_body_limit_provider = provider
 
 
 @dataclass(frozen=True, slots=True)

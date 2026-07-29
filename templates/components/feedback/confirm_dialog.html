@@ -17,6 +17,7 @@
       hx-swap="outerHTML"
     {% endif %}
     data-submit-once
+    {% if dialog_node_form %}data-navigation-node-form{% endif %}
     class="confirm-dialog__content"
   >
     {% csrf_token %}
@@ -25,7 +26,16 @@
     <h2 id="{{ dialog_id }}-title">{{ dialog_title }}</h2>
     <p id="{{ dialog_id }}-description">{{ dialog_description }}</p>
     {% if dialog_details %}<p>{{ dialog_details }}</p>{% endif %}
-    {% if dialog_field %}
+    {% if dialog_form_fields %}
+      {% for field in confirmation_form.visible_fields %}
+        <div{% if dialog_node_form and field.name == "target_url" %} data-navigation-target="url"{% elif dialog_node_form and field.name == "section_id" %} data-navigation-target="section"{% endif %}>
+          {{ field.label_tag }}
+          {{ field.errors }}
+          {{ field }}
+          {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    {% elif dialog_field %}
       <div>
         {{ dialog_field.label_tag }}
         {{ dialog_field.errors }}

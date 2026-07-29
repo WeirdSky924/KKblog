@@ -8,6 +8,7 @@ from apps.operations.queries.audit import audit_detail, search_audit
 from apps.operations.queries.backups import backup_records
 from apps.operations.queries.errors import error_detail, search_runtime_errors
 from apps.operations.queries.monitoring import current_monitoring_status
+from apps.operations.queries.tasks import TASK_RUN_STATUSES, task_run_records
 from apps.operations.services.alerts import (
     is_operational_task,
     send_pending_operational_alert_emails,
@@ -60,6 +61,7 @@ __all__ = [
     "StartOutcome",
     "TaskFinalFailed",
     "TaskRetryScheduled",
+    "TASK_RUN_STATUSES",
     "capture_runtime_error",
     "consume_backup_task_final_failure",
     "consume_task_final_failure_alert",
@@ -82,4 +84,5 @@ __all__ = [
     "send_pending_operational_alert_emails",
     "is_operational_task",
     "shanghai_backup_week",
+    "task_run_records",
 ]

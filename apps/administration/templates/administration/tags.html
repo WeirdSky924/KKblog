@@ -1,0 +1,109 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}标签审核与历史 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue" aria-labelledby="admin-tags-title">
+    <header class="admin-queue__header">
+      <p>管理 · 内容分类</p>
+      <h1 id="admin-tags-title">标签审核与历史</h1>
+      <p>审核作者提议，管理全站标签，并追踪删除后的历史关联与恢复冲突。</p>
+      {% if saved == "created" %}<p role="status">全站标签已创建。</p>{% endif %}
+      {% if saved == "approved" %}<p role="status">待审核标签已通过并通知相关作者。</p>{% endif %}
+      {% if saved == "rejected" %}<p role="status">待审核标签已驳回，当前文章关联已移除。</p>{% endif %}
+      {% if saved == "deleted" %}<p role="status">全站标签已删除，关联历史已保留。</p>{% endif %}
+      {% if saved == "restored" %}<p role="status">标签恢复完成；仍有 {{ restored_conflicts|default:"0" }} 条冲突。</p>{% endif %}
+    </header>
+
+    <form method="post" class="admin-queue__create" data-submit-once>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="tag_create">
+      <div>{{ create_form.name.label_tag }}{{ create_form.name.errors }}{{ create_form.name }}</div>
+      {{ create_form.non_field_errors }}
+      <button class="button button--primary" type="submit">新增全站标签</button>
+    </form>
+
+    <form method="get" class="admin-queue__filters admin-queue__filters--compact">
+      <div>{{ filter_form.state.label_tag }}{{ filter_form.state }}{{ filter_form.state.errors }}</div>
+      <button class="button button--secondary" type="submit">筛选</button>
+    </form>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    {% if rows %}
+      <div id="tag-list" class="admin-queue__table-wrap" tabindex="0" aria-label="标签审核与历史列表">
+        <table class="admin-queue__table admin-queue__table--tags">
+          <thead><tr><th>标签</th><th>状态</th><th>提议与审核</th><th>当前关联</th><th>历史与冲突</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><strong>{{ row.tag.name }}</strong><small>{{ row.tag.id }}</small></td>
+                <td>
+                  {% if row.tag.state == "PENDING" %}待审核{% elif row.tag.state == "ACTIVE" %}全站可用{% elif row.tag.state == "REJECTED" %}已驳回{% else %}已删除{% endif %}
+                  <small>{{ row.tag.updated_at|date:"Y-m-d H:i" }}</small>
+                </td>
+                <td>{{ row.proposer_label }}<small>{{ row.reviewer_label }}</small></td>
+                <td>{{ row.tag.current_article_count }} 篇文章</td>
+                <td>
+                  {{ row.tag.association_history_count }} 条历史
+                  <small>{{ row.tag.pending_history_count }} 条待恢复 · {{ row.tag.open_conflict_count }} 条冲突</small>
+                </td>
+                <td><div class="admin-queue__actions">
+                  <a href="?detail={{ row.tag.id }}#tag-detail">查看历史</a>
+                  {% if row.tag.can_review %}
+                    <a id="tag-approve-{{ row.tag.id }}" href="?confirm_action=approve&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">通过</a>
+                    <a id="tag-reject-{{ row.tag.id }}" href="?confirm_action=reject&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">驳回</a>
+                  {% endif %}
+                  {% if row.tag.can_delete %}<a id="tag-delete-{{ row.tag.id }}" href="?confirm_action=delete&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">删除</a>{% endif %}
+                  {% if row.tag.can_restore %}<a id="tag-restore-{{ row.tag.id }}" href="?confirm_action=restore&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">{% if row.tag.state == "DELETED" %}恢复{% else %}重试关联恢复{% endif %}</a>{% endif %}
+                </div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div id="tag-list" class="admin-queue__empty"><h2>当前没有匹配标签</h2><p>可切换状态筛选，或在上方新增全站标签。</p><a href="{% url 'admin:tags' %}">清除筛选</a></div>
+    {% endif %}
+
+    {% if detail %}
+      <section id="tag-detail" class="admin-queue__detail" aria-labelledby="tag-detail-title">
+        <header>
+          <p>{{ detail.tag.state }} · {{ detail.tag.id }}</p>
+          <h2 id="tag-detail-title">{{ detail.tag.name }}的关联历史</h2>
+          <p>提议：{{ detail_proposer_label }} · 审核：{{ detail_reviewer_label }}</p>
+        </header>
+        <dl class="admin-queue__metadata">
+          <div><dt>当前关联</dt><dd>{{ detail.tag.current_article_count }} 篇文章</dd></div>
+          <div><dt>历史记录</dt><dd>{{ detail.tag.association_history_count }} 条</dd></div>
+          <div><dt>待恢复关联</dt><dd>{{ detail.tag.pending_history_count }} 条</dd></div>
+          <div><dt>开放冲突</dt><dd>{{ detail.tag.open_conflict_count }} 条</dd></div>
+        </dl>
+
+        <section class="admin-queue__evidence" aria-labelledby="tag-conflicts-title">
+          <h3 id="tag-conflicts-title">开放恢复冲突</h3>
+          {% if detail.open_conflicts %}
+            <ul class="admin-queue__history">
+              {% for conflict in detail.open_conflicts %}<li><strong>{{ conflict.article_title }}</strong><code>{{ conflict.article_id }}</code><span>{% if conflict.reason == "MAX_TAGS" %}文章已有 10 个标签{% else %}{{ conflict.reason }}{% endif %} · {{ conflict.created_at|date:"Y-m-d H:i:s" }}</span></li>{% endfor %}
+            </ul>
+            {% if detail.conflicts_truncated %}<p>开放冲突较多，本页仅显示最近 200 条。</p>{% endif %}
+          {% else %}<p>当前没有开放恢复冲突。</p>{% endif %}
+        </section>
+
+        <section class="admin-queue__evidence" aria-labelledby="tag-history-title">
+          <h3 id="tag-history-title">删除与恢复记录</h3>
+          {% if detail.association_history %}
+            <ul class="admin-queue__history">
+              {% for history in detail.association_history %}<li><strong>{{ history.article_title }}</strong><code>{{ history.article_id }}</code><span>移除 {{ history.removed_at|date:"Y-m-d H:i:s" }} · {% if history.restored_at %}恢复 {{ history.restored_at|date:"Y-m-d H:i:s" }}{% else %}尚未恢复{% endif %}</span></li>{% endfor %}
+            </ul>
+            {% if detail.history_truncated %}<p>关联历史较多，本页仅显示最近 200 条。</p>{% endif %}
+          {% else %}<p>这个标签还没有删除或恢复历史。</p>{% endif %}
+        </section>
+        <p><a href="{% url 'admin:tags' %}#tag-list">关闭历史详情</a></p>
+      </section>
+    {% endif %}
+  </section>
+
+  {% if confirmation_kind %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="tag-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}
+  {% endif %}
+{% endblock %}

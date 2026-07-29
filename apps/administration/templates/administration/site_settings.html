@@ -1,0 +1,134 @@
+{% extends "administration/layout.html" %}
+{% load static %}
+
+{% block title %}站点设置 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue site-settings-manager" aria-labelledby="site-settings-title">
+    <header class="admin-queue__header">
+      <p>管理 · 站点结构</p>
+      <h1 id="site-settings-title">站点设置</h1>
+      <p>品牌、公开页面、可信来源和留言入口共用同一组设置。</p>
+      {% if saved == "configuration" %}<p role="status">站点配置已保存。</p>{% endif %}
+      {% if saved == "page" %}<p role="status">公开页面已保存。</p>{% endif %}
+      {% if saved == "friend" %}<p role="status">友情链接已保存。</p>{% endif %}
+      {% if saved == "trusted" %}<p role="status">可信来源设置已保存。</p>{% endif %}
+      {% if saved == "guestbook" %}<p role="status">留言设置已保存。</p>{% endif %}
+    </header>
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
+
+    {% if not settings_unavailable %}
+      <section id="site-configuration" class="site-settings-section" aria-labelledby="site-configuration-title">
+        <header><h2 id="site-configuration-title">品牌与注册</h2><p>当前版本 {{ site_settings.configuration.row_version }}</p></header>
+        <form method="post" class="site-settings-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="configuration">
+          {{ site_settings_forms.configuration.expected_version }}
+          {% for field in site_settings_forms.configuration.visible_fields %}
+            {% if field.name != "logo_asset_id" %}
+              <div class="site-settings-field">{{ field.label_tag }}{{ field.errors }}{{ field }}{% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}</div>
+            {% endif %}
+          {% endfor %}
+          {{ site_settings_forms.configuration.non_field_errors }}
+          {% include "media/partials/picker.html" with adapter="site-logo" upload_url=media_upload_urls.site_logo input_name="logo_asset_id" label="站点 Logo / favicon" picker_id="site-logo" current_asset_id=site_settings.configuration.logo_asset_id current_preview_url=site_settings.configuration.logo_url favicon_preview=True %}
+          <button class="button button--primary" type="submit">保存品牌设置</button>
+        </form>
+      </section>
+
+      <section id="static-pages" class="site-settings-section" aria-labelledby="static-pages-title">
+        <header><h2 id="static-pages-title">About、隐私政策与使用条款</h2><p>正文为空时，公开链接和导航入口会隐藏。</p></header>
+        <div class="site-settings-stack">
+          {% for page, form in static_page_entries %}
+            <form method="post" class="site-settings-form site-settings-form--page" data-submit-once>
+              {% csrf_token %}<input type="hidden" name="action" value="static_page">
+              <input type="hidden" name="page_type" value="{{ page.page_type }}">
+              {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+              <h3>{{ page.page_type_label }}</h3>
+              <div class="site-settings-field">{{ form.content_format.label_tag }}{{ form.content_format.errors }}{{ form.content_format }}</div>
+              <div class="site-settings-field" data-static-editor>
+                {{ form.source.label_tag }}{{ form.source.errors }}{{ form.source }}
+              </div>
+              {{ form.non_field_errors }}
+              <button class="button button--secondary" type="submit">保存{{ page.page_type_label }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section id="friend-links" class="site-settings-section" aria-labelledby="friend-links-title">
+        <header><h2 id="friend-links-title">友情链接</h2><p>所有链接使用安全的新标签页打开。</p></header>
+        <form method="post" class="site-settings-form" data-submit-once id="create-friend-link">
+          {% csrf_token %}<input type="hidden" name="action" value="friend_create">
+          {% for hidden in site_settings_forms.friend_new.hidden_fields %}{% if hidden.name != "logo_asset_id" %}{{ hidden }}{% endif %}{% endfor %}
+          <h3>新增友情链接</h3>
+          <div class="site-settings-field">{{ site_settings_forms.friend_new.name.label_tag }}{{ site_settings_forms.friend_new.name.errors }}{{ site_settings_forms.friend_new.name }}</div>
+          <div class="site-settings-field">{{ site_settings_forms.friend_new.url.label_tag }}{{ site_settings_forms.friend_new.url.errors }}{{ site_settings_forms.friend_new.url }}</div>
+          <div class="site-settings-field">{{ site_settings_forms.friend_new.description.label_tag }}{{ site_settings_forms.friend_new.description.errors }}{{ site_settings_forms.friend_new.description }}</div>
+          <div class="site-settings-field">{{ site_settings_forms.friend_new.position.label_tag }}{{ site_settings_forms.friend_new.position.errors }}{{ site_settings_forms.friend_new.position }}</div>
+          {% include "media/partials/picker.html" with adapter="friend-logo" upload_url=media_upload_urls.friend_logo input_name="friend-new-logo_asset_id" label="友情链接 Logo" picker_id="friend-new-logo" current_asset_id=site_settings_forms.friend_new.logo_asset_id.value current_preview_url="" favicon_preview=False %}
+          {{ site_settings_forms.friend_new.logo_asset_id.errors }}
+          {{ site_settings_forms.friend_new.non_field_errors }}
+          <button class="button button--primary" type="submit">新增友情链接</button>
+        </form>
+        {% if friend_link_entries %}
+          <div class="site-settings-stack">
+            {% for link, form, delete_form in friend_link_entries %}
+              <article class="site-settings-form friend-link-editor">
+                <form method="post" data-submit-once>
+                  {% csrf_token %}<input type="hidden" name="action" value="friend_update">
+                  <input type="hidden" name="link_id" value="{{ link.id }}">
+                  {% for hidden in form.hidden_fields %}{% if hidden.name != "logo_asset_id" %}{{ hidden }}{% endif %}{% endfor %}
+                  <h3>{{ link.name }}</h3>
+                  <div class="site-settings-field">{{ form.name.label_tag }}{{ form.name.errors }}{{ form.name }}</div>
+                  <div class="site-settings-field">{{ form.url.label_tag }}{{ form.url.errors }}{{ form.url }}</div>
+                  <div class="site-settings-field">{{ form.description.label_tag }}{{ form.description.errors }}{{ form.description }}</div>
+                  <div class="site-settings-field">{{ form.position.label_tag }}{{ form.position.errors }}{{ form.position }}</div>
+                  {% if form.is_bound %}
+                    {% include "media/partials/picker.html" with adapter="friend-logo" upload_url=media_upload_urls.friend_logo input_name=form.prefix|add:"-logo_asset_id" label="友情链接 Logo" picker_id="friend-logo-"|add:link.id|stringformat:"s" current_asset_id=form.logo_asset_id.value current_preview_url="" favicon_preview=False %}
+                  {% else %}
+                    {% include "media/partials/picker.html" with adapter="friend-logo" upload_url=media_upload_urls.friend_logo input_name=form.prefix|add:"-logo_asset_id" label="友情链接 Logo" picker_id="friend-logo-"|add:link.id|stringformat:"s" current_asset_id=link.logo_asset_id current_preview_url=link.logo_url favicon_preview=False %}
+                  {% endif %}
+                  {{ form.logo_asset_id.errors }}
+                  {{ form.non_field_errors }}
+                  <button class="button button--secondary" type="submit">保存链接</button>
+                </form>
+                <form method="post" data-submit-once data-confirm-form="确认删除这个友情链接？">
+                  {% csrf_token %}<input type="hidden" name="action" value="friend_delete">
+                  <input type="hidden" name="link_id" value="{{ link.id }}">
+                  {% for hidden in delete_form.hidden_fields %}{{ hidden }}{% endfor %}
+                  <button class="button button--danger" type="submit">删除链接</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="admin-queue__empty"><h3>还没有友情链接</h3><p>新增后会立即出现在公开友情链接页。</p></div>
+        {% endif %}
+      </section>
+
+      <section id="trusted-sources" class="site-settings-section" aria-labelledby="trusted-sources-title">
+        <header><h2 id="trusted-sources-title">可信嵌入来源</h2><p>首版只提供 Bilibili，停用后已有内容显示来源不可用。</p></header>
+        {% for source, form in trusted_source_entries %}
+          <form method="post" class="site-settings-inline-form" data-submit-once>
+            {% csrf_token %}<input type="hidden" name="action" value="trusted_source">
+            <input type="hidden" name="source_key" value="{{ source.source_key }}">
+            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+            <span><strong>{{ source.display_name }}</strong><small>{{ source.host_pattern }}</small></span>
+            <label>{{ form.enabled }}允许使用</label>
+            {{ form.errors }}
+            <button class="button button--secondary" type="submit">保存来源</button>
+          </form>
+        {% endfor %}
+      </section>
+
+      <section id="guestbook-settings" class="site-settings-section" aria-labelledby="guestbook-settings-title">
+        <header><h2 id="guestbook-settings-title">留言板</h2><p>留言板复用评论、缓冲、举报和删除规则。</p></header>
+        <form method="post" class="site-settings-inline-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="guestbook">
+          {% for field in site_settings_forms.guestbook.visible_fields %}<label>{{ field }}{{ field.label }}</label>{% endfor %}
+          {{ site_settings_forms.guestbook.non_field_errors }}
+          <button class="button button--primary" type="submit">保存留言设置</button>
+        </form>
+      </section>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}友情链接 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block content %}
+  <section class="public-friend-links" aria-labelledby="friend-links-title">
+    <header class="public-friend-links__header">
+      <p class="eyebrow">站点信息</p>
+      <h1 id="friend-links-title">友情链接</h1>
+      <p>与本站保持联系的站点。</p>
+    </header>
+    {% if friend_links %}
+      <ul class="public-friend-links__list">
+        {% for link in friend_links %}
+          <li class="public-friend-link">
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+              <img src="{{ link.logo_url }}" alt="" width="56" height="56" loading="lazy">
+              <span>
+                <strong>{{ link.name }}</strong>
+                <span>{{ link.description }}</span>
+              </span>
+              <i data-lucide="external-link" aria-hidden="true"></i>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state"><h2>还没有友情链接</h2><p>管理员配置后会在这里显示。</p></div>
+    {% endif %}
+  </section>
+{% endblock %}

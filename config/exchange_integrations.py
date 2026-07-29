@@ -9,13 +9,14 @@ from apps.accounts.public import (
     is_administrator,
 )
 from apps.content.public import (
-    ImportArticleCommand as ContentImportArticleCommand,
-)
-from apps.content.public import (
+    ArticleBodyLimit,
     ImportArticleError,
     ImportContentError,
     export_article_snapshots,
     export_revision_payloads,
+)
+from apps.content.public import (
+    ImportArticleCommand as ContentImportArticleCommand,
 )
 from apps.content.public import (
     import_article_item as write_content_import_item,
@@ -32,6 +33,7 @@ from apps.content.public import (
 from apps.content.public import (
     validate_import_mapping as content_validate_import_mapping,
 )
+from apps.content.rendering_policy import configured_content_embed_policy
 from apps.core.observability.trace import new_trace_code
 from apps.exchange.public import (
     ExportArchiveStorage,
@@ -84,7 +86,10 @@ def active_import_author(actor_id) -> bool:
 
 
 def render_import_markdown(source: str) -> str:
-    return render_markdown(source).html
+    return render_markdown(
+        source,
+        embed_policy=configured_content_embed_policy(),
+    ).html
 
 
 def validate_import_image(content: bytes) -> ImportImage:
@@ -161,7 +166,7 @@ def create_configured_import_preview(
         item_count=settings.EXCHANGE_IMPORT_ITEM_MAX_COUNT,
         path_depth=settings.EXCHANGE_IMPORT_PATH_MAX_DEPTH,
         compression_ratio=settings.EXCHANGE_IMPORT_COMPRESSION_MAX_RATIO,
-        body_bytes=settings.ARTICLE_BODY_MAX_BYTES,
+        body_bytes=ArticleBodyLimit.configured().maximum_bytes,
     )
     created = create_import_preview(
         actor_id=actor_id,

@@ -10,11 +10,17 @@ from apps.administration.views.articles import articles
 from apps.administration.views.audit import audit_log
 from apps.administration.views.comments import comments
 from apps.administration.views.errors import runtime_errors
+from apps.administration.views.exchange import download_export, exchange
 from apps.administration.views.index import index
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
+from apps.administration.views.navigation import navigation
 from apps.administration.views.notifications import notifications
 from apps.administration.views.reports import reports
+from apps.administration.views.sections import sections
+from apps.administration.views.site_settings import site_settings
+from apps.administration.views.tags import tags
+from apps.administration.views.tasks import task_runs
 from apps.administration.views.users import users
 from apps.analytics.presentation.admin_view import analytics_dashboard
 
@@ -26,6 +32,14 @@ urlpatterns = [
     path("articles/", administrator_required(articles), name="articles"),
     path("comments/", administrator_required(comments), name="comments"),
     path("reports/", administrator_required(reports), name="reports"),
+    path("tags/", administrator_required(tags), name="tags"),
+    path("sections/", administrator_required(sections), name="sections"),
+    path("navigation/", administrator_required(navigation), name="navigation"),
+    path(
+        "site-settings/",
+        administrator_required(site_settings),
+        name="site-settings",
+    ),
     path(
         "analytics/",
         administrator_required(analytics_dashboard),
@@ -48,6 +62,13 @@ urlpatterns = [
     ),
     path("audit/", administrator_required(audit_log), name="audit"),
     path("errors/", administrator_required(runtime_errors), name="errors"),
+    path("tasks/", administrator_required(task_runs), name="tasks"),
+    path("exchange/", administrator_required(exchange), name="exchange"),
+    path(
+        "exchange/<str:job_id>/download/",
+        administrator_required(download_export),
+        name="exchange-download",
+    ),
     path("invites/", administrator_required(invites), name="invites"),
     path("ip-blocks/", administrator_required(ip_blocks), name="ip-blocks"),
     path(

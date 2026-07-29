@@ -52,7 +52,9 @@ class MonitoringStatus:
     active_alerts: tuple[ActiveAlertItem, ...]
 
 
-def current_monitoring_status() -> MonitoringStatus:
+def current_monitoring_status(*, is_admin: bool) -> MonitoringStatus:
+    if not is_admin:
+        raise PermissionError("Monitoring status access denied")
     return MonitoringStatus(
         capacity=tuple(
             CapacityStatusItem(
