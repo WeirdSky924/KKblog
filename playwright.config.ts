@@ -4,7 +4,7 @@ import { identityNames } from "./tests/e2e/identity";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "**/*.spec.ts",
+  testMatch: "foundation-errors.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,

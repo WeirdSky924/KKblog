@@ -453,6 +453,29 @@ function initializeConfirmDialogs(root = document) {
         event.preventDefault();
         dialog.close("cancel");
       });
+      dialog.addEventListener("keydown", (event) => {
+        if (event.key !== "Tab") return;
+        const focusable = Array.from(
+          dialog.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element) =>
+          element instanceof HTMLElement &&
+          !element.hidden &&
+          element.getAttribute("aria-hidden") !== "true" &&
+          element.getClientRects().length > 0
+        );
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      });
       dialog.addEventListener("close", () => {
         const returnFocusId = dialog.dataset.dialogReturnFocus || "";
         const trigger =
@@ -1004,10 +1027,8 @@ document.addEventListener("submit", (event) => {
   }
   form.dataset.submitting = "true";
   form.setAttribute("aria-busy", "true");
-  requestAnimationFrame(() => {
-    form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((control) => {
-      control.setAttribute("aria-disabled", "true");
-    });
+  form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((control) => {
+    control.setAttribute("aria-disabled", "true");
   });
 });
 

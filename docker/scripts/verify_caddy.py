@@ -171,6 +171,43 @@ def analytics_proxy_violations(config: dict[str, object]) -> list[str]:
     return violations
 
 
+def client_ip_proxy_violations(config: dict[str, object]) -> list[str]:
+    reverse_proxies = [
+        node for node in walk_json(config) if node.get("handler") == "reverse_proxy"
+    ]
+    client_ip_proxies = [
+        proxy
+        for proxy in reverse_proxies
+        if "x-kaj-client-ip"
+        in {
+            name.casefold()
+            for name in (
+                *proxy.get("headers", {}).get("request", {}).get("delete", []),
+                *proxy.get("headers", {}).get("request", {}).get("set", {}).keys(),
+            )
+        }
+    ]
+    if len(client_ip_proxies) != 1:
+        return ["Caddy must define exactly one application proxy route"]
+
+    request_headers = client_ip_proxies[0].get("headers", {}).get("request", {})
+    deleted = {name.casefold() for name in request_headers.get("delete", [])}
+    configured = {
+        name.casefold(): values
+        for name, values in request_headers.get("set", {}).items()
+    }
+    violations: list[str] = []
+    if "x-kaj-client-ip" in deleted:
+        violations.append(
+            "Application proxy must not delete its trusted client IP header"
+        )
+    if configured.get("x-kaj-client-ip") != ["{http.request.remote.host}"]:
+        violations.append(
+            "Application proxy must overwrite the trusted client IP header"
+        )
+    return violations
+
+
 def main() -> int:
     failures: list[str] = []
     configured = compose_config(REQUIRED)
@@ -228,13 +265,15 @@ def main() -> int:
         if adapted.returncode:
             failures.append(f"Caddy could not adapt {filename}")
             continue
-        failures.extend(analytics_proxy_violations(json.loads(adapted.stdout)))
+        adapted_config = json.loads(adapted.stdout)
+        failures.extend(analytics_proxy_violations(adapted_config))
+        failures.extend(client_ip_proxy_violations(adapted_config))
 
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1
     print(
-        "caddy contract: ports, production gates, secret isolation, exact analytics routes"
+        "caddy contract: ports, production gates, secret isolation, exact proxy routes"
     )
     return 0
 

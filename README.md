@@ -4,16 +4,16 @@ Kaj 的小房间是一个面向中文用户、支持移动端的私人博客项�
 
 ## 当前状态
 
-需求、原型基线和施工级架构已建立；准确的实施阶段、任务状态与验收证据统一见[实施总清单](docs/planning/implementation-todolist.md)，本 README 不维护第二份进度账。已完成的本地与隔离环境验证不代表存在生产配置、生产数据库、备份、已认证邮件身份或已部署服务。
+当前源码是**可部署但未部署**的交付候选：需求、实现、测试和本地部署门禁已建立，准确的实施阶段、任务状态与验收证据统一见[实施总清单](docs/planning/implementation-todolist.md)，本 README 不维护第二份进度账。隔离环境验证不代表存在生产配置、生产数据库、生产备份、已认证邮件身份或已部署服务。
 
-禁止自动部署。迁移、提交、推送、部署、生产邮件和生产备份只在用户当前回合明确授权后执行。
+当前没有生产域名、管理员邮箱、已认证 Resend 发件身份或生产密钥；未执行生产 migration、生产备份、恢复演练、部署或服务重启。本轮仅创建本地 Git 提交，明确不推送、不集成远端默认分支；提交源码不表示已经部署。禁止自动部署；推送、集成和生产动作只在用户当前回合分别明确授权后执行。
 
 ## 技术方向
 
 - Python 3.12、Django、PostgreSQL、Redis、Celery。
 - Django Templates、HTMX、Alpine.js、Tailwind CSS、TipTap。
 - `uv` 管理 Python 依赖；pytest、Ruff、Playwright 提供质量门禁。
-- Docker Compose、Gunicorn、Celery、Caddy、Mailpit 和 Umami 的运行时入口已建立；Umami 同源管理员入口、全站 tracker 配置和一个月保留代码已集成，真实启动、首次配置、跟踪、清理和部署仍需当前回合明确授权。
+- Docker Compose、Gunicorn、Celery、Caddy、Mailpit 和 Umami 的运行时入口已建立；Umami 同源管理员入口、全站 tracker 配置和一个月保留代码已集成。部署入口目前只有 fail-closed 规划器/模拟器，没有生产命令适配器；真实启动、首次配置、跟踪、清理和部署仍需当前回合明确授权。
 
 ## 项目真值
 

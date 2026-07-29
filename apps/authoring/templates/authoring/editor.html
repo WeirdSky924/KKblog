@@ -160,6 +160,7 @@
               <textarea name="body" id="{{ editor_form.body.id_for_label }}" data-editor-source hidden>{{ editor_form.body.value|default_if_none:"" }}</textarea>
               <div class="author-tiptap" data-tiptap-editor aria-label="文章正文"></div>
             {% else %}
+              <label for="{{ editor_form.body.id_for_label }}">正文</label>
               {{ editor_form.body }}
             {% endif %}
             {{ editor_form.body.errors }}

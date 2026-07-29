@@ -1020,12 +1020,22 @@
   }
 
   .author-editor-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
     padding-block-end: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   .author-editor-actions .button {
-    flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
     padding-inline: 0.625rem;
+    text-align: center;
+  }
+
+  .author-editor-actions button[type="submit"] {
+    grid-column: 1 / -1;
   }
 }
 

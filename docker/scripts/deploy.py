@@ -25,6 +25,8 @@ MIGRATION_FAILURE = 30
 CANDIDATE_HEALTH_FAILURE = 40
 ROLLBACK_HEALTH_FAILURE = 50
 STATE_VERSION = 1
+SIMULATED_PREVIOUS_VERSION = "app-previous"
+SIMULATED_CANDIDATE_VERSION = "app-candidate"
 DEPLOYMENT_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 
 
@@ -78,6 +80,10 @@ class Journal:
             "candidate_switched": False,
             "database_migrated": False,
             "database_rollback_attempted": False,
+            "previous_version": SIMULATED_PREVIOUS_VERSION,
+            "candidate_version": SIMULATED_CANDIDATE_VERSION,
+            "active_version": SIMULATED_PREVIOUS_VERSION,
+            "rollback_version": None,
             "events": [],
         }
 
@@ -251,7 +257,11 @@ def checked_state_path(state_root: Path, deployment_id: str) -> Path:
     return path
 
 
-def read_terminal_state(path: Path, deployment_id: str) -> tuple[str, int] | None:
+def read_terminal_state(
+    path: Path,
+    deployment_id: str,
+    scenario_name: str,
+) -> tuple[str, int] | None:
     if not path.exists():
         return None
     try:
@@ -270,6 +280,158 @@ def read_terminal_state(path: Path, deployment_id: str) -> tuple[str, int] | Non
     }
     if not isinstance(status, str) or status not in terminal_codes:
         raise UsageError("incomplete deployment journal requires manual recovery")
+    expected_statuses = {
+        "success-current": "succeeded",
+        "success-pending": "succeeded",
+        "migration-failure": "migration_failed",
+        "health-failure": "rolled_back",
+        "rollback-health-failure": "rollback_unhealthy",
+    }
+    expected_event_steps = {
+        "success-current": [
+            "build_candidate",
+            "detect_migrations",
+            "enable_maintenance",
+            "switch_candidate",
+            "check_candidate_health",
+            "disable_maintenance",
+            "record_success",
+        ],
+        "success-pending": [
+            "build_candidate",
+            "detect_migrations",
+            "create_backup",
+            "enable_maintenance",
+            "apply_migrations",
+            "switch_candidate",
+            "check_candidate_health",
+            "disable_maintenance",
+            "record_success",
+        ],
+        "migration-failure": [
+            "build_candidate",
+            "detect_migrations",
+            "create_backup",
+            "enable_maintenance",
+            "apply_migrations",
+            "check_previous_health",
+            "disable_maintenance",
+            "record_failure",
+        ],
+        "health-failure": [
+            "build_candidate",
+            "detect_migrations",
+            "create_backup",
+            "enable_maintenance",
+            "apply_migrations",
+            "switch_candidate",
+            "check_candidate_health",
+            "restore_previous",
+            "check_previous_health",
+            "disable_maintenance",
+            "record_failure",
+        ],
+        "rollback-health-failure": [
+            "build_candidate",
+            "detect_migrations",
+            "create_backup",
+            "enable_maintenance",
+            "apply_migrations",
+            "switch_candidate",
+            "check_candidate_health",
+            "restore_previous",
+            "check_previous_health",
+            "record_failure",
+        ],
+    }
+    expected_state_flags = {
+        "success-current": (False, True, False),
+        "success-pending": (False, True, True),
+        "migration-failure": (False, False, False),
+        "health-failure": (False, False, True),
+        "rollback-health-failure": (True, False, True),
+    }
+    scenario = state.get("scenario")
+    expected_migration_state = SCENARIOS.get(str(scenario))
+    required_booleans = (
+        "maintenance_enabled",
+        "candidate_switched",
+        "database_migrated",
+        "database_rollback_attempted",
+    )
+    events = state.get("events")
+    if (
+        state.get("version") != STATE_VERSION
+        or state.get("mode") != "simulation"
+        or scenario != scenario_name
+        or expected_migration_state is None
+        or state.get("migration_state") != expected_migration_state.migration_state
+        or expected_statuses.get(str(scenario)) != status
+        or any(type(state.get(name)) is not bool for name in required_booleans)
+        or not isinstance(events, list)
+        or not events
+    ):
+        raise UsageError("existing deployment journal has an invalid schema")
+
+    expected_flags = expected_state_flags[str(scenario)]
+    if (
+        state["maintenance_enabled"],
+        state["candidate_switched"],
+        state["database_migrated"],
+    ) != expected_flags or state["database_rollback_attempted"] is not False:
+        raise UsageError("existing deployment journal has invalid terminal state")
+
+    final_event = events[-1]
+    expected_final_step = (
+        "record_success" if status == "succeeded" else "record_failure"
+    )
+    expected_exit_code = terminal_codes[status]
+    if (
+        not all(
+            isinstance(event, dict)
+            and event.get("version") == STATE_VERSION
+            and event.get("deployment_id") == deployment_id
+            and isinstance(event.get("step"), str)
+            and event.get("outcome") in {"completed", "failed"}
+            and type(event.get("exit_code")) is int
+            for event in events
+        )
+        or [event["step"] for event in events] != expected_event_steps[str(scenario)]
+        or not isinstance(final_event, dict)
+        or final_event.get("version") != STATE_VERSION
+        or final_event.get("deployment_id") != deployment_id
+        or final_event.get("step") != expected_final_step
+        or final_event.get("exit_code") != expected_exit_code
+    ):
+        raise UsageError("existing deployment journal has invalid events")
+
+    version_fields = {
+        "previous_version",
+        "candidate_version",
+        "active_version",
+        "rollback_version",
+    }
+    present_version_fields = version_fields.intersection(state)
+    if present_version_fields and present_version_fields != version_fields:
+        raise UsageError("existing deployment journal has incomplete version fields")
+    if present_version_fields:
+        expected_active = (
+            SIMULATED_CANDIDATE_VERSION
+            if status == "succeeded"
+            else SIMULATED_PREVIOUS_VERSION
+        )
+        expected_rollback = (
+            SIMULATED_PREVIOUS_VERSION
+            if status in {"rolled_back", "rollback_unhealthy"}
+            else None
+        )
+        if (
+            state.get("previous_version") != SIMULATED_PREVIOUS_VERSION
+            or state.get("candidate_version") != SIMULATED_CANDIDATE_VERSION
+            or state.get("active_version") != expected_active
+            or state.get("rollback_version") != expected_rollback
+        ):
+            raise UsageError("existing deployment journal has invalid version fields")
     outcome = "already_succeeded" if status == "succeeded" else "already_failed"
     return outcome, terminal_codes[status]
 
@@ -318,7 +480,7 @@ def run_simulation(
 ) -> int:
     scenario = SCENARIOS[scenario_name]
     state_path = checked_state_path(state_root, deployment_id)
-    previous = read_terminal_state(state_path, deployment_id)
+    previous = read_terminal_state(state_path, deployment_id, scenario_name)
     if previous is not None:
         outcome, exit_code = previous
         emit(
@@ -361,7 +523,10 @@ def run_simulation(
 
     journal.record(
         "switch_candidate",
-        updates={"candidate_switched": True},
+        updates={
+            "candidate_switched": True,
+            "active_version": SIMULATED_CANDIDATE_VERSION,
+        },
     )
     if not scenario.candidate_healthy:
         journal.record(
@@ -371,7 +536,11 @@ def run_simulation(
         )
         journal.record(
             "restore_previous",
-            updates={"candidate_switched": False},
+            updates={
+                "candidate_switched": False,
+                "active_version": SIMULATED_PREVIOUS_VERSION,
+                "rollback_version": SIMULATED_PREVIOUS_VERSION,
+            },
         )
         return finish_failure(
             journal,

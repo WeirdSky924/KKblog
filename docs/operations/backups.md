@@ -3,11 +3,13 @@
 当前备份能力每周将 PostgreSQL custom-format dump 和全部受管媒体打入同一个本地
 `.tar.gz` 归档。调度为 `Asia/Shanghai` 每周一 03:00，归档保留 30 天。
 
+P12 只在隔离 PostgreSQL 和临时媒体目录验证过归档生成、SHA-256、manifest、`pg_restore --list` 可读性、周幂等和到期清理。未创建生产备份，也未执行隔离数据库的完整 `pg_restore`、业务抽查或生产恢复演练；归档 manifest 仍必须记录 `restore_verified=false`。
+
 ## 能力边界
 
 - 首版目标只有 `local`，归档不加密。
 - `COMPLETED` 只表示 `pg_dump`、媒体读取、归档写入和原子改名成功。
-- 当前归档**未验证可恢复**：系统不自动执行 `pg_restore`、dump 内容校验或恢复演练。
+- 当前归档**未验证可恢复**：系统不自动执行 `pg_restore` 或恢复演练；`pg_restore --list` 只能证明 custom dump 结构可读，不能证明数据库和媒体可完整恢复。
 - 网页不提供备份下载、恢复或目标配置；这些动作只能由服务器管理员在获批的维护窗口人工完成。
 - `.env`、私钥、凭据文件和备份目录本身不得进入媒体归档。
 
