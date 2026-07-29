@@ -1,9 +1,11 @@
+from functools import wraps
 from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.cache import patch_vary_headers
 
 from apps.accounts.audit import record_profile_audit
 from apps.accounts.policies.registration import (
@@ -63,6 +65,17 @@ from apps.accounts.services.sessions import (
     summarize_user_agent,
 )
 from apps.accounts.services.verification import default_verification_store
+
+
+def _private_account_view(view):
+    @wraps(view)
+    def wrapped(request, *args, **kwargs):
+        response = view(request, *args, **kwargs)
+        response.headers["Cache-Control"] = "private, no-store"
+        patch_vary_headers(response, ("Cookie",))
+        return response
+
+    return wrapped
 
 
 def _safe_next(request: HttpRequest) -> str:
@@ -420,6 +433,7 @@ def _rotated_response(request, result):
     return response
 
 
+@_private_account_view
 def settings_view(request: HttpRequest) -> HttpResponse:
     if not getattr(request, "account_id", None):
         settings_url = reverse("accounts:settings")
@@ -578,6 +592,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
     return _rotated_response(request, result)
 
 
+@_private_account_view
 def theme_view(request: HttpRequest) -> HttpResponse:
     return_path = _safe_next(request)
     if not getattr(request, "account_id", None):
@@ -633,6 +648,7 @@ def _render_sessions(
     )
 
 
+@_private_account_view
 def sessions_view(request: HttpRequest) -> HttpResponse:
     if not getattr(request, "account_id", None):
         sessions_url = reverse("accounts:sessions")

@@ -13,6 +13,7 @@
 ## 架构来源
 
 - [测试环境与固定命令](testing.md)
+- [Migration 验证与兼容记录](migrations.md)
 - [备份与人工恢复](backups.md)
 - [Umami 同源分析与保留](analytics.md)
 - [部署状态机骨架](deployment.md)

@@ -3,7 +3,7 @@
 退出门禁：数据、权限、浏览器、无障碍、任务、缓存、文件、Compose 和部署沙箱证据全部新鲜。
 
 ### QA-001 执行 schema、migration、约束与并发总回归
-- 元数据：状态 `待处理`；阶段 P12；owner `tests-integration`；优先级 P0。
+- 元数据：状态 `完成`；阶段 P12；owner `tests-integration`；优先级 P0。
 - 目标/行为：从空库完整migrate并验证所有约束/索引/外键/删除策略；覆盖邀请码、昵称、修订、标签、评论、导出等并发裁决和expand/migrate/contract兼容。
 - 来源：`data/04-indexes-constraints.md` 全文；`delivery/02-module-verification-matrix.md` §数据并发；`delivery/03-code-review-checklist.md` §数据迁移。
 - 依赖：前置 `ACC-001`、`MED-001`、`CNT-001`、`CNT-010`、`CNT-011`、`CMT-001`、`OBS-001`、`OBS-004`、`OBS-005`、`OBS-006`、`OBS-007`、`OBS-009`、`OBS-010`、`EXC-001`、`EXC-004`、`ADM-006`；后续 `QA-002`、`QA-004`、`QA-005`、`QA-006`。
@@ -12,10 +12,11 @@
 - 影响：数据：全schema；权限/审计/缓存/异步/媒体/通知仅验证关联约束。
 - 测试/验收：RED至少包含双事务；`uv run pytest tests/integration/migrations tests/integration/concurrency -q`、`manage.py makemigrations --check`、迁移读回SQL。
 - 风险/停止：迁移不向前兼容旧应用、约束只在表单或测试触碰生产连接即停止。
+- 证据：在独立 `kaj-p12-postgres` PostgreSQL 16 容器和 loopback `kaj_test_p12` 数据库中执行。聚焦 RED 首轮退出 1，`4 failed, 7 passed`：迁移兼容说明确实缺失，另三项准确识别为新探针的迁移总数、表达式唯一索引分类和标签作者 fixture 假设错误，未据此修改产品。补齐 `docs/operations/migrations.md` 对 43 条 migration 的逐条锁/兼容/备份/回滚记录并修正探针后，目标套件退出 0，`11 passed in 22.84s`；其中每次从新建空 PostgreSQL 数据库完整 migrate 后读回全部 leaf、`pg_trgm` 与核心表，并在 finally 终止定向连接和删除临时库。六组真实双事务分别验证邀请码行锁、昵称 casefold 唯一、修订序号唯一、标签规范值、评论条件公开和 `RUNNING/CANCEL_REQUESTED` 导出部分唯一的单胜者/幂等终态。账户、内容、评论、媒体、通知、TaskRun 与新套件相关回归退出 0，`83 passed in 80.80s`；新测试 Ruff lint/format 均退出 0。`manage.py makemigrations --check --dry-run`、`manage.py check` 与 `git diff --check` 均退出 0；Django 仅报告未构建 `static/dist` 的已知 warning。隔离主库 SQL 读回 `43` 条 migration、`315` 个约束、`303` 个索引，确认同文章修订延迟外键、评论树延迟 trigger 和 TaskRun 幂等唯一；无残留 `kaj_test_p12_empty_*` 数据库。未执行生产/共享数据库 migration、生产备份、部署、服务重启、Git add/commit/push。
 - 授权：隔离测试 `否`；生产 migration `是`。
 
 ### QA-002 执行四身份完整授权矩阵与存在性隐私回归
-- 元数据：状态 `待处理`；阶段 P12；owner `tests-security`；优先级 P0。
+- 元数据：状态 `进行中`；阶段 P12；owner `tests-security`；优先级 P0。
 - 目标/行为：访客、普通用户、对象作者、其他作者、唯一管理员对文章/评论/举报/账户/通知/设置/交换每个GET/POST/HTMX直接请求均符合矩阵；IP封禁覆盖有效会话。
 - 来源：`contracts/02-authorization-matrix.md` 全文；ADR-005；`delivery/02-module-verification-matrix.md` §高风险权限。
 - 依赖：前置 `ACC-010`、`ACC-011`、`CNT-005`、`CNT-008`、`CNT-009`、`MED-004`、`DSC-004`、`DSC-005`、`DSC-006`、`CMT-008`、`CMT-009`、`CMT-010`、`CMT-011`、`OBS-003`、`ADM-002`、`ADM-003`、`ADM-004`、`EXC-007`、`QA-001`；后续 `QA-003`、`QA-006`。
