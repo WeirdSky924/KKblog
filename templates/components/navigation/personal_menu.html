@@ -18,7 +18,7 @@
         <a href="{% url 'admin:index' %}"><i data-lucide="shield-check"></i><span>管理</span></a>
       {% endif %}
     </nav>
-    <form method="post" action="{% url 'accounts:sessions' %}" data-submit-once>
+    <form method="post" action="{% url 'accounts:sessions' %}" hx-boost="false" data-submit-once>
       {% csrf_token %}
       <input type="hidden" name="action" value="revoke">
       <input type="hidden" name="session_id" value="{{ shell_session_id }}">

@@ -1,24 +1,24 @@
 {% extends "administration/layout.html" %}
 
-{% block title %}公共导航树 · {{ site_presentation.site_name }}{% endblock %}
+{% block title %}主页侧边导航 · {{ site_presentation.site_name }}{% endblock %}
 
 {% block admin_content %}
   <section class="admin-queue navigation-manager" aria-labelledby="admin-navigation-title">
     <header class="admin-queue__header">
       <p>管理 · 公开站点结构</p>
-      <h1 id="admin-navigation-title">公共导航树</h1>
-      <p>管理站内页、文章分区和安全外链节点。</p>
+      <h1 id="admin-navigation-title">主页侧边导航</h1>
+      <p>站内页、文章分区和安全外链共用这棵侧边导航树；选择“文章分区”节点即可将已有分区排入任意层级，顶部栏不显示这些节点。</p>
       {% if saved == "created" %}<p role="status">导航节点已创建。</p>{% endif %}
       {% if saved == "edited" %}<p role="status">导航节点已更新。</p>{% endif %}
-      {% if saved == "hidden" %}<p role="status">导航子树已从公开 Header 隐藏。</p>{% endif %}
-      {% if saved == "shown" %}<p role="status">导航子树已恢复公开展示。</p>{% endif %}
+      {% if saved == "hidden" %}<p role="status">导航子树已从主页侧边栏隐藏。</p>{% endif %}
+      {% if saved == "shown" %}<p role="status">导航子树已恢复到主页侧边栏。</p>{% endif %}
       {% if saved == "moved" %}<p role="status">导航子树已移动并重新连续排序。</p>{% endif %}
       {% if saved == "deleted" %}<p role="status">已删除 {{ deleted_count }} 个导航节点。</p>{% endif %}
     </header>
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if tree_unavailable and trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
 
     {% if not tree_unavailable %}
-      <form method="post" class="navigation-manager__create" data-submit-once data-navigation-node-form>
+      <form method="post" class="navigation-manager__create" data-submit-once data-navigation-node-form data-navigation-position-form>
         {% csrf_token %}
         <input type="hidden" name="action" value="navigation_create">
         {% for hidden in create_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -27,7 +27,7 @@
         <div data-navigation-target="url">{{ create_form.target_url.label_tag }}{{ create_form.target_url.errors }}{{ create_form.target_url }}{% if create_form.target_url.help_text %}<p class="form-help">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
         <div data-navigation-target="section">{{ create_form.section_id.label_tag }}{{ create_form.section_id.errors }}{{ create_form.section_id }}</div>
         <div>{{ create_form.parent_id.label_tag }}{{ create_form.parent_id.errors }}{{ create_form.parent_id }}</div>
-        <div>{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}</div>
+        <div>{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}{% if create_form.position.help_text %}<p class="form-help">{{ create_form.position.help_text }}</p>{% endif %}</div>
         {{ create_form.non_field_errors }}
         <button class="button button--primary" type="submit">新增导航节点</button>
       </form>
@@ -44,7 +44,7 @@
             {% for row in rows %}{% include "administration/partials/navigation_node.html" with row=row tree=tree csrf_token=csrf_token only %}{% endfor %}
           </ol>
         {% else %}
-          <div class="admin-queue__empty"><h3>公共导航当前为空</h3><p>登录、注册和个人菜单由系统管理，不属于公共导航树。</p></div>
+          <div class="admin-queue__empty"><h3>主页侧边导航当前为空</h3><p>顶部栏、登录、注册和个人菜单由系统管理，不属于这棵导航树。</p></div>
         {% endif %}
       </section>
 

@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.comments.public import article_comment_context
 from apps.content.public import ArticleLoginRequired, ArticleNotFound
+from apps.core.http import is_htmx_fragment_request
 from apps.discovery.presentation.forms import (
     BookmarkStateForm,
     HomePageForm,
@@ -35,17 +36,13 @@ def _actor_id(request):
     return getattr(request, "account_id", None)
 
 
-def _is_htmx(request) -> bool:
-    return request.headers.get("HX-Request") == "true"
-
-
 def _login_url(next_path: str) -> str:
     return f"{reverse('accounts:login')}?{urlencode({'next': next_path})}"
 
 
 def _login_required_response(request, *, next_path: str):
     login_url = _login_url(next_path)
-    if _is_htmx(request):
+    if is_htmx_fragment_request(request):
         response = HttpResponse(status=204)
         response.headers["HX-Redirect"] = login_url
     else:
@@ -89,7 +86,7 @@ def _pagination_query(request, page_size: int, *, tag_ids=None) -> str:
 
 
 def _page_template(request, page_template: str) -> str:
-    if request.headers.get("HX-Request") == "true":
+    if is_htmx_fragment_request(request):
         return "discovery/partials/article_index.html"
     return page_template
 
@@ -135,6 +132,7 @@ def home(request):
         "index_action": reverse("public:home"),
         "clear_filter_url": reverse("public:home"),
         "selected_tag_ids": selected_tag_ids,
+        "sections_managed_by_navigation": True,
     }
     return _no_store(
         render(
@@ -321,7 +319,7 @@ def article_bookmark(request, article_id):
 
     if status == 200 and source == BookmarkStateForm.Source.BOOKMARKS:
         response = redirect(bookmarks_path)
-    elif status == 200 and not _is_htmx(request):
+    elif status == 200 and not is_htmx_fragment_request(request):
         response = redirect(article_path)
     else:
         response = render(
@@ -357,7 +355,7 @@ def bookmarks(request):
         request,
         (
             "discovery/partials/bookmark_list.html"
-            if _is_htmx(request)
+            if is_htmx_fragment_request(request)
             else "discovery/bookmarks.html"
         ),
         {

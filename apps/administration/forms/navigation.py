@@ -37,8 +37,20 @@ class _NodeFields(forms.Form):
 
 
 class NavigationNodeCreateForm(_NodeFields):
-    parent_id = forms.ChoiceField(label="父级节点", required=False)
-    position = forms.IntegerField(label="层内位置", min_value=0, max_value=500)
+    parent_id = forms.ChoiceField(
+        label="父级节点",
+        required=False,
+        widget=forms.Select(attrs={"data-navigation-parent": ""}),
+    )
+    position = forms.IntegerField(
+        label="层内位置",
+        min_value=0,
+        max_value=500,
+        help_text=(
+            "选择父级后自动填入该层末位，可手动修改；已有节点占用该位置时会依次后移，删除后自动补齐。"
+        ),
+        widget=forms.NumberInput(attrs={"data-navigation-position": ""}),
+    )
     expected_tree_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
 
     def __init__(self, *args, parent_choices=(), **kwargs) -> None:

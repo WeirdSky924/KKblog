@@ -1,8 +1,8 @@
 <div id="article-index" class="article-index" data-article-index data-focus-after-swap tabindex="-1">
   <p id="article-index-loading" class="article-index__loading htmx-indicator" role="status">正在更新文章列表…</p>
-  {% if filter_options.sections or filter_options.tags %}
+  {% if filter_options.sections and not sections_managed_by_navigation or filter_options.tags %}
     <div class="discovery-filters">
-      {% if filter_options.sections %}
+      {% if filter_options.sections and not sections_managed_by_navigation %}
         <nav class="section-filter" aria-label="文章分区">
           <span class="discovery-filters__label">分区</span>
           <div class="section-filter__links">
@@ -12,7 +12,7 @@
           </div>
         </nav>
       {% endif %}
-      <form
+      {% if filter_options.tags %}<form
         class="tag-filter"
         data-tag-filter
         action="{{ index_action }}"
@@ -38,7 +38,7 @@
             {% if selected_tag_ids %}<a class="button button--secondary" href="{{ clear_filter_url }}">清除</a>{% endif %}
           </div>
         </fieldset>
-      </form>
+      </form>{% endif %}
     </div>
   {% endif %}
   {% if index_initial_prompt %}

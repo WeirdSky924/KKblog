@@ -6,7 +6,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 
 | URL name | 页面/模板 | 查询/命令 | HTMX 局部 | 必测状态 |
 | --- | --- | --- | --- | --- |
-| `public:home` | `discovery/home.html` | `visible_article_page` | 文章索引、标签筛选、页码 | 10/20/50、五标签 OR、空结果 |
+| `public:home` | `discovery/home.html` | `visible_article_page` | 文章索引、标签筛选、页码 | 左侧导航展开/收起/本地恢复、10/20/50、五标签 OR、空结果 |
 | `public:section` | `discovery/section.html` | `articles_in_section` | 列表/页码 | 未知/删除分区不可导航 |
 | `public:tag` | `discovery/tag.html` | `articles_for_tags` | 列表/筛选 | 删除标签为空、恢复后读回 |
 | `public:search` | `discovery/search.html` | `search_visible_titles` | 结果/页码 | 模糊、相关度+时间、权限过滤 |
@@ -32,7 +32,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `accounts:bookmarks` | 私人收藏 | bookmark_page | 失效专属图、用户手动删除 |
 | `notifications:list` | 全量通知 | notifications_for/mark read | 未读、单条展开、一键全读、空态 |
 
-全局 Header：左上 Logo/主题切换；动态管理员导航；头像左侧通知控件；未登录显示登录/注册，登录后显示圆形头像、昵称/账号和个人菜单。通知 hover 浮层固定五条；点击条目打开完整浮层，不跳页；“查看全部”跳通知页。
+全局 Header：左上 Logo/主题切换；头像左侧通知控件；未登录显示登录/注册，登录后显示圆形头像、昵称/账号和个人菜单。管理员配置的公共导航只显示在首页可收起的左侧浮层，不进入 Header；分区节点和其他导航节点使用同一排序结果。通知 hover 浮层固定五条；点击条目打开完整浮层，不跳页；“查看全部”跳通知页。
 
 ## 作者工作台
 
@@ -64,7 +64,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `admin:sections` | 分区 | content | 唯一名称、删除转未知分区 |
 | `admin:invites` | 邀请码 | accounts | 1..1000 生成、一次显示原码、筛选/撤销/使用者 |
 | `admin:notifications` | 群发 | notifications | 全体用户、读回、隐藏/恢复/删除 |
-| `admin:navigation` | 三层拖拽树 | navigation | 站内页/分区/外链、隐藏、移动端预览 |
+| `admin:navigation` | 三层拖拽树 | navigation | 站内页/分区/外链统一排版；父级切换自动建议位置；插入后移、删除补位 |
 | `admin:site-settings` | 分组设置 | navigation/core/media | 品牌、注册、Logo、正文限制、可信来源、法律页 |
 | `admin:exchange` | 导出任务 | exchange | 单全局任务、取消、下载、三天到期 |
 | `admin:audit` | 审计检索 | operations | 关键字、类型、目标、时间、前后值 |

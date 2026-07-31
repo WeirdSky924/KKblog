@@ -1,6 +1,7 @@
 .administration-main {
-  width: min(calc(100% - 2rem), 92rem);
-  margin-inline: auto;
+  --site-frame-max: 92rem;
+  --site-frame-gutter: 1rem;
+
   padding-block: 2rem 3rem;
 }
 
@@ -843,7 +844,6 @@
 
 @media (max-width: 64rem) {
   .administration-main {
-    width: min(calc(100% - 2rem), 92rem);
     padding-block-start: 1rem;
   }
 
@@ -921,10 +921,6 @@
 }
 
 @media (max-width: 30rem) {
-  .administration-main {
-    width: min(calc(100% - 2rem), 92rem);
-  }
-
   .administration-workspace {
     padding-block-start: 1.5rem;
   }

@@ -4,6 +4,7 @@ from django.shortcuts import render
 
 from apps.authoring.presenters import article_workspace
 from apps.content.public import ArticleNotFound
+from apps.core.http import is_htmx_fragment_request
 
 from .access import author_id_or_response, private_response
 
@@ -26,7 +27,7 @@ def articles(request):
         return private_response(HttpResponseNotAllowed(("GET",)))
     template = (
         "authoring/partials/article_workspace.html"
-        if request.headers.get("HX-Request") == "true"
+        if is_htmx_fragment_request(request)
         else "authoring/articles.html"
     )
     return private_response(render(request, template, {"workspace": workspace}))

@@ -1,36 +1,3 @@
-.home-layout {
-  display: grid;
-  gap: 2rem;
-}
-
-.home-heading {
-  display: grid;
-  gap: 0.5rem;
-  padding-block-end: 1.5rem;
-  border-block-end: 1px solid var(--line);
-}
-
-.home-heading h1,
-.home-heading p,
-.section-heading h2,
-.section-heading p {
-  margin: 0;
-}
-
-.home-heading h1 {
-  max-width: 48rem;
-  overflow-wrap: anywhere;
-  font-size: 1.75rem;
-  line-height: 1.35;
-}
-
-.home-heading p,
-.section-heading p {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-.home-articles,
 .article-index {
   min-width: 0;
 }
@@ -82,6 +49,16 @@
   justify-content: space-between;
   gap: 1rem;
   margin-block-end: 1rem;
+}
+
+.section-heading h2,
+.section-heading p {
+  margin: 0;
+}
+
+.section-heading p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .section-heading h2 {

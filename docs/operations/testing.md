@@ -2,6 +2,25 @@
 
 项目只有一套 pytest、Ruff 和 Playwright 入口。测试数据不得连接生产或共享服务，也不得写入项目 `var/`。
 
+## 当前阶段 Labs 默认同步
+
+当前优化阶段把 Labs 作为每个已完成修改切片的默认测试交付目标。聚焦验证通过后，Agent 应自动完成 Labs 同步和读回，不等待用户再次说“更新到 Labs”；半成品、仍在 RED 的代码或猜测性修复不得同步。
+
+同步前必须运行 `systemctl show kaj-labs.service -p WorkingDirectory -p ActiveState -p SubState` 读回真实目标，不使用记忆中的路径。目标目录必须是本项目的非生产 Labs worktree，不得是默认分支工作树、生产目录或其他任务 worktree。
+
+截至 `2026-07-31`，Labs 由宿主机 `kaj-labs.service` 运行，`WorkingDirectory` 是 `/home/code/.codex-worktrees/personal-blog/p12-regression-delivery`，公网入口是 `https://labs.kajspace.cn`。因此当前 worktree 内的 Python、模板和已生成静态文件直接供 Labs 读取，无需再次复制；Django 源码和模板依赖开发服务器热重载，前端源码必须先按资源门禁运行受影响的 `npm run build:*` 生成 `static/dist/` 产物。
+
+若以后服务目标与当前开发 worktree 不同，只允许按本任务已完成的运行时文件清单单向同步；不得复制或删除 `.git`、`.env`、`.venv`、`var/`、数据库、媒体、备份、日志、缓存、测试产物、`node_modules` 或无关改动，也不得使用会清空目标的宽泛同步命令。
+
+每次同步后的最小读回包括：
+
+1. `kaj-labs.service` 仍为 `active/running`，且工作目录未漂移。
+2. `https://labs.kajspace.cn/health/live` 返回 `200`；涉及数据库或缓存时追加 readiness 或目标只读请求。
+3. 前端产物的公网 SHA-256 与开发 worktree 的 `static/dist/` 文件一致；后端或模板变更检查一个直接受影响页面或安全的代表性用户流。
+4. 记录同步范围、构建命令、HTTP 状态、文件哈希、未验证的登录态或数据态以及停止条件。
+
+Labs 默认同步是本机非生产测试环境更新，不等于生产发布。它不授权服务/容器重启、镜像构建或替换、migration、数据修复、真实邮件、备份、Git 写操作或生产变更；这些动作需要各自规则要求的明确授权。热重载或 smoke 失败时停止并报告，不自动重启服务、重建容器、修改共享数据或回退用户工作。
+
 ## 后端与基础设施
 
 运行完整测试前，提供以下隔离值：

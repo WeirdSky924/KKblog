@@ -1,5 +1,8 @@
+from apps.core.http import is_htmx_fragment_request
+
+
 def is_htmx(request) -> bool:
-    return request.headers.get("HX-Request") == "true"
+    return is_htmx_fragment_request(request)
 
 
 def posting_status(code: str) -> int:

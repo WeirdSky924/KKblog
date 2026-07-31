@@ -19,6 +19,49 @@ function updateNodeTargetFields(form) {
   }
 }
 
+function suggestedNavigationPosition(form) {
+  const parent = form.querySelector("[data-navigation-parent]");
+  const position = form.querySelector("[data-navigation-position]");
+  if (!(parent instanceof HTMLSelectElement) || !(position instanceof HTMLInputElement)) {
+    return null;
+  }
+  const nodeIdField = form.elements.namedItem("node_id");
+  const currentNodeId = nodeIdField instanceof HTMLInputElement ? nodeIdField.value : "";
+  const siblings = Array.from(
+    form.ownerDocument.querySelectorAll("[data-navigation-node]"),
+  ).filter(
+    (node) =>
+      node instanceof HTMLLIElement &&
+      node.dataset.parentId === parent.value &&
+      node.dataset.nodeId !== currentNodeId,
+  );
+  return { position, value: siblings.length };
+}
+
+function initializeNavigationPositionForms(root = document) {
+  root.querySelectorAll?.("form[data-navigation-position-form]").forEach((form) => {
+    if (
+      !(form instanceof HTMLFormElement) ||
+      form.dataset.navigationPositionBound === "true"
+    ) {
+      return;
+    }
+    const parent = form.querySelector("[data-navigation-parent]");
+    if (!(parent instanceof HTMLSelectElement)) {
+      return;
+    }
+    form.dataset.navigationPositionBound = "true";
+    parent.addEventListener("change", () => {
+      const suggestion = suggestedNavigationPosition(form);
+      if (!suggestion) {
+        return;
+      }
+      suggestion.position.value = String(suggestion.value);
+      suggestion.position.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  });
+}
+
 function initializeNodeForms(root = document) {
   root.querySelectorAll?.("form[data-navigation-node-form]").forEach((form) => {
     if (!(form instanceof HTMLFormElement) || form.dataset.navigationBound === "true") {
@@ -29,6 +72,7 @@ function initializeNodeForms(root = document) {
     type?.addEventListener("change", () => updateNodeTargetFields(form));
     updateNodeTargetFields(form);
   });
+  initializeNavigationPositionForms(root);
 }
 
 function clearDragState(tree, source) {
@@ -120,30 +164,7 @@ function initializeNavigationTrees(root = document) {
   });
 }
 
-function initializeSiteSubmenus(root = document) {
-  root.querySelectorAll?.("[data-site-submenu-toggle]").forEach((button) => {
-    if (!(button instanceof HTMLButtonElement) || button.dataset.submenuBound === "true") {
-      return;
-    }
-    button.dataset.submenuBound = "true";
-    button.addEventListener("click", () => {
-      const targetId = button.getAttribute("aria-controls");
-      const submenu = targetId ? document.getElementById(targetId) : null;
-      if (!(submenu instanceof HTMLElement)) {
-        return;
-      }
-      const expanded = button.getAttribute("aria-expanded") === "true";
-      button.setAttribute("aria-expanded", expanded ? "false" : "true");
-      const label = button.dataset.submenuLabel ?? "子菜单";
-      button.setAttribute("aria-label", `${expanded ? "展开" : "收起"}${label}`);
-      button.setAttribute("title", `${expanded ? "展开" : "收起"}${label}`);
-      submenu.hidden = expanded;
-    });
-  });
-}
-
 export {
   initializeNavigationTrees,
   initializeNodeForms,
-  initializeSiteSubmenus,
 };

@@ -8,9 +8,10 @@
     "npm": ">=10 <11"
   },
   "scripts": {
-    "build": "npm run build:fonts && npm run build:css && npm run build:theme && npm run build:js",
+    "build": "npm run build:fonts && npm run build:css && npm run build:navigation-state && npm run build:theme && npm run build:js",
     "build:fonts": "node ./scripts/copy-fonts.mjs",
     "build:css": "tailwindcss -i ./static/src/styles.css -o ./static/dist/styles.css --minify",
+    "build:navigation-state": "esbuild ./static/src/navigation-state.js --bundle --format=iife --outfile=./static/dist/navigation-state.js --minify",
     "build:theme": "esbuild ./static/src/theme.js --bundle --format=iife --outfile=./static/dist/theme.js --minify",
     "build:js": "esbuild ./static/src/app.js --bundle --format=esm --outfile=./static/dist/app.js --minify",
     "test:e2e": "playwright test"

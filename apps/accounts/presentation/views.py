@@ -65,6 +65,7 @@ from apps.accounts.services.sessions import (
     summarize_user_agent,
 )
 from apps.accounts.services.verification import default_verification_store
+from apps.core.http import HTMX_VARIANT_HEADERS, is_htmx_fragment_request
 
 
 def _private_account_view(view):
@@ -105,19 +106,29 @@ def _render_registration(
     sent=False,
     status=200,
 ):
-    return render(
+    template_name = (
+        "accounts/partials/register_flow.html"
+        if is_htmx_fragment_request(request)
+        else "accounts/register.html"
+    )
+    response = render(
         request,
-        "accounts/register.html",
+        template_name,
         {
-            "registration_form": registration_form or RegistrationForm(),
-            "code_form": code_form or RegistrationCodeForm(),
+            "registration_form": registration_form
+            or RegistrationForm(auto_id="id_registration_%s"),
+            "code_form": code_form
+            or RegistrationCodeForm(auto_id="id_registration_code_%s"),
             "direct_enabled": _policy().direct_enabled,
             "code_sent": sent,
         },
         status=status,
     )
+    patch_vary_headers(response, HTMX_VARIANT_HEADERS)
+    return response
 
 
+@_private_account_view
 def register(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return _render_registration(request)
@@ -125,7 +136,7 @@ def register(request: HttpRequest) -> HttpResponse:
     trace_code = getattr(request, "trace_code", "")
     client_ip = _client_ip(request)
     if request.POST.get("action") == "send_code":
-        form = RegistrationCodeForm(request.POST)
+        form = RegistrationCodeForm(request.POST, auto_id="id_registration_code_%s")
         if not form.is_valid():
             return _render_registration(request, code_form=form, status=422)
         try:
@@ -147,12 +158,19 @@ def register(request: HttpRequest) -> HttpResponse:
         return _render_registration(
             request,
             code_form=form,
-            registration_form=RegistrationForm(initial=initial),
+            registration_form=RegistrationForm(
+                initial=initial, auto_id="id_registration_%s"
+            ),
             sent=True,
         )
-    form = RegistrationForm(request.POST)
+    form = RegistrationForm(request.POST, auto_id="id_registration_%s")
     if not form.is_valid():
-        return _render_registration(request, registration_form=form, status=422)
+        return _render_registration(
+            request,
+            registration_form=form,
+            sent=True,
+            status=422,
+        )
     try:
         result = register_account(
             email=form.cleaned_data["email"],
@@ -168,7 +186,12 @@ def register(request: HttpRequest) -> HttpResponse:
         )
     except RegistrationError as exc:
         form.add_error(None, str(exc))
-        return _render_registration(request, registration_form=form, status=422)
+        return _render_registration(
+            request,
+            registration_form=form,
+            sent=True,
+            status=422,
+        )
     response = redirect("/")
     set_session_cookie(
         response,
@@ -188,14 +211,21 @@ def _render_login(
     code_sent=False,
     status=200,
 ):
-    return render(
+    template_name = (
+        "accounts/partials/login_code_flow.html"
+        if is_htmx_fragment_request(request) and mode == "code"
+        else "accounts/login.html"
+    )
+    response = render(
         request,
-        "accounts/login.html",
+        template_name,
         {
             "mode": mode,
-            "password_form": password_form or PasswordLoginForm(),
-            "code_request_form": code_request_form or LoginCodeRequestForm(),
-            "code_form": code_form or CodeLoginForm(),
+            "password_form": password_form
+            or PasswordLoginForm(auto_id="id_password_login_%s"),
+            "code_request_form": code_request_form
+            or LoginCodeRequestForm(auto_id="id_login_code_request_%s"),
+            "code_form": code_form or CodeLoginForm(auto_id="id_code_login_%s"),
             "code_sent": code_sent,
             "next": _safe_next(request),
             "password_reset_completed": request.GET.get("reset") == "1",
@@ -203,8 +233,11 @@ def _render_login(
         },
         status=status,
     )
+    patch_vary_headers(response, HTMX_VARIANT_HEADERS)
+    return response
 
 
+@_private_account_view
 def login(request: HttpRequest) -> HttpResponse:
     if getattr(request, "account_id", None):
         return redirect(_safe_next(request))
@@ -215,7 +248,7 @@ def login(request: HttpRequest) -> HttpResponse:
     trace_code = getattr(request, "trace_code", "")
     client_ip = _client_ip(request)
     if action == "send_login_code":
-        form = LoginCodeRequestForm(request.POST)
+        form = LoginCodeRequestForm(request.POST, auto_id="id_login_code_request_%s")
         if not form.is_valid():
             return _render_login(
                 request, mode="code", code_request_form=form, status=422
@@ -236,17 +269,22 @@ def login(request: HttpRequest) -> HttpResponse:
             request,
             mode="code",
             code_request_form=form,
-            code_form=CodeLoginForm(initial={"email": form.cleaned_data["email"]}),
+            code_form=CodeLoginForm(
+                initial={"email": form.cleaned_data["email"]},
+                auto_id="id_code_login_%s",
+            ),
             code_sent=True,
         )
     form = (
-        CodeLoginForm(request.POST)
+        CodeLoginForm(request.POST, auto_id="id_code_login_%s")
         if action == "code"
-        else PasswordLoginForm(request.POST)
+        else PasswordLoginForm(request.POST, auto_id="id_password_login_%s")
     )
     mode = "code" if action == "code" else "password"
     if not form.is_valid():
         kwargs = {"code_form": form} if mode == "code" else {"password_form": form}
+        if mode == "code":
+            kwargs["code_sent"] = True
         return _render_login(request, mode=mode, status=422, **kwargs)
     try:
         if mode == "code":
@@ -271,6 +309,8 @@ def login(request: HttpRequest) -> HttpResponse:
     except AuthenticationError as exc:
         form.add_error(None, str(exc))
         kwargs = {"code_form": form} if mode == "code" else {"password_form": form}
+        if mode == "code":
+            kwargs["code_sent"] = True
         return _render_login(request, mode=mode, status=422, **kwargs)
     target = (
         "/accounts/settings/?tab=password"
@@ -292,24 +332,34 @@ def _request_meta(request: HttpRequest) -> tuple[str, str]:
 
 
 def _render_reset(request, *, code_form=None, reset_form=None, sent=False, status=200):
-    return render(
+    template_name = (
+        "accounts/partials/password_reset_flow.html"
+        if is_htmx_fragment_request(request)
+        else "accounts/password_reset.html"
+    )
+    response = render(
         request,
-        "accounts/password_reset.html",
+        template_name,
         {
-            "code_form": code_form or PasswordResetCodeForm(),
-            "reset_form": reset_form or PasswordResetForm(),
+            "code_form": code_form
+            or PasswordResetCodeForm(auto_id="id_password_reset_code_%s"),
+            "reset_form": reset_form
+            or PasswordResetForm(auto_id="id_password_reset_%s"),
             "code_sent": sent,
         },
         status=status,
     )
+    patch_vary_headers(response, HTMX_VARIANT_HEADERS)
+    return response
 
 
+@_private_account_view
 def password_reset(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return _render_reset(request)
     client_ip, trace_code = _request_meta(request)
     if request.POST.get("action") == "send_reset_code":
-        form = PasswordResetCodeForm(request.POST)
+        form = PasswordResetCodeForm(request.POST, auto_id="id_password_reset_code_%s")
         if not form.is_valid():
             return _render_reset(request, code_form=form, status=422)
         try:
@@ -325,12 +375,15 @@ def password_reset(request: HttpRequest) -> HttpResponse:
         return _render_reset(
             request,
             code_form=form,
-            reset_form=PasswordResetForm(initial={"email": form.cleaned_data["email"]}),
+            reset_form=PasswordResetForm(
+                initial={"email": form.cleaned_data["email"]},
+                auto_id="id_password_reset_%s",
+            ),
             sent=True,
         )
-    form = PasswordResetForm(request.POST)
+    form = PasswordResetForm(request.POST, auto_id="id_password_reset_%s")
     if not form.is_valid():
-        return _render_reset(request, reset_form=form, status=422)
+        return _render_reset(request, reset_form=form, sent=True, status=422)
     try:
         reset_password(
             email=form.cleaned_data["email"],
@@ -342,7 +395,7 @@ def password_reset(request: HttpRequest) -> HttpResponse:
         )
     except CredentialError as exc:
         form.add_error(exc.field, str(exc))
-        return _render_reset(request, reset_form=form, status=422)
+        return _render_reset(request, reset_form=form, sent=True, status=422)
     return redirect(f"{reverse('accounts:login')}?reset=1")
 
 

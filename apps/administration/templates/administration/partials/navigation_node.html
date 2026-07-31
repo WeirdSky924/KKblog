@@ -28,7 +28,7 @@
     </div>
     <details class="navigation-tree__move">
       <summary><i data-lucide="move"></i><span>键盘移动</span></summary>
-      <form method="post" data-submit-once>
+      <form method="post" data-submit-once data-navigation-position-form>
         {% csrf_token %}
         <input type="hidden" name="action" value="navigation_move">
         <input type="hidden" name="node_id" value="{{ row.node.id }}">
@@ -36,13 +36,14 @@
         <input type="hidden" name="expected_versions" value="{{ tree.version_snapshot }}">
         <div>
           <label for="navigation-parent-{{ row.node.id }}">父级节点</label>
-          <select id="navigation-parent-{{ row.node.id }}" name="new_parent_id">
+          <select id="navigation-parent-{{ row.node.id }}" name="new_parent_id" data-navigation-parent>
             {% for option in row.parent_options %}<option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>{{ option.label }}</option>{% endfor %}
           </select>
         </div>
         <div>
           <label for="navigation-position-{{ row.node.id }}">层内位置</label>
-          <input id="navigation-position-{{ row.node.id }}" name="new_position" type="number" min="0" max="500" value="{{ row.node.position }}" required>
+          <input id="navigation-position-{{ row.node.id }}" name="new_position" type="number" min="0" max="500" value="{{ row.node.position }}" data-navigation-position required>
+          <p class="form-help">更换父级后自动填入该层末位，可手动修改。</p>
         </div>
         <button class="button button--secondary" type="submit">移动节点</button>
       </form>

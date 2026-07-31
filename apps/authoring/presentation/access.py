@@ -7,11 +7,12 @@ from django.urls import reverse
 from django.utils.cache import patch_vary_headers
 
 from apps.content.public import authoring_access
+from apps.core.http import HTMX_VARIANT_HEADERS, is_htmx_fragment_request
 
 
 def private_response(response: HttpResponse) -> HttpResponse:
     response.headers["Cache-Control"] = "private, no-store"
-    patch_vary_headers(response, ("HX-Request",))
+    patch_vary_headers(response, HTMX_VARIANT_HEADERS)
     return response
 
 
@@ -19,7 +20,7 @@ def login_required(request):
     target = (
         f"{reverse('accounts:login')}?{urlencode({'next': request.get_full_path()})}"
     )
-    if request.headers.get("HX-Request") == "true":
+    if is_htmx_fragment_request(request):
         response = private_response(HttpResponse(status=204))
         response.headers["HX-Redirect"] = target
         return response

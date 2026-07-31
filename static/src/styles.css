@@ -5,10 +5,12 @@
 @import "./navigation.css";
 @import "./notifications.css";
 @import "./discovery.css";
+@import "./discovery-home.css";
 @import "./bookmarks.css";
 @import "./feedback.css";
 @import "./status-pages.css";
 @import "./accounts.css";
+@import "./accounts-auth.css";
 @import "./media.css";
 @import "./comments.css";
 @import "./moderation.css";

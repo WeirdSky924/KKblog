@@ -57,18 +57,18 @@
 base.html
   site_header
     brand/logo + theme
-    admin-managed navigation
     notification popover
     auth links or avatar/personal menu
   global_feedback_region
   page_header (optional, compact)
   main
+    home_sidebar (admin-managed navigation, home only)
     page-specific layout
   site_footer
   modal_layer
 ```
 
-公共阅读页桌面可用 8/4 或 9/3 栅格，文章正文与目录并列；手机顺序为正文、目录折叠入口、评论。管理页桌面是窄模块侧栏 + 主工作区；手机侧栏变为顶部横向模块导航，不遮挡表格和主操作。
+首页以本地品牌默认封面构成全宽首屏，封面下进入连续文章目录，不使用卡片墙。顶部栏在首页滚动期间保持粘性可见。图片区向下滚动一次直接吸附到顶部栏下方的文章区域顶部；文章区域顶部向上滚动一次直接回到顶部栏下方的图片顶部，文章区域内部仍保持普通连续滚动。管理员配置的导航树固定为左侧浮层：桌面在首屏默认收起，文章目录进入视口后自动展开，用户仍可随时手动收起或展开；正文始终位于左右对称预留导航宽度的中栏，不随浮层状态移动。移动端默认收起，展开后作为有界抽屉覆盖页面，不自动遮挡文章。`Escape` 可收起并恢复焦点。顶部栏不渲染这棵导航树。文章分区作为导航树节点与站内页、外链统一排版，首页不再额外渲染固定分区入口。其他公共阅读页桌面可用 8/4 或 9/3 栅格，文章正文与目录并列；手机顺序为正文、目录折叠入口、评论。管理页桌面是窄模块侧栏 + 主工作区；手机侧栏变为顶部横向模块导航，不遮挡表格和主操作。
 
 ## 组件规范
 

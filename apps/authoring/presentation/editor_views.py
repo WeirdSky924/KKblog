@@ -38,6 +38,7 @@ from apps.content.public import (
     section_list,
     selectable_tag_list,
 )
+from apps.core.http import is_htmx_fragment_request
 from apps.core.ids import new_ulid, normalize_ulid
 
 from .access import author_id_or_response, private_response
@@ -400,7 +401,7 @@ def edit(request, article_id: str):
                     auto_publish_error=auto_publish_error,
                 ),
             )
-            if auto_published and request.headers.get("HX-Request") == "true":
+            if auto_published and is_htmx_fragment_request(request):
                 response.headers["HX-Trigger-After-Swap"] = json.dumps(
                     {
                         "kaj:author-draft-clear": {
@@ -439,7 +440,7 @@ def _conflict_resolution_error(
     message: str,
     status: int,
 ):
-    if request.headers.get("HX-Request") != "true":
+    if not is_htmx_fragment_request(request):
         query = urlencode({"conflict_error": "invalid"})
         return redirect(
             f"{reverse('authoring:edit', kwargs={'article_id': article_id})}?{query}"
@@ -524,7 +525,7 @@ def resolve_conflict(request, article_id: str):
 
 
 def _discard_error_response(request, *, article_id: str, code: str, message: str):
-    if request.headers.get("HX-Request") != "true":
+    if not is_htmx_fragment_request(request):
         query = urlencode({"confirm": _DISCARD_CONFIRM, "discard_error": code})
         return redirect(
             f"{reverse('authoring:edit', kwargs={'article_id': article_id})}?{query}"
@@ -571,7 +572,7 @@ def discard_draft(request, article_id: str):
             code=exc.code,
             message=exc.safe_message,
         )
-    if request.headers.get("HX-Request") != "true":
+    if not is_htmx_fragment_request(request):
         return redirect(f"{reverse('authoring:articles')}?state=DRAFT&discarded=1")
     response = render(
         request,

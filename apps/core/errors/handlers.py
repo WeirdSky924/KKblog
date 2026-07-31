@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.utils.cache import patch_vary_headers
 from django.utils.deprecation import MiddlewareMixin
 
+from apps.core.http import HTMX_VARIANT_HEADERS, is_htmx_fragment_request
 from apps.core.observability.context import current_trace_code
 from apps.core.observability.trace import new_trace_code
 
@@ -44,8 +45,11 @@ def render_error_response(
 ) -> HttpResponse:
     trace_code = _request_trace(request)
     request.kaj_error_shell = True
-    is_htmx = request.headers.get("HX-Request", "").casefold() == "true"
-    template = "errors/partial.html" if is_htmx else "errors/page.html"
+    template = (
+        "errors/partial.html"
+        if is_htmx_fragment_request(request)
+        else "errors/page.html"
+    )
     response = render(
         request,
         template,
@@ -62,7 +66,7 @@ def render_error_response(
     response.headers["Cache-Control"] = "no-store"
     if retry_after is not None:
         response.headers["Retry-After"] = str(retry_after)
-    patch_vary_headers(response, ("HX-Request",))
+    patch_vary_headers(response, HTMX_VARIANT_HEADERS)
     return response
 
 

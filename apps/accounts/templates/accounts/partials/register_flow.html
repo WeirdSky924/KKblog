@@ -1,0 +1,56 @@
+<div
+  id="register-flow"
+  class="auth-workspace auth-register-flow"
+  data-focus-after-swap
+  tabindex="-1"
+>
+  {% if code_sent %}
+    <section class="auth-register-step" aria-labelledby="finish-title">
+      <span class="auth-register-step__number" aria-hidden="true">02</span>
+      <div class="auth-register-step__body">
+        <header class="auth-section-heading">
+          <h2 id="finish-title">设置密码并完成</h2>
+          <p>输入收到的验证码，并设置登录密码。</p>
+        </header>
+        <p class="account-status auth-verification-status" role="status">
+          <span>接收邮箱：<strong>{{ registration_form.email.value }}</strong></span>
+          <a href="{% url 'accounts:register' %}">重新填写</a>
+        </p>
+        <form method="post" hx-boost="false" data-submit-once class="account-form auth-form">
+          {% csrf_token %}<input type="hidden" name="action" value="register">
+          {{ registration_form.invite_code.as_hidden }}
+          {{ registration_form.email.as_hidden }}
+          {{ registration_form.non_field_errors }}
+          {{ registration_form.invite_code.errors }}
+          {{ registration_form.email.errors }}
+          {{ registration_form.code.as_field_group }}
+          {{ registration_form.password.as_field_group }}
+          {{ registration_form.remember.as_field_group }}
+          <button class="button button--primary auth-form__submit" type="submit"><span>完成注册</span><i data-lucide="user-plus" aria-hidden="true"></i></button>
+        </form>
+      </div>
+    </section>
+  {% else %}
+    <section class="auth-register-step" aria-labelledby="send-code-title">
+      <span class="auth-register-step__number" aria-hidden="true">01</span>
+      <div class="auth-register-step__body">
+        <header class="auth-section-heading">
+          <h2 id="send-code-title">验证邮箱</h2>
+          <p>{% if direct_enabled %}输入邮箱获取验证码；邀请码可以留空。{% else %}输入有效邀请码和邮箱地址。{% endif %}</p>
+        </header>
+        <form
+          method="post"
+          hx-post="{% url 'accounts:register' %}"
+          hx-target="#register-flow"
+          hx-swap="outerHTML"
+          data-submit-once
+          class="account-form auth-form"
+        >
+          {% csrf_token %}<input type="hidden" name="action" value="send_code">
+          {{ code_form.as_div }}
+          <button class="button button--secondary auth-form__submit" type="submit"><span>发送验证码</span><i data-lucide="send" aria-hidden="true"></i></button>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+</div>

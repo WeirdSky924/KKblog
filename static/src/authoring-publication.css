@@ -1,5 +1,6 @@
 .authoring-main--publication {
-  width: min(calc(100% - 3rem), 90rem);
+  --site-frame-max: 90rem;
+  --site-frame-gutter: 1.5rem;
 }
 
 .author-publication__heading {
@@ -406,7 +407,7 @@
 
 @media (max-width: 40rem) {
   .authoring-main--publication {
-    width: min(calc(100% - 2rem), 90rem);
+    --site-frame-gutter: 1rem;
   }
 
   .author-publication__heading,

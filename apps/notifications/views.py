@@ -9,6 +9,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.core.http import is_htmx_fragment_request
 from apps.notifications.queries import (
     NotificationCursorError,
     notification_detail,
@@ -25,17 +26,13 @@ from apps.notifications.services.read import (
 logger = logging.getLogger("kaj.notifications")
 
 
-def _is_htmx(request) -> bool:
-    return request.headers.get("HX-Request") == "true"
-
-
 def _login_url(next_path: str) -> str:
     return f"{reverse('accounts:login')}?{urlencode({'next': next_path})}"
 
 
 def _login_required(request, *, next_path: str):
     location = _login_url(next_path)
-    if _is_htmx(request):
+    if is_htmx_fragment_request(request):
         response = HttpResponse(status=204)
         response.headers["HX-Redirect"] = location
     else:
@@ -108,11 +105,13 @@ def inbox(request):
         "notification_cursor_error": error,
         "notification_unread_count": unread_notification_count(recipient_id=actor_id),
         "notification_all_read": request.GET.get("read") == "all",
-        "notification_append": _is_htmx(request) and cursor is not None and not error,
+        "notification_append": is_htmx_fragment_request(request)
+        and cursor is not None
+        and not error,
     }
     template = (
         "notifications/partials/inbox_page.html"
-        if _is_htmx(request) and cursor is not None and not error
+        if is_htmx_fragment_request(request) and cursor is not None and not error
         else "notifications/list.html"
     )
     return _no_store(render(request, template, context, status=status))
@@ -135,7 +134,7 @@ def open_notification(request, notification_id: str):
     except PermissionError:
         raise Http404 from None
     item = replace(item, is_read=True)
-    if not _is_htmx(request):
+    if not is_htmx_fragment_request(request):
         return _no_store(redirect(reverse("notifications:list")))
     response = render(
         request,
@@ -156,7 +155,7 @@ def mark_all_read(request):
     if actor_id is None:
         return _login_required(request, next_path=inbox_url)
     mark_all_notifications_read(recipient_id=actor_id)
-    if not _is_htmx(request):
+    if not is_htmx_fragment_request(request):
         return _no_store(redirect(f"{inbox_url}?read=all"))
     response = render(
         request,

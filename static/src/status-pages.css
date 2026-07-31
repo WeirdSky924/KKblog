@@ -4,11 +4,11 @@
 }
 
 .status-page {
+  --site-frame-max: 64rem;
+
   display: grid;
   min-height: 100vh;
   min-height: 100svh;
-  width: min(calc(100% - 4rem), 64rem);
-  margin-inline: auto;
   align-items: center;
   padding-block: 3rem;
 }
@@ -127,10 +127,6 @@
 }
 
 @media (max-width: 48rem) {
-  .status-page {
-    width: min(calc(100% - 3rem), 64rem);
-  }
-
   .status-layout {
     grid-template-columns: 8rem minmax(0, 1fr);
   }
@@ -146,7 +142,6 @@
 
 @media (max-width: 30rem) {
   .status-page {
-    width: min(calc(100% - 2rem), 64rem);
     align-items: start;
     padding-block: 4rem 2rem;
   }

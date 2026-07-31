@@ -2,6 +2,7 @@ import Alpine from "alpinejs";
 import "htmx.org";
 import {
   ArrowLeft,
+  ArrowRight,
   Bell,
   Bold,
   Bookmark,
@@ -25,11 +26,13 @@ import {
   ImageUp,
   Info,
   Italic,
+  KeyRound,
   List,
   ListOrdered,
   LockKeyhole,
   LogIn,
   LogOut,
+  Mail,
   Menu,
   MessageCircle,
   MonitorSmartphone,
@@ -76,13 +79,24 @@ import { initializeAuthorOperations } from "./authoring-operations.js";
 import {
   initializeNavigationTrees,
   initializeNodeForms,
-  initializeSiteSubmenus,
 } from "./administration-navigation.js";
 import { initializeAdministrationSettings } from "./administration-settings.js";
 import { initializeAdministrationOperations } from "./administration-operations.js";
+import { initializeHomeNavigation } from "./home-navigation.js";
+import {
+  initializeBoostedPageShell,
+  initializeNotificationCenters,
+  initializePersonalMenus,
+  initializeSiteHeaderMetrics,
+} from "./site-shell.js";
+import {
+  initializeLiveSubmitForms,
+  initializeLiveSubmitSupport,
+} from "./live-submit.js";
 
 const availableIcons = {
   ArrowLeft,
+  ArrowRight,
   Bell,
   Bold,
   Bookmark,
@@ -106,11 +120,13 @@ const availableIcons = {
   ImageUp,
   Info,
   Italic,
+  KeyRound,
   List,
   ListOrdered,
   LockKeyhole,
   LogIn,
   LogOut,
+  Mail,
   Menu,
   MessageCircle,
   MonitorSmartphone,
@@ -276,59 +292,6 @@ function initializePublicationForms(root = document) {
     };
     form.addEventListener("change", update);
     update();
-  });
-}
-
-function initializePersonalMenus(root = document) {
-  if (!window.matchMedia("(hover: hover)").matches) {
-    return;
-  }
-  root.querySelectorAll?.("[data-personal-menu]").forEach((menu) => {
-    if (!(menu instanceof HTMLDetailsElement) || menu.dataset.hoverBound === "true") {
-      return;
-    }
-    menu.dataset.hoverBound = "true";
-    menu.addEventListener("pointerenter", () => {
-      menu.open = true;
-    });
-    menu.addEventListener("pointerleave", () => {
-      if (!menu.contains(document.activeElement)) {
-        menu.open = false;
-      }
-    });
-  });
-}
-
-function initializeNotificationCenters() {
-  document.querySelectorAll("[data-notification-center]").forEach((center) => {
-    if (
-      !(center instanceof HTMLDetailsElement) ||
-      center.dataset.notificationBound === "true"
-    ) {
-      return;
-    }
-    center.dataset.notificationBound = "true";
-    if (window.matchMedia("(hover: hover)").matches) {
-      center.addEventListener("pointerenter", () => {
-        center.open = true;
-      });
-      center.addEventListener("pointerleave", () => {
-        if (!center.contains(document.activeElement)) {
-          center.open = false;
-        }
-      });
-    }
-    center.addEventListener("focusout", () => {
-      requestAnimationFrame(() => {
-        if (
-          center.dataset.notificationDialogActive !== "true" &&
-          !center.contains(document.activeElement) &&
-          !center.matches(":hover")
-        ) {
-          center.open = false;
-        }
-      });
-    });
   });
 }
 
@@ -1062,8 +1025,9 @@ document.addEventListener("click", (event) => {
 document.addEventListener("htmx:afterSwap", (event) => {
   const root = currentSwapRoot(event.detail?.target ?? document);
   initializeIcons(root);
+  initializeSiteHeaderMetrics(root);
   initializePersonalMenus(root);
-  initializeNotificationCenters();
+  initializeNotificationCenters(root);
   initializeNotificationDialogs();
   initializeConfirmDialogs(root);
   initializeCopyLinks(root);
@@ -1077,19 +1041,23 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeAuthorOperations(root);
   initializeNodeForms(root);
   initializeNavigationTrees(root);
-  initializeSiteSubmenus(root);
+  initializeHomeNavigation(root);
+  initializeAdministrationSettings(root);
   initializeAdministrationOperations(root);
+  initializeLiveSubmitForms(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
 });
 
 document.addEventListener("htmx:load", (event) => {
   const root = event.detail?.elt ?? document;
+  initializeSiteHeaderMetrics(root);
   initializeCommentThreads(root);
   initializeNodeForms(root);
   initializeNavigationTrees(root);
-  initializeSiteSubmenus(root);
+  initializeHomeNavigation(root);
   initializeAdministrationOperations(root);
+  initializeLiveSubmitForms(root);
 });
 
 document.addEventListener("htmx:beforeRequest", (event) => {
@@ -1154,6 +1122,8 @@ window.addEventListener("pageshow", () => {
 window.Alpine = Alpine;
 Alpine.start();
 initializeIcons();
+initializeBoostedPageShell();
+initializeSiteHeaderMetrics();
 initializePersonalMenus();
 initializeNotificationCenters();
 initializeNotificationDialogs();
@@ -1168,8 +1138,10 @@ initializeCommentForms();
 initializeAuthorOperations();
 initializeNodeForms();
 initializeNavigationTrees();
-initializeSiteSubmenus();
+initializeHomeNavigation();
 initializeAdministrationSettings();
 initializeAdministrationOperations();
+initializeLiveSubmitSupport();
+initializeLiveSubmitForms();
 focusInsertedError(document);
 applyTheme(document.documentElement.dataset.theme, { persist: false });

@@ -52,7 +52,7 @@ ADMIN_NAVIGATION = (
     AdminNavigationGroup(
         label="站点结构",
         items=(
-            AdminNavigationItem("navigation", "公共导航", "admin:navigation"),
+            AdminNavigationItem("navigation", "主页侧边导航", "admin:navigation"),
             AdminNavigationItem("site-settings", "站点设置", "admin:site-settings"),
         ),
     ),

@@ -1,20 +1,71 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}home-shell{% endblock %}
+{% block main_layout_class %}site-main home-main{% endblock %}
 
 {% block content %}
-  <div class="home-layout">
-    <header class="home-heading">
-      <h1 id="home-title">{{ site_presentation.site_name }}</h1>
-      {% if site_presentation.site_description %}<p>{{ site_presentation.site_description }}</p>{% endif %}
-    </header>
-    <section class="home-articles" aria-labelledby="latest-articles-title">
-      <header class="section-heading">
-        <div>
-          <h2 id="latest-articles-title">最新文章</h2>
+  <div class="home-page{% if site_presentation.navigation %} home-page--with-navigation{% endif %}" data-home-page>
+    <section class="home-hero" aria-labelledby="home-title">
+      <img
+        class="home-hero__image"
+        src="{% static 'media/brand/default-cover.png' %}"
+        width="1600"
+        height="900"
+        alt=""
+        fetchpriority="high"
+      >
+      <div class="home-hero__content">
+        <div class="home-hero__content-inner">
+          <h1 id="home-title">{{ site_presentation.site_name }}</h1>
+          {% if site_presentation.site_description %}<p>{{ site_presentation.site_description }}</p>{% endif %}
+          <a href="#home-articles">
+            <span>查看最新文章</span>
+            <i data-lucide="chevron-down" aria-hidden="true"></i>
+          </a>
         </div>
-      </header>
-      {% include "discovery/partials/article_index.html" %}
+      </div>
+    </section>
+    {% if site_presentation.navigation %}
+      <div class="home-navigation-shell" data-home-navigation-shell data-collapsed="true">
+        <aside id="home-navigation-panel" class="home-navigation" data-home-navigation-panel aria-labelledby="home-navigation-title" aria-hidden="true" inert>
+          <header class="home-navigation__header">
+            <div>
+              <span aria-hidden="true">{{ site_presentation.site_name|slice:":1" }}</span>
+              <h2 id="home-navigation-title">浏览</h2>
+            </div>
+            <button class="icon-button" type="button" data-home-navigation-close aria-controls="home-navigation-panel" aria-label="收起主页导航" title="收起主页导航">
+              <i data-lucide="chevron-left" aria-hidden="true"></i>
+            </button>
+          </header>
+          <nav aria-label="主页侧边导航">
+            {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+          </nav>
+        </aside>
+        <button
+          class="home-navigation__reopen"
+          type="button"
+          data-home-navigation-open
+          aria-controls="home-navigation-panel"
+          aria-expanded="false"
+          aria-hidden="false"
+          aria-label="展开主页导航"
+          title="展开主页导航"
+          tabindex="0"
+        >
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+          <span aria-hidden="true">导航</span>
+        </button>
+      </div>
+    {% endif %}
+    <section id="home-articles" class="home-articles" data-home-articles aria-labelledby="latest-articles-title">
+      <div class="home-articles__inner">
+        <header class="home-articles__heading">
+          <h2 id="latest-articles-title">最新文章</h2>
+        </header>
+        {% include "discovery/partials/article_index.html" %}
+      </div>
     </section>
   </div>
 {% endblock %}

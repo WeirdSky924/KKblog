@@ -144,7 +144,7 @@ def _dialog(kind: str, row, form) -> dict[str, object]:
     return base | {
         "title": "确认删除这个导航子树？",
         "description": f"“{node.label}”及其 {row.subtree_count - 1} 个子节点将被删除。",
-        "details": "内容页面、文章分区和外部站点不会被删除；此操作只删除公共导航节点。",
+        "details": "内容页面、文章分区和外部站点不会被删除；此操作只删除主页侧边导航节点。",
         "action": "navigation_delete",
         "label": "确认删除子树",
         "form_fields": False,
@@ -168,7 +168,7 @@ def _tree_unavailable_response(request: HttpRequest) -> HttpResponse:
         "administration/navigation.html",
         {
             "tree_unavailable": True,
-            "page_error": "公共导航树暂时不可用，请稍后重试。",
+            "page_error": "主页侧边导航暂时不可用，请稍后重试。",
             "trace_code": getattr(request, "trace_code", ""),
         },
         status=503,
@@ -418,7 +418,7 @@ def navigation(request: HttpRequest) -> HttpResponse:
             return _render(
                 request,
                 status=422,
-                page_error="公共导航管理操作无效。",
+                page_error="主页侧边导航管理操作无效。",
             )
         tree, rows = _tree_and_rows(request)
         kind, row, form = _confirmation(request, tree=tree, rows=rows)

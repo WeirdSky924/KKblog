@@ -6,7 +6,17 @@ from apps.accounts.services.credentials import validate_password_strength
 from apps.core.ids import normalize_ulid
 
 
-class RegistrationCodeForm(forms.Form):
+class _ScopedAutoIdForm(forms.Form):
+    auto_id_scope = "form"
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs.setdefault("auto_id", f"id_{self.auto_id_scope}_%s")
+        super().__init__(*args, **kwargs)
+
+
+class RegistrationCodeForm(_ScopedAutoIdForm):
+    auto_id_scope = "registration_code"
+
     invite_code = forms.CharField(label="邀请码", max_length=16, required=False)
     email = forms.EmailField(
         label="邮箱",
@@ -16,6 +26,8 @@ class RegistrationCodeForm(forms.Form):
 
 
 class RegistrationForm(RegistrationCodeForm):
+    auto_id_scope = "registration"
+
     code = forms.RegexField(
         label="邮箱验证码",
         regex=r"[0-9]{6}",
@@ -33,7 +45,9 @@ class RegistrationForm(RegistrationCodeForm):
     remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
 
 
-class PasswordLoginForm(forms.Form):
+class PasswordLoginForm(_ScopedAutoIdForm):
+    auto_id_scope = "password_login"
+
     email = forms.EmailField(
         label="邮箱",
         max_length=254,
@@ -46,7 +60,9 @@ class PasswordLoginForm(forms.Form):
     remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
 
 
-class LoginCodeRequestForm(forms.Form):
+class LoginCodeRequestForm(_ScopedAutoIdForm):
+    auto_id_scope = "login_code_request"
+
     email = forms.EmailField(
         label="邮箱",
         max_length=254,
@@ -55,6 +71,8 @@ class LoginCodeRequestForm(forms.Form):
 
 
 class CodeLoginForm(LoginCodeRequestForm):
+    auto_id_scope = "code_login"
+
     code = forms.RegexField(
         label="邮箱验证码",
         regex=r"[0-9]{6}",
@@ -66,7 +84,9 @@ class CodeLoginForm(LoginCodeRequestForm):
     remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
 
 
-class PasswordResetCodeForm(forms.Form):
+class PasswordResetCodeForm(_ScopedAutoIdForm):
+    auto_id_scope = "password_reset_code"
+
     email = forms.EmailField(
         label="已绑定邮箱",
         max_length=254,
@@ -75,6 +95,8 @@ class PasswordResetCodeForm(forms.Form):
 
 
 class PasswordResetForm(PasswordResetCodeForm):
+    auto_id_scope = "password_reset"
+
     code = forms.RegexField(
         label="邮箱验证码",
         regex=r"[0-9]{6}",

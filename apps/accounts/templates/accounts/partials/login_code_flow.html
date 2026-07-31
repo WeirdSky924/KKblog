@@ -1,0 +1,51 @@
+<div
+  id="login-code-flow"
+  class="auth-panel auth-code-flow"
+  role="tabpanel"
+  aria-labelledby="code-login-tab"
+  data-focus-after-swap
+  tabindex="-1"
+>
+  {% if code_sent %}
+    <section class="auth-code-stage" aria-labelledby="complete-code-login-title">
+      <header class="auth-section-heading">
+        <h3 id="complete-code-login-title">输入验证码</h3>
+        <p>验证码已发送，请在 10 分钟内完成登录。</p>
+      </header>
+      <p class="account-status auth-verification-status" role="status">
+        <span>接收邮箱：<strong>{{ code_form.email.value }}</strong></span>
+        <a href="?mode=code&next={{ next|urlencode }}">更换邮箱</a>
+      </p>
+      <form method="post" hx-boost="false" data-submit-once class="account-form auth-form">
+        {% csrf_token %}<input type="hidden" name="action" value="code">
+        <input type="hidden" name="next" value="{{ next }}">
+        {{ code_form.email.as_hidden }}
+        {{ code_form.non_field_errors }}
+        {{ code_form.email.errors }}
+        {{ code_form.code.as_field_group }}
+        {{ code_form.remember.as_field_group }}
+        <button class="button button--primary auth-form__submit" type="submit"><span>使用验证码登录</span><i data-lucide="arrow-right" aria-hidden="true"></i></button>
+      </form>
+    </section>
+  {% else %}
+    <section class="auth-code-stage" aria-labelledby="request-login-code-title">
+      <header class="auth-section-heading">
+        <h3 id="request-login-code-title">接收验证码</h3>
+        <p>输入邮箱获取验证码，验证码将在 10 分钟后失效。</p>
+      </header>
+      <form
+        method="post"
+        hx-post="{% url 'accounts:login' %}"
+        hx-target="#login-code-flow"
+        hx-swap="outerHTML"
+        data-submit-once
+        class="account-form auth-form"
+      >
+        {% csrf_token %}<input type="hidden" name="action" value="send_login_code">
+        <input type="hidden" name="next" value="{{ next }}">
+        {{ code_request_form.as_div }}
+        <button class="button button--secondary auth-form__submit" type="submit"><span>发送验证码</span><i data-lucide="send" aria-hidden="true"></i></button>
+      </form>
+    </section>
+  {% endif %}
+</div>

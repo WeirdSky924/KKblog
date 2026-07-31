@@ -81,7 +81,7 @@
                   <td>
                     <div class="admin-exchange__actions">
                       {% if row.item.can_download %}
-                        <a class="button button--secondary" href="{% url 'admin:exchange-download' job_id=row.item.job_id %}"><i data-lucide="download"></i><span>下载</span></a>
+                        <a class="button button--secondary" href="{% url 'admin:exchange-download' job_id=row.item.job_id %}" hx-boost="false"><i data-lucide="download"></i><span>下载</span></a>
                       {% endif %}
                       {% if row.item.can_cancel %}
                         <a
