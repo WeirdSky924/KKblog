@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         SiteContentCommandError,
         StaticPageResult,
         TrustedSourceResult,
+        VerificationEmailTemplateResult,
         create_friend_link,
         create_navigation_node,
         delete_friend_link,
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
         update_friend_link,
         update_site_configuration,
         update_static_page,
+        update_verification_email_template,
     )
 
 
@@ -154,6 +156,7 @@ __all__ = [
     "SiteConfigurationResult",
     "SiteContentCommandError",
     "SiteContentQueryError",
+    "VerificationEmailTemplateResult",
     "SitePresentation",
     "StaticPageResult",
     "TrustedSourceResult",
@@ -175,6 +178,7 @@ __all__ = [
     "set_navigation_node_hidden",
     "update_friend_link",
     "update_site_configuration",
+    "update_verification_email_template",
     "update_static_page",
     "visible_friend_links",
 ]
@@ -219,6 +223,10 @@ _LAZY_EXPORTS = {
         "apps.navigation.services",
         "SiteContentCommandError",
     ),
+    "VerificationEmailTemplateResult": (
+        "apps.navigation.services",
+        "VerificationEmailTemplateResult",
+    ),
     "StaticPageResult": ("apps.navigation.services", "StaticPageResult"),
     "TrustedSourceResult": (
         "apps.navigation.services",
@@ -256,6 +264,10 @@ _LAZY_EXPORTS = {
     "update_site_configuration": (
         "apps.navigation.services",
         "update_site_configuration",
+    ),
+    "update_verification_email_template": (
+        "apps.navigation.services",
+        "update_verification_email_template",
     ),
     "update_static_page": ("apps.navigation.services", "update_static_page"),
 }

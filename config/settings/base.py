@@ -67,6 +67,9 @@ MEDIA_ROOT = BASE_DIR / "var" / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_TIMEOUT = 10
+ACCOUNT_VERIFICATION_EMAIL_CONFIGURATION_PROVIDER = (
+    "apps.navigation.presentation.provider.verification_email_configuration"
+)
 DIRECT_REGISTRATION_ENABLED = False
 ACCOUNT_SESSION_COOKIE_NAME = "kaj_session"
 TRUSTED_PROXY_CIDRS = ()

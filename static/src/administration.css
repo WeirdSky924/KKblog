@@ -59,6 +59,59 @@
   resize: vertical;
 }
 
+.verification-email-settings > header > span {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.verification-email-settings > header h2,
+.verification-email-settings__preview-header h3 {
+  margin: 0;
+}
+
+.verification-email-settings__state {
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+.verification-email-settings__layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.85fr) minmax(24rem, 1.15fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.verification-email-settings__form {
+  align-content: start;
+}
+
+.verification-email-settings__actions,
+.verification-email-settings__preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.verification-email-settings__preview {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.verification-email-settings__preview-header span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.verification-email-settings__preview iframe {
+  width: 100%;
+  min-height: 35rem;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
 .site-static-editor__toolbar {
   display: flex;
   gap: 0.35rem;
@@ -98,6 +151,12 @@
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+@media (max-width: 64rem) {
+  .verification-email-settings__layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .site-settings-inline-form > span {

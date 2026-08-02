@@ -8,6 +8,7 @@ from .administration import (
     admin_comment_workspace,
     admin_comments_for_target,
 )
+from .counts import article_comment_counts
 from .management import (
     OwnerBufferedComment,
     OwnerCommentArticle,
@@ -62,6 +63,7 @@ __all__ = [
     "PublicReplyPage",
     "ReportableCommentTarget",
     "article_comment_access",
+    "article_comment_counts",
     "admin_comment_detail",
     "admin_comment_workspace",
     "admin_comments_for_target",

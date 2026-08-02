@@ -27,7 +27,7 @@ class CommandResult[T]:
 
 | 服务 | 关键输入 | 结果 | 典型错误 |
 | --- | --- | --- | --- |
-| `request_verification_code` | purpose, email, invite?, IP | challenge metadata | 注册关闭、邀请码无效、发送过频、IP 受限 |
+| `request_verification_code` | purpose, email, invite?, IP | challenge metadata + multipart 邮件 | 注册关闭、邀请码无效、发送过频、IP 受限、邮件发送失败 |
 | `register_account` | email, code, password, invite? | account + session | 验证码错误、邮箱冲突、邀请码已用 |
 | `authenticate_password` | email, password, remember | session | 凭证错误、临时限制、账号禁用 |
 | `authenticate_code` | email, code, remember | session | 同上 |
@@ -40,6 +40,8 @@ class CommandResult[T]:
 | `set_account_enabled` | admin, account, enabled | account | 管理员保护 |
 | `delete_account` | admin, account, author disposition | deletion record | 未处理作者文章、管理员自删 |
 | `block_ip` / `unblock_ip` | admin, IP, note | block | 格式/重复状态 |
+
+验证码邮件由 accounts 在发码事务外沿既有 mail adapter 发送：主题和发件人显示名读取当前站名，正文同时提供纯文本与经过白名单校验的 HTML。navigation 只提供站名与可空模板配置，不接触收件人、验证码或 SMTP 凭据；发送失败必须回滚本次 challenge 与限流预留，不能显示假成功。
 
 ## content 公开服务
 

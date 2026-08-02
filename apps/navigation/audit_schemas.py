@@ -44,6 +44,19 @@ def register_navigation_audit_schemas() -> None:
     )
     register_audit_schema(
         AuditSchema(
+            "navigation.verification_email_template.update",
+            "site_configuration",
+            frozenset(
+                {
+                    "template_customized",
+                    "template_digest",
+                    "row_version",
+                }
+            ),
+        )
+    )
+    register_audit_schema(
+        AuditSchema(
             "navigation.static_page.update",
             "static_page",
             frozenset(

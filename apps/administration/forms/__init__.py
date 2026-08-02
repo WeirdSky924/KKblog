@@ -34,6 +34,7 @@ from .site_settings import (
     SiteConfigurationForm,
     StaticPageForm,
     TrustedSourceForm,
+    VerificationEmailTemplateForm,
 )
 
 __all__ = [
@@ -43,4 +44,5 @@ __all__ = [
     "SiteConfigurationForm",
     "StaticPageForm",
     "TrustedSourceForm",
+    "VerificationEmailTemplateForm",
 ]

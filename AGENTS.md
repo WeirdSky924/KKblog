@@ -24,11 +24,12 @@
 
 ## 当前阶段 Labs 同步
 
-- 当前优化阶段中，每个完成且通过聚焦验证的修改切片默认同步到 `https://labs.kajspace.cn`，并执行服务、文件或静态资源及代表性页面读回；用户无需在每次修改后重复要求更新 Labs。
-- 同步前从 `kaj-labs.service` 读回并校验 `WorkingDirectory`。目标就是当前开发 worktree 时不重复复制，Django 源码和模板由宿主机开发服务器热重载；前端源码变更按项目脚本构建对应静态产物后再读回公网文件哈希。
-- 不把仍在 RED、未完成或未经验证的中间状态同步到 Labs。热更新或读回失败时准确报告并停止，不以重启、重建或扩大数据操作掩盖失败。
-- 本约定只授权非生产 Labs 的源码/静态产物同步和只读 smoke，不授权生产部署，也不授权服务或容器重启、镜像操作、数据库 migration/数据修复、真实邮件、Git add/commit/push 或其他外部写操作；这些动作仍按其各自门禁处理。
-- 详细同步范围、验证步骤和停止条件以 `docs/operations/testing.md` 为准。
+- 当前测试优化阶段中，每个完成且通过聚焦验证的修改切片默认同步到 `https://labs.kajspace.cn`，用户无需重复要求更新 Labs。
+- 同步前必须读回 `kaj-labs.service` 的 `WorkingDirectory/ActiveState/SubState`。当前服务工作目录是 `/home/code/.codex-worktrees/personal-blog/p12-regression-delivery`；当前开发目录与其不同时，只把本任务已完成的运行时文件定向同步到该 Labs worktree，并保留目标内的无关改动。
+- 不同步或删除 `.git`、`.env`、`.venv`、`var/`、数据库、媒体、备份、日志、缓存、测试产物、`node_modules` 或凭据；不得使用会清空目标目录的宽泛同步命令。
+- Python 源码和模板由宿主机 `kaj-labs.service` 热重载；前端源码先生成对应 `static/dist/` 产物，再同步本任务产物。普通代码同步不重建或替换容器，也不重启服务。
+- 同步后读回服务仍为 `active/running`、`/health/live` 返回 `200`，并验证一个直接受影响的 Labs 页面或安全用户流。热重载或读回失败时停止并报告，不自动扩大为重启、迁移或数据修复。
+- 本约定只授权非生产 Labs 的源码、模板和静态产物同步及只读 smoke；不授权生产发布、服务或容器重启、镜像操作、migration、数据修复、真实邮件、Git 写操作或其他外部写操作。详细步骤以 `docs/operations/testing.md` 为准。
 
 ## Git 与交付
 

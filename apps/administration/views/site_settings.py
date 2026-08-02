@@ -3,6 +3,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from apps.accounts.public import (
+    DEFAULT_VERIFICATION_EMAIL_TEMPLATE,
+    render_verification_email_html,
+)
 from apps.comments.public import GuestbookSettingsError, update_guestbook_settings
 from apps.navigation.public import (
     SiteContentCommandError,
@@ -14,6 +18,7 @@ from apps.navigation.public import (
     update_friend_link,
     update_site_configuration,
     update_static_page,
+    update_verification_email_template,
 )
 
 from ..presentation.site_settings import (
@@ -62,6 +67,17 @@ def _render(
         settings,
         actor_id=request.account_id,
     )
+    email_template = (
+        settings.configuration.verification_email_template
+        or DEFAULT_VERIFICATION_EMAIL_TEMPLATE
+    )
+    email_preview = render_verification_email_html(
+        email_template,
+        site_name=settings.configuration.site_name,
+        code="123456",
+        minutes=10,
+        purpose="账号安全验证",
+    )
     response = render(
         request,
         "administration/site_settings.html",
@@ -86,6 +102,10 @@ def _render(
             ),
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),
+            "verification_email_customized": bool(
+                settings.configuration.verification_email_template
+            ),
+            "verification_email_preview": email_preview,
             "media_upload_urls": {
                 "site_logo": reverse("media:upload", kwargs={"adapter": "site-logo"}),
                 "friend_logo": reverse(
@@ -110,6 +130,7 @@ def _bound(
         settings,
         actor_id=request.account_id,
         data=request.POST,
+        files=request.FILES,
         bound_action=action,
         bound_id=identity,
     )
@@ -135,6 +156,32 @@ def _post_configuration(request: HttpRequest) -> HttpResponse:
     return redirect(
         f"{reverse('admin:site-settings')}?saved=configuration#site-configuration"
     )
+
+
+def _post_verification_email(request: HttpRequest) -> HttpResponse:
+    settings = admin_site_settings(actor_id=request.account_id)
+    forms = _bound(request, settings=settings, action="verification_email")
+    form = forms.verification_email
+    if not form.is_valid():
+        return _render(
+            request,
+            status=422,
+            forms=forms,
+            page_error="请修正验证码邮件模板。",
+        )
+    try:
+        update_verification_email_template(
+            actor_id=request.account_id,
+            template_source=form.cleaned_data["template_source"],
+            expected_version=form.cleaned_data["expected_version"],
+            **_meta(request),
+        )
+    except SiteContentCommandError as error:
+        form.add_error(None, error.safe_message)
+        return _render(
+            request, status=_status(error), forms=forms, page_error=error.safe_message
+        )
+    return redirect(f"{reverse('admin:site-settings')}?saved=email#verification-email")
 
 
 def _post_static_page(request: HttpRequest) -> HttpResponse:
@@ -285,6 +332,7 @@ def site_settings(request: HttpRequest) -> HttpResponse:
     action = request.POST.get("action", "")
     handlers = {
         "configuration": _post_configuration,
+        "verification_email": _post_verification_email,
         "static_page": _post_static_page,
         "friend_create": _post_friend_create,
         "friend_update": _post_friend_update,

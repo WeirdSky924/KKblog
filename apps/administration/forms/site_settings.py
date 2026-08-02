@@ -1,5 +1,10 @@
 from django import forms
 
+from apps.accounts.public import (
+    MAX_VERIFICATION_EMAIL_TEMPLATE_BYTES,
+    EmailTemplateError,
+    validate_verification_email_template,
+)
 from apps.navigation.public import (
     SITE_MAX_ARTICLE_BODY_BYTES,
     SITE_MIN_ARTICLE_BODY_BYTES,
@@ -34,6 +39,49 @@ class SiteConfigurationForm(forms.Form):
         choices=(("local", "local（本机）"),),
     )
     expected_version = forms.IntegerField(widget=forms.HiddenInput)
+
+
+class VerificationEmailTemplateForm(forms.Form):
+    template_file = forms.FileField(
+        label="HTML 模板文件",
+        required=False,
+        widget=forms.FileInput(attrs={"accept": ".html,.htm,text/html"}),
+    )
+    mode = forms.ChoiceField(
+        choices=(("upload", "上传"), ("reset", "恢复默认")),
+        widget=forms.HiddenInput,
+    )
+    expected_version = forms.IntegerField(widget=forms.HiddenInput)
+
+    def clean_template_file(self):
+        upload = self.cleaned_data.get("template_file")
+        if upload is None:
+            return None
+        if upload.size > MAX_VERIFICATION_EMAIL_TEMPLATE_BYTES:
+            raise forms.ValidationError("邮件模板不能超过 48 KiB。")
+        if not upload.name.lower().endswith((".html", ".htm")):
+            raise forms.ValidationError("请选择 .html 或 .htm 文件。")
+        if upload.content_type not in {"text/html", "application/xhtml+xml"}:
+            raise forms.ValidationError("邮件模板的文件类型必须是 HTML。")
+        try:
+            source = upload.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise forms.ValidationError("邮件模板必须使用 UTF-8 编码。") from None
+        try:
+            return validate_verification_email_template(source)
+        except EmailTemplateError as error:
+            raise forms.ValidationError(str(error)) from None
+
+    def clean(self):
+        cleaned = super().clean()
+        mode = cleaned.get("mode")
+        upload = cleaned.get("template_file")
+        if mode == "upload" and upload is None and "template_file" not in self.errors:
+            self.add_error("template_file", "请选择需要上传的 HTML 模板。")
+        if mode == "reset" and upload is not None:
+            self.add_error("template_file", "恢复默认模板时不需要选择文件。")
+        cleaned["template_source"] = upload if mode == "upload" else ""
+        return cleaned
 
 
 class StaticPageForm(forms.Form):
@@ -94,4 +142,5 @@ __all__ = [
     "SiteConfigurationForm",
     "StaticPageForm",
     "TrustedSourceForm",
+    "VerificationEmailTemplateForm",
 ]

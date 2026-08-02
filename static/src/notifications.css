@@ -26,8 +26,50 @@
 
 .notification-center__trigger {
   position: relative;
+  isolation: isolate;
   border-color: var(--line);
   background: var(--surface-panel);
+}
+
+.notification-center__trigger > * {
+  position: relative;
+  z-index: 2;
+}
+
+.notification-center[data-notification-state="unread"]
+  > .notification-center__trigger {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--surface-panel);
+}
+
+.notification-center[data-notification-state="unread"]
+  > .notification-center__trigger::before {
+  position: absolute;
+  z-index: 1;
+  inset: -2px;
+  padding: 2px;
+  border-radius: 6px;
+  background: conic-gradient(
+    from var(--notification-flow-angle),
+    transparent 0deg 195deg,
+    var(--line) 225deg,
+    var(--accent) 270deg,
+    var(--danger) 315deg,
+    transparent 350deg 360deg
+  );
+  content: "";
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: notification-boundary-flow 2.8s linear infinite;
 }
 
 .notification-center__trigger:hover,
@@ -38,13 +80,57 @@
 
 .notification-center__badge {
   position: absolute;
-  inset-block-start: 0.45rem;
-  inset-inline-end: 0.45rem;
-  width: 0.5rem;
-  height: 0.5rem;
+  z-index: 3;
+  inset-block-start: 0.35rem;
+  inset-inline-end: 0.35rem;
+  width: 0.625rem;
+  height: 0.625rem;
   border: 2px solid var(--surface-panel);
   border-radius: 50%;
   background: var(--danger);
+}
+
+.notification-center__badge::after {
+  position: absolute;
+  inset: -0.3rem;
+  border: 1px solid var(--danger);
+  border-radius: inherit;
+  content: "";
+  animation: notification-badge-flow 2.8s ease-out infinite;
+}
+
+@property --notification-flow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes notification-boundary-flow {
+  to {
+    --notification-flow-angle: 360deg;
+  }
+}
+
+@keyframes notification-badge-flow {
+  0%,
+  58%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.72);
+  }
+
+  82% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-center[data-notification-state="unread"]
+    > .notification-center__trigger::before,
+  .notification-center__badge::after {
+    animation: none;
+  }
 }
 
 .notification-popover {

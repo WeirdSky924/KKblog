@@ -1,4 +1,9 @@
-<details id="notification-center" class="notification-center" data-notification-center>
+<details
+  id="notification-center"
+  class="notification-center"
+  data-notification-center
+  data-notification-state="{% if notification_popover.unread_count %}unread{% else %}read{% endif %}"
+>
   <summary
     class="icon-button notification-center__trigger"
     aria-label="通知，{{ notification_popover.unread_count }}条未读"

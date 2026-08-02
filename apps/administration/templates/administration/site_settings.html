@@ -10,6 +10,7 @@
       <h1 id="site-settings-title">站点设置</h1>
       <p>品牌、公开页面、可信来源和留言入口共用同一组设置。</p>
       {% if saved == "configuration" %}<p role="status">站点配置已保存。</p>{% endif %}
+      {% if saved == "email" %}<p role="status">验证码邮件模板已保存。</p>{% endif %}
       {% if saved == "page" %}<p role="status">公开页面已保存。</p>{% endif %}
       {% if saved == "friend" %}<p role="status">友情链接已保存。</p>{% endif %}
       {% if saved == "trusted" %}<p role="status">可信来源设置已保存。</p>{% endif %}
@@ -32,6 +33,45 @@
           {% include "media/partials/picker.html" with adapter="site-logo" upload_url=media_upload_urls.site_logo input_name="logo_asset_id" label="站点 Logo / favicon" picker_id="site-logo" current_asset_id=site_settings.configuration.logo_asset_id current_preview_url=site_settings.configuration.logo_url favicon_preview=True %}
           <button class="button button--primary" type="submit">保存品牌设置</button>
         </form>
+      </section>
+
+      <section id="verification-email" class="site-settings-section verification-email-settings" aria-labelledby="verification-email-title">
+        <header>
+          <span>
+            <h2 id="verification-email-title">验证码邮件模板</h2>
+            <p>邮件主题自动使用“当前站点名称 · 邮箱验证码”。</p>
+          </span>
+          <strong class="verification-email-settings__state">{% if verification_email_customized %}使用自定义模板{% else %}使用项目默认模板{% endif %}</strong>
+        </header>
+        <div class="verification-email-settings__layout">
+          <form method="post" enctype="multipart/form-data" class="site-settings-form verification-email-settings__form" data-submit-once>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="verification_email">
+            {{ site_settings_forms.verification_email.expected_version }}
+            {{ site_settings_forms.verification_email.non_field_errors }}
+            <div class="site-settings-field">
+              {{ site_settings_forms.verification_email.template_file.label_tag }}
+              {{ site_settings_forms.verification_email.template_file.errors }}
+              {{ site_settings_forms.verification_email.template_file }}
+              <p class="form-help">UTF-8 HTML，最大 48 KiB。必须包含 <code>{% templatetag openvariable %} code {% templatetag closevariable %}</code>；可使用 <code>site_name</code>、<code>minutes</code> 和 <code>purpose</code>。</p>
+            </div>
+            <div class="verification-email-settings__actions">
+              <button class="button button--primary" type="submit" name="mode" value="upload"><i data-lucide="file-plus-2"></i><span>上传并使用</span></button>
+              <button class="button button--secondary" type="submit" name="mode" value="reset" formnovalidate><i data-lucide="rotate-ccw"></i><span>恢复默认模板</span></button>
+            </div>
+          </form>
+          <div class="verification-email-settings__preview">
+            <div class="verification-email-settings__preview-header">
+              <h3>当前模板预览</h3>
+              <span>示例验证码 123456</span>
+            </div>
+            <iframe
+              title="当前验证码邮件模板预览"
+              sandbox="allow-same-origin"
+              srcdoc="<meta charset='utf-8'><link rel='stylesheet' href='{% static 'dist/styles.css' %}'><style>html,body{margin:0;background:#fff}body,body *{font-family:'Noto Sans SC Variable','Noto Sans SC','Microsoft YaHei',sans-serif!important}</style>{{ verification_email_preview }}"
+            ></iframe>
+          </div>
+        </div>
       </section>
 
       <section id="static-pages" class="site-settings-section" aria-labelledby="static-pages-title">

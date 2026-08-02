@@ -1,7 +1,12 @@
 from dataclasses import dataclass
+from hashlib import sha256
 
 from django.db import transaction
 
+from apps.accounts.public import (
+    EmailTemplateError,
+    validate_verification_email_template,
+)
 from apps.operations.public import record_audit_entry
 
 from ..media_gateway import NavigationMediaError, navigation_media_gateway
@@ -17,6 +22,12 @@ from .site_common import (
 
 @dataclass(frozen=True, slots=True)
 class SiteConfigurationResult:
+    row_version: int
+    changed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class VerificationEmailTemplateResult:
     row_version: int
     changed: bool
 
@@ -139,7 +150,75 @@ def update_site_configuration(
     return SiteConfigurationResult(row.row_version, changed)
 
 
+def _template_snapshot(row: SiteConfiguration) -> dict[str, object]:
+    source = row.verification_email_template
+    return {
+        "template_customized": bool(source),
+        "template_digest": sha256(source.encode("utf-8")).hexdigest() if source else "",
+        "row_version": row.row_version,
+    }
+
+
+def update_verification_email_template(
+    *,
+    actor_id,
+    template_source,
+    expected_version,
+    trace_code: str,
+    client_ip: str,
+) -> VerificationEmailTemplateResult:
+    actor = require_administrator(actor_id)
+    if template_source:
+        try:
+            source = validate_verification_email_template(template_source)
+        except EmailTemplateError as error:
+            raise SiteContentCommandError(
+                "navigation.verification_email_template_invalid.v1", str(error)
+            ) from None
+    else:
+        source = ""
+    version = require_version(expected_version)
+    with transaction.atomic():
+        try:
+            row = SiteConfiguration.objects.select_for_update().get(pk=1)
+        except SiteConfiguration.DoesNotExist:
+            raise SiteContentCommandError(
+                "navigation.site_configuration_missing.v1", "站点设置不可用。"
+            ) from None
+        if row.row_version != version:
+            raise SiteContentCommandError(
+                "navigation.site_edit_conflict.v1",
+                "站点设置已被其他操作更新，请刷新后重试。",
+            )
+        before = _template_snapshot(row)
+        changed = row.verification_email_template != source
+        if changed:
+            row.verification_email_template = source
+            row.row_version += 1
+            row.save(
+                update_fields=(
+                    "verification_email_template",
+                    "row_version",
+                    "updated_at",
+                )
+            )
+            record_audit_entry(
+                action="navigation.verification_email_template.update",
+                actor_id=actor,
+                target_id="site",
+                trace_code=trace_code,
+                client_ip=client_ip,
+                before=before,
+                after=_template_snapshot(row),
+                summary="Update verification email template",
+            )
+            transaction.on_commit(invalidate_public_site_configuration_cache)
+    return VerificationEmailTemplateResult(row.row_version, changed)
+
+
 __all__ = [
     "SiteConfigurationResult",
+    "VerificationEmailTemplateResult",
     "update_site_configuration",
+    "update_verification_email_template",
 ]

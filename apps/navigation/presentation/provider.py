@@ -1,5 +1,9 @@
 from django.urls import reverse
 
+from apps.accounts.public import (
+    DEFAULT_VERIFICATION_EMAIL_TEMPLATE,
+    VerificationEmailConfiguration,
+)
 from apps.navigation.public import SitePresentation
 from apps.navigation.queries import (
     public_navigation_tree,
@@ -44,4 +48,15 @@ def database_site_presentation() -> SitePresentation:
     )
 
 
-__all__ = ["database_site_presentation"]
+def verification_email_configuration() -> VerificationEmailConfiguration:
+    configuration = public_site_configuration()
+    return VerificationEmailConfiguration(
+        site_name=configuration.site_name,
+        template_source=(
+            configuration.verification_email_template
+            or DEFAULT_VERIFICATION_EMAIL_TEMPLATE
+        ),
+    )
+
+
+__all__ = ["database_site_presentation", "verification_email_configuration"]

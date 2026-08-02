@@ -6,6 +6,7 @@ from uuid import UUID
 from django.templatetags.static import static
 from redis.exceptions import RedisError
 
+from apps.comments.public import article_comment_counts
 from apps.content.public import (
     current_public_article_revisions,
     search_visible_titles,
@@ -261,11 +262,15 @@ def tag_article_page(
 
 
 def article_index_page(source) -> ArticleIndexPage:
-    view_counts = article_view_counts(
-        article_ids=(item.article_id for item in source.items)
-    )
+    article_ids = tuple(item.article_id for item in source.items)
+    view_counts = article_view_counts(article_ids=article_ids)
+    comment_counts = article_comment_counts(article_ids=article_ids)
     items = tuple(
-        article_index_item(item, view_count=view_counts.get(item.article_id, 0))
+        article_index_item(
+            item,
+            view_count=view_counts.get(item.article_id, 0),
+            comment_count=comment_counts.get(item.article_id, 0),
+        )
         for item in source.items
     )
     return ArticleIndexPage(
@@ -280,7 +285,9 @@ def article_index_page(source) -> ArticleIndexPage:
     )
 
 
-def article_index_item(source, *, view_count: int) -> ArticleIndexItem:
+def article_index_item(
+    source, *, view_count: int, comment_count: int
+) -> ArticleIndexItem:
     published = to_shanghai(source.published_at)
     return ArticleIndexItem(
         article_id=source.article_id,
@@ -303,5 +310,5 @@ def article_index_item(source, *, view_count: int) -> ArticleIndexItem:
         published_label=published.strftime("%Y-%m-%d %H:%M"),
         visibility=source.visibility,
         view_count=view_count,
-        comment_count=0,
+        comment_count=comment_count,
     )

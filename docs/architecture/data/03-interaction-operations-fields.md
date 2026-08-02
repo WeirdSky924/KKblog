@@ -117,7 +117,7 @@
 
 站点配置不要放入一个无约束 JSON 大桶：
 
-- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值和品牌资产引用。
+- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值、品牌资产引用和可空的验证码 HTML 模板；模板为空表示使用代码内默认模板，SMTP 地址与密钥仍只属于部署配置。
 - `StaticPage` 保存 ABOUT/PRIVACY/TERMS 的格式、正文和发布状态。
 - `TrustedEmbedSource` 保存来源名、主机规则和启用状态，初始仅 Bilibili。
 - `FriendLink` 保存名称、URL、描述、Logo 和排序。

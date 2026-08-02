@@ -4,6 +4,14 @@ from apps.accounts.deletion import (
     AccountDeletionDisposition,
     AuthorArticleDecision,
 )
+from apps.accounts.email_templates import (
+    DEFAULT_VERIFICATION_EMAIL_TEMPLATE,
+    MAX_VERIFICATION_EMAIL_TEMPLATE_BYTES,
+    EmailTemplateError,
+    VerificationEmailConfiguration,
+    render_verification_email_html,
+    validate_verification_email_template,
+)
 from apps.accounts.models import Account, RoleAssignment
 from apps.accounts.queries.administration import (
     ADMIN_ACCOUNT_STATUSES,
@@ -120,9 +128,13 @@ __all__ = [
     "AuthorPreferenceError",
     "AuthorPreferences",
     "AuthorArticleDecision",
+    "DEFAULT_VERIFICATION_EMAIL_TEMPLATE",
+    "EmailTemplateError",
+    "MAX_VERIFICATION_EMAIL_TEMPLATE_BYTES",
     "PublicAccountIdentity",
     "PublicAccountNotFound",
     "RestrictionError",
+    "VerificationEmailConfiguration",
     "clear_account_restrictions",
     "clear_ip_send_restriction",
     "default_restriction_store",
@@ -145,5 +157,7 @@ __all__ = [
     "set_account_enabled",
     "set_author_role",
     "revoke_invites",
+    "render_verification_email_html",
     "unblock_ip",
+    "validate_verification_email_template",
 ]

@@ -23,6 +23,7 @@ class SiteConfiguration(models.Model):
         default=SITE_MAX_ARTICLE_BODY_BYTES
     )
     logo_asset_id = models.CharField(max_length=26, null=True, blank=True)
+    verification_email_template = models.TextField(blank=True, default="")
     backup_destination = models.CharField(max_length=16, default="local")
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
     updated_at = models.DateTimeField(auto_now=True, editable=False)

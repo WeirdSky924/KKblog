@@ -366,6 +366,7 @@ function updateNotificationUnreadCount(value) {
     return;
   }
   document.querySelectorAll("[data-notification-center]").forEach((center) => {
+    center.dataset.notificationState = unreadCount === 0 ? "read" : "unread";
     const trigger = center.querySelector(".notification-center__trigger");
     trigger?.setAttribute("aria-label", `通知，${unreadCount}条未读`);
     const label = center.querySelector("[data-notification-unread-label]");

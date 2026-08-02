@@ -5,6 +5,7 @@ from uuid import UUID
 from django.core.paginator import Paginator
 from django.templatetags.static import static
 
+from apps.comments.public import article_comment_counts
 from apps.content.public import visible_articles_by_ids
 from apps.core.time import to_shanghai
 
@@ -73,8 +74,11 @@ def bookmark_page(*, account_id, page: int = 1, page_size: int = 20) -> Bookmark
             article_ids=(row.article_id for row in rows),
         )
     }
-    counts = article_view_counts(article_ids=visible)
-    items = tuple(_bookmark_item(row, visible, counts) for row in rows)
+    view_counts = article_view_counts(article_ids=visible)
+    comment_counts = article_comment_counts(article_ids=visible)
+    items = tuple(
+        _bookmark_item(row, visible, view_counts, comment_counts) for row in rows
+    )
     return BookmarkPage(
         items=items,
         page_number=selected.number,
@@ -87,7 +91,7 @@ def bookmark_page(*, account_id, page: int = 1, page_size: int = 20) -> Bookmark
     )
 
 
-def _bookmark_item(row, visible, counts) -> BookmarkPageItem:
+def _bookmark_item(row, visible, view_counts, comment_counts) -> BookmarkPageItem:
     source = visible.get(row.article_id)
     created = to_shanghai(row.created_at)
     if source is None:
@@ -100,7 +104,8 @@ def _bookmark_item(row, visible, counts) -> BookmarkPageItem:
     else:
         article = article_index_item(
             source,
-            view_count=counts.get(row.article_id, 0),
+            view_count=view_counts.get(row.article_id, 0),
+            comment_count=comment_counts.get(row.article_id, 0),
         )
         unavailable = None
     return BookmarkPageItem(

@@ -38,13 +38,14 @@ apps/navigation/
 
 ## 站点与公开内容
 
-- SiteConfiguration：站名（默认 Kaj的小房间）、可空描述、版权、注册开关、正文限制、品牌资产。
+- SiteConfiguration：站名（默认 Kaj的小房间）、可空描述、版权、注册开关、正文限制、品牌资产和可空的验证码 HTML 模板。
 - Logo：默认 CSS/矢量纯色 K；管理员 PNG/ICO 覆盖并作为 favicon。
 - StaticPage：About、Privacy、Terms，支持 Markdown/富文本；空内容不显示入口/同意框。
 - FriendLink：名称、URL、描述、Logo、排序；管理员 CRUD。
 - TrustedEmbedSource：管理员增删，初始仅 Bilibili；删除后旧嵌入占位。
+- 验证码邮件模板：管理员上传不超过 48 KiB 的 UTF-8 HTML 或恢复代码内默认模板；只允许白名单标签、样式与 `site_name/code/minutes/purpose` 变量，必须包含 `code`，审计只记录摘要、是否自定义和版本。
 
-秘密、连接串和 `.env` 不进入任何网页设置或 audit payload。
+秘密、连接串、SMTP 密钥和 `.env` 不进入任何网页设置或 audit payload；模板正文、验证码和收件人也不进入审计。
 
 ## UI 与响应式
 

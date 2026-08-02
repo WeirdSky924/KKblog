@@ -3,13 +3,20 @@ import hmac
 import re
 import secrets
 from collections.abc import Callable
+from email.utils import formataddr
 from enum import StrEnum
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from redis import Redis
 
+from apps.accounts.email_templates import (
+    configured_verification_email,
+    render_verification_email_html,
+    verification_email_sender_name,
+    verification_email_subject,
+)
 from apps.accounts.models import SecurityEvent
 from apps.accounts.models.account import normalize_email
 from apps.accounts.services.restrictions import (
@@ -22,6 +29,12 @@ CODE_TTL_SECONDS = 600
 RESEND_SECONDS = 60
 MAX_FAILURES = 5
 _CODE = re.compile(r"[0-9]{6}\Z")
+_PURPOSE_LABELS = {
+    "registration": "注册账号",
+    "login": "登录账号",
+    "password_reset": "重置密码",
+    "new_email": "更换邮箱",
+}
 
 
 class VerificationPurpose(StrEnum):
@@ -206,17 +219,36 @@ def request_verification_code(
     try:
         store.issue(purpose=purpose, email=normalized, digest=digest, binding=binding)
         issued = True
+        configuration = configured_verification_email()
         message = render_to_string(
             "accounts/email/verification.txt",
-            {"code": code, "minutes": 10},
+            {
+                "site_name": configuration.site_name,
+                "code": code,
+                "minutes": 10,
+                "purpose": _PURPOSE_LABELS[purpose.value],
+            },
         )
-        send_mail(
-            subject="Kaj 的小房间验证码",
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[normalized],
-            fail_silently=False,
+        html_message = render_verification_email_html(
+            configuration.template_source,
+            site_name=configuration.site_name,
+            code=code,
+            minutes=10,
+            purpose=_PURPOSE_LABELS[purpose.value],
         )
+        email_message = EmailMultiAlternatives(
+            subject=verification_email_subject(configuration.site_name),
+            body=message,
+            from_email=formataddr(
+                (
+                    verification_email_sender_name(configuration.site_name),
+                    settings.DEFAULT_FROM_EMAIL,
+                )
+            ),
+            to=[normalized],
+        )
+        email_message.attach_alternative(html_message, "text/html")
+        email_message.send(fail_silently=False)
         SecurityEvent.objects.create(
             event_type="VERIFICATION_CODE_SENT",
             account_id=account_id,

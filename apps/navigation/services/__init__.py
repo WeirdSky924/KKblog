@@ -5,7 +5,12 @@ from .friend_links import (
     update_friend_link,
 )
 from .site_common import SiteContentCommandError
-from .site_settings import SiteConfigurationResult, update_site_configuration
+from .site_settings import (
+    SiteConfigurationResult,
+    VerificationEmailTemplateResult,
+    update_site_configuration,
+    update_verification_email_template,
+)
 from .static_pages import (
     StaticPageResult,
     TrustedSourceResult,
@@ -27,6 +32,7 @@ __all__ = [
     "NavigationCommandError",
     "SiteConfigurationResult",
     "SiteContentCommandError",
+    "VerificationEmailTemplateResult",
     "StaticPageResult",
     "TrustedSourceResult",
     "FriendLinkResult",
@@ -42,5 +48,6 @@ __all__ = [
     "set_trusted_embed_source",
     "update_friend_link",
     "update_site_configuration",
+    "update_verification_email_template",
     "update_static_page",
 ]

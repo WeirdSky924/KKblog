@@ -10,12 +10,14 @@ from ..forms.site_settings import (
     SiteConfigurationForm,
     StaticPageForm,
     TrustedSourceForm,
+    VerificationEmailTemplateForm,
 )
 
 
 @dataclass(frozen=True, slots=True)
 class SiteSettingsForms:
     configuration: SiteConfigurationForm
+    verification_email: VerificationEmailTemplateForm
     static_pages: dict[str, StaticPageForm]
     friend_new: FriendLinkForm
     friend_links: dict[str, FriendLinkForm]
@@ -29,6 +31,7 @@ def build_site_settings_forms(
     *,
     actor_id,
     data=None,
+    files=None,
     bound_action: str = "",
     bound_id: str = "",
 ) -> SiteSettingsForms:
@@ -51,6 +54,14 @@ def build_site_settings_forms(
             "article_body_max_bytes": settings.configuration.article_body_max_bytes,
             "logo_asset_id": settings.configuration.logo_asset_id or "",
             "backup_destination": settings.configuration.backup_destination,
+            "expected_version": settings.configuration.row_version,
+        },
+    )
+    verification_email = VerificationEmailTemplateForm(
+        data=bind("verification_email"),
+        files=files if bind("verification_email") is not None else None,
+        initial={
+            "mode": "upload",
             "expected_version": settings.configuration.row_version,
         },
     )
@@ -113,13 +124,14 @@ def build_site_settings_forms(
         },
     )
     return SiteSettingsForms(
-        configuration,
-        static_pages,
-        friend_new,
-        friend_links,
-        friend_delete,
-        trusted_sources,
-        guestbook,
+        configuration=configuration,
+        verification_email=verification_email,
+        static_pages=static_pages,
+        friend_new=friend_new,
+        friend_links=friend_links,
+        friend_delete=friend_delete,
+        trusted_sources=trusted_sources,
+        guestbook=guestbook,
     )
 
 

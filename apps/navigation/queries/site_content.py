@@ -9,7 +9,7 @@ from apps.accounts.public import is_administrator
 from ..media_gateway import NavigationMediaError, navigation_media_gateway
 from ..models import FriendLink, SiteConfiguration, StaticPage, TrustedEmbedSource
 
-PUBLIC_SITE_CONFIGURATION_CACHE_KEY = "kaj:navigation:site-configuration:v1"
+PUBLIC_SITE_CONFIGURATION_CACHE_KEY = "kaj:navigation:site-configuration:v2"
 PUBLIC_SITE_CONFIGURATION_CACHE_SECONDS = 300
 
 
@@ -25,6 +25,7 @@ class SiteConfigurationItem:
     registration_enabled: bool
     article_body_max_bytes: int
     logo_asset_id: str | None
+    verification_email_template: str
     backup_destination: str
     row_version: int
 
@@ -93,6 +94,7 @@ def _configuration_item(row: SiteConfiguration) -> SiteConfigurationItem:
         registration_enabled=row.registration_enabled,
         article_body_max_bytes=row.article_body_max_bytes,
         logo_asset_id=row.logo_asset_id,
+        verification_email_template=row.verification_email_template,
         backup_destination=row.backup_destination,
         row_version=row.row_version,
     )
@@ -107,6 +109,7 @@ def public_site_configuration() -> SiteConfigurationItem:
             "registration_enabled",
             "article_body_max_bytes",
             "logo_asset_id",
+            "verification_email_template",
             "backup_destination",
             "row_version",
         ).get(pk=1)
