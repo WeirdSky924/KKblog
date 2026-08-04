@@ -184,3 +184,18 @@ def article_case_list(
     return tuple(
         _list_item(row, deleted_identity=deleted.get(row.author_id)) for row in rows
     )
+
+
+def admin_article_appeal_review_count(
+    *,
+    actor_id,
+    account_policy: ModerationAccountPolicy | None = None,
+) -> int:
+    accounts = account_policy or default_moderation_account_policy()
+    actor = _actor(actor_id, account_policy=accounts)
+    if actor is None or not accounts.is_administrator(actor):
+        raise PermissionError("Article moderation case access denied")
+    return ArticleModerationCase.objects.filter(
+        state=ArticleModerationCase.State.APPEALED,
+        appeal__state=ArticleAppeal.State.PENDING,
+    ).count()

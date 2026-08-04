@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from django.urls import NoReverseMatch, reverse
@@ -22,6 +23,7 @@ class ResolvedAdminNavigationItem:
     label: str
     route_name: str
     url: str
+    review_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +77,10 @@ ADMIN_NAVIGATION = (
 )
 
 
-def resolved_admin_navigation() -> tuple[ResolvedAdminNavigationGroup, ...]:
+def resolved_admin_navigation(
+    *, review_counts: Mapping[str, int] | None = None
+) -> tuple[ResolvedAdminNavigationGroup, ...]:
+    counts = review_counts or {}
     groups = []
     for group in ADMIN_NAVIGATION:
         items = []
@@ -90,6 +95,7 @@ def resolved_admin_navigation() -> tuple[ResolvedAdminNavigationGroup, ...]:
                     label=item.label,
                     route_name=item.route_name,
                     url=url,
+                    review_count=max(0, int(counts.get(item.key, 0))),
                 )
             )
         if items:

@@ -1,11 +1,8 @@
-import re
-
 from django.conf import settings
 from django.core.mail import send_mail
 
 from apps.operations.services.alerts import OperationalEmailMessage
 
-_RESEND_KEY = re.compile(r"re_[A-Za-z0-9_-]{20,}\Z")
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 
@@ -35,32 +32,45 @@ def _validate_mailpit() -> None:
         or not 1_024 <= settings.EMAIL_PORT <= 65_535
     ):
         raise _configuration_error("EMAIL_PORT")
-    if settings.EMAIL_USE_TLS:
-        raise _configuration_error("EMAIL_USE_TLS")
+    if settings.EMAIL_USE_TLS or getattr(settings, "EMAIL_USE_SSL", False):
+        raise _configuration_error("EMAIL_TRANSPORT")
 
 
-def _validate_resend() -> None:
-    password = getattr(settings, "EMAIL_HOST_PASSWORD", "")
-    if not isinstance(password, str) or not _RESEND_KEY.fullmatch(password):
-        raise _configuration_error("EMAIL_HOST_PASSWORD")
+def _validate_smtp() -> None:
     if settings.ADMIN_EMAIL.casefold().endswith((".test", "@localhost")):
         raise _configuration_error("ADMIN_EMAIL")
     if settings.DEFAULT_FROM_EMAIL.casefold().endswith((".test", "@localhost")):
         raise _configuration_error("DEFAULT_FROM_EMAIL")
-    if settings.EMAIL_HOST != "smtp.resend.com":
+    if not isinstance(settings.EMAIL_HOST, str) or not settings.EMAIL_HOST.strip():
         raise _configuration_error("EMAIL_HOST")
-    if getattr(settings, "EMAIL_HOST_USER", "") != "resend":
-        raise _configuration_error("EMAIL_HOST_USER")
-    if settings.EMAIL_PORT != 587 or not settings.EMAIL_USE_TLS:
+    if (
+        not isinstance(settings.EMAIL_PORT, int)
+        or not 1 <= settings.EMAIL_PORT <= 65_535
+    ):
+        raise _configuration_error("EMAIL_PORT")
+    use_tls = getattr(settings, "EMAIL_USE_TLS", False)
+    use_ssl = getattr(settings, "EMAIL_USE_SSL", False)
+    if (
+        not isinstance(use_tls, bool)
+        or not isinstance(use_ssl, bool)
+        or use_tls
+        and use_ssl
+    ):
         raise _configuration_error("EMAIL_TRANSPORT")
+    username = getattr(settings, "EMAIL_HOST_USER", "")
+    password = getattr(settings, "EMAIL_HOST_PASSWORD", "")
+    if not isinstance(username, str) or not isinstance(password, str):
+        raise _configuration_error("EMAIL_AUTH")
+    if bool(username) != bool(password):
+        raise _configuration_error("EMAIL_AUTH")
 
 
 def send_configured_operational_email(message: OperationalEmailMessage) -> None:
     provider = getattr(settings, "OPERATIONAL_EMAIL_PROVIDER", "")
     if provider == "mailpit":
         _validate_mailpit()
-    elif provider == "resend":
-        _validate_resend()
+    elif provider == "smtp":
+        _validate_smtp()
     else:
         raise _configuration_error("OPERATIONAL_EMAIL_PROVIDER")
     if not isinstance(message, OperationalEmailMessage):

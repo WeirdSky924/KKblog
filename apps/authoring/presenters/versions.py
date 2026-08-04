@@ -22,6 +22,7 @@ _CHANGE_LABELS = {
     "title": "标题",
     "body": "正文或格式",
     "cover": "封面",
+    "attachment": "附件",
     "visibility": "可见范围",
     "section": "分区",
     "tags": "标签",
@@ -56,6 +57,7 @@ class VersionPreview:
     section_name: str
     tag_names: tuple[str, ...]
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     change_labels: tuple[str, ...]
     can_restore: bool
 
@@ -99,6 +101,7 @@ def version_preview(preview, *, can_restore: bool) -> VersionPreview:
         section_name=preview.source_section_name,
         tag_names=preview.source_tag_names,
         cover_asset_id=preview.source.cover_asset_id,
+        attachment_asset_id=preview.source.attachment_asset_id,
         change_labels=tuple(_CHANGE_LABELS[item] for item in preview.changed_fields),
         can_restore=can_restore and not error,
     )

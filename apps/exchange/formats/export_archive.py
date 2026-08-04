@@ -103,6 +103,7 @@ def _revision_metadata(revision, media_items) -> dict[str, object]:
         },
         "content_format": revision.content_format,
         "cover_asset_id": revision.cover_asset_id,
+        "attachment_asset_id": revision.attachment_asset_id,
         "created_at": revision.created_at,
         "created_by_id": revision.created_by_id,
         "custom_summary": revision.custom_summary,

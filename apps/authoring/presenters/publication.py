@@ -36,6 +36,7 @@ class PublicationReviewPage:
     section_name: str
     tag_names: tuple[str, ...]
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     comments_label: str
     first_publication: bool
 
@@ -67,6 +68,7 @@ def publication_review_page(*, article_id: str, review) -> PublicationReviewPage
         section_name=review.section_name,
         tag_names=review.tag_names,
         cover_asset_id=review.cover_asset_id,
+        attachment_asset_id=review.attachment_asset_id,
         comments_label=_comments_label(review),
         first_publication=review.first_publication,
     )

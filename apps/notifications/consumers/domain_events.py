@@ -16,6 +16,9 @@ from apps.notifications.services.recipients import (
 )
 
 CONSUMER_NAME = "notifications.domain-events.v1"
+_REPORT_REASONS = frozenset(
+    {"SPAM", "HARASSMENT", "ILLEGAL_DANGEROUS", "PRIVACY", "IRRELEVANT", "OTHER"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,17 +61,35 @@ def _date(value: object) -> str:
     return value
 
 
+def _report_context(payload: Mapping[str, object]) -> None:
+    reason = payload["reason"]
+    description = payload["description"]
+    _reject_unless(
+        isinstance(reason, str)
+        and reason in _REPORT_REASONS
+        and isinstance(description, str)
+        and len(description) <= 200
+        and "<" not in description
+        and ">" not in description
+        and "://" not in description
+        and all(
+            character.isprintable() or character in "\n\t" for character in description
+        )
+    )
+
+
 def _base(
     envelope: EventEnvelope,
     *,
     event_type: str,
     aggregate_type: str,
     fields: frozenset[str],
+    schema_version: int = 1,
 ) -> Mapping[str, object]:
     _reject_unless(
         isinstance(envelope, EventEnvelope)
         and envelope.event_type == event_type
-        and envelope.schema_version == 1
+        and envelope.schema_version == schema_version
         and envelope.aggregate_type == aggregate_type
         and set(envelope.payload) == fields
     )
@@ -226,6 +247,43 @@ def _report_reviewed(envelope: EventEnvelope) -> _Delivery:
     )
 
 
+def _report_reviewed_v2(envelope: EventEnvelope) -> _Delivery:
+    fields = frozenset(
+        {
+            "target_comment_id",
+            "reason",
+            "description",
+            "outcome",
+            "decision_reason",
+            "recipient_ids",
+        }
+    )
+    payload = _base(
+        envelope,
+        event_type="report.reviewed.v2",
+        aggregate_type="report",
+        fields=fields,
+        schema_version=2,
+    )
+    report_id = _ulid(envelope.aggregate_id)
+    target_comment_id = _ulid(payload["target_comment_id"])
+    _report_context(payload)
+    recipients = _recipients(payload["recipient_ids"])
+    _reject_unless(bool(recipients))
+    return _delivery(
+        envelope,
+        recipients=recipients,
+        payload={
+            "report_id": report_id,
+            "target_comment_id": target_comment_id,
+            "reason": payload["reason"],
+            "description": payload["description"],
+            "outcome": payload["outcome"],
+            "decision_reason": payload["decision_reason"],
+        },
+    )
+
+
 def _report_finalized(envelope: EventEnvelope) -> _Delivery:
     fields = frozenset(
         {
@@ -250,6 +308,47 @@ def _report_finalized(envelope: EventEnvelope) -> _Delivery:
         envelope,
         recipients=recipients,
         payload={
+            "outcome": payload["outcome"],
+            "decision_reason": payload["decision_reason"],
+            "recovery_status": payload["recovery_status"],
+        },
+    )
+
+
+def _report_finalized_v2(envelope: EventEnvelope) -> _Delivery:
+    fields = frozenset(
+        {
+            "target_comment_id",
+            "reason",
+            "description",
+            "outcome",
+            "basis_outcome",
+            "decision_reason",
+            "recipient_ids",
+            "recovery_status",
+        }
+    )
+    payload = _base(
+        envelope,
+        event_type="report.finalized.v2",
+        aggregate_type="report",
+        fields=fields,
+        schema_version=2,
+    )
+    report_id = _ulid(envelope.aggregate_id)
+    target_comment_id = _ulid(payload["target_comment_id"])
+    _report_context(payload)
+    recipients = _recipients(payload["recipient_ids"])
+    _reject_unless(bool(recipients))
+    return _delivery(
+        envelope,
+        recipients=recipients,
+        payload={
+            "report_id": report_id,
+            "target_comment_id": target_comment_id,
+            "reason": payload["reason"],
+            "description": payload["description"],
+            "basis_outcome": payload["basis_outcome"],
             "outcome": payload["outcome"],
             "decision_reason": payload["decision_reason"],
             "recovery_status": payload["recovery_status"],
@@ -377,7 +476,9 @@ _BUILDERS: dict[str, Callable[[EventEnvelope], _Delivery | None]] = {
     "comment.deep_thread.v1": _comment_deep_thread,
     "comment.deleted.v1": _comment_deleted,
     "report.reviewed.v1": _report_reviewed,
+    "report.reviewed.v2": _report_reviewed_v2,
     "report.finalized.v1": _report_finalized,
+    "report.finalized.v2": _report_finalized_v2,
     "report.closed.v1": _report_closed,
     "article.moderated.v1": _article_event,
     "article.moderation_restored.v1": _article_event,

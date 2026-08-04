@@ -186,6 +186,11 @@ class ArticleEditorForm(forms.Form):
         max_length=26,
         widget=forms.HiddenInput,
     )
+    attachment_asset_id = forms.CharField(
+        required=False,
+        max_length=26,
+        widget=forms.HiddenInput,
+    )
     comments_enabled = forms.BooleanField(label="开启评论", required=False)
     comments_view_login = forms.BooleanField(label="登录后查看评论", required=False)
     comments_post_login = forms.BooleanField(label="登录后发表评论", required=False)
@@ -244,6 +249,15 @@ class ArticleEditorForm(forms.Form):
         except (TypeError, ValueError):
             raise forms.ValidationError("封面引用无效，请重新上传。") from None
 
+    def clean_attachment_asset_id(self) -> str | None:
+        value = self.cleaned_data["attachment_asset_id"]
+        if not value:
+            return None
+        try:
+            return normalize_ulid(value)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("附件引用无效，请重新上传。") from None
+
     def clean_tag_ids(self) -> tuple[str, ...]:
         values = tuple(self.cleaned_data["tag_ids"])
         if len(values) > 10:
@@ -298,6 +312,7 @@ class ArticleEditorForm(forms.Form):
             section_id=self.cleaned_data["section_id"] or None,
             tag_ids=tuple(self.cleaned_data["tag_ids"]),
             cover_asset_id=self.cleaned_data["cover_asset_id"],
+            attachment_asset_id=self.cleaned_data["attachment_asset_id"],
             body_asset_ids=media_ids,
             comments_enabled=self.cleaned_data["comments_enabled"],
             comments_view_login=self.cleaned_data["comments_view_login"],

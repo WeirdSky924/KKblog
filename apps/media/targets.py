@@ -86,6 +86,7 @@ _PURPOSE_TARGETS: Mapping[MediaPurpose, frozenset[MediaTargetType]] = {
     MediaPurpose.AVATAR: frozenset({MediaTargetType.ACCOUNT_PROFILE}),
     MediaPurpose.COVER: frozenset({MediaTargetType.ARTICLE_REVISION}),
     MediaPurpose.BODY: frozenset({MediaTargetType.ARTICLE_REVISION}),
+    MediaPurpose.ATTACHMENT: frozenset({MediaTargetType.ARTICLE_REVISION}),
     MediaPurpose.COMMENT: frozenset({MediaTargetType.COMMENT}),
     MediaPurpose.EVIDENCE: frozenset(
         {

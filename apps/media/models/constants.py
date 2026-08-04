@@ -10,6 +10,7 @@ class MediaPurpose(models.TextChoices):
     LOGO = "LOGO", "站点标志"
     FRIEND_LOGO = "FRIEND_LOGO", "友情链接标志"
     IMPORT = "IMPORT", "导入源图片"
+    ATTACHMENT = "ATTACHMENT", "文章附件"
 
 
 class DetectedFormat(models.TextChoices):
@@ -18,6 +19,11 @@ class DetectedFormat(models.TextChoices):
     GIF = "image/gif", "GIF"
     WEBP = "image/webp", "WebP"
     ICO = "image/x-icon", "ICO"
+    ZIP = "application/zip", "ZIP"
+    SEVEN_Z = "application/x-7z-compressed", "7z"
+    RAR = "application/vnd.rar", "RAR"
+    MARKDOWN = "text/markdown", "Markdown"
+    TEXT = "text/plain", "纯文本"
 
 
 class MediaState(models.TextChoices):

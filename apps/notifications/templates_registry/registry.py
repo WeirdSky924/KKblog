@@ -97,5 +97,5 @@ def render_notification(
         raise NotificationRejected("Notification rendering failed") from None
     return RenderedNotification(
         title=_plain_text(title, limit=100),
-        message=_plain_text(message, limit=500),
+        message=_plain_text(message, limit=1000),
     )

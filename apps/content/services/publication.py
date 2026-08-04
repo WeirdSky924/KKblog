@@ -55,6 +55,7 @@ class PublicationReview:
     section_name: str
     tag_names: tuple[str, ...]
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     comments_enabled: bool
     comments_view_login: bool
     comments_post_login: bool
@@ -291,6 +292,7 @@ def prepare_publication(
             for row in revision.tag_snapshots.select_related("tag").order_by("tag_id")
         ),
         cover_asset_id=revision.cover_asset_id,
+        attachment_asset_id=revision.attachment_asset_id,
         comments_enabled=revision.comments_enabled,
         comments_view_login=revision.comments_view_login,
         comments_post_login=revision.comments_post_login,

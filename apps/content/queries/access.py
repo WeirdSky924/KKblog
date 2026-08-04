@@ -62,6 +62,7 @@ class ArticleView:
     publication_state: str
     deleted_at: datetime | None
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     published_at: datetime | None
     scheduled_for: datetime | None
     published_revision_id: str | None
@@ -74,6 +75,7 @@ class ArticleView:
     has_unpublished_changes: bool
     rendered_body_html: str | None = None
     readable_cover_asset_id: str | None = None
+    readable_attachment_asset_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +98,7 @@ class PublicArticleCacheSnapshot:
     visibility: str
     published_at: datetime
     readable_cover_asset_id: str | None
+    readable_attachment_asset_id: str | None
     sanitizer_version: str
 
 
@@ -150,6 +153,7 @@ def _view(
         publication_state=article.publication_state,
         deleted_at=article.deleted_at,
         cover_asset_id=revision.cover_asset_id,
+        attachment_asset_id=revision.attachment_asset_id,
         published_at=article.published_at,
         scheduled_for=article.scheduled_for,
         published_revision_id=article.published_revision_id,
@@ -206,11 +210,14 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     article, revision = _reader_article(identity)
     _require_reader_access(article, revision, actor)
     owner = actor == article.author_id and is_active_author(actor)
-    rendered_body_html, readable_cover_asset_id = _reader_media(revision)
+    rendered_body_html, readable_cover_asset_id, readable_attachment_asset_id = (
+        _reader_media(revision)
+    )
     return replace(
         _view(article, revision, can_edit=owner, admin_read_only=False),
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,
+        readable_attachment_asset_id=readable_attachment_asset_id,
     )
 
 
@@ -235,7 +242,9 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
     article, revision = _reader_article(identity)
     if revision.visibility != ArticleRevision.Visibility.PUBLIC:
         raise ArticleNotFound
-    _, readable_cover_asset_id = _reader_media_bindings(revision)
+    _, readable_cover_asset_id, readable_attachment_asset_id = _reader_media_bindings(
+        revision
+    )
     if article.published_at is None:
         raise ArticleNotFound
     return PublicArticleCacheSnapshot(
@@ -246,6 +255,7 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
         visibility=revision.visibility,
         published_at=article.published_at,
         readable_cover_asset_id=readable_cover_asset_id,
+        readable_attachment_asset_id=readable_attachment_asset_id,
         sanitizer_version=content_rendering_version(),
     )
 
@@ -264,7 +274,7 @@ def render_public_article_body(
         or revision.id != expected_revision
     ):
         raise ArticleNotFound
-    rendered_body_html, _ = _reader_media(revision)
+    rendered_body_html, _, _ = _reader_media(revision)
     return PublicArticleRender(
         article_id=article.id,
         revision_id=revision.id,
@@ -275,7 +285,7 @@ def render_public_article_body(
 
 def _reader_media_bindings(
     revision: ArticleRevision,
-) -> tuple[set[str], str | None]:
+) -> tuple[set[str], str | None, str | None]:
     bindings = target_binding_snapshot(
         target_type=MediaTargetType.ARTICLE_REVISION,
         target_id=revision.id,
@@ -293,11 +303,23 @@ def _reader_media_bindings(
     readable_cover_asset_id = (
         revision.cover_asset_id if revision.cover_asset_id in active_cover_ids else None
     )
-    return active_body_ids, readable_cover_asset_id
+    active_attachment_ids = {
+        item.asset_id
+        for item in bindings
+        if item.purpose == MediaPurpose.ATTACHMENT and item.state == "ACTIVE"
+    }
+    readable_attachment_asset_id = (
+        revision.attachment_asset_id
+        if revision.attachment_asset_id in active_attachment_ids
+        else None
+    )
+    return active_body_ids, readable_cover_asset_id, readable_attachment_asset_id
 
 
-def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
-    active_body_ids, readable_cover_asset_id = _reader_media_bindings(revision)
+def _reader_media(revision: ArticleRevision) -> tuple[str, str | None, str | None]:
+    active_body_ids, readable_cover_asset_id, readable_attachment_asset_id = (
+        _reader_media_bindings(revision)
+    )
     if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
         rendered = render_markdown(
             revision.body_markdown or "",
@@ -310,7 +332,7 @@ def _reader_media(revision: ArticleRevision) -> tuple[str, str | None]:
             embed_policy=configured_content_embed_policy(),
             allowed_media_ids=active_body_ids,
         )
-    return rendered.html, readable_cover_asset_id
+    return rendered.html, readable_cover_asset_id, readable_attachment_asset_id
 
 
 def article_for_author(
@@ -390,7 +412,9 @@ def article_for_admin(
                     },
                     clock=active_clock,
                 )
-    rendered_body_html, readable_cover_asset_id = _reader_media(selected)
+    rendered_body_html, readable_cover_asset_id, readable_attachment_asset_id = (
+        _reader_media(selected)
+    )
     return replace(
         _view(
             article,
@@ -400,4 +424,5 @@ def article_for_admin(
         ),
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,
+        readable_attachment_asset_id=readable_attachment_asset_id,
     )

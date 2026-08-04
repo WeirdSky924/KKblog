@@ -43,15 +43,16 @@ OUTBOX_TRANSPORT = "config.outbox_transport.build_application_event_transport"
 
 ADMIN_EMAIL = _environment.admin_email
 ADMINS = [("Kaj admin", ADMIN_EMAIL)]
-DEFAULT_FROM_EMAIL = _environment.resend_from_email
+DEFAULT_FROM_EMAIL = _environment.smtp.from_email
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.resend.com"
-EMAIL_PORT = 587
-EMAIL_HOST_USER = "resend"
-EMAIL_HOST_PASSWORD = _environment.resend_api_key
-EMAIL_USE_TLS = True
-OPERATIONAL_EMAIL_PROVIDER = "resend"
+EMAIL_HOST = _environment.smtp.host
+EMAIL_PORT = _environment.smtp.port
+EMAIL_HOST_USER = _environment.smtp.username
+EMAIL_HOST_PASSWORD = _environment.smtp.password
+EMAIL_USE_TLS = _environment.smtp.use_tls
+EMAIL_USE_SSL = _environment.smtp.use_ssl
+OPERATIONAL_EMAIL_PROVIDER = "smtp"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True

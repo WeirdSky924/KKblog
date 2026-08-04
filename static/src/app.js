@@ -3,6 +3,7 @@ import "htmx.org";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Bell,
   Bold,
   Bookmark,
@@ -17,7 +18,9 @@ import {
   Download,
   Eye,
   ExternalLink,
+  FileArchive,
   FilePlus2,
+  FileUp,
   Flag,
   GitCompareArrows,
   GripVertical,
@@ -39,6 +42,7 @@ import {
   Move,
   Moon,
   NotebookPen,
+  Paperclip,
   PencilLine,
   Quote,
   Redo2,
@@ -83,6 +87,7 @@ import {
 import { initializeAdministrationSettings } from "./administration-settings.js";
 import { initializeAdministrationOperations } from "./administration-operations.js";
 import { initializeHomeNavigation } from "./home-navigation.js";
+import { initializeArticleActions } from "./article-actions.js";
 import {
   initializeBoostedPageShell,
   initializeNotificationCenters,
@@ -97,6 +102,7 @@ import {
 const availableIcons = {
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Bell,
   Bold,
   Bookmark,
@@ -111,7 +117,9 @@ const availableIcons = {
   Download,
   Eye,
   ExternalLink,
+  FileArchive,
   FilePlus2,
+  FileUp,
   Flag,
   GitCompareArrows,
   GripVertical,
@@ -133,6 +141,7 @@ const availableIcons = {
   Move,
   Moon,
   NotebookPen,
+  Paperclip,
   PencilLine,
   Quote,
   Redo2,
@@ -212,49 +221,6 @@ function initializeIcons(root = document) {
       width: "24",
       height: "24",
     },
-  });
-}
-
-function initializeCopyLinks(root = document) {
-  root.querySelectorAll?.("[data-copy-link]").forEach((button) => {
-    if (
-      !(button instanceof HTMLButtonElement) ||
-      button.dataset.copyBound === "true"
-    ) {
-      return;
-    }
-    button.dataset.copyBound = "true";
-    button.addEventListener("click", async () => {
-      const url = button.dataset.copyUrl;
-      const label = button.querySelector("[data-copy-label]");
-      const status = button.parentElement?.querySelector("[data-copy-status]");
-      if (!url || !(label instanceof HTMLElement)) {
-        return;
-      }
-      button.disabled = true;
-      try {
-        if (!navigator.clipboard) {
-          throw new Error("clipboard unavailable");
-        }
-        await navigator.clipboard.writeText(url);
-        label.textContent = "已复制";
-        if (status instanceof HTMLElement) {
-          status.textContent = "文章链接已复制。";
-        }
-        window.setTimeout(() => {
-          label.textContent = "复制链接";
-          if (status instanceof HTMLElement) {
-            status.textContent = "";
-          }
-        }, 2000);
-      } catch {
-        if (status instanceof HTMLElement) {
-          status.textContent = "未能复制，请使用地址栏链接。";
-        }
-      } finally {
-        button.disabled = false;
-      }
-    });
   });
 }
 
@@ -532,6 +498,8 @@ function initializeMediaPickers(root = document) {
     const choose = picker.querySelector("[data-media-choose]");
     const value = picker.querySelector("[data-media-value]");
     const preview = picker.querySelector("[data-media-preview]");
+    const fileName = picker.querySelector("[data-media-file-name]");
+    const fileSize = picker.querySelector("[data-media-file-size]");
     const empty = picker.querySelector("[data-media-empty]");
     const dropzone = picker.querySelector("[data-media-dropzone]");
     const result = picker.querySelector("[data-media-result]");
@@ -543,7 +511,7 @@ function initializeMediaPickers(root = document) {
     if (
       !(input instanceof HTMLInputElement) ||
       !(value instanceof HTMLInputElement) ||
-      !(preview instanceof HTMLImageElement) ||
+      !(preview instanceof HTMLElement) ||
       !(result instanceof HTMLElement) ||
       !(progress instanceof HTMLProgressElement)
     ) {
@@ -552,7 +520,25 @@ function initializeMediaPickers(root = document) {
 
     let selectedFile = null;
     let previewUrl = null;
+    const isAttachment = picker.dataset.mediaKind === "attachment";
+    const mediaLabel = isAttachment ? "附件" : "图片";
+    const pickerLabel =
+      picker.querySelector(".media-picker__header h3")?.textContent?.trim() ||
+      mediaLabel;
     const favicon = document.querySelector("[data-site-favicon]");
+
+    const announceUpload = (message, level = "success") => {
+      document.dispatchEvent(
+        new CustomEvent("kaj:feedback", {
+          detail: {
+            key: `media-upload-${picker.dataset.mediaPicker || "asset"}`,
+            level,
+            message,
+            timeout: level === "error" ? 6500 : 4500,
+          },
+        }),
+      );
+    };
 
     const clearPreviewUrl = () => {
       if (previewUrl) {
@@ -563,6 +549,17 @@ function initializeMediaPickers(root = document) {
 
     const showSelectedPreview = (file) => {
       clearPreviewUrl();
+      if (isAttachment) {
+        preview.hidden = false;
+        if (fileName instanceof HTMLElement) fileName.textContent = file.name;
+        if (fileSize instanceof HTMLElement) {
+          fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MiB`;
+          fileSize.hidden = false;
+        }
+        if (empty instanceof HTMLElement) empty.hidden = true;
+        return;
+      }
+      if (!(preview instanceof HTMLImageElement)) return;
       previewUrl = URL.createObjectURL(file);
       preview.hidden = true;
       preview.alt = "";
@@ -599,17 +596,10 @@ function initializeMediaPickers(root = document) {
     };
 
     const showClientError = (message) => {
-      const item = document.createElement("div");
-      item.className = "media-upload-result";
-      item.dataset.mediaUploadResult = "error";
-      item.setAttribute("role", "alert");
-      const text = document.createElement("p");
-      text.className = "field-error";
-      text.textContent = message;
-      item.append(text);
-      result.replaceChildren(item);
+      result.replaceChildren();
       retry?.removeAttribute("hidden");
       setMediaPickerState(picker, "error");
+      announceUpload(message, "error");
     };
 
     const upload = () => {
@@ -637,9 +627,7 @@ function initializeMediaPickers(root = document) {
       request.addEventListener("load", () => {
         setControlsBusy(false);
         const responseNode = uploadResultNode(request.responseText);
-        if (responseNode) {
-          result.replaceChildren(responseNode);
-        }
+        result.replaceChildren();
         if (request.status === 201 && responseNode?.dataset.assetId) {
           value.value = responseNode.dataset.assetId;
           value.dispatchEvent(new Event("input", { bubbles: true }));
@@ -665,17 +653,19 @@ function initializeMediaPickers(root = document) {
           ) {
             favicon.href = previewUrl;
           }
+          announceUpload(`${pickerLabel}上传成功，可以继续保存。`);
           return;
         }
-        retry?.removeAttribute("hidden");
-        setMediaPickerState(picker, "error");
-        if (!responseNode) {
-          showClientError("图片上传未完成，请重试。");
-        }
+        const serverMessage = responseNode
+          ?.querySelector(".field-error")
+          ?.textContent?.trim();
+        showClientError(
+          serverMessage || `${pickerLabel}上传未完成，请重试。`,
+        );
       });
       request.addEventListener("error", () => {
         setControlsBusy(false);
-        showClientError("暂时无法上传图片，请重试。");
+        showClientError(`暂时无法上传${mediaLabel}，请重试。`);
       });
       request.send(body);
     };
@@ -703,9 +693,16 @@ function initializeMediaPickers(root = document) {
       retry?.setAttribute("hidden", "");
       remove.setAttribute("hidden", "");
       clearPreviewUrl();
-      preview.removeAttribute("src");
-      preview.alt = "";
+      if (preview instanceof HTMLImageElement) {
+        preview.removeAttribute("src");
+        preview.alt = "";
+      }
       preview.hidden = true;
+      if (fileName instanceof HTMLElement) fileName.textContent = "";
+      if (fileSize instanceof HTMLElement) {
+        fileSize.textContent = "";
+        fileSize.hidden = true;
+      }
       if (empty instanceof HTMLElement) {
         empty.hidden = false;
       }
@@ -739,7 +736,7 @@ function initializeMediaPickers(root = document) {
     picker.closest("form")?.addEventListener("submit", (event) => {
       if (picker.dataset.mediaState === "uploading") {
         event.preventDefault();
-        showClientError("请等待图片校验完成后再保存。");
+        showClientError(`请等待${mediaLabel}校验完成后再保存。`);
         retry?.setAttribute("hidden", "");
         setMediaPickerState(picker, "uploading");
       }
@@ -772,19 +769,41 @@ function applyTheme(value, { persist = true } = {}) {
   return true;
 }
 
-function announceShellError(message) {
+const feedbackLevels = new Set(["error", "info", "success", "warning"]);
+const feedbackIcons = {
+  error: "circle-x",
+  info: "info",
+  success: "circle-check",
+  warning: "triangle-alert",
+};
+
+function announceShellFeedback(message, options = {}) {
   const region = document.getElementById("global-feedback");
-  if (!(region instanceof HTMLElement)) {
+  if (!(region instanceof HTMLElement) || typeof message !== "string" || !message) {
     return;
   }
+  const level = feedbackLevels.has(options.level) ? options.level : "info";
+  const key = typeof options.key === "string" ? options.key : "";
+  const timeout = Number.isFinite(options.timeout)
+    ? Math.min(Math.max(options.timeout, 0), 10_000)
+    : 0;
+  if (key) {
+    Array.from(region.querySelectorAll("[data-feedback-item]")).find(
+      (candidate) => candidate.dataset.feedbackKey === key,
+    )?.remove();
+  }
   const item = document.createElement("div");
-  item.className = "feedback-item feedback-item--error";
+  item.className = `feedback-item feedback-item--${level}`;
   item.dataset.feedbackItem = "";
-  item.setAttribute("role", "alert");
+  item.dataset.feedbackKey = key;
+  item.setAttribute("role", level === "error" ? "alert" : "status");
+  if (timeout > 0) {
+    item.classList.add("feedback-item--transient");
+  }
   const icon = document.createElement("span");
   icon.className = "feedback-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = '<i data-lucide="circle-x"></i>';
+  icon.innerHTML = `<i data-lucide="${feedbackIcons[level]}"></i>`;
   const text = document.createElement("p");
   text.textContent = message;
   const close = document.createElement("button");
@@ -797,6 +816,23 @@ function announceShellError(message) {
   item.append(icon, text, close);
   region.append(item);
   initializeIcons(item);
+  if (timeout > 0) {
+    const dismiss = () => {
+      if (!item.isConnected) {
+        return;
+      }
+      if (item.matches(":hover") || item.contains(document.activeElement)) {
+        window.setTimeout(dismiss, 1000);
+        return;
+      }
+      item.remove();
+    };
+    window.setTimeout(dismiss, timeout);
+  }
+}
+
+function announceShellError(message) {
+  announceShellFeedback(message, { level: "error" });
 }
 
 async function syncAccountTheme(form, submitter) {
@@ -953,7 +989,15 @@ document.addEventListener("kaj:theme-request", (event) => {
   applyTheme(event.detail?.theme);
 });
 
+document.addEventListener("kaj:feedback", (event) => {
+  announceShellFeedback(event.detail?.message, event.detail);
+});
+
 document.addEventListener("kaj:editor-preview", (event) => {
+  initializeIcons(event.detail?.root ?? document);
+});
+
+document.addEventListener("kaj:media-library", (event) => {
   initializeIcons(event.detail?.root ?? document);
 });
 
@@ -1031,7 +1075,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeNotificationCenters(root);
   initializeNotificationDialogs();
   initializeConfirmDialogs(root);
-  initializeCopyLinks(root);
+  initializeArticleActions(root);
   initializeCharacterCounts(root);
   initializePublicationForms(root);
   initializeArticleDraftClears(root);
@@ -1057,6 +1101,7 @@ document.addEventListener("htmx:load", (event) => {
   initializeNodeForms(root);
   initializeNavigationTrees(root);
   initializeHomeNavigation(root);
+  initializeArticleActions(root);
   initializeAdministrationOperations(root);
   initializeLiveSubmitForms(root);
 });
@@ -1129,7 +1174,7 @@ initializePersonalMenus();
 initializeNotificationCenters();
 initializeNotificationDialogs();
 initializeConfirmDialogs();
-initializeCopyLinks();
+initializeArticleActions();
 initializeCharacterCounts();
 initializePublicationForms();
 initializeArticleDraftClears();

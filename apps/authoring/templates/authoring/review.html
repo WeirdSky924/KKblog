@@ -58,6 +58,12 @@
           {% else %}
             <figure class="author-review-cover"><img src="{% static 'media/brand/default-cover.png' %}" alt=""></figure>
           {% endif %}
+          {% if review.attachment_asset_id %}
+            <p class="author-review-attachment">
+              <i data-lucide="paperclip" aria-hidden="true"></i>
+              <span>此版本包含一个文章附件，将随文章一同发布。</span>
+            </p>
+          {% endif %}
           <section class="author-review-body" aria-label="终稿正文">{{ review.sanitized_html|safe }}</section>
         </article>
 

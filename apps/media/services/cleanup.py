@@ -9,7 +9,13 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
-from apps.media.models import MediaAsset, MediaBinding, MediaState, MediaTargetType
+from apps.media.models import (
+    MediaAsset,
+    MediaBinding,
+    MediaPurpose,
+    MediaState,
+    MediaTargetType,
+)
 from apps.media.storage import (
     FilesystemMediaStorage,
     MediaStorage,
@@ -33,6 +39,13 @@ class MediaCleanupRetryable(RuntimeError):
 
     def __init__(self) -> None:
         super().__init__(self.error_code)
+
+
+class OwnedMediaDeleteError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        self.safe_message = message
+        super().__init__(message)
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +116,55 @@ def schedule_pending_cleanup(
                 )
 
     transaction.on_commit(cleanup_after_commit)
+
+
+def delete_owned_unbound_asset(
+    *,
+    owner_id: UUID,
+    asset_id: str,
+    purpose: MediaPurpose | str,
+    storage: MediaStorage | None = None,
+) -> MediaCleanupResult:
+    if not isinstance(owner_id, UUID):
+        raise OwnedMediaDeleteError(
+            "media.asset_not_found.v1", "图片不存在或不可删除。"
+        )
+    try:
+        normalized_id = _asset_id(asset_id)
+    except ValueError:
+        raise OwnedMediaDeleteError(
+            "media.asset_not_found.v1", "图片不存在或不可删除。"
+        ) from None
+    try:
+        normalized_purpose = MediaPurpose(purpose)
+    except (TypeError, ValueError):
+        raise OwnedMediaDeleteError(
+            "media.asset_not_found.v1", "图片不存在或不可删除。"
+        ) from None
+    outer_transaction = transaction.get_connection().in_atomic_block
+    with transaction.atomic():
+        asset = MediaAsset.objects.select_for_update().filter(pk=normalized_id).first()
+        if (
+            asset is None
+            or asset.owner_id != owner_id
+            or asset.purpose != normalized_purpose
+            or asset.state != MediaState.ACTIVE
+        ):
+            raise OwnedMediaDeleteError(
+                "media.asset_not_found.v1", "图片不存在或不可删除。"
+            )
+        if asset.bindings.exists():
+            raise OwnedMediaDeleteError(
+                "media.asset_in_use.v1",
+                "图片已被文章版本使用，不能删除。",
+            )
+        asset.state = MediaState.DELETE_PENDING
+        asset.save(update_fields=("state",))
+        if outer_transaction:
+            schedule_pending_cleanup((normalized_id,), storage=storage)
+    if outer_transaction:
+        return MediaCleanupResult(normalized_id, CleanupOutcome.SCHEDULED)
+    return delete_pending_asset(asset_id=normalized_id, storage=storage)
 
 
 def release_owner_assets(

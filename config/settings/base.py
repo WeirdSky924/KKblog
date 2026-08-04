@@ -56,7 +56,7 @@ TEMPLATES = [
 ]
 
 LANGUAGE_CODE = "zh-hans"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True
 
@@ -64,6 +64,7 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [("dist", BASE_DIR / "static" / "dist")]
 STATIC_ROOT = BASE_DIR / "var" / "staticfiles"
 MEDIA_ROOT = BASE_DIR / "var" / "media"
+DIRECT_MEDIA_DELIVERY_ENABLED = False
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_TIMEOUT = 10

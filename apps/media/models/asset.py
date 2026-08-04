@@ -8,6 +8,7 @@ from apps.core.ids import is_ulid, new_ulid
 from .constants import DetectedFormat, MediaPurpose, MediaState
 
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 
 
 def validate_storage_key(value: str) -> None:
@@ -39,8 +40,8 @@ class MediaAsset(models.Model):
     detected_mime = models.CharField(max_length=32, choices=DetectedFormat.choices)
     size_bytes = models.PositiveIntegerField(editable=False)
     sha256 = models.CharField(max_length=64, editable=False)
-    width = models.PositiveIntegerField(editable=False)
-    height = models.PositiveIntegerField(editable=False)
+    width = models.PositiveIntegerField(editable=False, null=True, blank=True)
+    height = models.PositiveIntegerField(editable=False, null=True, blank=True)
     state = models.CharField(
         max_length=16,
         choices=MediaState.choices,
@@ -54,11 +55,33 @@ class MediaAsset(models.Model):
         db_table = "media_asset"
         constraints = [
             models.CheckConstraint(
-                condition=Q(size_bytes__gte=1, size_bytes__lte=MAX_IMAGE_BYTES),
+                condition=(
+                    Q(
+                        purpose=MediaPurpose.ATTACHMENT,
+                        size_bytes__gte=1,
+                        size_bytes__lte=MAX_ATTACHMENT_BYTES,
+                    )
+                    | Q(
+                        ~Q(purpose=MediaPurpose.ATTACHMENT),
+                        size_bytes__gte=1,
+                        size_bytes__lte=MAX_IMAGE_BYTES,
+                    )
+                ),
                 name="media_asset_size_range",
             ),
             models.CheckConstraint(
-                condition=Q(width__gte=1, height__gte=1),
+                condition=(
+                    Q(
+                        purpose=MediaPurpose.ATTACHMENT,
+                        width__isnull=True,
+                        height__isnull=True,
+                    )
+                    | Q(
+                        ~Q(purpose=MediaPurpose.ATTACHMENT),
+                        width__gte=1,
+                        height__gte=1,
+                    )
+                ),
                 name="media_asset_dimensions_positive",
             ),
             models.CheckConstraint(
@@ -105,6 +128,13 @@ class MediaAsset(models.Model):
             raise ValidationError({"deleted_at": "已删除媒体必须记录删除时间"})
         if self.state != MediaState.DELETED and self.deleted_at is not None:
             raise ValidationError({"deleted_at": "未删除媒体不能记录删除时间"})
+        if self.purpose == MediaPurpose.ATTACHMENT:
+            if self.width is not None or self.height is not None:
+                raise ValidationError("附件不能包含图片尺寸")
+            if self.size_bytes > MAX_ATTACHMENT_BYTES:
+                raise ValidationError("附件不能超过 10 MiB")
+        elif self.width is None or self.height is None:
+            raise ValidationError("图片必须记录尺寸")
 
     def mark_deleted(self) -> None:
         self.state = MediaState.DELETED

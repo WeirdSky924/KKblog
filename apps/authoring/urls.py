@@ -23,6 +23,10 @@ from apps.authoring.presentation.import_views import (
     import_workspace,
     update_import_item,
 )
+from apps.authoring.presentation.media_views import (
+    body_media_library,
+    delete_body_media,
+)
 from apps.authoring.presentation.publication_views import (
     cancel_article_schedule,
     publication_result,
@@ -37,6 +41,16 @@ urlpatterns = [
     path("articles/", articles, name="articles"),
     path("articles/new/", create, name="create"),
     path("articles/preview/", preview, name="preview"),
+    path(
+        "articles/media/<str:upload_scope>/library/",
+        body_media_library,
+        name="body-media-library",
+    ),
+    path(
+        "articles/media/<str:upload_scope>/<str:asset_id>/delete/",
+        delete_body_media,
+        name="body-media-delete",
+    ),
     path("comments/buffer/", comments_buffer, name="comments-buffer"),
     path("comments/articles/", comments_articles, name="comments-article"),
     path(

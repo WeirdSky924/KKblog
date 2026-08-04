@@ -11,7 +11,7 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock, require_aware
 from apps.operations.public import record_audit_entry
 
-from ..events import REPORT_REVIEWED
+from ..events import REPORT_REVIEWED_V2, report_notification_description
 from ..models import Report, ReportRecoverySnapshot
 from ..ports import ModerationAccountPolicy, default_moderation_account_policy
 
@@ -240,13 +240,15 @@ def review_report(
             summary="Administrator reviewed report",
         )
         enqueue_event(
-            REPORT_REVIEWED,
+            REPORT_REVIEWED_V2,
             aggregate_type="report",
             aggregate_id=report.id,
             actor_id=actor,
             trace_code=trace_code,
             payload={
                 "target_comment_id": report.target_comment_id,
+                "reason": report.reason,
+                "description": report_notification_description(report.description),
                 "outcome": normalized_outcome.value,
                 "decision_reason": normalized_reason,
                 "recipient_ids": [str(value) for value in recipients],

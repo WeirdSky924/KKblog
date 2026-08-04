@@ -278,6 +278,11 @@ def admin_tag_page(
     return tuple(_tag_item(tag) for tag in rows)
 
 
+def admin_pending_tag_review_count(*, actor_id) -> int:
+    _require_classification_administrator(actor_id)
+    return Tag.objects.filter(state=Tag.State.PENDING).count()
+
+
 def admin_tag_item(*, actor_id, tag_id) -> AdminTagItem:
     _require_classification_administrator(actor_id)
     identity = _classification_id(tag_id, object_name="tag")
@@ -394,6 +399,7 @@ __all__ = [
     "admin_article_titles",
     "admin_section_item",
     "admin_section_page",
+    "admin_pending_tag_review_count",
     "admin_tag_detail",
     "admin_tag_item",
     "admin_tag_page",

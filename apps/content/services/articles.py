@@ -8,7 +8,7 @@ from uuid import UUID
 from django.conf import settings
 from django.db import transaction
 
-from apps.accounts.public import is_active_author
+from apps.accounts.public import can_upload_attachments, is_active_author
 from apps.core.ids import normalize_ulid
 from apps.media.public import (
     BindingInput,
@@ -56,6 +56,7 @@ class _ValidatedSnapshot:
     section_id: UUID | None
     tag_ids: tuple[UUID, ...]
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     body_asset_ids: tuple[str, ...]
     comments_enabled: bool
     comments_view_login: bool
@@ -94,7 +95,7 @@ def _normalize_media_id(value: str | None) -> str | None:
         return normalize_ulid(value)
     except (TypeError, ValueError):
         raise ContentCommandError(
-            "content.media_invalid.v1", "正文或封面图片信息不合法。"
+            "content.media_invalid.v1", "文章媒体或附件信息不合法。"
         ) from None
 
 
@@ -187,6 +188,7 @@ def _validate_snapshot(
     if len(body_ids) > 1000 or len(set(body_ids)) != len(body_ids):
         raise ContentCommandError("content.media_invalid.v1", "正文图片信息不合法。")
     cover_id = _normalize_media_id(snapshot.cover_asset_id)
+    attachment_id = _normalize_media_id(snapshot.attachment_asset_id)
     section_id = _normalize_section_id(snapshot.section_id)
     tag_ids = _normalize_tag_ids(snapshot.tag_ids)
 
@@ -249,6 +251,7 @@ def _validate_snapshot(
         section_id=section_id,
         tag_ids=tag_ids,
         cover_asset_id=cover_id,
+        attachment_asset_id=attachment_id,
         body_asset_ids=body_ids,
         comments_enabled=snapshot.comments_enabled,
         comments_view_login=snapshot.comments_view_login,
@@ -280,6 +283,7 @@ def _create_revision(
         visibility=snapshot.visibility,
         section_id=snapshot.section_id,
         cover_asset_id=snapshot.cover_asset_id,
+        attachment_asset_id=snapshot.attachment_asset_id,
         comments_enabled=snapshot.comments_enabled,
         comments_view_login=snapshot.comments_view_login,
         comments_post_login=snapshot.comments_post_login,
@@ -329,6 +333,8 @@ def _bind_media(
     inputs: list[BindingInput] = []
     if snapshot.cover_asset_id:
         inputs.append(BindingInput(snapshot.cover_asset_id, "cover"))
+    if snapshot.attachment_asset_id:
+        inputs.append(BindingInput(snapshot.attachment_asset_id, "attachment"))
     inputs.extend(
         BindingInput(asset_id, f"body-{asset_id}")
         for asset_id in snapshot.body_asset_ids
@@ -352,6 +358,10 @@ def create_article(
     _require_author(actor)
     _run_capacity_check(capacity_check)
     validated = _validate_snapshot(snapshot, body_limit)
+    if validated.attachment_asset_id and not can_upload_attachments(actor):
+        raise ContentCommandError(
+            "content.attachment_denied.v1", "当前账户没有文章附件权限。"
+        )
     try:
         with transaction.atomic():
             article = Article.objects.create(author_id=actor, row_version=1)
@@ -371,7 +381,7 @@ def create_article(
             article.save(update_fields=("working_revision", "updated_at"))
     except MediaBindingError:
         raise ContentCommandError(
-            "content.media_invalid.v1", "正文或封面图片不可用于这篇文章。"
+            "content.media_invalid.v1", "文章媒体或附件不可用于这篇文章。"
         ) from None
     return ArticleWriteResult(article.id, revision.id, article.row_version)
 
@@ -435,6 +445,15 @@ def save_revision(
                 raise ContentCommandError(
                     "content.article_not_editable.v1", "文章不存在或不可编辑。"
                 )
+            if (
+                validated.attachment_asset_id
+                and validated.attachment_asset_id != working.attachment_asset_id
+                and not can_upload_attachments(actor)
+            ):
+                raise ContentCommandError(
+                    "content.attachment_denied.v1",
+                    "当前账户没有新增或更换文章附件的权限。",
+                )
             based_on = working
             if base_revision_id is not None:
                 try:
@@ -478,6 +497,6 @@ def save_revision(
             )
     except MediaBindingError:
         raise ContentCommandError(
-            "content.media_invalid.v1", "正文或封面图片不可用于这篇文章。"
+            "content.media_invalid.v1", "文章媒体或附件不可用于这篇文章。"
         ) from None
     return ArticleWriteResult(article.id, revision.id, article.row_version)

@@ -1,11 +1,17 @@
 {% if bookmark_login_url %}
-  <a class="button button--secondary" href="{{ bookmark_login_url }}">
+  <a
+    class="button button--secondary bookmark-control__button"
+    href="{{ bookmark_login_url }}"
+    data-article-action="bookmark"
+    aria-label="登录后收藏"
+    title="登录后收藏"
+  >
     <i data-lucide="bookmark"></i>
-    <span>登录后收藏</span>
   </a>
 {% else %}
   <form
-    class="bookmark-control"
+    id="bookmark-control"
+    class="bookmark-control{% if bookmark_message %} bookmark-control--confirmed{% endif %}"
     method="post"
     action="{% url 'article:bookmark' bookmark_article_id %}"
     hx-post="{% url 'article:bookmark' bookmark_article_id %}"
@@ -17,14 +23,17 @@
     <input type="hidden" name="source" value="article">
     <input type="hidden" name="target_state" value="{% if bookmark_is_saved %}removed{% else %}saved{% endif %}">
     <button
-      class="button button--secondary"
+      class="button button--secondary bookmark-control__button"
       type="submit"
+      data-article-action="bookmark"
+      aria-label="{% if bookmark_is_saved %}取消收藏{% else %}收藏{% endif %}"
       aria-pressed="{% if bookmark_is_saved %}true{% else %}false{% endif %}"
       title="{% if bookmark_is_saved %}从收藏中移除{% else %}收藏这篇文章{% endif %}"
     >
       <i data-lucide="bookmark"></i>
-      <span>{% if bookmark_is_saved %}移除收藏{% else %}收藏{% endif %}</span>
     </button>
-    <span class="bookmark-control__status{% if bookmark_error %} bookmark-control__status--error{% endif %}" {% if bookmark_error %}role="alert"{% else %}aria-live="polite"{% endif %}>{% if bookmark_error %}{{ bookmark_error }}{% else %}{{ bookmark_message }}{% endif %}</span>
+    {% if bookmark_error %}
+      <span class="bookmark-control__status bookmark-control__status--error" role="alert">{{ bookmark_error }}</span>
+    {% endif %}
   </form>
 {% endif %}

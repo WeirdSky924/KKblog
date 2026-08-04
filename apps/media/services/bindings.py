@@ -68,6 +68,9 @@ _RULES = {
     (MediaTargetType.ARTICLE_REVISION, MediaPurpose.BODY): _BindingRule(
         1000, re.compile(r"^body-[0-9A-HJKMNP-TV-Z]{26}$")
     ),
+    (MediaTargetType.ARTICLE_REVISION, MediaPurpose.ATTACHMENT): _BindingRule(
+        1, re.compile(r"^attachment$")
+    ),
     (MediaTargetType.COMMENT, MediaPurpose.COMMENT): _BindingRule(
         3, re.compile(r"^image-[1-3]$")
     ),

@@ -38,7 +38,7 @@ payload 由每个版本的 schema 校验，不放正文、密码、验证码、�
 | `comment.created.v1` | comments | 缓冲任务可观测记录 |
 | `comment.deep_thread.v1` | comments | 作者/留言板管理员一次通知 |
 | `comment.admin_deleted.v1` | comments | 相关注册用户通知、审计 |
-| `report.reviewed/finalized.v1` | moderation | 隐私安全的双方通知 |
+| `report.reviewed/finalized.v1/v2` | moderation | 隐私安全的双方通知；v2 携带举报编号、目标评论编号、原因、脱敏补充说明与完整裁决结果 |
 | `export.completed/failed.v1` | exchange | 管理员通知 |
 | `export.includes_foreign_content.v1` | exchange | 受影响作者按日聚合通知 |
 | `task.final_failed.v1` | operations | 管理员站内+邮件告警 |
@@ -95,7 +95,7 @@ Outbox 长期不是业务审计。成功消息可按运维保留策略归档/清
 | 账户/角色 | 状态、角色集合、目标 user ID；邮箱仅掩码 |
 | 文章 | 状态、修订 ID、可见性、管理案件 ID；不记正文 |
 | 媒体 | asset ID、用途、状态、大小；不记磁盘绝对路径 |
-| 评论/举报 | 状态、案件 ID、原因枚举；正文只记摘要 |
+| 评论/举报 | 状态、案件 ID、原因枚举；评论正文不进入事件，举报 v2 只携带脱敏补充说明 |
 | 邀请码 | invite ID、状态、有效期、尾号；不记原码 |
 | 设置/导航 | 允许的配置前后值；秘密设置根本不进网页模型 |
 | 备份/导出 | Job ID、范围、状态、归档大小；不记公开下载 URL |
@@ -104,4 +104,4 @@ Outbox 长期不是业务审计。成功消息可按运维保留策略归档/清
 
 ## 通知模板安全
 
-通知类型映射到服务器模板和 payload schema。链接目标由类型与稳定 ID构建，payload 不允许提交任意 HTML/URL。举报结果模板永不包含 reporter ID；删除原因在渲染前按纯文本转义。
+通知类型映射到服务器模板和 payload schema。链接目标由类型与稳定 ID 构建，payload 不允许提交任意 HTML/URL。举报结果模板永不包含 reporter ID、证据路径或评论正文；v2 的补充说明在事件生成时将危险标记转为不可执行的全角文本，详情按纯文本分行展示；删除原因在渲染前按纯文本转义。

@@ -17,6 +17,14 @@ _ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z
 _OPERATIONAL_SOURCES = frozenset({"application", "media_disk"})
 _CAPACITY_STATES = frozenset({"unknown", "normal", "warn", "no_image", "read_only"})
 _HEALTH_STATES = frozenset({"unknown", "healthy", "unavailable"})
+_REPORT_REASON_LABELS = {
+    "SPAM": "垃圾广告",
+    "HARASSMENT": "辱骂骚扰",
+    "ILLEGAL_DANGEROUS": "违法或危险内容",
+    "PRIVACY": "隐私泄露",
+    "IRRELEVANT": "无关内容",
+    "OTHER": "其他",
+}
 
 
 def _reject_unless(condition: bool) -> None:
@@ -170,6 +178,34 @@ def _report_finalized(payload: Mapping[str, object]) -> None:
     _reject_unless(_safe_reason(payload["decision_reason"]))
 
 
+def _report_context(payload: Mapping[str, object]) -> None:
+    _reject_unless(
+        is_ulid(payload["report_id"])
+        and is_ulid(payload["target_comment_id"])
+        and payload["reason"] in _REPORT_REASON_LABELS
+        and _safe_reason(payload["description"])
+    )
+
+
+def _report_reviewed_v2(payload: Mapping[str, object]) -> None:
+    _report_context(payload)
+    _report_reviewed(payload)
+
+
+def _report_finalized_v2(payload: Mapping[str, object]) -> None:
+    _report_context(payload)
+    _report_finalized(payload)
+    basis_outcome = payload["basis_outcome"]
+    outcome = payload["outcome"]
+    recovery_status = payload["recovery_status"]
+    _reject_unless(basis_outcome in {"UPHELD", "REJECTED"})
+    _reject_unless(
+        recovery_status in {"RESTORED", "FAILED"}
+        if basis_outcome == "UPHELD" and outcome == "FINAL_REJECTED"
+        else recovery_status == "NOT_REQUIRED"
+    )
+
+
 def _article_moderated(payload: Mapping[str, object]) -> None:
     _reject_unless(payload["action"] in {"HIDE", "DELETE"})
     _reject_unless(_safe_reason(payload["reason"]))
@@ -220,6 +256,67 @@ def _report_final_message(payload: Mapping[str, object]) -> str:
         else "申诉终局已变更原处理。"
     )
     return _reason_message(outcome, payload, "decision_reason")
+
+
+def _report_context_lines(payload: Mapping[str, object]) -> list[str]:
+    return [
+        f"举报编号：{payload['report_id']}",
+        f"目标评论：{payload['target_comment_id']}",
+        f"举报类型：{_REPORT_REASON_LABELS[payload['reason']]}",
+        f"补充说明：{payload['description'] or '未填写'}",
+    ]
+
+
+def _report_review_title(payload: Mapping[str, object]) -> str:
+    return "举报审核：成立" if payload["outcome"] == "UPHELD" else "举报审核：未成立"
+
+
+def _report_review_message_v2(payload: Mapping[str, object]) -> str:
+    upheld = payload["outcome"] == "UPHELD"
+    lines = _report_context_lines(payload)
+    lines.extend(
+        (
+            f"审核结果：{'举报成立' if upheld else '举报未成立'}",
+            f"处理说明：{payload['decision_reason'] or '管理员未填写补充说明'}",
+            (
+                "内容处理：相关评论已删除，可在申诉后进行终局复审。"
+                if upheld
+                else "内容处理：相关评论保持原状态，举报人可发起申诉。"
+            ),
+        )
+    )
+    return "\n".join(lines)
+
+
+def _report_final_title(payload: Mapping[str, object]) -> str:
+    return (
+        "举报终局：成立" if payload["outcome"] == "FINAL_UPHELD" else "举报终局：未成立"
+    )
+
+
+def _report_final_content_result(payload: Mapping[str, object]) -> str:
+    if payload["recovery_status"] == "RESTORED":
+        return "相关评论已恢复。"
+    if payload["recovery_status"] == "FAILED":
+        return "相关评论恢复失败，当前仍显示删除占位。"
+    if payload["outcome"] == "FINAL_UPHELD":
+        return "相关评论已删除。"
+    return "相关评论保持原状态。"
+
+
+def _report_final_message_v2(payload: Mapping[str, object]) -> str:
+    lines = _report_context_lines(payload)
+    lines.extend(
+        (
+            "初审结果："
+            + ("举报成立" if payload["basis_outcome"] == "UPHELD" else "举报未成立"),
+            "终局结果："
+            + ("举报成立" if payload["outcome"] == "FINAL_UPHELD" else "举报未成立"),
+            f"处理说明：{payload['decision_reason'] or '管理员未填写补充说明'}",
+            f"内容处理：{_report_final_content_result(payload)}",
+        )
+    )
+    return "\n".join(lines)
 
 
 def _article_action_message(payload: Mapping[str, object]) -> str:
@@ -389,6 +486,26 @@ _BUILTINS = (
     ),
     (
         _schema(
+            "report.reviewed.v2",
+            "report",
+            frozenset(
+                {
+                    "report_id",
+                    "target_comment_id",
+                    "reason",
+                    "description",
+                    "outcome",
+                    "decision_reason",
+                }
+            ),
+            _report_reviewed_v2,
+        ),
+        NotificationTemplateDefinition(
+            "report.reviewed.v2", _report_review_title, _report_review_message_v2
+        ),
+    ),
+    (
+        _schema(
             "report.finalized.v1",
             "report",
             frozenset({"outcome", "decision_reason", "recovery_status"}),
@@ -396,6 +513,28 @@ _BUILTINS = (
         ),
         NotificationTemplateDefinition(
             "report.finalized.v1", "举报申诉终局", _report_final_message
+        ),
+    ),
+    (
+        _schema(
+            "report.finalized.v2",
+            "report",
+            frozenset(
+                {
+                    "report_id",
+                    "target_comment_id",
+                    "reason",
+                    "description",
+                    "basis_outcome",
+                    "outcome",
+                    "decision_reason",
+                    "recovery_status",
+                }
+            ),
+            _report_finalized_v2,
+        ),
+        NotificationTemplateDefinition(
+            "report.finalized.v2", _report_final_title, _report_final_message_v2
         ),
     ),
     (

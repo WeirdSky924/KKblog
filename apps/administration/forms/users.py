@@ -53,6 +53,19 @@ class AccountRoleConfirmationForm(forms.Form):
     )
 
 
+class AccountAttachmentConfirmationForm(forms.Form):
+    account_id = forms.UUIDField(widget=forms.HiddenInput)
+    enabled = forms.TypedChoiceField(
+        choices=(("1", "授予"), ("0", "撤销")),
+        coerce=_boolean,
+        widget=forms.HiddenInput,
+    )
+    confirm = forms.ChoiceField(
+        choices=(("attachment", "确认附件能力变更"),),
+        widget=forms.HiddenInput,
+    )
+
+
 class AccountStatusConfirmationForm(forms.Form):
     account_id = forms.UUIDField(widget=forms.HiddenInput)
     enabled = forms.TypedChoiceField(
@@ -88,6 +101,7 @@ class AccountRestrictionConfirmationForm(forms.Form):
 
 
 __all__ = [
+    "AccountAttachmentConfirmationForm",
     "AccountDeletionConfirmationForm",
     "AccountRoleConfirmationForm",
     "AccountRestrictionConfirmationForm",

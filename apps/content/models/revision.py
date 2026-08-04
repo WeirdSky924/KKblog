@@ -87,6 +87,7 @@ class ArticleRevision(models.Model):
         blank=True,
     )
     cover_asset_id = models.CharField(max_length=26, null=True, blank=True)
+    attachment_asset_id = models.CharField(max_length=26, null=True, blank=True)
     comments_enabled = models.BooleanField(default=True)
     comments_view_login = models.BooleanField(default=False)
     comments_post_login = models.BooleanField(default=False)

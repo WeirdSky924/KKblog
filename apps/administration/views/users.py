@@ -12,9 +12,11 @@ from apps.accounts.public import (
     delete_account,
     is_administrator,
     set_account_enabled,
+    set_attachment_upload_capability,
     set_author_role,
 )
 from apps.administration.forms.users import (
+    AccountAttachmentConfirmationForm,
     AccountDeletionConfirmationForm,
     AccountRestrictionConfirmationForm,
     AccountRoleConfirmationForm,
@@ -64,6 +66,19 @@ def _dialog(kind: str, target, form) -> dict[str, str]:
             "return_focus_id": f"account-role-{target.account.account_id}",
             "return_url": f"{reverse('admin:users')}#user-list",
         }
+    if kind == "attachment":
+        enabled = str(form["enabled"].value()).lower() in {"1", "true"}
+        return {
+            "title": f"确认{'授予' if enabled else '撤销'}附件能力？",
+            "description": (
+                f"作者 {display} 将{'可以' if enabled else '不能继续'}为文章上传附件。"
+            ),
+            "details": "已有文章附件不会被删除；后续保存仍会重新检查作者角色和附件能力。",
+            "action": "set_attachment",
+            "label": "确认变更",
+            "return_focus_id": f"account-attachment-{target.account.account_id}",
+            "return_url": f"{reverse('admin:users')}#user-list",
+        }
     if kind == "status":
         enabled = str(form["enabled"].value()).lower() in {"1", "true"}
         return {
@@ -110,7 +125,7 @@ def _get_confirmation(request: HttpRequest, actor_id):
         actor_id=actor_id,
         account_id=request.GET.get("account_id", ""),
     )
-    if not target.can_manage and kind != "restriction":
+    if not target.can_manage and kind not in {"attachment", "restriction"}:
         raise Http404
     if kind == "role":
         enabled = request.GET.get("enabled", "")
@@ -121,6 +136,19 @@ def _get_confirmation(request: HttpRequest, actor_id):
                 "account_id": target.account.account_id,
                 "enabled": enabled,
                 "confirm": "role",
+            }
+        )
+    elif kind == "attachment":
+        if not target.account.is_author:
+            raise Http404
+        enabled = request.GET.get("enabled", "")
+        if enabled not in {"0", "1"}:
+            raise Http404
+        form = AccountAttachmentConfirmationForm(
+            initial={
+                "account_id": target.account.account_id,
+                "enabled": enabled,
+                "confirm": "attachment",
             }
         )
     elif kind == "status":
@@ -260,6 +288,27 @@ def _post(request: HttpRequest) -> HttpResponse:
         except AccountLifecycleError as exc:
             return _action_error(request, kind="role", form=form, message=str(exc))
         saved = "author-granted" if result.enabled else "author-revoked"
+    elif action == "set_attachment":
+        form = AccountAttachmentConfirmationForm(request.POST)
+        if not form.is_valid():
+            return _action_error(
+                request,
+                kind="attachment",
+                form=form,
+                message="请重新确认附件能力变更。",
+            )
+        try:
+            result = set_attachment_upload_capability(
+                actor_id=actor_id,
+                account_id=form.cleaned_data["account_id"],
+                enabled=form.cleaned_data["enabled"],
+                **_meta(request),
+            )
+        except AccountLifecycleError as exc:
+            return _action_error(
+                request, kind="attachment", form=form, message=str(exc)
+            )
+        saved = "attachment-granted" if result.enabled else "attachment-revoked"
     elif action == "set_status":
         form = AccountStatusConfirmationForm(request.POST)
         if not form.is_valid():

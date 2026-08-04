@@ -6,10 +6,15 @@ from apps.media.models import MediaAsset, MediaBinding, MediaState, MediaTargetT
 from apps.media.storage import MediaStorage
 
 _EXTENSIONS = {
+    "application/vnd.rar": "rar",
+    "application/x-7z-compressed": "7z",
+    "application/zip": "zip",
     "image/gif": "gif",
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "text/markdown": "md",
+    "text/plain": "txt",
 }
 
 

@@ -129,6 +129,7 @@ def change_visibility(
                 visibility=desired,
                 section_id=source.section_id,
                 cover_asset_id=source.cover_asset_id,
+                attachment_asset_id=source.attachment_asset_id,
                 comments_enabled=source.comments_enabled,
                 comments_view_login=source.comments_view_login,
                 comments_post_login=source.comments_post_login,

@@ -5,11 +5,12 @@
   data-media-upload-url="{% if upload_url %}{{ upload_url }}{% else %}{% url 'media:upload' adapter=adapter %}{% endif %}"
   data-media-input-name="{{ input_name }}"
   data-media-favicon="{% if favicon_preview %}true{% else %}false{% endif %}"
+  data-media-kind="{% if adapter == 'article-attachment' %}attachment{% else %}image{% endif %}"
   data-media-state="{% if current_asset_id %}ready{% else %}empty{% endif %}"
 >
   <div class="media-picker__header">
     <div>
-      <p class="media-picker__kicker">媒体 · {{ label }}</p>
+      <p class="media-picker__kicker">{% if adapter == "article-attachment" %}附件{% else %}媒体{% endif %} · {{ label }}</p>
       <h3>{{ label }}</h3>
     </div>
     <ol class="media-picker__track" aria-label="上传状态">
@@ -21,14 +22,38 @@
 
   <div class="media-picker__body">
     <div class="media-picker__preview" data-media-preview-frame>
-      <img
-        data-media-preview
-        {% if current_preview_url %}src="{{ current_preview_url }}" alt="当前{{ label }}"{% else %}alt="" hidden{% endif %}
-      >
-      <div class="media-picker__empty" data-media-empty {% if current_preview_url %}hidden{% endif %}>
-        <i data-lucide="image-up"></i>
-        <span>{% if current_asset_id %}图片已选择{% else %}尚未选择{{ label }}{% endif %}</span>
-      </div>
+      {% if adapter == "article-attachment" %}
+        <div class="media-picker__file" data-media-preview {% if not current_asset_id %}hidden{% endif %}>
+          <i data-lucide="file-archive"></i>
+          <span data-media-file-name>{{ current_asset_name|default:"已选择附件" }}</span>
+          <small data-media-file-size {% if not current_asset_size %}hidden{% endif %}>{% if current_asset_size %}{{ current_asset_size|filesizeformat }}{% endif %}</small>
+        </div>
+        <div class="media-picker__empty" data-media-empty {% if current_asset_id %}hidden{% endif %}>
+          <i data-lucide="file-up"></i>
+          <span>尚未选择{{ label }}</span>
+        </div>
+      {% else %}
+        <img
+          data-media-preview
+          {% if current_preview_url %}src="{{ current_preview_url }}" alt="当前{{ label }}"{% else %}alt="" hidden{% endif %}
+        >
+        <div class="media-picker__empty" data-media-empty {% if current_preview_url %}hidden{% endif %}>
+          <i data-lucide="image-up"></i>
+          <span>{% if current_asset_id %}图片已选择{% else %}尚未选择{{ label }}{% endif %}</span>
+        </div>
+      {% endif %}
+      {% if adapter == "article-cover" or adapter == "article-attachment" %}
+        <button
+          class="icon-button media-picker__preview-remove"
+          type="button"
+          data-media-remove
+          aria-label="移除{{ label }}"
+          title="移除{{ label }}"
+          {% if not current_asset_id %}hidden{% endif %}
+        >
+          <i data-lucide="trash-2"></i>
+        </button>
+      {% endif %}
     </div>
 
     <div class="media-picker__controls">
@@ -41,15 +66,17 @@
           data-media-file
           tabindex="-1"
           aria-hidden="true"
-          {% if adapter == "site-logo" %}
+          {% if adapter == "article-attachment" %}
+            accept=".zip,.7z,.rar,.md,.txt,application/zip,application/x-7z-compressed,application/vnd.rar,text/markdown,text/plain"
+          {% elif adapter == "site-logo" %}
             accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon"
           {% else %}
             accept=".png,.jpg,.jpeg,.gif,.webp,image/png,image/jpeg,image/gif,image/webp"
           {% endif %}
         >
         <button class="button button--secondary" type="button" data-media-choose>
-          <i data-lucide="image-up"></i>
-          选择或拖放{{ label }}
+          <i data-lucide="{% if adapter == 'article-attachment' %}file-up{% else %}image-up{% endif %}"></i>
+          {% if adapter == "article-attachment" %}选择附件{% else %}选择或拖放{{ label }}{% endif %}
         </button>
       </div>
 
@@ -58,7 +85,7 @@
         <progress data-media-progress max="100" value="0">0%</progress>
       </div>
 
-      <div class="media-picker__result" data-media-result aria-live="polite"></div>
+      <div data-media-result hidden></div>
       <input
         type="hidden"
         name="{{ input_name }}"
@@ -70,16 +97,18 @@
           <i data-lucide="rotate-cw"></i>
           重试
         </button>
-        <button
-          class="icon-button"
-          type="button"
-          data-media-remove
-          aria-label="移除{{ label }}"
-          title="移除{{ label }}"
-          {% if not current_asset_id %}hidden{% endif %}
-        >
-          <i data-lucide="trash-2"></i>
-        </button>
+        {% if adapter != "article-cover" and adapter != "article-body" and adapter != "article-attachment" %}
+          <button
+            class="icon-button"
+            type="button"
+            data-media-remove
+            aria-label="移除{{ label }}"
+            title="移除{{ label }}"
+            {% if not current_asset_id %}hidden{% endif %}
+          >
+            <i data-lucide="trash-2"></i>
+          </button>
+        {% endif %}
       </div>
     </div>
   </div>

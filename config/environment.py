@@ -10,11 +10,21 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
 _RESERVED_TLDS = {"example", "invalid", "localhost", "test"}
-_RESEND_KEY = re.compile(r"^re_[A-Za-z0-9_-]{20,}$")
 
 
 class ConfigurationError(RuntimeError):
     """A safe startup error that identifies a key, never its value."""
+
+
+@dataclass(frozen=True, slots=True)
+class SmtpEnvironment:
+    host: str
+    port: int
+    username: str
+    password: str = field(repr=False)
+    use_tls: bool
+    use_ssl: bool
+    from_email: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,8 +33,7 @@ class ProductionEnvironment:
     public_url: str
     public_host: str
     admin_email: str
-    resend_from_email: str
-    resend_api_key: str = field(repr=False)
+    smtp: SmtpEnvironment
     database: dict[str, object] = field(repr=False)
     redis_url: str = field(repr=False)
     media_root: Path
@@ -122,6 +131,70 @@ def _email(value: str, name: str) -> str:
     domain = value.rsplit("@", 1)[1]
     _real_domain(domain, name)
     return value
+
+
+def _smtp_host(value: str) -> str:
+    name = "EMAIL_HOST"
+    normalized = value.rstrip(".").casefold()
+    if not normalized or normalized != value.strip().rstrip(".").casefold():
+        raise _invalid(name)
+    try:
+        address = ipaddress.ip_address(normalized)
+    except ValueError:
+        try:
+            ascii_host = normalized.encode("idna").decode("ascii")
+        except UnicodeError:
+            raise _invalid(name) from None
+        label_pattern = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
+        labels = ascii_host.split(".")
+        if any(not label_pattern.fullmatch(label) for label in labels):
+            raise _invalid(name) from None
+        return ascii_host
+    if address.is_unspecified or address.is_multicast:
+        raise _invalid(name)
+    return str(address)
+
+
+def _smtp_port(value: str) -> int:
+    name = "EMAIL_PORT"
+    try:
+        port = int(value)
+    except ValueError:
+        raise _invalid(name) from None
+    if not 1 <= port <= 65_535:
+        raise _invalid(name)
+    return port
+
+
+def _boolean(values: Mapping[str, str], name: str) -> bool:
+    value = _required(values, name).casefold()
+    if value not in {"true", "false"}:
+        raise _invalid(name)
+    return value == "true"
+
+
+def _smtp_environment(values: Mapping[str, str]) -> SmtpEnvironment:
+    username = values.get("EMAIL_HOST_USER", "").strip()
+    password = values.get("EMAIL_HOST_PASSWORD", "")
+    if username and not password:
+        raise _missing("EMAIL_HOST_PASSWORD")
+    if password and not username:
+        raise _missing("EMAIL_HOST_USER")
+    use_tls = _boolean(values, "EMAIL_USE_TLS")
+    use_ssl = _boolean(values, "EMAIL_USE_SSL")
+    if use_tls and use_ssl:
+        raise _invalid("EMAIL_TRANSPORT")
+    return SmtpEnvironment(
+        host=_smtp_host(_required(values, "EMAIL_HOST")),
+        port=_smtp_port(_required(values, "EMAIL_PORT")),
+        username=username,
+        password=password,
+        use_tls=use_tls,
+        use_ssl=use_ssl,
+        from_email=_email(
+            _required(values, "DEFAULT_FROM_EMAIL"), "DEFAULT_FROM_EMAIL"
+        ),
+    )
 
 
 def _database(value: str) -> dict[str, object]:
@@ -456,12 +529,7 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
     )
     public_url, public_host = _public_url(_required(values, "KAJ_PUBLIC_URL"))
     admin_email = _email(_required(values, "KAJ_ADMIN_EMAIL"), "KAJ_ADMIN_EMAIL")
-    resend_from_email = _email(
-        _required(values, "RESEND_FROM_EMAIL"), "RESEND_FROM_EMAIL"
-    )
-    resend_api_key = _required(values, "RESEND_API_KEY")
-    if not _RESEND_KEY.fullmatch(resend_api_key):
-        raise _invalid("RESEND_API_KEY")
+    smtp = _smtp_environment(values)
     database = _database(_required(values, "DATABASE_URL"))
     redis_url = _redis(_required(values, "REDIS_URL"))
     media_root = _media_root(_required(values, "KAJ_MEDIA_ROOT"))
@@ -483,8 +551,7 @@ def load_production_environment(values: Mapping[str, str]) -> ProductionEnvironm
         public_url=public_url,
         public_host=public_host,
         admin_email=admin_email,
-        resend_from_email=resend_from_email,
-        resend_api_key=resend_api_key,
+        smtp=smtp,
         database=database,
         redis_url=redis_url,
         media_root=media_root,

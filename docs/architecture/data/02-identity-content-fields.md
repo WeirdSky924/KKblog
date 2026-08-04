@@ -14,6 +14,7 @@
 | `status` | enum | 否 | `ACTIVE`、`DISABLED`；删除账户物理移除并保留匿名历史引用 |
 | `theme` | enum | 否 | `LIGHT`、`DARK`、`EYE_CARE`，默认 `LIGHT` |
 | `auto_republish_enabled` | bool | 否 | 默认关闭；仅普通已发布文章的显式云保存可自动重发，首次发布与历史恢复仍强制终稿审查 |
+| `attachment_upload_enabled` | bool | 否 | 默认关闭；只有作者可由管理员授予，撤销作者角色时同步关闭 |
 | `avatar_asset_id` | media id | 是 | 只能绑定本人头像用途资产 |
 | `nickname_changed_at` | timestamptz | 是 | 7 天冷却判断来源 |
 | `must_change_password` | bool | 否 | 首次管理员登录前为真 |
@@ -103,6 +104,7 @@
 | `visibility` | enum | `PUBLIC`、`AUTHENTICATED`、`PRIVATE` |
 | `section_id` | UUID FK | 可空表示未知分区；普通发布流程必须非空 |
 | `cover_asset_id` | media id | 空时使用全站默认封面 |
+| `attachment_asset_id` | media id | 空或一个文章附件；必须与修订的固定 `attachment` 绑定槽一致 |
 | `comments_enabled` | bool | 默认真 |
 | `comments_view_login` | bool | 默认假 |
 | `comments_post_login` | bool | 默认假；只控制顶层访客评论 |

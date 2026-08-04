@@ -3,6 +3,7 @@ from .article_cases import (
     ArticleCaseDetail,
     ArticleCaseListItem,
     ArticleCaseNotFound,
+    admin_article_appeal_review_count,
     article_case_detail,
     article_case_list,
 )
@@ -13,6 +14,7 @@ from .reports import (
     AdminReportNotFound,
     admin_report_detail,
     admin_report_list,
+    admin_report_review_count,
 )
 
 __all__ = [
@@ -24,8 +26,10 @@ __all__ = [
     "ArticleCaseDetail",
     "ArticleCaseListItem",
     "ArticleCaseNotFound",
+    "admin_article_appeal_review_count",
     "article_case_detail",
     "article_case_list",
     "admin_report_detail",
     "admin_report_list",
+    "admin_report_review_count",
 ]

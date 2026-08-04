@@ -59,6 +59,12 @@
             {% else %}
               <figure class="author-review-cover"><img src="{% static 'media/brand/default-cover.png' %}" alt=""></figure>
             {% endif %}
+            {% if selected_version.attachment_asset_id %}
+              <p class="author-review-attachment">
+                <i data-lucide="paperclip" aria-hidden="true"></i>
+                <span>此版本包含一个文章附件。</span>
+              </p>
+            {% endif %}
             {% if selected_version.preview_error %}
               <p class="author-publication__error" role="alert">{{ selected_version.preview_error }}</p>
             {% else %}

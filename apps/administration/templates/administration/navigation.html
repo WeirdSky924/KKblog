@@ -22,14 +22,14 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="navigation_create">
         {% for hidden in create_form.hidden_fields %}{{ hidden }}{% endfor %}
-        <div>{{ create_form.label.label_tag }}{{ create_form.label.errors }}{{ create_form.label }}</div>
-        <div>{{ create_form.node_type.label_tag }}{{ create_form.node_type.errors }}{{ create_form.node_type }}</div>
-        <div data-navigation-target="url">{{ create_form.target_url.label_tag }}{{ create_form.target_url.errors }}{{ create_form.target_url }}{% if create_form.target_url.help_text %}<p class="form-help">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
-        <div data-navigation-target="section">{{ create_form.section_id.label_tag }}{{ create_form.section_id.errors }}{{ create_form.section_id }}</div>
-        <div>{{ create_form.parent_id.label_tag }}{{ create_form.parent_id.errors }}{{ create_form.parent_id }}</div>
-        <div>{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}{% if create_form.position.help_text %}<p class="form-help">{{ create_form.position.help_text }}</p>{% endif %}</div>
+        <div class="navigation-manager__field navigation-manager__field--label">{{ create_form.label.label_tag }}{{ create_form.label.errors }}{{ create_form.label }}</div>
+        <div class="navigation-manager__field navigation-manager__field--type">{{ create_form.node_type.label_tag }}{{ create_form.node_type.errors }}{{ create_form.node_type }}</div>
+        <div class="navigation-manager__field navigation-manager__field--target" data-navigation-target="url">{{ create_form.target_url.label_tag }}{{ create_form.target_url.errors }}{{ create_form.target_url }}{% if create_form.target_url.help_text %}<p class="form-help">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
+        <div class="navigation-manager__field navigation-manager__field--target" data-navigation-target="section">{{ create_form.section_id.label_tag }}{{ create_form.section_id.errors }}{{ create_form.section_id }}{% if create_form.target_url.help_text %}<p class="form-help navigation-manager__target-spacer" aria-hidden="true">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
+        <div class="navigation-manager__field navigation-manager__field--parent">{{ create_form.parent_id.label_tag }}{{ create_form.parent_id.errors }}{{ create_form.parent_id }}</div>
+        <div class="navigation-manager__field navigation-manager__field--position">{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}{% if create_form.position.help_text %}<p class="form-help">{{ create_form.position.help_text }}</p>{% endif %}</div>
         {{ create_form.non_field_errors }}
-        <button class="button button--primary" type="submit">新增导航节点</button>
+        <button class="button button--primary navigation-manager__submit" type="submit">新增导航节点</button>
       </form>
 
       <div class="navigation-manager__legend" aria-label="导航状态说明">

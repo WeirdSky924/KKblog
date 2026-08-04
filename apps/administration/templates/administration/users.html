@@ -10,6 +10,8 @@
       <p>搜索账户、调整作者角色，并管理账户生命周期。</p>
       {% if saved == "author-granted" %}<p role="status">作者角色已授予。</p>{% endif %}
       {% if saved == "author-revoked" %}<p role="status">作者角色已撤销。</p>{% endif %}
+      {% if saved == "attachment-granted" %}<p role="status">文章附件能力已授予。</p>{% endif %}
+      {% if saved == "attachment-revoked" %}<p role="status">文章附件能力已撤销。</p>{% endif %}
       {% if saved == "disabled" %}<p role="status">账户已禁用，现有会话已撤销。</p>{% endif %}
       {% if saved == "enabled" %}<p role="status">账户已启用，旧会话未恢复。</p>{% endif %}
       {% if saved == "deleted" %}<p role="status">账户及其关联内容已删除。</p>{% endif %}
@@ -52,33 +54,54 @@
             {% for row in presentation.rows %}
               <tr>
                 <td>
-                  <strong>{{ row.account.display_name }}</strong>
-                  <span>{{ row.account.email }}</span>
-                  <small>注册于 {{ row.account.created_at|date:"Y-m-d" }}</small>
+                  <div class="admin-users__identity">
+                    <strong>{{ row.account.display_name }}</strong>
+                    <span>{{ row.account.email }}</span>
+                    <small>注册于 {{ row.account.created_at|date:"Y-m-d" }}</small>
+                  </div>
                 </td>
                 <td>
-                  {% if row.account.is_administrator %}管理员{% elif row.account.is_author %}作者{% else %}用户{% endif %}
+                  {% if row.account.is_administrator %}
+                    <span class="admin-users__role admin-users__role--administrator">管理员</span>
+                  {% elif row.account.is_author %}
+                    <span class="admin-users__role admin-users__role--author">作者</span>
+                  {% else %}
+                    <span class="admin-users__role">用户</span>
+                  {% endif %}
                 </td>
-                <td>{% if row.account.status == "ACTIVE" %}正常{% else %}禁用{% endif %}</td>
-                <td>{{ row.article_count }}</td>
+                <td>
+                  {% if row.account.status == "ACTIVE" %}
+                    <span class="admin-users__status admin-users__status--active"><i data-lucide="circle-check"></i>正常</span>
+                  {% else %}
+                    <span class="admin-users__status admin-users__status--disabled"><i data-lucide="circle-x"></i>禁用</span>
+                  {% endif %}
+                </td>
+                <td><span class="admin-users__article-count">{{ row.article_count }}</span></td>
                 <td>
                   <div class="admin-users__actions">
                     {% if row.can_manage %}
                       {% if row.account.is_author %}
-                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">撤销作者</a>
+                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="circle-x"></i><span>撤销作者</span></a>
                       {% else %}
-                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">授予作者</a>
+                        <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="user-plus"></i><span>授予作者</span></a>
                       {% endif %}
                       {% if row.account.status == "ACTIVE" %}
-                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">禁用</a>
+                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="lock-keyhole"></i><span>禁用</span></a>
                       {% else %}
-                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">启用</a>
+                        <a id="account-status-{{ row.account.account_id }}" href="?confirm_action=status&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="circle-check"></i><span>启用</span></a>
                       {% endif %}
-                      <a id="account-delete-{{ row.account.account_id }}" href="?confirm_action=delete&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">删除</a>
+                      <a class="admin-users__action--danger" id="account-delete-{{ row.account.account_id }}" href="?confirm_action=delete&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="trash-2"></i><span>删除</span></a>
                     {% else %}
-                      <span>唯一管理员受保护</span>
+                      <span class="admin-users__protected"><i data-lucide="shield-check"></i>唯一管理员受保护</span>
                     {% endif %}
-                    <a id="account-restriction-{{ row.account.account_id }}" href="?confirm_action=restriction&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog">清除临时限制</a>
+                    {% if row.account.is_author %}
+                      {% if row.account.attachment_upload_enabled %}
+                        <a id="account-attachment-{{ row.account.account_id }}" href="?confirm_action=attachment&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="circle-x"></i><span>关闭附件</span></a>
+                      {% else %}
+                        <a id="account-attachment-{{ row.account.account_id }}" href="?confirm_action=attachment&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="paperclip"></i><span>授权附件</span></a>
+                      {% endif %}
+                    {% endif %}
+                    <a id="account-restriction-{{ row.account.account_id }}" href="?confirm_action=restriction&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="rotate-ccw"></i><span>清除临时限制</span></a>
                   </div>
                 </td>
               </tr>

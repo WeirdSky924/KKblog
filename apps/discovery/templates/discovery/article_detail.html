@@ -6,9 +6,15 @@
   <link rel="canonical" href="{{ permalink }}">
 {% endblock %}
 {% block title %}{{ article.seo.title }}{% endblock %}
+{% block main_class %}article-reader-main{% endblock %}
 
 {% block content %}
-  <article class="article-reader" aria-labelledby="article-title">
+  <article
+    class="article-reader"
+    data-article-actions
+    data-article-permalink="{{ permalink }}"
+    aria-labelledby="article-title"
+  >
     <header class="article-reader__header">
       <div>
         <h1 id="article-title">{{ article.title }}</h1>
@@ -23,20 +29,20 @@
           </div>
         </dl>
       </div>
-      <div class="article-reader__actions">
+      <div class="article-reader__actions" data-article-top-actions>
         {% include "discovery/partials/bookmark_control.html" %}
         <div class="article-reader__share">
           <button
-            class="button button--secondary"
+            class="button button--secondary article-action-button"
             type="button"
             data-copy-link
+            data-article-action="copy"
             data-copy-url="{{ permalink }}"
+            aria-label="复制文章永久链接"
             title="复制文章永久链接"
           >
             <i data-lucide="copy"></i>
-            <span data-copy-label>复制链接</span>
           </button>
-          <span class="article-reader__copy-status" data-copy-status aria-live="polite"></span>
         </div>
       </div>
     </header>
@@ -54,7 +60,7 @@
       </details>
     {% endif %}
 
-    <div class="article-reader__grid">
+    <div class="article-reader__grid{% if not article.toc %} article-reader__grid--prose-only{% endif %}">
       <section class="article-prose" aria-label="文章正文">{{ article.body_html }}</section>
       {% if article.toc %}
         <aside class="article-toc article-toc--desktop" aria-label="文章目录">
@@ -65,6 +71,75 @@
         </aside>
       {% endif %}
     </div>
+    {% if article.attachment %}
+      <section class="article-reader__attachment" aria-labelledby="article-attachment-title">
+        <i data-lucide="paperclip" aria-hidden="true"></i>
+        <div>
+          <h2 id="article-attachment-title">文章附件</h2>
+          <p>{{ article.attachment.original_name }} · {{ article.attachment.size_bytes|filesizeformat }}</p>
+        </div>
+        <a
+          class="button button--secondary"
+          href="/_kaj/media/{{ article.attachment.asset_id }}"
+          download="{{ article.attachment.original_name }}"
+        >
+          <i data-lucide="download"></i><span>下载</span>
+        </a>
+      </section>
+    {% endif %}
+    <aside
+      class="article-action-dock"
+      data-article-action-dock
+      data-visible="false"
+      aria-label="文章快捷操作"
+      aria-hidden="true"
+      inert
+    >
+      {% if bookmark_login_url %}
+        <a
+          class="button button--secondary article-action-button article-action-bookmark"
+          href="{{ bookmark_login_url }}"
+          data-article-action="bookmark"
+          aria-label="登录后收藏"
+          title="登录后收藏"
+        >
+          <i data-lucide="bookmark"></i>
+        </a>
+      {% else %}
+        <button
+          class="button button--secondary article-action-button article-action-bookmark"
+          type="button"
+          data-article-action="bookmark"
+          data-article-bookmark-mirror
+          aria-controls="bookmark-control"
+          aria-label="{% if bookmark_is_saved %}取消收藏{% else %}收藏{% endif %}"
+          aria-pressed="{% if bookmark_is_saved %}true{% else %}false{% endif %}"
+          title="{% if bookmark_is_saved %}从收藏中移除{% else %}收藏这篇文章{% endif %}"
+        >
+          <i data-lucide="bookmark"></i>
+        </button>
+      {% endif %}
+      <button
+        class="button button--secondary article-action-button"
+        type="button"
+        data-copy-link
+        data-article-action="copy"
+        data-copy-url="{{ permalink }}"
+        aria-label="复制文章永久链接"
+        title="复制文章永久链接"
+      >
+        <i data-lucide="copy"></i>
+      </button>
+      <button
+        class="button button--secondary article-action-button"
+        type="button"
+        data-article-scroll-top
+        aria-label="回到文章顶部"
+        title="回到文章顶部"
+      >
+        <i data-lucide="arrow-up"></i>
+      </button>
+    </aside>
   </article>
   {% include "comments/partials/article_panel.html" %}
 {% endblock %}

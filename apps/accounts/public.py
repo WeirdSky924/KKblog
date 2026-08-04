@@ -59,8 +59,10 @@ from apps.accounts.services.invites import (
 from apps.accounts.services.ip_blocks import block_ip, unblock_ip
 from apps.accounts.services.lifecycle import (
     AccountLifecycleError,
+    AttachmentCapabilityState,
     delete_account,
     set_account_enabled,
+    set_attachment_upload_capability,
     set_author_role,
 )
 from apps.accounts.services.restrictions import (
@@ -88,6 +90,17 @@ def is_active_author(account_id: UUID | str | None) -> bool:
         account_id=account_id,
         role=RoleAssignment.Role.AUTHOR,
         account__status=Account.Status.ACTIVE,
+    ).exists()
+
+
+def can_upload_attachments(account_id: UUID | str | None) -> bool:
+    if account_id is None:
+        return False
+    return Account.objects.filter(
+        pk=account_id,
+        status=Account.Status.ACTIVE,
+        attachment_upload_enabled=True,
+        roles__role=RoleAssignment.Role.AUTHOR,
     ).exists()
 
 
@@ -122,9 +135,11 @@ __all__ = [
     "admin_account_page",
     "admin_author_choices",
     "block_ip",
+    "can_upload_attachments",
     "active_administrator_id",
     "AccountDeletionDisposition",
     "AccountLifecycleError",
+    "AttachmentCapabilityState",
     "AuthorPreferenceError",
     "AuthorPreferences",
     "AuthorArticleDecision",
@@ -155,6 +170,7 @@ __all__ = [
     "security_event_detail",
     "security_event_list",
     "set_account_enabled",
+    "set_attachment_upload_capability",
     "set_author_role",
     "revoke_invites",
     "render_verification_email_html",

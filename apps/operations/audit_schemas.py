@@ -54,6 +54,11 @@ def register_builtin_audit_schemas() -> None:
             frozenset({"auto_republish_enabled"}),
         ),
         AuditSchema(
+            "accounts.attachment_capability.set",
+            "account",
+            frozenset({"attachment_upload_enabled"}),
+        ),
+        AuditSchema(
             "notifications.broadcast.create",
             "notification",
             frozenset({"state", "recipient_count"}),

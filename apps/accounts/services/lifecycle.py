@@ -47,6 +47,13 @@ class AccountStatusState:
     revoked_sessions: int
 
 
+@dataclass(frozen=True, slots=True)
+class AttachmentCapabilityState:
+    account_id: UUID
+    enabled: bool
+    changed: bool
+
+
 def _identity(value) -> UUID:
     try:
         return UUID(str(value))
@@ -118,6 +125,7 @@ def set_author_role(
         if currently_enabled == enabled:
             return AuthorRoleState(target.id, enabled, False)
 
+        attachment_capability_revoked = False
         if enabled:
             RoleAssignment.objects.create(
                 account=target,
@@ -129,6 +137,10 @@ def set_author_role(
                 account=target, role=RoleAssignment.Role.AUTHOR
             )
             assignment.delete()
+            if target.attachment_upload_enabled:
+                target.attachment_upload_enabled = False
+                target.save(update_fields=("attachment_upload_enabled", "updated_at"))
+                attachment_capability_revoked = True
         after_roles = _roles(target)
         audit_writer(
             action="accounts.role.set",
@@ -140,6 +152,17 @@ def set_author_role(
             after={"roles": after_roles, "status": target.status},
             summary="Set account author role",
         )
+        if attachment_capability_revoked:
+            audit_writer(
+                action="accounts.attachment_capability.set",
+                actor_id=actor.id,
+                target_id=str(target.id),
+                trace_code=trace_code,
+                client_ip=client_ip,
+                before={"attachment_upload_enabled": True},
+                after={"attachment_upload_enabled": False},
+                summary="Revoke attachment capability with author role",
+            )
         enqueue_event(
             AUTHOR_ROLE_CHANGED,
             aggregate_type="account",
@@ -149,6 +172,40 @@ def set_author_role(
             payload={"enabled": enabled},
         )
         return AuthorRoleState(target.id, enabled, True)
+
+
+def set_attachment_upload_capability(
+    *,
+    actor_id,
+    account_id,
+    enabled: bool,
+    client_ip: str,
+    trace_code: str,
+    audit_writer: AuditWriter,
+) -> AttachmentCapabilityState:
+    _require_writer(audit_writer)
+    if not isinstance(enabled, bool):
+        raise AccountLifecycleError("附件能力状态无效")
+    with transaction.atomic():
+        actor, target = _lock_accounts(actor_id, account_id)
+        if not target.roles.filter(role=RoleAssignment.Role.AUTHOR).exists():
+            raise AccountLifecycleError("只有作者账户可以授予附件能力")
+        if target.attachment_upload_enabled == enabled:
+            return AttachmentCapabilityState(target.id, enabled, False)
+        before = {"attachment_upload_enabled": target.attachment_upload_enabled}
+        target.attachment_upload_enabled = enabled
+        target.save(update_fields=("attachment_upload_enabled", "updated_at"))
+        audit_writer(
+            action="accounts.attachment_capability.set",
+            actor_id=actor.id,
+            target_id=str(target.id),
+            trace_code=trace_code,
+            client_ip=client_ip,
+            before=before,
+            after={"attachment_upload_enabled": enabled},
+            summary="Set author attachment upload capability",
+        )
+        return AttachmentCapabilityState(target.id, enabled, True)
 
 
 def set_account_enabled(

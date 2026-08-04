@@ -60,6 +60,7 @@ class ExportRevisionPayload:
     section_id: UUID | None
     section_name: str | None
     cover_asset_id: str | None
+    attachment_asset_id: str | None
     comments_enabled: bool
     comments_view_login: bool
     comments_post_login: bool
@@ -241,6 +242,7 @@ def export_revision_payloads(*, revision_ids) -> tuple[ExportRevisionPayload, ..
                 section_id=revision.section_id,
                 section_name=revision.section.name if revision.section else None,
                 cover_asset_id=revision.cover_asset_id,
+                attachment_asset_id=revision.attachment_asset_id,
                 comments_enabled=revision.comments_enabled,
                 comments_view_login=revision.comments_view_login,
                 comments_post_login=revision.comments_post_login,

@@ -12,6 +12,7 @@
 html {
   min-width: 20rem;
   scrollbar-gutter: stable;
+  scroll-padding-block-start: var(--site-header-height, 5rem);
   background: var(--surface-page);
   color: var(--text-primary);
   font-family:

@@ -19,12 +19,21 @@ from apps.content.public import (
 from apps.core.time import to_shanghai
 from apps.discovery.cache import default_discovery_cache
 from apps.discovery.seo import ArticleSeoMetadata, article_seo_metadata
+from apps.media.public import MediaAccessError, authorize_asset_read
 
 
 @dataclass(frozen=True, slots=True)
 class ArticleTocItem:
     anchor: str
     label: str
+
+
+@dataclass(frozen=True, slots=True)
+class ArticleAttachment:
+    asset_id: str
+    original_name: str
+    size_bytes: int
+    detected_mime: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +47,7 @@ class ArticleDetailPage:
     toc: tuple[ArticleTocItem, ...]
     cover_url: str
     uses_default_cover: bool
+    attachment: ArticleAttachment | None
     published_at: datetime
     published_label: str
     seo: ArticleSeoMetadata
@@ -207,6 +217,22 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
         indexable = False
     body_html, toc = _outline(sanitized_html)
     cover_asset_id = source.readable_cover_asset_id
+    attachment = None
+    if source.readable_attachment_asset_id:
+        try:
+            authorized = authorize_asset_read(
+                actor_id=actor_id,
+                asset_id=source.readable_attachment_asset_id,
+            )
+        except MediaAccessError:
+            pass
+        else:
+            attachment = ArticleAttachment(
+                asset_id=authorized.asset_id,
+                original_name=authorized.original_name,
+                size_bytes=authorized.size_bytes,
+                detected_mime=authorized.detected_mime,
+            )
     if source.published_at is None:
         raise RuntimeError("published article is missing publication time")
     published = to_shanghai(source.published_at)
@@ -224,6 +250,7 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
             else static("media/brand/default-cover.png")
         ),
         uses_default_cover=cover_asset_id is None,
+        attachment=attachment,
         published_at=source.published_at,
         published_label=published.strftime("%Y-%m-%d %H:%M"),
         seo=article_seo_metadata(

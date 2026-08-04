@@ -62,6 +62,7 @@ class ArticleSnapshot:
     section_id: UUID | str | None = None
     tag_ids: tuple[UUID | str, ...] = ()
     cover_asset_id: str | None = None
+    attachment_asset_id: str | None = None
     body_asset_ids: tuple[str, ...] = ()
     comments_enabled: bool = True
     comments_view_login: bool = False

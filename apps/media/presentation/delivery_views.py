@@ -1,9 +1,11 @@
 import re
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.media.services.access import MediaAccessError, authorize_asset_read
+from apps.media.storage import FilesystemMediaStorage, StorageBoundaryError
 
 _DELIVERY_URI = re.compile(r"/_kaj/media/([0-9A-HJKMNP-TV-Z]{26})")
 _PUBLIC_CACHE_CONTROL = "public, max-age=31536000, immutable"
@@ -44,4 +46,29 @@ def internal_authorize(request: HttpRequest) -> HttpResponse:
     response.headers["X-Kaj-Public"] = "1" if authorization.public_immutable else "0"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Cache-Control"] = _PRIVATE_CACHE_CONTROL
+    return response
+
+
+@require_http_methods(["GET", "HEAD"])
+def direct_delivery(request: HttpRequest, asset_id: str) -> HttpResponse:
+    if not settings.DIRECT_MEDIA_DELIVERY_ENABLED:
+        return _privacy_not_found()
+    try:
+        authorization = authorize_asset_read(
+            actor_id=getattr(request, "account_id", None),
+            asset_id=asset_id,
+        )
+        content = FilesystemMediaStorage(settings.MEDIA_ROOT).read(
+            authorization.storage_key
+        )
+    except (FileNotFoundError, MediaAccessError, StorageBoundaryError):
+        return _privacy_not_found()
+
+    response = HttpResponse(content, content_type=authorization.detected_mime)
+    response.headers["Cache-Control"] = (
+        _PUBLIC_CACHE_CONTROL
+        if authorization.public_immutable
+        else _PRIVATE_CACHE_CONTROL
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response

@@ -16,7 +16,7 @@ from apps.core.ids import new_ulid, normalize_ulid
 from apps.core.time.clock import Clock, SystemClock, require_aware
 from apps.operations.public import record_audit_entry
 
-from ..events import REPORT_FINALIZED
+from ..events import REPORT_FINALIZED_V2, report_notification_description
 from ..models import Report, ReportAppeal, ReportRecoverySnapshot
 from ..ports import (
     ModerationAccountPolicy,
@@ -495,14 +495,17 @@ def finalize_report_appeal(
             summary="Administrator finalized report appeal",
         )
         enqueue_event(
-            REPORT_FINALIZED,
+            REPORT_FINALIZED_V2,
             aggregate_type="report",
             aggregate_id=report.id,
             actor_id=actor,
             trace_code=trace_code,
             payload={
                 "target_comment_id": report.target_comment_id,
+                "reason": report.reason,
+                "description": report_notification_description(report.description),
                 "outcome": final_state,
+                "basis_outcome": appeal.basis_outcome,
                 "decision_reason": normalized_reason,
                 "recipient_ids": [str(value) for value in recipients],
                 "recovery_status": recovery_status,

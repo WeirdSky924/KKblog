@@ -16,17 +16,18 @@ from apps.media.targets import (
 class MediaAccessError(LookupError):
     def __init__(self) -> None:
         self.code = "media.not_found.v1"
-        super().__init__("未找到请求的图片。")
+        super().__init__("未找到请求的媒体。")
 
 
 @dataclass(frozen=True, slots=True)
 class AssetReadAuthorization:
     asset_id: str
+    original_name: str
     storage_key: str
     detected_mime: str
     size_bytes: int
-    width: int
-    height: int
+    width: int | None
+    height: int | None
     public_immutable: bool
 
 
@@ -48,6 +49,17 @@ def authorize_asset_read(
         raise MediaAccessError from None
     bindings = tuple(asset.bindings.all())
     if not bindings:
+        if actor_id == asset.owner_id:
+            return AssetReadAuthorization(
+                asset_id=asset.id,
+                original_name=asset.original_name,
+                storage_key=asset.storage_key,
+                detected_mime=asset.detected_mime,
+                size_bytes=asset.size_bytes,
+                width=asset.width,
+                height=asset.height,
+                public_immutable=False,
+            )
         raise MediaAccessError
     for binding in bindings:
         try:
@@ -65,6 +77,7 @@ def authorize_asset_read(
         if decision.exists and decision.can_read:
             return AssetReadAuthorization(
                 asset_id=asset.id,
+                original_name=asset.original_name,
                 storage_key=asset.storage_key,
                 detected_mime=asset.detected_mime,
                 size_bytes=asset.size_bytes,

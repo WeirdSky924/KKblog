@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from apps.accounts.public import can_upload_attachments
 from apps.content.public import authoring_access
 from apps.core.ids import is_ulid
 from apps.media.public import (
@@ -29,3 +30,16 @@ def register_media_access() -> None:
             ),
             replace=True,
         )
+    register_media_upload_adapter(
+        MediaUploadAdapter(
+            key="article-attachment",
+            purpose=MediaPurpose.ATTACHMENT,
+            input_name="attachment_asset_id",
+            access=can_upload_attachments,
+            target_query_parameter="target",
+            target_access=lambda actor_id, target_id: (
+                is_ulid(target_id) and can_upload_attachments(actor_id)
+            ),
+        ),
+        replace=True,
+    )

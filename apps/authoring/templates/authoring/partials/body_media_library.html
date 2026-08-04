@@ -1,0 +1,93 @@
+<details
+  id="author-body-media-library"
+  class="author-body-media-library"
+  data-body-media-library
+  data-body-media-library-url="{% url 'authoring:body-media-library' upload_scope=body_media_workspace.upload_scope %}{% if body_media_workspace.article_id %}?article={{ body_media_workspace.article_id }}{% endif %}"
+  aria-labelledby="author-body-media-library-title"
+>
+  <summary class="author-body-media-library__header">
+    <span class="author-body-media-library__heading">
+      <strong id="author-body-media-library-title">正文图片</strong>
+      <small>已上传 {{ body_media_workspace.items|length }} 张</small>
+    </span>
+    <span class="author-body-media-library__toggle">
+      <span class="author-body-media-library__collapsed">展开</span>
+      <span class="author-body-media-library__expanded">收起</span>
+      <i data-lucide="chevron-down"></i>
+    </span>
+  </summary>
+
+  <div class="author-body-media-library__body">
+    {% if body_media_workspace.items %}
+      <ol class="author-body-media-library__list">
+        {% for item in body_media_workspace.items %}
+          <li class="author-body-media-item" data-body-media-item="{{ item.asset_id }}">
+          <div class="author-body-media-item__preview">
+            <img
+              src="/_kaj/media/{{ item.asset_id }}"
+              alt="{{ item.original_name }} 预览"
+              width="{{ item.width }}"
+              height="{{ item.height }}"
+              loading="lazy"
+            >
+          </div>
+          <div class="author-body-media-item__meta">
+            <strong title="{{ item.original_name }}">{{ item.original_name }}</strong>
+            <span>{{ item.width }} x {{ item.height }} · {{ item.size_bytes|filesizeformat }}</span>
+            <code>media:{{ item.asset_id }}</code>
+          </div>
+          <div class="author-body-media-item__actions">
+            <button
+              class="button button--secondary"
+              type="button"
+              data-body-media-action="insert"
+              data-body-media-id="{{ item.asset_id }}"
+            >
+              <i data-lucide="file-plus-2"></i>
+              <span>插入正文</span>
+            </button>
+            <button
+              class="button button--secondary"
+              type="button"
+              data-body-media-action="copy"
+              data-body-media-reference="media:{{ item.asset_id }}"
+            >
+              <i data-lucide="copy"></i>
+              <span>复制引用</span>
+            </button>
+            {% if item.deletable %}
+              <button
+                id="delete-body-media-{{ item.asset_id }}"
+                class="icon-button"
+                type="button"
+                data-body-media-action="delete"
+                data-body-media-id="{{ item.asset_id }}"
+                data-body-media-name="{{ item.original_name }}"
+                data-body-media-delete-url="{% url 'authoring:body-media-delete' upload_scope=body_media_workspace.upload_scope asset_id=item.asset_id %}{% if body_media_workspace.article_id %}?article={{ body_media_workspace.article_id }}{% endif %}"
+                data-dialog-trigger
+                aria-controls="body-media-delete-dialog"
+                aria-label="删除 {{ item.original_name }}"
+                title="删除图片及服务器文件"
+              >
+                <i data-lucide="trash-2"></i>
+              </button>
+            {% else %}
+              <button
+                class="icon-button"
+                type="button"
+                disabled
+                aria-label="{{ item.original_name }} 已被文章版本使用，不能删除"
+                title="已被文章版本使用，不能删除"
+              >
+                <i data-lucide="lock-keyhole"></i>
+              </button>
+            {% endif %}
+          </div>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="author-body-media-library__empty">还没有正文图片。上传后会保留在这里，随时可以再次插入。</p>
+    {% endif %}
+  </div>
+</details>

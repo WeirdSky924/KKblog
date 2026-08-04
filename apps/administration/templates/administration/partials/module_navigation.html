@@ -4,14 +4,25 @@
 >
   {% for group in admin_navigation_groups %}
     <section class="administration-navigation__group" aria-labelledby="admin-nav-{{ navigation_variant }}-{{ forloop.counter }}">
-      <h2 id="admin-nav-{{ navigation_variant }}-{{ forloop.counter }}">{{ group.label }}</h2>
+      <h2 id="admin-nav-{{ navigation_variant }}-{{ forloop.counter }}">
+        <span class="administration-navigation__group-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+        <span>{{ group.label }}</span>
+      </h2>
       <ul>
         {% for item in group.items %}
           <li>
             <a
               href="{{ item.url }}"
+              {% if item.review_count %}class="administration-navigation__link--review"{% endif %}
               {% if item.route_name == admin_current_route %}aria-current="page"{% endif %}
-            >{{ item.label }}</a>
+            >
+              <span class="administration-navigation__item-label">{{ item.label }}</span>
+              {% if item.review_count %}
+                <span class="administration-navigation__review-count" aria-label="{{ item.review_count }} 项待审核">
+                  <span aria-hidden="true">{{ item.review_count }}</span>
+                </span>
+              {% endif %}
+            </a>
           </li>
         {% endfor %}
       </ul>

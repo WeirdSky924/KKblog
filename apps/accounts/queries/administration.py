@@ -22,6 +22,7 @@ class AdminAccountItem:
     nickname: str | None
     status: str
     roles: tuple[str, ...]
+    attachment_upload_enabled: bool
     created_at: datetime
 
     @property
@@ -94,6 +95,7 @@ def _item(account: Account) -> AdminAccountItem:
         nickname=account.nickname,
         status=account.status,
         roles=tuple(sorted(item.role for item in account.roles.all())),
+        attachment_upload_enabled=account.attachment_upload_enabled,
         created_at=account.created_at,
     )
 

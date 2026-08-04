@@ -10,8 +10,9 @@
 }
 
 .site-header {
-  position: relative;
+  position: sticky;
   z-index: 30;
+  inset-block-start: 0;
   border-block-end: 1px solid var(--line);
   background: var(--surface-panel);
 }

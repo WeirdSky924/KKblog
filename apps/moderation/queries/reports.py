@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.db.models import Q
+
 from apps.core.ids import normalize_ulid
 
 from ..models import Report, ReportAppeal, ReportReason
@@ -109,6 +111,22 @@ def admin_report_list(
     )
 
 
+def admin_report_review_count(
+    *,
+    actor_id,
+    account_policy: ModerationAccountPolicy | None = None,
+) -> int:
+    accounts = account_policy or default_moderation_account_policy()
+    _actor(actor_id, account_policy=accounts)
+    return Report.objects.filter(
+        Q(state=Report.State.PENDING)
+        | Q(
+            state=Report.State.APPEAL_PENDING,
+            appeal__state=ReportAppeal.State.PENDING,
+        )
+    ).count()
+
+
 def admin_report_detail(
     *,
     actor_id,
@@ -159,4 +177,5 @@ __all__ = [
     "AdminReportNotFound",
     "admin_report_detail",
     "admin_report_list",
+    "admin_report_review_count",
 ]

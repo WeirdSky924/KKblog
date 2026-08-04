@@ -1,4 +1,9 @@
-from .article import ArticleDetailPage, ArticleTocItem, article_detail_page
+from .article import (
+    ArticleAttachment,
+    ArticleDetailPage,
+    ArticleTocItem,
+    article_detail_page,
+)
 from .bookmarks import (
     BookmarkPage,
     BookmarkPageItem,
@@ -23,6 +28,7 @@ from .view_counts import article_view_count, article_view_counts
 
 __all__ = [
     "ArticleDetailPage",
+    "ArticleAttachment",
     "ArticleTocItem",
     "BookmarkPage",
     "BookmarkPageItem",

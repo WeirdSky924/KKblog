@@ -31,6 +31,7 @@ def initial_from_session(session) -> dict:
         "section_id": str(snapshot.section_id or ""),
         "tag_ids": tuple(str(value) for value in snapshot.tag_ids),
         "cover_asset_id": snapshot.cover_asset_id or "",
+        "attachment_asset_id": snapshot.attachment_asset_id or "",
         "comments_enabled": snapshot.comments_enabled,
         "comments_view_login": snapshot.comments_view_login,
         "comments_post_login": snapshot.comments_post_login,

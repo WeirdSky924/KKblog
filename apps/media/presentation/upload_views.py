@@ -21,11 +21,15 @@ def _render_upload(
     input_name: str,
     target_id: str | None = None,
 ) -> HttpResponse:
+    is_attachment = purpose == MediaPurpose.ATTACHMENT
+    select_message = (
+        "请选择一个附件后重试。" if is_attachment else "请选择一张图片后重试。"
+    )
     if request.method != "POST":
         response = render(
             request,
             "media/partials/upload_result.html",
-            {"upload_error": "请选择一张图片后重试。"},
+            {"upload_error": select_message, "is_attachment": is_attachment},
             status=405,
         )
         response.headers["Cache-Control"] = "no-store"
@@ -35,7 +39,7 @@ def _render_upload(
         response = render(
             request,
             "media/partials/upload_result.html",
-            {"upload_error": "请选择一张图片后重试。"},
+            {"upload_error": select_message, "is_attachment": is_attachment},
             status=422,
         )
         response.headers["Cache-Control"] = "no-store"
@@ -61,6 +65,7 @@ def _render_upload(
                 "upload_error": exc.safe_message,
                 "original_name": uploaded.name,
                 "input_name": input_name,
+                "is_attachment": is_attachment,
             },
             status=422,
         )
@@ -68,7 +73,11 @@ def _render_upload(
         response = render(
             request,
             "media/partials/upload_result.html",
-            {"asset": asset, "input_name": input_name},
+            {
+                "asset": asset,
+                "input_name": input_name,
+                "is_attachment": is_attachment,
+            },
             status=201,
         )
     response.headers["Cache-Control"] = "no-store"

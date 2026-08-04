@@ -1,4 +1,5 @@
 from .models.constants import MediaPurpose, MediaTargetType
+from .queries import ArticleBodyMediaItem, owner_article_body_assets
 from .rendering import (
     SANITIZER_VERSION,
     RenderingError,
@@ -23,6 +24,7 @@ from .services import (
     MediaCleanupRetryable,
     MediaExportError,
     MediaUploadError,
+    OwnedMediaDeleteError,
     ReleaseTargetAssetsResult,
     ReplaceBindingsResult,
     TargetBindingSnapshot,
@@ -31,6 +33,7 @@ from .services import (
     bind_assets,
     bind_revision_snapshot_assets,
     create_import_asset,
+    delete_owned_unbound_asset,
     delete_pending_asset,
     discard_import_assets,
     expire_unbound_asset,
@@ -54,6 +57,7 @@ from .upload_adapters import MediaUploadAdapter, register_media_upload_adapter
 
 __all__ = [
     "AssetReadAuthorization",
+    "ArticleBodyMediaItem",
     "BindingInput",
     "CleanupOutcome",
     "ExportMediaDescriptor",
@@ -61,6 +65,7 @@ __all__ = [
     "MediaBindingError",
     "MediaCleanupResult",
     "MediaCleanupRetryable",
+    "OwnedMediaDeleteError",
     "MediaExportError",
     "MediaPurpose",
     "MediaUploadError",
@@ -83,6 +88,7 @@ __all__ = [
     "bind_assets",
     "bind_revision_snapshot_assets",
     "delete_pending_asset",
+    "delete_owned_unbound_asset",
     "expire_unbound_asset",
     "release_owner_assets",
     "release_target_assets",
@@ -101,5 +107,6 @@ __all__ = [
     "discard_import_assets",
     "export_revision_media",
     "markdown_media_ids",
+    "owner_article_body_assets",
     "tiptap_media_ids",
 ]

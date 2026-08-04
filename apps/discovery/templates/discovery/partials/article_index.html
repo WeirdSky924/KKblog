@@ -70,6 +70,8 @@
         hx-target="#article-index"
         hx-swap="outerHTML"
         hx-push-url="true"
+        hx-trigger="change"
+        hx-sync="this:replace"
         hx-indicator="#article-index-loading"
       >
         {% for tag_id in selected_tag_ids %}<input type="hidden" name="tags" value="{{ tag_id }}">{% endfor %}
@@ -80,7 +82,7 @@
             <option value="{{ value }}"{% if value == index_page.page_size %} selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-        <button class="button button--secondary" type="submit">应用</button>
+        <noscript><button class="button button--secondary" type="submit">应用</button></noscript>
       </form>
       <p class="article-index__page-state">第 {{ index_page.page_number }} / {{ index_page.total_pages }} 页</p>
     </footer>

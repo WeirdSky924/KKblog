@@ -56,6 +56,8 @@
         hx-target="#article-index"
         hx-swap="outerHTML"
         hx-push-url="true"
+        hx-trigger="change"
+        hx-sync="this:replace"
         hx-indicator="#bookmark-index-loading"
       >
         <label for="bookmark-page-size">每页</label>
@@ -64,7 +66,7 @@
             <option value="{{ value }}"{% if value == bookmark_page.page_size %} selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-        <button class="button button--secondary" type="submit">应用</button>
+        <noscript><button class="button button--secondary" type="submit">应用</button></noscript>
       </form>
       <p>第 {{ bookmark_page.page_number }} / {{ bookmark_page.total_pages }} 页</p>
     </footer>

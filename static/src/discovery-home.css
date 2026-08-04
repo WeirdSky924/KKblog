@@ -2,11 +2,6 @@
   padding-block: 0;
 }
 
-.home-shell .site-header {
-  position: sticky;
-  inset-block-start: 0;
-}
-
 .home-page {
   min-width: 0;
   background: var(--surface-page);

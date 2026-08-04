@@ -5,6 +5,7 @@ from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from apps.accounts.public import can_upload_attachments
 from apps.authoring.forms import (
     ArticleEditorForm,
     CloudDraftDiscardForm,
@@ -16,6 +17,7 @@ from apps.authoring.presenters import (
     initial_from_session,
     preview_from_form,
 )
+from apps.authoring.queries import article_body_media_workspace
 from apps.content.public import (
     ArticleBodyLimit,
     ArticleNotFound,
@@ -40,6 +42,7 @@ from apps.content.public import (
 )
 from apps.core.http import is_htmx_fragment_request
 from apps.core.ids import new_ulid, normalize_ulid
+from apps.media.public import MediaAccessError, authorize_asset_read
 
 from .access import author_id_or_response, private_response
 
@@ -83,7 +86,29 @@ def _editor_context(
 ) -> dict:
     preview, preview_error = preview_from_form(form, content_format)
     upload_scope = form["upload_scope"].value() or ""
+    attachment_asset_id = form["attachment_asset_id"].value() or ""
+    attachment_name = ""
+    attachment_size = None
+    if attachment_asset_id:
+        try:
+            attachment = authorize_asset_read(
+                actor_id=actor_id,
+                asset_id=attachment_asset_id,
+            )
+        except MediaAccessError:
+            attachment_name = "已选择附件"
+        else:
+            attachment_name = attachment.original_name
+            attachment_size = attachment.size_bytes
     query = urlencode({"target": upload_scope})
+    try:
+        body_media_workspace = article_body_media_workspace(
+            actor_id=actor_id,
+            upload_scope=upload_scope,
+            article_id=article_id,
+        )
+    except (ArticleNotFound, ValueError):
+        body_media_workspace = None
     discard_form = (
         CloudDraftDiscardForm(
             initial={"expected_row_version": row_version, "confirm": "discard"}
@@ -130,11 +155,18 @@ def _editor_context(
         "editor_auto_published": auto_published,
         "editor_auto_publish_error": auto_publish_error,
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
+        "editor_can_upload_attachment": can_upload_attachments(actor_id),
+        "attachment_name": attachment_name,
+        "attachment_size": attachment_size,
+        "body_media_workspace": body_media_workspace,
         "cover_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-cover'})}?{query}"
         ),
         "body_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-body'})}?{query}"
+        ),
+        "attachment_upload_url": (
+            f"{reverse('media:upload', kwargs={'adapter': 'article-attachment'})}?{query}"
         ),
         "cover_preview_url": (
             f"/_kaj/media/{form['cover_asset_id'].value()}"
@@ -401,14 +433,29 @@ def edit(request, article_id: str):
                     auto_publish_error=auto_publish_error,
                 ),
             )
-            if auto_published and is_htmx_fragment_request(request):
+            if is_htmx_fragment_request(request):
+                feedback = {
+                    "key": "author-draft-saved",
+                    "level": "success",
+                    "message": "草稿保存成功",
+                    "timeout": 4500,
+                }
+                if auto_publish_error:
+                    feedback.update(
+                        level="warning",
+                        message="草稿已保存，但自动发布失败",
+                        timeout=6500,
+                    )
+                elif auto_published:
+                    feedback["message"] = "草稿已保存，文章已自动发布"
+                triggers = {"kaj:feedback": feedback}
+                if auto_published:
+                    triggers["kaj:author-draft-clear"] = {
+                        "userId": str(actor_id),
+                        "articleKey": article_id,
+                    }
                 response.headers["HX-Trigger-After-Swap"] = json.dumps(
-                    {
-                        "kaj:author-draft-clear": {
-                            "userId": str(actor_id),
-                            "articleKey": article_id,
-                        }
-                    },
+                    triggers,
                     ensure_ascii=True,
                     separators=(",", ":"),
                 )

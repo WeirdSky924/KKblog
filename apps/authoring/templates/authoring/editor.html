@@ -117,12 +117,30 @@
           <section class="author-editor-media" aria-labelledby="editor-media-title">
           <header>
             <h2 id="editor-media-title">文章媒体</h2>
-            <p>单张最大 2 MiB</p>
           </header>
-          <div class="author-editor-media__grid">
+          {% if body_media_workspace %}
+            {% include "authoring/partials/body_media_library.html" %}
+          {% endif %}
+          <div class="author-editor-media__grid{% if editor_can_upload_attachment %} author-editor-media__grid--with-attachment{% endif %}">
             {% include "media/partials/picker.html" with adapter="article-cover" upload_url=cover_upload_url input_name="cover_asset_id" label="文章封面" picker_id="article-cover" current_asset_id=editor_form.cover_asset_id.value current_preview_url=cover_preview_url favicon_preview=False %}
             {% include "media/partials/picker.html" with adapter="article-body" upload_url=body_upload_url input_name="body_asset_id" label="正文图片" picker_id="article-body" current_asset_id="" current_preview_url="" favicon_preview=False %}
+            {% if editor_can_upload_attachment %}
+              {% include "media/partials/picker.html" with adapter="article-attachment" upload_url=attachment_upload_url input_name="attachment_asset_id" label="文章附件" picker_id="article-attachment" current_asset_id=editor_form.attachment_asset_id.value current_asset_name=attachment_name current_asset_size=attachment_size favicon_preview=False %}
+            {% endif %}
           </div>
+          {% if editor_can_upload_attachment %}
+            {{ editor_form.attachment_asset_id.errors }}
+          {% else %}
+            {{ editor_form.attachment_asset_id }}
+            {% if editor_form.attachment_asset_id.value %}
+              <div class="author-editor-attachment-readonly">
+                <i data-lucide="paperclip"></i>
+                <span>{{ attachment_name|default:"已有附件" }}{% if attachment_size %} · {{ attachment_size|filesizeformat }}{% endif %}</span>
+                <small>当前账户没有附件上传权限，已有附件会继续保留。</small>
+              </div>
+            {% endif %}
+            {{ editor_form.attachment_asset_id.errors }}
+          {% endif %}
           </section>
 
           <fieldset class="author-editor-comments">
@@ -140,7 +158,65 @@
           <div class="author-editor-canvas" data-editor-canvas>
           <section class="author-editor-pane author-editor-pane--edit" data-editor-pane="edit">
             <header class="author-editor-pane__header">
-              <strong>{{ editor_format_label }}</strong>
+              <div class="author-editor-pane__heading">
+                <strong>{{ editor_format_label }}</strong>
+                {% if editor_format == "MARKDOWN" %}
+                  <div class="author-markdown-import" data-markdown-import>
+                    <button
+                      class="author-markdown-import__trigger"
+                      type="button"
+                      data-markdown-import-trigger
+                      aria-controls="author-markdown-import-card"
+                      aria-expanded="false"
+                      aria-haspopup="dialog"
+                    >
+                      <i data-lucide="file-plus-2"></i><span>导入 .md</span>
+                    </button>
+                    <section
+                      id="author-markdown-import-card"
+                      class="author-markdown-import__card"
+                      data-markdown-import-card
+                      role="dialog"
+                      aria-labelledby="author-markdown-import-title"
+                      hidden
+                    >
+                      <header>
+                        <h3 id="author-markdown-import-title">导入 Markdown</h3>
+                        <button
+                          class="icon-button"
+                          type="button"
+                          data-markdown-import-close
+                          aria-label="关闭 Markdown 导入"
+                          title="关闭"
+                        >
+                          <i data-lucide="x"></i>
+                        </button>
+                      </header>
+                      <input
+                        type="file"
+                        accept=".md,text/markdown,text/plain"
+                        data-markdown-import-file
+                        data-editor-transient
+                        hidden
+                      >
+                      <button
+                        class="button button--secondary"
+                        type="button"
+                        data-markdown-import-choose
+                      >
+                        <i data-lucide="file-plus-2"></i><span>选择 Markdown 文档</span>
+                      </button>
+                      <p data-markdown-import-name role="status">尚未选择文档</p>
+                      <div class="author-markdown-import__actions">
+                        <button class="button button--secondary" type="button" data-markdown-import-cancel>取消</button>
+                        <button class="button button--primary" type="button" data-markdown-import-apply disabled>
+                          <i data-lucide="replace"></i><span>覆盖正文</span>
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+                {% endif %}
+              </div>
               <span data-editor-local-state aria-live="polite">本地暂无修改</span>
             </header>
             {% if editor_format == "TIPTAP_JSON" %}
@@ -190,7 +266,7 @@
             <a class="button button--secondary" href="{% url 'authoring:versions' article_id=editor_article_id %}">
               <i data-lucide="history"></i><span>版本</span>
             </a>
-            <a class="button button--secondary" href="{% url 'authoring:review' article_id=editor_article_id %}">
+            <a class="button author-editor-review" href="{% url 'authoring:review' article_id=editor_article_id %}">
               <i data-lucide="send"></i><span>终稿审查</span>
             </a>
           {% endif %}
@@ -200,6 +276,25 @@
           </button>
         </div>
       </form>
+      <dialog
+        id="body-media-delete-dialog"
+        class="confirm-dialog"
+        data-confirm-dialog
+        data-body-media-delete-dialog
+        aria-labelledby="body-media-delete-dialog-title"
+        aria-describedby="body-media-delete-dialog-description"
+      >
+        <div class="confirm-dialog__content">
+          <h2 id="body-media-delete-dialog-title">删除正文图片？</h2>
+          <p id="body-media-delete-dialog-description">将同时删除服务器中的图片文件，并从当前未保存的正文中移除这张图片的引用。</p>
+          <p data-body-media-delete-name></p>
+          <div class="confirm-dialog__feedback" data-body-media-delete-feedback aria-live="polite"></div>
+          <div class="confirm-dialog__actions">
+            <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+            <button class="button button--primary" type="button" data-body-media-delete-confirm>确认删除</button>
+          </div>
+        </div>
+      </dialog>
       {% if editor_auto_published %}
         <p data-author-draft-clear-result aria-live="polite">正在清理这个浏览器中的对应本地稿。</p>
         <span hidden data-author-draft-clear-request data-user-id="{{ editor_actor_id }}" data-article-key="{{ editor_article_id }}"></span>

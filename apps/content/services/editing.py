@@ -101,6 +101,11 @@ def _snapshot(revision: ArticleRevision) -> ArticleSnapshot:
     body_ids = tuple(
         binding.asset_id for binding in bindings if binding.purpose == MediaPurpose.BODY
     )
+    attachment_ids = tuple(
+        binding.asset_id
+        for binding in bindings
+        if binding.purpose == MediaPurpose.ATTACHMENT
+    )
     tag_ids = tuple(
         row.tag_id
         for row in revision.tag_snapshots.select_related("tag")
@@ -122,6 +127,7 @@ def _snapshot(revision: ArticleRevision) -> ArticleSnapshot:
         section_id=revision.section_id,
         tag_ids=tag_ids,
         cover_asset_id=revision.cover_asset_id,
+        attachment_asset_id=(attachment_ids[0] if attachment_ids else None),
         body_asset_ids=body_ids,
         comments_enabled=revision.comments_enabled,
         comments_view_login=revision.comments_view_login,
