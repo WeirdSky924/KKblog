@@ -12,6 +12,7 @@ from apps.content.public import (
     search_visible_titles,
     section_by_id,
     section_list,
+    selectable_tag_list,
     tag_reference,
     visible_article_page,
     visible_filter_tags,
@@ -188,7 +189,7 @@ def discovery_filters(*, actor_id) -> DiscoveryFilters:
         ),
         tags=tuple(
             DiscoveryFilterOption(item.tag_id, item.name, item.state)
-            for item in visible_filter_tags(actor_id=actor_id)
+            for item in selectable_tag_list()
         ),
     )
 

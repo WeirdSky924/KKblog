@@ -178,18 +178,8 @@ def _visible_page(queryset, *, page, page_size: int) -> VisibleArticlePage:
     )
 
 
-def visible_article_page(
-    *,
-    actor_id,
-    page: int = 1,
-    page_size: int = 20,
-    section_id=None,
-    tag_ids=(),
-) -> VisibleArticlePage:
-    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
-        raise ValueError("page size must be 10, 20, or 50")
+def _filter_visible_articles(queryset, *, section_id=None, tag_ids=()):
     selected_tag_ids = _tag_ids(tag_ids)
-    queryset = _visible_articles(actor_id=actor_id)
     if section_id is not None:
         try:
             section_identity = UUID(str(section_id))
@@ -208,14 +198,36 @@ def visible_article_page(
                 distinct=True,
             )
         )
-        queryset = queryset.order_by("-matched_tag_count", "-published_at", "-id")
-    else:
-        queryset = queryset.order_by("-published_at", "-id")
+        return queryset.order_by("-matched_tag_count", "-published_at", "-id")
+    return queryset.order_by("-published_at", "-id")
+
+
+def visible_article_page(
+    *,
+    actor_id,
+    page: int = 1,
+    page_size: int = 20,
+    section_id=None,
+    tag_ids=(),
+) -> VisibleArticlePage:
+    if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
+        raise ValueError("page size must be 10, 20, or 50")
+    queryset = _filter_visible_articles(
+        _visible_articles(actor_id=actor_id),
+        section_id=section_id,
+        tag_ids=tag_ids,
+    )
     return _visible_page(queryset, page=page, page_size=page_size)
 
 
 def visible_articles_by_author(
-    *, actor_id, author_id, page: int = 1, page_size: int = 20
+    *,
+    actor_id,
+    author_id,
+    page: int = 1,
+    page_size: int = 20,
+    section_id=None,
+    tag_ids=(),
 ) -> VisibleArticlePage:
     if isinstance(page_size, bool) or page_size not in ALLOWED_PAGE_SIZES:
         raise ValueError("page size must be 10, 20, or 50")
@@ -223,9 +235,13 @@ def visible_articles_by_author(
         author = UUID(str(author_id))
     except (TypeError, ValueError):
         raise ValueError("author id must be a UUID") from None
-    queryset = _visible_articles(actor_id=actor_id).filter(author_id=author)
+    queryset = _filter_visible_articles(
+        _visible_articles(actor_id=actor_id).filter(author_id=author),
+        section_id=section_id,
+        tag_ids=tag_ids,
+    )
     return _visible_page(
-        queryset.order_by("-published_at", "-id"),
+        queryset,
         page=page,
         page_size=page_size,
     )

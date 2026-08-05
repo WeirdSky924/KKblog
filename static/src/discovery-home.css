@@ -2,12 +2,17 @@
   padding-block: 0;
 }
 
+.search-main {
+  padding-block: 0;
+}
+
 .home-page {
   min-width: 0;
   background: var(--surface-page);
 }
 
-.home-page--with-navigation {
+.home-page--with-navigation,
+.search-entry.home-articles {
   --home-navigation-width: clamp(15rem, 18vw, 18rem);
   --home-navigation-reserve: calc(var(--home-navigation-width) + 2rem);
 }
@@ -217,12 +222,22 @@
   border-block-start: 4px solid var(--accent);
 }
 
+.home-articles__heading h1,
 .home-articles__heading h2 {
   margin: 0;
   font-size: 2.5rem;
   font-weight: 740;
   letter-spacing: 0;
   line-height: 1.2;
+}
+
+.search-entry.home-articles {
+  width: min(calc(100% - 4rem), 80rem);
+  margin-inline: auto;
+}
+
+.search-entry .home-articles__heading {
+  margin-block-end: 0;
 }
 
 .home-articles .article-index__list {
@@ -232,7 +247,7 @@
 
 .home-articles .article-index-row {
   grid-template-columns: minmax(12rem, min(40%, 22rem)) minmax(0, 1fr);
-  padding-block: 1.75rem;
+  padding-block: 0;
   overflow: visible;
   border: 0;
   border-block-start: 1px solid var(--line);
@@ -242,11 +257,10 @@
 
 .home-articles .article-index-row__cover {
   border: 0;
-  aspect-ratio: 3 / 2;
 }
 
 .home-articles .article-index-row__body {
-  padding: 0.25rem 0 0.25rem 2rem;
+  padding: 1.75rem 0 1.75rem 2rem;
 }
 
 .home-articles .article-index-row__title-line h3 {
@@ -267,10 +281,20 @@
     width: min(100%, 68rem);
     margin-inline: auto;
   }
+
+  .search-entry.home-articles {
+    width: min(
+      calc(
+        100% - var(--home-navigation-reserve) - var(--home-navigation-reserve)
+      ),
+      68rem
+    );
+  }
 }
 
 @media (max-width: 63.99rem) {
   .home-page--with-navigation .home-articles__inner,
+  .search-entry.home-articles,
   .home-shell .site-footer__inner {
     width: min(calc(100% - 6rem), 80rem);
   }
@@ -351,6 +375,7 @@
     font-size: 2.25rem;
   }
 
+  .home-articles__heading h1,
   .home-articles__heading h2 {
     font-size: 2rem;
   }
@@ -360,6 +385,7 @@
   }
 
   .home-articles .article-index-row__cover {
+    aspect-ratio: 3 / 2;
     border-block-end: 0;
   }
 

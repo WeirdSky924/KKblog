@@ -28,6 +28,11 @@
             <dd>{{ view_count }}</dd>
           </div>
         </dl>
+        {% if article.tags %}
+          <nav class="article-reader__tags" aria-label="文章标签">
+            {% for tag in article.tags %}<a class="article-tag" href="{% url 'public:tag' tag.tag_id %}">{{ tag.name }}</a>{% endfor %}
+          </nav>
+        {% endif %}
       </div>
       <div class="article-reader__actions" data-article-top-actions>
         {% include "discovery/partials/bookmark_control.html" %}

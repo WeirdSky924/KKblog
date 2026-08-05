@@ -45,6 +45,22 @@ class HomePageForm(PaginationForm):
         return cleaned_data
 
 
+class ProfilePageForm(HomePageForm):
+    section = forms.ChoiceField(
+        required=False,
+        choices=(),
+        error_messages={"invalid_choice": "所选分区已不可用。"},
+    )
+
+    def __init__(self, *args, section_choices=(), **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["section"].choices = (("", "全部分区"), *section_choices)
+
+    def clean_section(self) -> UUID | None:
+        value = self.cleaned_data.get("section")
+        return UUID(value) if value else None
+
+
 class SearchPageForm(PaginationForm):
     q = forms.CharField(
         required=True,

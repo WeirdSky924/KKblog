@@ -30,6 +30,15 @@
   text-decoration: none;
 }
 
+.authoring-rail button.authoring-rail__step {
+  width: 100%;
+  border-block-start: 0;
+  border-inline: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+}
+
 .authoring-rail__step > span {
   font-variant-numeric: tabular-nums;
   font-size: 1.125rem;
@@ -155,9 +164,9 @@
 
 .author-article-row__cover {
   min-width: 0;
-  aspect-ratio: 16 / 9;
   overflow: hidden;
-  align-self: start;
+  align-self: stretch;
+  min-height: 0;
   border-inline-end: 1px solid var(--line);
   background: var(--surface-media);
 }
@@ -1298,9 +1307,9 @@
   }
 
   .author-article-row__cover {
-    margin: 1rem 0 0 1rem;
+    margin: 0;
     border: 1px solid var(--line);
-    border-radius: 4px;
+    border-radius: 0;
   }
 
   .author-article-row__title {

@@ -124,6 +124,18 @@ class ChangePasswordForm(forms.Form):
         validators=[validate_password_strength],
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
+    confirm_password = forms.CharField(
+        label="确认新密码",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "两次输入的新密码不一致")
+        return cleaned_data
 
 
 class NewEmailCodeForm(forms.Form):
@@ -135,6 +147,7 @@ class NewEmailCodeForm(forms.Form):
 
 
 class ChangeEmailForm(NewEmailCodeForm):
+    new_email = forms.EmailField(max_length=254, widget=forms.HiddenInput())
     code = forms.RegexField(
         label="新邮箱验证码",
         regex=r"[0-9]{6}",

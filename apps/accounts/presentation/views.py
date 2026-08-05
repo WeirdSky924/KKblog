@@ -605,7 +605,11 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         form = ChangeEmailForm(request.POST)
         if not form.is_valid():
             return _render_settings(
-                request, email_form=form, active_tab="credentials", status=422
+                request,
+                email_form=form,
+                code_sent=True,
+                active_tab="credentials",
+                status=422,
             )
         try:
             result = change_email(
@@ -620,7 +624,11 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         except CredentialError as exc:
             form.add_error(exc.field, str(exc))
             return _render_settings(
-                request, email_form=form, active_tab="credentials", status=422
+                request,
+                email_form=form,
+                code_sent=True,
+                active_tab="credentials",
+                status=422,
             )
         return _rotated_response(request, result)
     form = ChangePasswordForm(request.POST)

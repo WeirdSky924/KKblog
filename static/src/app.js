@@ -98,6 +98,7 @@ import {
   initializeLiveSubmitForms,
   initializeLiveSubmitSupport,
 } from "./live-submit.js";
+import { initializePasswordReveals } from "./password-reveal.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -1078,6 +1079,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeArticleActions(root);
   initializeCharacterCounts(root);
   initializePublicationForms(root);
+  initializePasswordReveals(root);
   initializeArticleDraftClears(root);
   initializeAuthorEditors(root);
   initializeMediaPickers(root);
@@ -1102,6 +1104,7 @@ document.addEventListener("htmx:load", (event) => {
   initializeNavigationTrees(root);
   initializeHomeNavigation(root);
   initializeArticleActions(root);
+  initializePasswordReveals(root);
   initializeAdministrationOperations(root);
   initializeLiveSubmitForms(root);
 });
@@ -1177,6 +1180,7 @@ initializeConfirmDialogs();
 initializeArticleActions();
 initializeCharacterCounts();
 initializePublicationForms();
+initializePasswordReveals();
 initializeArticleDraftClears();
 initializeAuthorEditors();
 initializeMediaPickers();

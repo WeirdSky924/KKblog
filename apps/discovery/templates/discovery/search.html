@@ -1,29 +1,14 @@
 {% extends "base.html" %}
 
 {% block title %}搜索 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}search-shell{% endblock %}
+{% block main_layout_class %}site-main search-main{% endblock %}
 
 {% block content %}
-  <section class="search-entry" aria-labelledby="search-title">
-    <header class="page-heading">
+  <section class="search-entry home-articles" aria-labelledby="search-title">
+    <header class="page-heading home-articles__heading">
       <h1 id="search-title">搜索文章</h1>
     </header>
-    <form
-      class="search-page-form"
-      action="{{ index_action }}"
-      method="get"
-      role="search"
-      hx-get="{{ index_action }}"
-      hx-target="#article-index"
-      hx-swap="outerHTML"
-      hx-push-url="true"
-      hx-indicator="#article-index-loading"
-    >
-      <label for="{{ pagination_form.q.id_for_label }}">文章标题</label>
-      <div>
-        {{ pagination_form.q }}
-        <button class="button button--primary" type="submit">搜索</button>
-      </div>
-    </form>
     {% include "discovery/partials/article_index.html" %}
   </section>
 {% endblock %}

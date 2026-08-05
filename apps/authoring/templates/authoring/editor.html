@@ -28,6 +28,7 @@
       </header>
 
       <form
+        id="author-editor-form"
         class="author-editor-form"
         method="post"
         action="{% if editor_mode == 'create' %}{% url 'authoring:create' %}{% else %}{% url 'authoring:edit' article_id=editor_article_id %}{% endif %}"
@@ -266,9 +267,15 @@
             <a class="button button--secondary" href="{% url 'authoring:versions' article_id=editor_article_id %}">
               <i data-lucide="history"></i><span>版本</span>
             </a>
-            <a class="button author-editor-review" href="{% url 'authoring:review' article_id=editor_article_id %}">
+            <button
+              class="button author-editor-review"
+              type="submit"
+              name="save_intent"
+              value="review"
+              {% if editor_frozen %}disabled{% endif %}
+            >
               <i data-lucide="send"></i><span>终稿审查</span>
-            </a>
+            </button>
           {% endif %}
           <button class="button button--primary" type="submit" {% if editor_frozen %}disabled{% endif %}>
             <i data-lucide="save"></i>

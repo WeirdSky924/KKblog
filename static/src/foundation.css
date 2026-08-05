@@ -24,6 +24,10 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+html:has(.site-header:focus-within) {
+  scroll-padding-block-start: 0;
+}
+
 body {
   min-height: 100vh;
   min-height: 100svh;

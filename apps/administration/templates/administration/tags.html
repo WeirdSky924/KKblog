@@ -30,25 +30,31 @@
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
 
     {% if rows %}
-      <div id="tag-list" class="admin-queue__table-wrap" tabindex="0" aria-label="标签审核与历史列表">
+      <div id="tag-list" class="admin-queue__table-wrap admin-queue__table-wrap--tags" aria-label="标签审核与历史列表">
         <table class="admin-queue__table admin-queue__table--tags">
           <thead><tr><th>标签</th><th>状态</th><th>提议与审核</th><th>当前关联</th><th>历史与冲突</th><th>操作</th></tr></thead>
           <tbody>
             {% for row in rows %}
               <tr>
-                <td><strong>{{ row.tag.name }}</strong><small>{{ row.tag.id }}</small></td>
-                <td>
+                <td data-label="标签"><strong>{{ row.tag.name }}</strong><small>{{ row.tag.id }}</small></td>
+                <td data-label="状态">
                   {% if row.tag.state == "PENDING" %}待审核{% elif row.tag.state == "ACTIVE" %}全站可用{% elif row.tag.state == "REJECTED" %}已驳回{% else %}已删除{% endif %}
                   <small>{{ row.tag.updated_at|date:"Y-m-d H:i" }}</small>
                 </td>
-                <td>{{ row.proposer_label }}<small>{{ row.reviewer_label }}</small></td>
-                <td>{{ row.tag.current_article_count }} 篇文章</td>
-                <td>
+                <td data-label="提议与审核">{{ row.proposer_label }}<small>{{ row.reviewer_label }}</small></td>
+                <td data-label="当前关联">{{ row.tag.current_article_count }} 篇文章</td>
+                <td data-label="历史与冲突">
                   {{ row.tag.association_history_count }} 条历史
                   <small>{{ row.tag.pending_history_count }} 条待恢复 · {{ row.tag.open_conflict_count }} 条冲突</small>
                 </td>
-                <td><div class="admin-queue__actions">
-                  <a href="?detail={{ row.tag.id }}#tag-detail">查看历史</a>
+                <td data-label="操作"><div class="admin-queue__actions">
+                  <a
+                    id="{{ row.history_trigger_id }}"
+                    href="{{ row.history_url }}"
+                    data-dialog-trigger
+                    data-dialog-return-hash="tag-list"
+                    aria-controls="tag-history-dialog"
+                  >查看历史</a>
                   {% if row.tag.can_review %}
                     <a id="tag-approve-{{ row.tag.id }}" href="?confirm_action=approve&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">通过</a>
                     <a id="tag-reject-{{ row.tag.id }}" href="?confirm_action=reject&amp;tag_id={{ row.tag.id }}#tag-list" data-dialog-trigger data-dialog-return-hash="tag-list" aria-controls="tag-action-dialog">驳回</a>
@@ -66,7 +72,17 @@
     {% endif %}
 
     {% if detail %}
-      <section id="tag-detail" class="admin-queue__detail" aria-labelledby="tag-detail-title">
+      <dialog
+        id="tag-history-dialog"
+        class="confirm-dialog admin-tag-history-dialog"
+        data-confirm-dialog
+        data-auto-modal
+        data-dialog-return-focus="tag-history-{{ detail.tag.id }}"
+        data-dialog-return-url="{{ tag_detail_return_url }}"
+        aria-labelledby="tag-detail-title"
+      >
+        <div class="confirm-dialog__content admin-tag-history-dialog__content">
+        <section class="admin-queue__detail" aria-labelledby="tag-detail-title">
         <header>
           <p>{{ detail.tag.state }} · {{ detail.tag.id }}</p>
           <h2 id="tag-detail-title">{{ detail.tag.name }}的关联历史</h2>
@@ -98,8 +114,10 @@
             {% if detail.history_truncated %}<p>关联历史较多，本页仅显示最近 200 条。</p>{% endif %}
           {% else %}<p>这个标签还没有删除或恢复历史。</p>{% endif %}
         </section>
-        <p><a href="{% url 'admin:tags' %}#tag-list">关闭历史详情</a></p>
+        <p><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></p>
       </section>
+        </div>
+      </dialog>
     {% endif %}
   </section>
 

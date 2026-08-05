@@ -5,14 +5,19 @@
 {% block content %}
   <section class="public-profile" aria-labelledby="profile-title">
     <header class="public-profile__header">
-      {% include "accounts/partials/avatar.html" with identity=profile only %}
-      <div>
-        <p class="account-kicker">公开主页</p>
-        <h1 id="profile-title">{{ profile.display_name }}</h1>
+      <div class="public-profile__identity">
+        {% include "accounts/partials/avatar.html" with identity=profile only %}
+        <div class="public-profile__title">
+          <p class="account-kicker">公开主页</p>
+          <h1 id="profile-title">{{ profile.display_name }}</h1>
+        </div>
+      </div>
+      <div class="public-profile__folio" aria-hidden="true">
+        <span>{{ profile.avatar_initial }}</span>
       </div>
     </header>
     <section class="public-profile__articles" aria-labelledby="articles-title">
-      <header>
+      <header class="public-profile__articles-heading">
         <p class="account-kicker">文章</p>
         <h2 id="articles-title">发布文章</h2>
       </header>

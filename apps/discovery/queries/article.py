@@ -12,6 +12,7 @@ from redis.exceptions import RedisError
 
 from apps.content.public import (
     ArticleNotFound,
+    TagItem,
     article_for_reader,
     public_article_cache_snapshot,
     render_public_article_body,
@@ -43,6 +44,7 @@ class ArticleDetailPage:
     author_id: UUID
     title: str
     visibility: str
+    tags: tuple[TagItem, ...]
     body_html: SafeString
     toc: tuple[ArticleTocItem, ...]
     cover_url: str
@@ -242,6 +244,7 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
         author_id=source.author_id,
         title=source.title,
         visibility=source.visibility,
+        tags=source.tags,
         body_html=body_html,
         toc=toc,
         cover_url=(

@@ -215,6 +215,10 @@ def _classification_id(value, *, object_name: str) -> UUID:
 def _admin_tag_queryset():
     return Tag.objects.annotate(
         current_article_count=Count("current_articles", distinct=True),
+        revision_article_count=Count(
+            "revision_snapshots__revision__working_for_articles",
+            distinct=True,
+        ),
         association_history_count=Count("association_history", distinct=True),
         pending_history_count=Count(
             "association_history",
@@ -234,6 +238,10 @@ def _tag_item(tag: Tag) -> AdminTagItem:
     history_count = int(tag.association_history_count)
     pending_count = int(tag.pending_history_count)
     conflict_count = int(tag.open_conflict_count)
+    # Before delete/restore history exists, immutable revision facts can repair a
+    # missing current projection without reviving an intentionally removed link.
+    if tag.state in (Tag.State.PENDING, Tag.State.ACTIVE) and history_count == 0:
+        current_count = max(current_count, int(tag.revision_article_count))
     return AdminTagItem(
         id=tag.id,
         name=tag.name,

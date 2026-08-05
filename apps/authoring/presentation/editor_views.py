@@ -1,7 +1,7 @@
 import json
 from urllib.parse import urlencode
 
-from django.http import Http404, HttpResponseNotAllowed
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -409,6 +409,13 @@ def edit(request, article_id: str):
                             auto_publish_error = exc.safe_message
                     else:
                         auto_published = republished.published
+            if request.POST.get("save_intent") == "review":
+                review_url = reverse("authoring:review", args=(article_id,))
+                if is_htmx_fragment_request(request):
+                    response = HttpResponse(status=204)
+                    response.headers["HX-Redirect"] = review_url
+                    return private_response(response)
+                return private_response(redirect(review_url))
             saved_article = article_for_author(
                 actor_id=actor_id,
                 article_id=article_id,

@@ -26,12 +26,13 @@ from apps.media.public import (
 )
 
 from ..events import ARTICLE_ADMIN_VIEWED
-from ..models import AdminArticleViewReceipt, Article, ArticleRevision
+from ..models import AdminArticleViewReceipt, Article, ArticleRevision, RevisionTag, Tag
 from ..policies import article_is_reader_masked, author_is_content_masked
 from ..rendering_policy import (
     configured_content_embed_policy,
     content_rendering_version,
 )
+from .classification import TagItem
 
 
 class ArticleNotFound(LookupError):
@@ -63,6 +64,7 @@ class ArticleView:
     deleted_at: datetime | None
     cover_asset_id: str | None
     attachment_asset_id: str | None
+    tags: tuple[TagItem, ...]
     published_at: datetime | None
     scheduled_for: datetime | None
     published_revision_id: str | None
@@ -99,6 +101,7 @@ class PublicArticleCacheSnapshot:
     published_at: datetime
     readable_cover_asset_id: str | None
     readable_attachment_asset_id: str | None
+    tags: tuple[TagItem, ...]
     sanitizer_version: str
 
 
@@ -154,6 +157,7 @@ def _view(
         deleted_at=article.deleted_at,
         cover_asset_id=revision.cover_asset_id,
         attachment_asset_id=revision.attachment_asset_id,
+        tags=_visible_revision_tags(revision),
         published_at=article.published_at,
         scheduled_for=article.scheduled_for,
         published_revision_id=article.published_revision_id,
@@ -168,6 +172,16 @@ def _view(
             or article.working_revision_id != article.published_revision_id
         ),
     )
+
+
+def _visible_revision_tags(revision: ArticleRevision) -> tuple[TagItem, ...]:
+    rows = (
+        RevisionTag.objects.select_related("tag")
+        .filter(revision=revision)
+        .exclude(tag__state__in=(Tag.State.REJECTED, Tag.State.DELETED))
+        .order_by("tag__normalized_name", "tag_id")
+    )
+    return tuple(TagItem(row.tag_id, row.tag.name, row.tag.state) for row in rows)
 
 
 def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
@@ -256,6 +270,7 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
         published_at=article.published_at,
         readable_cover_asset_id=readable_cover_asset_id,
         readable_attachment_asset_id=readable_attachment_asset_id,
+        tags=_visible_revision_tags(revision),
         sanitizer_version=content_rendering_version(),
     )
 

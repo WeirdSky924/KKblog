@@ -42,7 +42,7 @@
           <span>{% if current_asset_id %}图片已选择{% else %}尚未选择{{ label }}{% endif %}</span>
         </div>
       {% endif %}
-      {% if adapter == "article-cover" or adapter == "article-attachment" %}
+      {% if adapter == "avatar" or adapter == "article-cover" or adapter == "article-attachment" %}
         <button
           class="icon-button media-picker__preview-remove"
           type="button"
@@ -97,7 +97,7 @@
           <i data-lucide="rotate-cw"></i>
           重试
         </button>
-        {% if adapter != "article-cover" and adapter != "article-body" and adapter != "article-attachment" %}
+        {% if adapter != "avatar" and adapter != "article-cover" and adapter != "article-body" and adapter != "article-attachment" %}
           <button
             class="icon-button"
             type="button"

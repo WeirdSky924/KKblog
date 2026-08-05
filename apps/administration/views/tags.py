@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -167,6 +169,11 @@ def _render(
     rows = tuple(
         {
             "tag": item,
+            "history_url": (
+                f"{reverse('admin:tags')}?"
+                f"{urlencode({'state': state, 'detail': str(item.id)} if state else {'detail': str(item.id)})}"
+            ),
+            "history_trigger_id": f"tag-history-{item.id}",
             "proposer_label": (
                 account_label(labels, item.proposed_by_id)
                 if item.proposed_by_id is not None
@@ -203,6 +210,10 @@ def _render(
             "detail": detail,
             "detail_proposer_label": detail_proposer_label,
             "detail_reviewer_label": detail_reviewer_label,
+            "tag_detail_return_url": (
+                f"{reverse('admin:tags')}"
+                f"{('?' + urlencode({'state': state})) if state else ''}#tag-list"
+            ),
             "confirmation_kind": confirmation_kind,
             "confirmation_form": confirmation_form,
             "dialog": _dialog(

@@ -101,7 +101,20 @@
 }
 
 .media-picker[data-media-picker="avatar"] .media-picker__preview {
+  align-self: start;
+  overflow: visible;
   border-radius: 50%;
+}
+
+.media-picker[data-media-picker="avatar"] .media-picker__preview img {
+  border-radius: inherit;
+}
+
+.media-picker[data-media-picker="avatar"] .media-picker__preview-remove {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  border: 0;
+  background: transparent;
 }
 
 .media-picker__preview img {

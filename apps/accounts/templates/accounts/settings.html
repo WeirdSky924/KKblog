@@ -76,7 +76,10 @@
             <p class="account-panel__description">需要当前密码；成功后保留本设备并退出其他设备。</p>
             <form method="post" data-submit-once data-live-submit="account-password" class="account-form">
               {% csrf_token %}<input type="hidden" name="action" value="change_password">
-              {{ password_form.as_div }}
+              {{ password_form.non_field_errors }}
+              {% include "accounts/partials/password_field.html" with field=password_form.current_password only %}
+              {% include "accounts/partials/password_field.html" with field=password_form.new_password only %}
+              {% include "accounts/partials/password_field.html" with field=password_form.confirm_password only %}
               <button class="button button--primary" type="submit">修改密码</button>
             </form>
           </section>
@@ -92,7 +95,14 @@
               <p class="account-status" role="status">验证码已发送到新邮箱。</p>
               <form method="post" data-submit-once data-live-submit="account-email-change" class="account-form">
                 {% csrf_token %}<input type="hidden" name="action" value="change_email">
-                {{ email_form.as_div }}
+                {{ email_form.new_email }}
+                {{ email_form.non_field_errors }}
+                {{ email_form.new_email.errors }}
+                <div>
+                  {{ email_form.code.label_tag }}
+                  {{ email_form.code }}
+                  {{ email_form.code.errors }}
+                </div>
                 <button class="button button--primary" type="submit">确认新邮箱</button>
               </form>
             {% endif %}

@@ -12,6 +12,7 @@ from apps.discovery.presentation.forms import (
     BookmarkStateForm,
     HomePageForm,
     PaginationForm,
+    ProfilePageForm,
     SearchPageForm,
 )
 from apps.discovery.queries import (
@@ -374,13 +375,27 @@ def bookmarks(request):
 
 
 def public_profile(request, account_id):
-    form = PaginationForm(request.GET)
+    actor_id = _actor_id(request)
+    filter_options = discovery_filters(actor_id=actor_id)
+    form = ProfilePageForm(
+        request.GET,
+        section_choices=(
+            (str(option.filter_id), option.name) for option in filter_options.sections
+        ),
+        tag_choices=(
+            (str(option.filter_id), option.name) for option in filter_options.tags
+        ),
+    )
     valid = form.is_valid()
+    selected_section_id = form.cleaned_data["section"] if valid else None
+    selected_tag_ids = form.cleaned_data["tags"] if valid else ()
     page = profile_article_page(
-        actor_id=_actor_id(request),
+        actor_id=actor_id,
         account_id=account_id,
         page=form.cleaned_data["page"] if valid else 1,
         page_size=form.cleaned_data["per_page"] if valid else 20,
+        section_id=selected_section_id,
+        tag_ids=selected_tag_ids,
     )
     if page is None:
         raise Http404 from None
@@ -390,16 +405,38 @@ def public_profile(request, account_id):
         _page_template(request, "discovery/public_profile.html"),
         {
             "profile": page.identity,
+            "filter_options": filter_options,
             "pagination_form": form,
             "index_page": page.index_page,
             "pagination_query": (
-                _pagination_query(request, page.index_page.page_size) if valid else ""
+                _pagination_query(
+                    request,
+                    page.index_page.page_size,
+                    tag_ids=selected_tag_ids,
+                )
+                if valid
+                else ""
             ),
             "index_action": profile_url,
-            "selected_tag_ids": (),
-            "index_empty_title": "此处还没有公开文章",
-            "index_empty_action_url": reverse("public:home"),
-            "index_empty_action_label": "浏览最新文章",
+            "clear_filter_url": profile_url,
+            "selected_section_id": selected_section_id,
+            "selected_tag_ids": selected_tag_ids,
+            "profile_filter_mode": True,
+            "index_empty_title": (
+                "没有符合筛选条件的文章"
+                if selected_section_id or selected_tag_ids
+                else "此处还没有公开文章"
+            ),
+            "index_empty_action_url": (
+                profile_url
+                if selected_section_id or selected_tag_ids
+                else reverse("public:home")
+            ),
+            "index_empty_action_label": (
+                "清除筛选"
+                if selected_section_id or selected_tag_ids
+                else "浏览最新文章"
+            ),
         },
         status=200 if valid else 422,
     )

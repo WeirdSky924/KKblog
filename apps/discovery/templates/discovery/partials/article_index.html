@@ -1,8 +1,8 @@
 <div id="article-index" class="article-index" data-article-index data-focus-after-swap tabindex="-1">
-  <p id="article-index-loading" class="article-index__loading htmx-indicator" role="status">正在更新文章列表…</p>
+  {% if not filter_options.tags %}<p id="article-index-loading" class="article-index__loading htmx-indicator" role="status">正在更新文章列表…</p>{% endif %}
   {% if filter_options.sections and not sections_managed_by_navigation or filter_options.tags %}
-    <div class="discovery-filters">
-      {% if filter_options.sections and not sections_managed_by_navigation %}
+    <div class="discovery-filters{% if sections_managed_by_navigation %} discovery-filters--tag-only{% endif %}{% if profile_filter_mode %} discovery-filters--profile{% endif %}">
+      {% if filter_options.sections and not sections_managed_by_navigation and not profile_filter_mode %}
         <nav class="section-filter" aria-label="文章分区">
           <span class="discovery-filters__label">分区</span>
           <div class="section-filter__links">
@@ -12,8 +12,8 @@
           </div>
         </nav>
       {% endif %}
-      {% if filter_options.tags %}<form
-        class="tag-filter"
+      {% if profile_filter_mode or filter_options.tags %}<form
+        class="tag-filter{% if profile_filter_mode %} profile-filter{% endif %}"
         data-tag-filter
         action="{{ index_action }}"
         method="get"
@@ -21,23 +21,43 @@
         hx-target="#article-index"
         hx-swap="outerHTML"
         hx-push-url="true"
+        hx-trigger="change"
+        hx-sync="this:replace"
         hx-indicator="#article-index-loading"
       >
-        <fieldset>
-          <legend>标签筛选</legend>
-          <div class="tag-filter__options">
-            {% for checkbox in pagination_form.tags %}
-              <label class="tag-filter__option">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
-            {% empty %}
-              <p>暂无可筛选标签</p>
-            {% endfor %}
+        {% if profile_filter_mode and filter_options.sections %}
+          <div class="profile-filter__section">
+            <label for="{{ pagination_form.section.id_for_label }}">分区</label>
+            {{ pagination_form.section }}
           </div>
-          <div class="tag-filter__actions">
-            <span data-tag-selection-count aria-live="polite">已选择 {{ selected_tag_ids|length }} / 5</span>
-            <button class="button button--primary" type="submit">筛选</button>
-            {% if selected_tag_ids %}<a class="button button--secondary" href="{{ clear_filter_url }}">清除</a>{% endif %}
-          </div>
-        </fieldset>
+        {% endif %}
+        {% if filter_options.tags %}
+          <details class="tag-filter__disclosure"{% if selected_tag_ids %} open{% endif %}>
+            <summary class="tag-filter__summary">
+              <span class="tag-filter__summary-title">标签筛选<span id="article-index-loading" class="tag-filter__loading htmx-indicator" role="status">正在更新文章列表…</span></span>
+              <span class="tag-filter__summary-meta">
+                <span data-tag-selection-count aria-live="polite">已选择 {{ selected_tag_ids|length }} / 5</span>
+                <i data-lucide="chevron-down" aria-hidden="true"></i>
+              </span>
+            </summary>
+            <fieldset>
+              <legend class="visually-hidden">标签筛选</legend>
+              <div class="tag-filter__options">
+                {% for checkbox in pagination_form.tags %}
+                  <label class="tag-filter__option">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+                {% empty %}
+                  <p>暂无可筛选标签</p>
+                {% endfor %}
+              </div>
+            </fieldset>
+          </details>
+        {% endif %}
+        <div class="tag-filter__actions">
+          <noscript><button class="button button--primary" type="submit">筛选</button></noscript>
+          {% if profile_filter_mode and selected_section_id or profile_filter_mode and selected_tag_ids %}
+            <a class="profile-filter__clear" href="{{ clear_filter_url }}" hx-get="{{ clear_filter_url }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true">清除筛选</a>
+          {% endif %}
+        </div>
       </form>{% endif %}
     </div>
   {% endif %}
@@ -75,6 +95,7 @@
         hx-indicator="#article-index-loading"
       >
         {% for tag_id in selected_tag_ids %}<input type="hidden" name="tags" value="{{ tag_id }}">{% endfor %}
+        {% if selected_section_id %}<input type="hidden" name="section" value="{{ selected_section_id }}">{% endif %}
         {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
         <label for="article-page-size">每页</label>
         <select id="article-page-size" name="per_page">

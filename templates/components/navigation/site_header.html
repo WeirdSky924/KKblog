@@ -20,7 +20,7 @@
       </div>
       {% if shell_search_url %}<form class="header-search" action="{{ shell_search_url }}" method="get" role="search">
         <label class="visually-hidden" for="header-search-query">搜索文章标题</label>
-        <input id="header-search-query" name="q" type="search" maxlength="100" placeholder="搜索文章标题" required>
+        <input id="header-search-query" name="q" type="search" maxlength="100" value="{{ search_query|default:'' }}" placeholder="搜索文章标题" required>
         <button class="icon-button" type="submit" aria-label="搜索" title="搜索">
           <i data-lucide="search"></i>
         </button>
