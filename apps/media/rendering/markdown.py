@@ -12,7 +12,7 @@ _MARKDOWN = MarkdownIt(
         "linkify": False,
         "typographer": False,
     },
-)
+).enable("table")
 
 
 def render_markdown(

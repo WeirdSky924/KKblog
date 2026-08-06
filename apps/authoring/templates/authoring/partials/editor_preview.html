@@ -13,8 +13,8 @@
       <p>{{ editor_preview_error }}</p>
     </div>
   {% else %}
-    <article class="article-body author-editor-preview__body" data-preview-body tabindex="0" aria-label="实时预览内容">
-      {% if editor_preview_title %}<h1>{{ editor_preview_title }}</h1>{% endif %}
+    <article class="article-prose author-editor-preview__body" data-preview-body tabindex="0" aria-label="实时预览内容">
+      {% if editor_preview_title %}<h1 class="author-editor-preview__title">{{ editor_preview_title }}</h1>{% endif %}
       {% if editor_preview.html %}
         {{ editor_preview.html|safe }}
       {% else %}

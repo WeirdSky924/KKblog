@@ -65,7 +65,7 @@
           <p>{{ detail.publication_state }} · {{ detail.visibility }} · 修订 {{ detail.revision_id }}</p>
         </header>
         {% if detail.readable_cover_asset_id %}<img class="admin-queue__cover" src="/_kaj/media/{{ detail.readable_cover_asset_id }}" alt="《{{ detail.title }}》封面">{% endif %}
-        <article class="admin-queue__article-body">{{ detail.rendered_body_html|safe }}</article>
+        <article class="article-prose admin-queue__article-body">{{ detail.rendered_body_html|safe }}</article>
         <p><a href="{% url 'admin:articles' %}#article-list">关闭详情</a></p>
       </section>
     {% endif %}

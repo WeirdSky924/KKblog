@@ -9,6 +9,6 @@
       <h1 id="static-page-title">{{ static_page.title }}</h1>
       <time datetime="{{ static_page.updated_at|date:'c' }}">更新于 {{ static_page.updated_at|date:'Y-m-d' }}</time>
     </header>
-    <div class="public-static-page__body prose">{{ static_page.html|safe }}</div>
+    <div class="article-prose public-static-page__body">{{ static_page.html|safe }}</div>
   </article>
 {% endblock %}

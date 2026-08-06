@@ -68,7 +68,7 @@
             {% if selected_version.preview_error %}
               <p class="author-publication__error" role="alert">{{ selected_version.preview_error }}</p>
             {% else %}
-              <div class="author-review-body">{{ selected_version.sanitized_html|safe }}</div>
+              <div class="article-prose author-review-body">{{ selected_version.sanitized_html|safe }}</div>
             {% endif %}
             {% if selected_version.can_restore and restore_form %}
               <form method="post" action="{% url 'authoring:restore-version' article_id=article.article_id %}" data-submit-once class="author-version-restore">

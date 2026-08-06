@@ -12,7 +12,7 @@ from apps.core.ids import normalize_ulid
 
 from .embeds import TrustedEmbedPolicy, configured_trusted_embed_policy
 
-SANITIZER_VERSION = "kaj-html-v1"
+SANITIZER_VERSION = "kaj-html-v2"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_CANDIDATE_BYTES = 8 * MAX_SOURCE_BYTES
 

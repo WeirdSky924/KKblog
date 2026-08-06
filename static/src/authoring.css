@@ -892,7 +892,7 @@
   padding: 1.5rem;
 }
 
-.author-editor-preview__body > h1 {
+.author-editor-preview__body > .author-editor-preview__title {
   margin: 0 0 1.25rem;
   padding-block-end: 1rem;
   border-block-end: 1px solid var(--line);

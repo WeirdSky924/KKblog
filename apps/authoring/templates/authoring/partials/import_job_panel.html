@@ -47,7 +47,7 @@
           {% if row.item.preview_html %}
             <details class="author-import-preview">
               <summary>查看正文预览</summary>
-              <div>{{ row.item.preview_html|safe }}</div>
+              <div class="article-prose">{{ row.item.preview_html|safe }}</div>
             </details>
           {% endif %}
           {% if row.form %}
