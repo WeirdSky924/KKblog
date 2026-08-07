@@ -25,7 +25,7 @@
 ## 当前阶段 Labs 同步
 
 - 当前测试优化阶段中，每个完成且通过聚焦验证的修改切片默认同步到 `https://labs.kajspace.cn`，用户无需重复要求更新 Labs。
-- 同步前必须读回 `kaj-labs.service` 的 `WorkingDirectory/ActiveState/SubState`。当前服务工作目录是 `/home/code/.codex-worktrees/personal-blog/p12-regression-delivery`；当前开发目录与其不同时，只把本任务已完成的运行时文件定向同步到该 Labs worktree，并保留目标内的无关改动。
+- 同步前必须读回 `kaj-labs.service` 的 `WorkingDirectory/ActiveState/SubState`。当前服务工作目录是 `/home/code/.codex-worktrees/personal-blog/labs-test-environment`；当前开发目录与其不同时，只把本任务已完成的运行时文件定向同步到该 Labs worktree，并保留目标内的无关改动。
 - 不同步或删除 `.git`、`.env`、`.venv`、`var/`、数据库、媒体、备份、日志、缓存、测试产物、`node_modules` 或凭据；不得使用会清空目标目录的宽泛同步命令。
 - Python 源码和模板由宿主机 `kaj-labs.service` 热重载；前端源码先生成对应 `static/dist/` 产物，再同步本任务产物。普通代码同步不重建或替换容器，也不重启服务。
 - 同步后读回服务仍为 `active/running`、`/health/live` 返回 `200`，并验证一个直接受影响的 Labs 页面或安全用户流。热重载或读回失败时停止并报告，不自动扩大为重启、迁移或数据修复。

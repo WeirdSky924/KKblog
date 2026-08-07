@@ -53,11 +53,17 @@ def compose_config(values: dict[str, str]) -> subprocess.CompletedProcess[str]:
 
 
 def adapt_caddy(filename: str, *, production: bool) -> subprocess.CompletedProcess[str]:
+    web_host = "blog.example.com" if production else "localhost"
+    web_proto = "https" if production else "http"
     environment = [
         "-e",
         "KAJ_CADDY_UPSTREAM=web:8000",
         "-e",
         "KAJ_UMAMI_UPSTREAM=umami:3000",
+        "-e",
+        f"KAJ_WEB_HOST={web_host}",
+        "-e",
+        f"KAJ_WEB_PROTO={web_proto}",
     ]
     if production:
         environment.extend(["-e", "KAJ_PUBLIC_HOST=blog.example.com"])
@@ -211,6 +217,42 @@ def client_ip_proxy_violations(config: dict[str, object]) -> list[str]:
     return violations
 
 
+def web_origin_proxy_violations(
+    config: dict[str, object], *, expected_host: str, expected_proto: str
+) -> list[str]:
+    reverse_proxies = [
+        node for node in walk_json(config) if node.get("handler") == "reverse_proxy"
+    ]
+    web_proxies = [
+        proxy
+        for proxy in reverse_proxies
+        if any(
+            upstream.get("dial") == "web:8000"
+            for upstream in proxy.get("upstreams", [])
+            if isinstance(upstream, dict)
+        )
+    ]
+    if len(web_proxies) != 3:
+        return ["Caddy must define exactly three Web proxy routes"]
+
+    violations: list[str] = []
+    for proxy in web_proxies:
+        configured = {
+            name.casefold(): values
+            for name, values in proxy.get("headers", {})
+            .get("request", {})
+            .get("set", {})
+            .items()
+        }
+        if configured.get("host") != [expected_host]:
+            violations.append("Every Web proxy route must set the trusted Host")
+        if configured.get("x-forwarded-proto") != [expected_proto]:
+            violations.append(
+                "Every Web proxy route must set the trusted forwarded protocol"
+            )
+    return violations
+
+
 def main() -> int:
     failures: list[str] = []
     configured = compose_config(REQUIRED)
@@ -231,6 +273,10 @@ def main() -> int:
         failures.append("production Caddy must publish only public 80 and 443")
 
     caddy_environment = services["caddy"]["environment"]
+    if caddy_environment.get("KAJ_WEB_HOST") != REQUIRED["KAJ_PUBLIC_HOST"]:
+        failures.append("production Caddy must use the public Host for Web requests")
+    if caddy_environment.get("KAJ_WEB_PROTO") != "https":
+        failures.append("production Caddy must mark Web requests as HTTPS")
     forbidden = {
         "DJANGO_SECRET_KEY",
         "DATABASE_URL",
@@ -271,6 +317,13 @@ def main() -> int:
         adapted_config = json.loads(adapted.stdout)
         failures.extend(analytics_proxy_violations(adapted_config))
         failures.extend(client_ip_proxy_violations(adapted_config))
+        failures.extend(
+            web_origin_proxy_violations(
+                adapted_config,
+                expected_host="blog.example.com" if production else "localhost",
+                expected_proto="https" if production else "http",
+            )
+        )
 
     if failures:
         print("\n".join(failures), file=sys.stderr)

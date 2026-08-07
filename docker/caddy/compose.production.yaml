@@ -34,6 +34,8 @@ services:
       KAJ_PUBLIC_HOST: ${KAJ_PUBLIC_HOST:?KAJ_PUBLIC_HOST is required}
       KAJ_PUBLIC_URL: ${KAJ_PUBLIC_URL:?KAJ_PUBLIC_URL is required}
       KAJ_CADDY_UPSTREAM: web:8000
+      KAJ_WEB_HOST: ${KAJ_PUBLIC_HOST:?KAJ_PUBLIC_HOST is required}
+      KAJ_WEB_PROTO: https
       KAJ_UMAMI_UPSTREAM: umami:3000
     ports: !override
       - name: public-http

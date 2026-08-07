@@ -9,6 +9,8 @@
 			forward_auth {$KAJ_CADDY_UPSTREAM:web:8000} {
 				uri /internal/media/authorize
 				header_up X-Kaj-Internal-Auth "1"
+				header_up Host {$KAJ_WEB_HOST:localhost}
+				header_up X-Forwarded-Proto {$KAJ_WEB_PROTO:http}
 				copy_headers X-Kaj-Storage-Key X-Kaj-Cache-Control X-Kaj-Public
 			}
 

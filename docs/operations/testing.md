@@ -8,7 +8,7 @@
 
 同步前必须运行 `systemctl show kaj-labs.service -p WorkingDirectory -p ActiveState -p SubState` 读回真实目标，不使用记忆中的路径。目标目录必须是本项目的非生产 Labs worktree，不得是默认分支工作树、生产目录或其他任务 worktree。
 
-截至 `2026-07-31`，Labs 由宿主机 `kaj-labs.service` 运行，`WorkingDirectory` 是 `/home/code/.codex-worktrees/personal-blog/p12-regression-delivery`，公网入口是 `https://labs.kajspace.cn`。因此当前 worktree 内的 Python、模板和已生成静态文件直接供 Labs 读取，无需再次复制；Django 源码和模板依赖开发服务器热重载，前端源码必须先按资源门禁运行受影响的 `npm run build:*` 生成 `static/dist/` 产物。
+截至 `2026-08-07`，Labs 由宿主机 `kaj-labs.service` 运行，`WorkingDirectory` 是 `/home/code/.codex-worktrees/personal-blog/labs-test-environment`，公网入口是 `https://labs.kajspace.cn`。因此当前 worktree 内的 Python、模板和已生成静态文件直接供 Labs 读取，无需再次复制；Django 源码和模板依赖开发服务器热重载，前端源码必须先按资源门禁运行受影响的 `npm run build:*` 生成 `static/dist/` 产物。
 
 若以后服务目标与当前开发 worktree 不同，只允许按本任务已完成的运行时文件清单单向同步；不得复制或删除 `.git`、`.env`、`.venv`、`var/`、数据库、媒体、备份、日志、缓存、测试产物、`node_modules` 或无关改动，也不得使用会清空目标的宽泛同步命令。
 

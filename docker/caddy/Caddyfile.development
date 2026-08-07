@@ -23,6 +23,8 @@ http://localhost {
 		respond @internal 404
 
 		reverse_proxy {$KAJ_CADDY_UPSTREAM:web:8000} {
+			header_up Host {$KAJ_WEB_HOST:localhost}
+			header_up X-Forwarded-Proto {$KAJ_WEB_PROTO:http}
 			header_up X-Kaj-Client-IP {http.request.remote.host}
 		}
 	}

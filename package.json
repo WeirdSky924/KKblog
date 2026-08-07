@@ -14,6 +14,7 @@
     "build:navigation-state": "esbuild ./static/src/navigation-state.js --bundle --format=iife --outfile=./static/dist/navigation-state.js --minify",
     "build:theme": "esbuild ./static/src/theme.js --bundle --format=iife --outfile=./static/dist/theme.js --minify",
     "build:js": "esbuild ./static/src/app.js --bundle --format=esm --outfile=./static/dist/app.js --minify",
+    "test:frontend": "node --test tests/frontend/*.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -192,6 +192,8 @@ services:
     environment:
       KAJ_RUNTIME_ENV: ${KAJ_RUNTIME_ENV:-development}
       KAJ_CADDY_UPSTREAM: ${KAJ_CADDY_UPSTREAM:-web:8000}
+      KAJ_WEB_HOST: ${KAJ_WEB_HOST:-localhost}
+      KAJ_WEB_PROTO: ${KAJ_WEB_PROTO:-http}
       KAJ_UMAMI_UPSTREAM: ${KAJ_UMAMI_UPSTREAM:-umami:3000}
     ports:
       - name: local-http
