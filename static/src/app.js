@@ -7,6 +7,7 @@ import {
   Bell,
   Bold,
   Bookmark,
+  BookmarkCheck,
   CalendarX2,
   ChevronDown,
   ChevronLeft,
@@ -44,6 +45,8 @@ import {
   NotebookPen,
   Paperclip,
   PencilLine,
+  Pin,
+  PinOff,
   Quote,
   Redo2,
   Replace,
@@ -58,6 +61,7 @@ import {
   SquareCode,
   Strikethrough,
   Sun,
+  ThumbsUp,
   Trash2,
   Timer,
   TriangleAlert,
@@ -99,6 +103,8 @@ import {
   initializeLiveSubmitSupport,
 } from "./live-submit.js";
 import { initializePasswordReveals } from "./password-reveal.js";
+import { initializeHeaderSearch } from "./header-search.js";
+import { uploadMediaFile } from "./media-upload.js";
 
 const availableIcons = {
   ArrowLeft,
@@ -107,6 +113,7 @@ const availableIcons = {
   Bell,
   Bold,
   Bookmark,
+  BookmarkCheck,
   CalendarX2,
   ChevronDown,
   ChevronLeft,
@@ -144,6 +151,8 @@ const availableIcons = {
   NotebookPen,
   Paperclip,
   PencilLine,
+  Pin,
+  PinOff,
   Quote,
   Redo2,
   Replace,
@@ -158,6 +167,7 @@ const availableIcons = {
   SquareCode,
   Strikethrough,
   Sun,
+  ThumbsUp,
   Trash2,
   Timer,
   TriangleAlert,
@@ -481,14 +491,6 @@ function setMediaPickerState(picker, state) {
   });
 }
 
-function uploadResultNode(source) {
-  const template = document.createElement("template");
-  template.innerHTML = source.trim();
-  const node = template.content.querySelector("[data-media-upload-result]");
-  node?.querySelector("input[type='hidden']")?.remove();
-  return node;
-}
-
 function initializeMediaPickers(root = document) {
   root.querySelectorAll?.("[data-media-picker]").forEach((picker) => {
     if (!(picker instanceof HTMLElement) || picker.dataset.bound === "true") {
@@ -603,72 +605,61 @@ function initializeMediaPickers(root = document) {
       announceUpload(message, "error");
     };
 
-    const upload = () => {
+    const upload = async () => {
       if (!(selectedFile instanceof File)) {
         return;
       }
-      const request = new XMLHttpRequest();
-      const body = new FormData();
-      body.append("file", selectedFile, selectedFile.name);
+      const activeFile = selectedFile;
       setControlsBusy(true);
       retry?.setAttribute("hidden", "");
       remove?.setAttribute("hidden", "");
       progress.value = 0;
       setMediaPickerState(picker, "uploading");
-      request.open("POST", picker.dataset.mediaUploadUrl || "");
-      request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-      if (csrf instanceof HTMLInputElement && csrf.value) {
-        request.setRequestHeader("X-CSRFToken", csrf.value);
-      }
-      request.upload.addEventListener("progress", (event) => {
-        progress.value = event.lengthComputable
-          ? Math.round((event.loaded / event.total) * 100)
-          : 0;
-      });
-      request.addEventListener("load", () => {
-        setControlsBusy(false);
-        const responseNode = uploadResultNode(request.responseText);
+      try {
+        const { assetId } = await uploadMediaFile({
+          file: activeFile,
+          url: picker.dataset.mediaUploadUrl || "",
+          csrfToken: csrf instanceof HTMLInputElement ? csrf.value : "",
+          mediaLabel,
+          onProgress: (value) => {
+            progress.value = value;
+          },
+        });
         result.replaceChildren();
-        if (request.status === 201 && responseNode?.dataset.assetId) {
-          value.value = responseNode.dataset.assetId;
-          value.dispatchEvent(new Event("input", { bubbles: true }));
-          progress.value = 100;
-          remove?.removeAttribute("hidden");
-          retry?.setAttribute("hidden", "");
-          setMediaPickerState(picker, "ready");
-          picker.dispatchEvent(
-            new CustomEvent("kaj:media-ready", {
-              bubbles: true,
-              detail: {
-                adapter: picker.dataset.mediaPicker,
-                assetId: responseNode.dataset.assetId,
-                inputName: picker.dataset.mediaInputName,
-                file: selectedFile,
-              },
-            }),
-          );
-          if (
-            picker.dataset.mediaFavicon === "true" &&
-            favicon instanceof HTMLLinkElement &&
-            previewUrl
-          ) {
-            favicon.href = previewUrl;
-          }
-          announceUpload(`${pickerLabel}上传成功，可以继续保存。`);
-          return;
-        }
-        const serverMessage = responseNode
-          ?.querySelector(".field-error")
-          ?.textContent?.trim();
-        showClientError(
-          serverMessage || `${pickerLabel}上传未完成，请重试。`,
+        value.value = assetId;
+        value.dispatchEvent(new Event("input", { bubbles: true }));
+        progress.value = 100;
+        remove?.removeAttribute("hidden");
+        retry?.setAttribute("hidden", "");
+        setMediaPickerState(picker, "ready");
+        picker.dispatchEvent(
+          new CustomEvent("kaj:media-ready", {
+            bubbles: true,
+            detail: {
+              adapter: picker.dataset.mediaPicker,
+              assetId,
+              inputName: picker.dataset.mediaInputName,
+              file: activeFile,
+            },
+          }),
         );
-      });
-      request.addEventListener("error", () => {
+        if (
+          picker.dataset.mediaFavicon === "true" &&
+          favicon instanceof HTMLLinkElement &&
+          previewUrl
+        ) {
+          favicon.href = previewUrl;
+        }
+        announceUpload(`${pickerLabel}上传成功，可以继续保存。`);
+      } catch (error) {
+        showClientError(
+          error instanceof Error
+            ? error.message
+            : `${pickerLabel}上传未完成，请重试。`,
+        );
+      } finally {
         setControlsBusy(false);
-        showClientError(`暂时无法上传${mediaLabel}，请重试。`);
-      });
-      request.send(body);
+      }
     };
 
     const select = (file) => {
@@ -1089,6 +1080,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeNodeForms(root);
   initializeNavigationTrees(root);
   initializeHomeNavigation(root);
+  initializeHeaderSearch(root);
   initializeAdministrationSettings(root);
   initializeAdministrationOperations(root);
   initializeLiveSubmitForms(root);
@@ -1103,6 +1095,7 @@ document.addEventListener("htmx:load", (event) => {
   initializeNodeForms(root);
   initializeNavigationTrees(root);
   initializeHomeNavigation(root);
+  initializeHeaderSearch(root);
   initializeArticleActions(root);
   initializePasswordReveals(root);
   initializeAdministrationOperations(root);
@@ -1189,6 +1182,7 @@ initializeAuthorOperations();
 initializeNodeForms();
 initializeNavigationTrees();
 initializeHomeNavigation();
+initializeHeaderSearch();
 initializeAdministrationSettings();
 initializeAdministrationOperations();
 initializeLiveSubmitSupport();

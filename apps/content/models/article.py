@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -129,3 +131,7 @@ class Article(models.Model):
             if original_author.author_id != self.author_id:
                 raise ValidationError("文章作者不能转移。")
         super().save(*args, **kwargs)
+
+    @property
+    def latest_published_at(self) -> datetime | None:
+        return self.last_published_at or self.published_at

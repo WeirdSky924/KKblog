@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from django.conf import settings
 from django.utils.module_loading import import_string
@@ -62,6 +63,7 @@ class NavigationItem:
     url: str
     children: tuple["NavigationItem", ...] = ()
     key: str = ""
+    section_id: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.label, str) or not self.label.strip():
@@ -73,6 +75,11 @@ class NavigationItem:
             isinstance(child, NavigationItem) for child in self.children
         ):
             raise TypeError("Navigation children must be NavigationItem values")
+        if self.section_id is not None:
+            try:
+                UUID(str(self.section_id))
+            except (TypeError, ValueError):
+                raise ValueError("Navigation section ID is invalid") from None
 
     @property
     def external(self) -> bool:

@@ -1,12 +1,12 @@
 # Migration 验证与兼容记录
 
-本页记录 P12 `QA-001` 及后续附件能力变更对当前 47 条 Django migration 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
+本页记录 P12 `QA-001` 及后续能力变更对当前 50 条 Django migration 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
 
 当前源码可作为部署候选，但没有生产域名、管理员邮箱、Resend 身份或密钥，也没有生产数据库的规模与锁窗口读回。P12 未连接或迁移生产数据库，未创建生产迁移前备份，未执行生产部署或服务重启。
 
 ## 当前结构与目标结构
 
-- 当前代码的 11 个 migration leaf 已全部应用到附件功能的隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。
+- 当前代码的 11 个 migration leaf 已由发布门禁完整应用到隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。相对上一正式版本，本次新增评论置顶、阅读书签和文章点赞三张独立表，不回填既有数据。
 - 目标结构就是仓库当前 models 与 migration graph；本次增加账户附件能力、修订附件引用，并扩展媒体用途、大小与可空尺寸约束，不回填既有数据。
 - 空库读回覆盖 47 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
 - 生产表量级未知。任何锁时长、索引耗时和备份体积必须在获授权部署前从生产只读统计重新估算。
@@ -39,6 +39,7 @@
 | `comments.0002_comment_created_at_clock` | created_at 默认值语义校正 | M/C1 | B/R1 |
 | `comments.0003_thread_deep_alert` | thread 增加深层告警时间 | M/C0 | B/R1 |
 | `comments.0004_thread_settings_revision` | thread 增加设置修订标识 | M/C0 | B/R1 |
+| `comments.0005_comment_pin` | 新增每文章线程至多一条的评论置顶表与延迟外键 | N/C0 | B/R1 |
 | `content.0001_initial` | article/revision、不可变触发器、同文章指针和基础索引 | N/C0 | B/R1 |
 | `content.0002_section_articlerevision_section` | section、可空分区引用及历史兼容处理 | M+D/C2 | B/R2 |
 | `content.0003_tag_revisiontag_articletag_tagassociationhistory_and_more` | 标签、修订快照、当前投影、历史与约束 | N+D/C2 | B/R2 |
@@ -54,6 +55,8 @@
 | `core.0001_outbox_foundation` | Outbox 表、租约/就绪索引与状态约束 | N/C0 | B/R1 |
 | `discovery.0001_article_view_counter` | 浏览计数与 article 级联外键 | N/C0 | B/R1 |
 | `discovery.0002_bookmark` | 私有收藏与 account 级联外键 | N/C0 | B/R1 |
+| `discovery.0003_reading_bookmark` | 新增账户文章唯一的阅读进度书签、范围约束与延迟外键 | N/C0 | B/R1 |
+| `discovery.0004_article_like` | 新增账户文章唯一的点赞表、计数索引与延迟外键 | N/C0 | B/R1 |
 | `exchange.0001_initial` | 导入 Job/Item、幂等与形状约束 | N/C0 | B/R1 |
 | `exchange.0002_export_jobs` | 导出 Job/Selection、活动任务部分唯一和索引 | N/C0 | B/R1 |
 | `media.0001_initial` | asset/binding、大小/用途/slot 约束与索引 | N/C0 | B/R1 |

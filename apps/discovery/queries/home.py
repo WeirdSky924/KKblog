@@ -20,6 +20,8 @@ from apps.content.public import (
 from apps.core.time import to_shanghai
 from apps.discovery.cache import default_discovery_cache, list_query_hash
 
+from ..profile_identity import ProfileIdentity, resolve_profile_identities
+from .like_counts import article_like_counts
 from .view_counts import article_view_counts
 
 
@@ -35,6 +37,7 @@ class ArticleIndexItem:
     article_id: str
     revision_id: str
     author_id: UUID
+    author: ProfileIdentity
     title: str
     summary: str | None
     section_id: UUID | None
@@ -47,6 +50,7 @@ class ArticleIndexItem:
     visibility: str
     view_count: int
     comment_count: int
+    like_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,13 +268,19 @@ def tag_article_page(
 
 def article_index_page(source) -> ArticleIndexPage:
     article_ids = tuple(item.article_id for item in source.items)
+    authors = resolve_profile_identities(
+        tuple(dict.fromkeys(item.author_id for item in source.items))
+    )
     view_counts = article_view_counts(article_ids=article_ids)
     comment_counts = article_comment_counts(article_ids=article_ids)
+    like_counts = article_like_counts(article_ids=article_ids)
     items = tuple(
         article_index_item(
             item,
+            author=authors[item.author_id],
             view_count=view_counts.get(item.article_id, 0),
             comment_count=comment_counts.get(item.article_id, 0),
+            like_count=like_counts.get(item.article_id, 0),
         )
         for item in source.items
     )
@@ -287,13 +297,19 @@ def article_index_page(source) -> ArticleIndexPage:
 
 
 def article_index_item(
-    source, *, view_count: int, comment_count: int
+    source,
+    *,
+    author: ProfileIdentity,
+    view_count: int,
+    comment_count: int,
+    like_count: int,
 ) -> ArticleIndexItem:
     published = to_shanghai(source.published_at)
     return ArticleIndexItem(
         article_id=source.article_id,
         revision_id=source.revision_id,
         author_id=source.author_id,
+        author=author,
         title=source.title,
         summary=source.summary,
         section_id=source.section_id,
@@ -312,4 +328,5 @@ def article_index_item(
         visibility=source.visibility,
         view_count=view_count,
         comment_count=comment_count,
+        like_count=like_count,
     )

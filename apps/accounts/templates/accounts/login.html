@@ -29,10 +29,7 @@
             {{ password_form.password.as_field_group }}
             {{ password_form.remember.errors }}
             <div class="auth-form__support">
-              <label class="account-checkbox" for="{{ password_form.remember.id_for_label }}">
-                {{ password_form.remember }}
-                <span>{{ password_form.remember.label }}</span>
-              </label>
+              {% include "components/forms/switch.html" with field=password_form.remember only %}
               <a href="{% url 'accounts:password-reset' %}">忘记密码？</a>
             </div>
             <button class="button button--primary auth-form__submit" type="submit"><span>登录</span><i data-lucide="arrow-right" aria-hidden="true"></i></button>

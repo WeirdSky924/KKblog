@@ -154,7 +154,9 @@ def test_draft_and_cooling_period_are_uniform_not_found_for_readers() -> None:
         with pytest.raises(ArticleNotFound):
             article_for_reader(actor_id=actor_id, article_id=published.article_id)
     assert article_for_author(
-        actor_id=owner.id, article_id=published.article_id
+        actor_id=owner.id,
+        article_id=published.article_id,
+        clock=FrozenClock(aggregate.deleted_at + timedelta(hours=1)),
     ).deleted_at
 
 

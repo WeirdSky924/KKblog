@@ -32,6 +32,9 @@
 | `view_login_required` | bool | 文章/留言板策略 |
 | `post_login_required` | bool | 只影响顶层评论；回复始终登录 |
 | `Comment.id` | ULID | 稳定评论 ID |
+| `CommentPin.thread_id` | UUID unique | 每个文章线程至多一个置顶位置 |
+| `CommentPin.comment_id` | ULID unique | 仅指向同线程公开顶层评论 |
+| `CommentPin.pinned_by_id/pinned_at` | UUID?/datetime | 操作者删除后保留置顶事实与时间 |
 | `thread_id` | UUID FK | 目标线程 |
 | `parent_id` | ULID self FK | 顶层为空 |
 | `root_id` | ULID FK | 顶层等于自身，回复指向根，便于分页 |
@@ -47,6 +50,8 @@
 | `deletion_reason` | varchar(200) | 仅管理员动作可选；对相关通知安全展示 |
 
 顶层评论最多三个媒体绑定；回复不允许图片。删除评论立即解绑并删除图片，但保留节点和子回复位置。文章物理删除时评论节点一并物理删除。
+
+`discovery_article_like` 以 `(account_id, article_id)` 唯一，账户或文章物理删除时级联；公开列表按文章 ID 批量聚合计数，不能逐条查询。
 
 ## Report 与 ReportAppeal
 

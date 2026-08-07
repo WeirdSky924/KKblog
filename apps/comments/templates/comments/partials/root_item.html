@@ -1,4 +1,4 @@
-<li id="comment-{{ item.id }}" class="comment-item comment-item--root" data-comment-id="{{ item.id }}">
+<li id="comment-{{ item.id }}" class="comment-item comment-item--root{% if item.is_pinned %} comment-item--pinned{% endif %}" data-comment-id="{{ item.id }}">
   {% include "comments/partials/comment_content.html" %}
   {% if item.reply_page.items or item.reply_page.next_cursor %}
     <ol

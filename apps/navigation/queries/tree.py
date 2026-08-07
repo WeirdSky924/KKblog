@@ -189,6 +189,9 @@ def _public_item(node: AdminNavigationNode) -> NavigationItem | None:
         url=url,
         children=children,
         key=str(node.id),
+        section_id=node.target_id
+        if node.node_type == NavigationNode.NodeType.SECTION
+        else None,
     )
 
 

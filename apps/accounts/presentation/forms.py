@@ -36,13 +36,32 @@ class RegistrationForm(RegistrationCodeForm):
             attrs={"autocomplete": "one-time-code", "inputmode": "numeric"}
         ),
     )
+    nickname = forms.CharField(
+        label="用户名",
+        max_length=16,
+        help_text="中文每个计 2，其他文字每个计 1，总计不超过 16。",
+        widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
+    )
     password = forms.CharField(
         label="密码",
         min_length=8,
         validators=[validate_password_strength],
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
-    remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
+    remember = forms.BooleanField(
+        label="在此设备保持登录 30 天",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"role": "switch"}),
+    )
+
+    def clean_nickname(self):
+        try:
+            nickname = validate_nickname(self.cleaned_data["nickname"]).display
+        except ValidationError as exc:
+            raise forms.ValidationError(exc.messages) from None
+        if nickname is None:
+            raise forms.ValidationError("请输入用户名。")
+        return nickname
 
 
 class PasswordLoginForm(_ScopedAutoIdForm):
@@ -57,7 +76,11 @@ class PasswordLoginForm(_ScopedAutoIdForm):
         label="密码",
         widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )
-    remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
+    remember = forms.BooleanField(
+        label="在此设备保持登录 30 天",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"role": "switch"}),
+    )
 
 
 class LoginCodeRequestForm(_ScopedAutoIdForm):
@@ -81,7 +104,11 @@ class CodeLoginForm(LoginCodeRequestForm):
             attrs={"autocomplete": "one-time-code", "inputmode": "numeric"}
         ),
     )
-    remember = forms.BooleanField(label="在此设备保持登录 30 天", required=False)
+    remember = forms.BooleanField(
+        label="在此设备保持登录 30 天",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"role": "switch"}),
+    )
 
 
 class PasswordResetCodeForm(_ScopedAutoIdForm):

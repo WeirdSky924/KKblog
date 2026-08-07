@@ -366,7 +366,8 @@ def search_visible_titles(
 def _visible_item(article: Article) -> VisibleArticleItem:
     revision = article.published_revision
     assert revision is not None
-    assert article.published_at is not None
+    latest_published_at = article.latest_published_at
+    assert latest_published_at is not None
     section = revision.section
     return VisibleArticleItem(
         article_id=article.id,
@@ -382,7 +383,7 @@ def _visible_item(article: Article) -> VisibleArticleItem:
             for row in revision.visible_index_tags
         ),
         cover_asset_id=revision.cover_asset_id,
-        published_at=article.published_at,
+        published_at=latest_published_at,
     )
 
 

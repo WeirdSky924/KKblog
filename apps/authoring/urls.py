@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.authoring.presentation.article_views import articles
+from apps.authoring.presentation.article_views import articles, delete_article_from_list
 from apps.authoring.presentation.comment_views import (
     comments_article_page,
     comments_article_replies,
@@ -39,6 +39,11 @@ app_name = "authoring"
 
 urlpatterns = [
     path("articles/", articles, name="articles"),
+    path(
+        "articles/<str:article_id>/delete/",
+        delete_article_from_list,
+        name="delete-article",
+    ),
     path("articles/new/", create, name="create"),
     path("articles/preview/", preview, name="preview"),
     path(

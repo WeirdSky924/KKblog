@@ -22,6 +22,8 @@ from apps.discovery.cache import default_discovery_cache
 from apps.discovery.seo import ArticleSeoMetadata, article_seo_metadata
 from apps.media.public import MediaAccessError, authorize_asset_read
 
+from ..profile_identity import ProfileIdentity, resolve_profile_identity
+
 
 @dataclass(frozen=True, slots=True)
 class ArticleTocItem:
@@ -42,6 +44,7 @@ class ArticleDetailPage:
     article_id: str
     revision_id: str
     author_id: UUID
+    author: ProfileIdentity
     title: str
     visibility: str
     tags: tuple[TagItem, ...]
@@ -237,11 +240,15 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
             )
     if source.published_at is None:
         raise RuntimeError("published article is missing publication time")
+    author = resolve_profile_identity(source.author_id)
+    if author is None:
+        raise ArticleNotFound
     published = to_shanghai(source.published_at)
     return ArticleDetailPage(
         article_id=source.article_id,
         revision_id=source.revision_id,
         author_id=source.author_id,
+        author=author,
         title=source.title,
         visibility=source.visibility,
         tags=source.tags,

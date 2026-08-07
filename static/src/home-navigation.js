@@ -2,6 +2,8 @@ const COMPACT_NAVIGATION_QUERY = "(max-width: 63.99rem)";
 const SECTION_SNAP_TOLERANCE = 24;
 const TOUCH_SNAP_MIN_DISTANCE = 32;
 const SECTION_SNAP_DURATION = 650;
+const boundHomePages = new WeakSet();
+const boundNavigationShells = new WeakSet();
 
 function documentTop(element) {
   return element.getBoundingClientRect().top + window.scrollY;
@@ -19,7 +21,7 @@ function snapTarget(element) {
 }
 
 function bindHomeSectionSnapping(page) {
-  if (!(page instanceof HTMLElement) || page.dataset.sectionSnapBound === "true") {
+  if (!(page instanceof HTMLElement) || boundHomePages.has(page)) {
     return;
   }
   const hero = page.querySelector(".home-hero");
@@ -28,7 +30,7 @@ function bindHomeSectionSnapping(page) {
     return;
   }
 
-  page.dataset.sectionSnapBound = "true";
+  boundHomePages.add(page);
   let snapping = false;
   let releaseTimer;
   let touchStart = null;
@@ -152,8 +154,27 @@ function applyCollapsedState(shell, collapsed, { moveFocus = false } = {}) {
   }
 }
 
+function markActiveSection(shell, sectionId) {
+  const latest = shell.querySelector("[data-home-latest-link]");
+  if (latest instanceof HTMLAnchorElement) {
+    if (sectionId) {
+      latest.removeAttribute("aria-current");
+    } else {
+      latest.setAttribute("aria-current", "page");
+    }
+  }
+  shell.querySelectorAll("[data-home-section-link]").forEach((link) => {
+    if (!(link instanceof HTMLAnchorElement)) return;
+    if (link.dataset.sectionId === sectionId) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
 function bindNavigationShell(shell) {
-  if (!(shell instanceof HTMLElement) || shell.dataset.bound === "true") {
+  if (!(shell instanceof HTMLElement) || boundNavigationShells.has(shell)) {
     return;
   }
   const closeButton = shell.querySelector("[data-home-navigation-close]");
@@ -165,7 +186,7 @@ function bindNavigationShell(shell) {
     return;
   }
 
-  shell.dataset.bound = "true";
+  boundNavigationShells.add(shell);
   const page = shell.closest("[data-home-page]");
   const articles = page?.querySelector("[data-home-articles]");
   const compactQuery = window.matchMedia(COMPACT_NAVIGATION_QUERY);
@@ -187,6 +208,18 @@ function bindNavigationShell(shell) {
     if (event.key === "Escape" && shell.dataset.collapsed !== "true") {
       event.preventDefault();
       applyCollapsedState(shell, true, { moveFocus: true });
+    }
+  });
+  shell.addEventListener("htmx:afterRequest", (event) => {
+    const link = event.detail?.elt?.closest?.(
+      "[data-home-section-link], [data-home-latest-link]",
+    );
+    if (
+      event.detail?.successful &&
+      link instanceof HTMLAnchorElement &&
+      shell.contains(link)
+    ) {
+      markActiveSection(shell, link.dataset.sectionId ?? "");
     }
   });
   compactQuery.addEventListener("change", applyAutomaticState);

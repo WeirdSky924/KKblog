@@ -89,6 +89,7 @@ class RenderedContent:
     html: str
     sanitizer_version: str
     cache_key: str
+    block_start_lines: tuple[int, ...] = ()
 
 
 def validate_source_text(source: str) -> None:

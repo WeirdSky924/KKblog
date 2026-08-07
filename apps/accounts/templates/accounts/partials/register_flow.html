@@ -9,8 +9,8 @@
       <span class="auth-register-step__number" aria-hidden="true">02</span>
       <div class="auth-register-step__body">
         <header class="auth-section-heading">
-          <h2 id="finish-title">设置密码并完成</h2>
-          <p>输入收到的验证码，并设置登录密码。</p>
+          <h2 id="finish-title">设置用户名和密码</h2>
+          <p>输入收到的验证码，并设置用户名与登录密码。</p>
         </header>
         <p class="account-status auth-verification-status" role="status">
           <span>接收邮箱：<strong>{{ registration_form.email.value }}</strong></span>
@@ -24,8 +24,10 @@
           {{ registration_form.invite_code.errors }}
           {{ registration_form.email.errors }}
           {{ registration_form.code.as_field_group }}
+          {{ registration_form.nickname.as_field_group }}
           {{ registration_form.password.as_field_group }}
-          {{ registration_form.remember.as_field_group }}
+          {{ registration_form.remember.errors }}
+          {% include "components/forms/switch.html" with field=registration_form.remember only %}
           <button class="button button--primary auth-form__submit" type="submit"><span>完成注册</span><i data-lucide="user-plus" aria-hidden="true"></i></button>
         </form>
       </div>

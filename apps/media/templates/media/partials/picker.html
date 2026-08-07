@@ -80,7 +80,12 @@
         </button>
       </div>
 
-      <div class="media-picker__progress" data-media-progress-wrap hidden>
+      <div
+        class="media-picker__progress"
+        data-media-progress-wrap
+        aria-live="polite"
+        hidden
+      >
         <span>正在校验</span>
         <progress data-media-progress max="100" value="0">0%</progress>
       </div>

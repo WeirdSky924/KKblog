@@ -118,7 +118,7 @@ def _item(article: Article) -> AdminArticleItem | None:
         visibility=revision.visibility,
         deleted_at=article.deleted_at,
         purge_after=article.purge_after,
-        published_at=article.published_at,
+        published_at=article.latest_published_at,
         updated_at=article.updated_at,
         has_working_revision=article.working_revision_id is not None,
         has_published_revision=article.published_revision_id is not None,

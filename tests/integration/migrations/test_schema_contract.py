@@ -41,6 +41,11 @@ REQUIRED_CONSTRAINTS = {
     "notification_receipt_unique",
     "operations_task_idempotency_unique",
     "navigation_node_depth_range",
+    "discovery_reading_bookmark_account_article_unique",
+    "discovery_reading_bookmark_progress_range",
+    "discovery_article_like_account_article_unique",
+    "comment_pin_thread_unique",
+    "comment_pin_comment_unique",
 }
 
 REQUIRED_INDEXES = {
@@ -68,6 +73,8 @@ REQUIRED_INDEXES = {
     "exchange_export_expiry_idx",
     "navigation_parent_order_idx",
     "navigation_public_tree_idx",
+    "discovery_readmark_updated_idx",
+    "discovery_like_count_idx",
 }
 
 
@@ -127,7 +134,14 @@ def test_empty_postgresql_database_migrates_to_every_leaf() -> None:
         leaves = set(MigrationExecutor(connection).loader.graph.leaf_nodes())
         assert leaves <= set(applied)
         assert "pg_trgm" in extensions
-        assert {"account", "article", "comment", "operations_task_run"} <= tables
+        assert {
+            "account",
+            "article",
+            "comment",
+            "comment_pin",
+            "discovery_article_like",
+            "operations_task_run",
+        } <= tables
     finally:
         with _admin_connection(source_url) as admin:
             admin.execute(
@@ -176,6 +190,13 @@ def test_foreign_key_delete_policies_match_the_storage_contract() -> None:
         "comment_root_fk": "ON DELETE CASCADE",
         "discovery_view_article_fk": "ON DELETE CASCADE",
         "discovery_bookmark_account_fk": "ON DELETE CASCADE",
+        "discovery_reading_bookmark_account_fk": "ON DELETE CASCADE",
+        "discovery_reading_bookmark_article_fk": "ON DELETE CASCADE",
+        "discovery_article_like_account_fk": "ON DELETE CASCADE",
+        "discovery_article_like_article_fk": "ON DELETE CASCADE",
+        "comment_pin_thread_fk": "ON DELETE CASCADE",
+        "comment_pin_comment_fk": "ON DELETE CASCADE",
+        "comment_pin_pinned_by_fk": "ON DELETE SET NULL",
     }
     with connection.cursor() as cursor:
         cursor.execute(

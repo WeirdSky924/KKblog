@@ -162,26 +162,35 @@
   border-color: var(--danger);
 }
 
-.auth-page .account-form > div:has(input[type="checkbox"]) {
+.auth-page .account-form > div:has(input[type="checkbox"]):not(.auth-form__support) {
   grid-template-columns: 1.125rem minmax(0, 1fr);
   align-items: start;
   gap: 0.75rem;
 }
 
-.auth-page .account-form > div:has(input[type="checkbox"]) label {
+.auth-page
+  .account-form
+  > div:has(input[type="checkbox"]):not(.auth-form__support)
+  label {
   grid-column: 2;
   grid-row: 1;
   cursor: pointer;
   font-weight: 560;
 }
 
-.auth-page .account-form > div:has(input[type="checkbox"]) input {
+.auth-page
+  .account-form
+  > div:has(input[type="checkbox"]):not(.auth-form__support)
+  input {
   grid-column: 1;
   grid-row: 1;
   margin: 0.1875rem 0 0;
 }
 
-.auth-page .account-form > div:has(input[type="checkbox"]) .errorlist {
+.auth-page
+  .account-form
+  > div:has(input[type="checkbox"]):not(.auth-form__support)
+  .errorlist {
   grid-column: 1 / -1;
 }
 

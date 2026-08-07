@@ -174,6 +174,7 @@ def register(request: HttpRequest) -> HttpResponse:
     try:
         result = register_account(
             email=form.cleaned_data["email"],
+            nickname=form.cleaned_data["nickname"],
             code=form.cleaned_data["code"],
             password=form.cleaned_data["password"],
             invite_code=form.cleaned_data["invite_code"],

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ site_presentation.site_name }}{% endblock %}
+{% block title %}{% if home_section_name %}{{ home_section_name }} | {% endif %}{{ site_presentation.site_name }}{% endblock %}
 {% block body_class %}home-shell{% endblock %}
 {% block main_layout_class %}site-main home-main{% endblock %}
 
@@ -21,7 +21,7 @@
           <h1 id="home-title">{{ site_presentation.site_name }}</h1>
           {% if site_presentation.site_description %}<p>{{ site_presentation.site_description }}</p>{% endif %}
           <a href="#home-articles">
-            <span>查看最新文章</span>
+            <span>{{ home_article_jump_label|default:"查看最新文章" }}</span>
             <i data-lucide="chevron-down" aria-hidden="true"></i>
           </a>
         </div>
@@ -33,14 +33,24 @@
           <header class="home-navigation__header">
             <div>
               <span aria-hidden="true">{{ site_presentation.site_name|slice:":1" }}</span>
-              <h2 id="home-navigation-title">浏览</h2>
+              <h2 id="home-navigation-title">
+                <a
+                  href="{% url 'public:home' %}"
+                  data-home-latest-link
+                  hx-get="{% url 'public:home' %}"
+                  hx-target="#home-article-region"
+                  hx-swap="outerHTML"
+                  hx-push-url="true"
+                  {% if not active_home_section_id %}aria-current="page"{% endif %}
+                >主页文章</a>
+              </h2>
             </div>
             <button class="icon-button" type="button" data-home-navigation-close aria-controls="home-navigation-panel" aria-label="收起主页导航" title="收起主页导航">
               <i data-lucide="chevron-left" aria-hidden="true"></i>
             </button>
           </header>
           <nav aria-label="主页侧边导航">
-            {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False only %}
+            {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False home_section_switching=True active_home_section_id=active_home_section_id only %}
           </nav>
         </aside>
         <button
@@ -59,13 +69,8 @@
         </button>
       </div>
     {% endif %}
-    <section id="home-articles" class="home-articles" data-home-articles aria-labelledby="latest-articles-title">
-      <div class="home-articles__inner">
-        <header class="home-articles__heading">
-          <h2 id="latest-articles-title">最新文章</h2>
-        </header>
-        {% include "discovery/partials/article_index.html" %}
-      </div>
+    <section id="home-articles" class="home-articles" data-home-articles aria-labelledby="home-articles-title">
+      {% include "discovery/partials/home_article_region.html" %}
     </section>
   </div>
 {% endblock %}

@@ -6,6 +6,7 @@ from django.db import IntegrityError, transaction
 from apps.accounts.models import Account, LoginSession, SecurityEvent
 from apps.accounts.models.account import normalize_email
 from apps.accounts.policies.registration import RegistrationPolicy
+from apps.accounts.profile_rules import validate_nickname
 from apps.accounts.services.credentials import validate_password_strength
 from apps.accounts.services.invites import InviteError, redeem_invite, validate_invite
 from apps.accounts.services.verification import (
@@ -86,10 +87,16 @@ def register_account(
     client_ip: str,
     trace_code: str,
     store: VerificationStore,
+    nickname: str | None = None,
     user_agent_summary: str = "未知浏览器 · 未知设备",
 ) -> RegistrationResult:
     try:
         normalized_email = normalize_email(email)
+        validated_nickname = (
+            validate_nickname(nickname).display if nickname is not None else None
+        )
+        if nickname is not None and validated_nickname is None:
+            raise ValidationError("请输入用户名。")
         validate_password_strength(password)
         invite, binding = _resolve_path(invite_code=invite_code, policy=policy)
         verify_code(
@@ -106,7 +113,9 @@ def register_account(
     try:
         with transaction.atomic():
             account = Account.objects.create_account(
-                email=normalized_email, password=password
+                email=normalized_email,
+                password=password,
+                nickname=validated_nickname,
             )
             if invite is not None:
                 redeem_invite(raw_code=invite_code, account_id=account.id)
@@ -124,7 +133,7 @@ def register_account(
                 safe_summary={"registration_path": "invite" if invite else "direct"},
             )
     except IntegrityError:
-        raise RegistrationError("邮箱已被使用") from None
+        raise RegistrationError("邮箱或用户名已被使用") from None
     return RegistrationResult(
         account=account, session=session, raw_session_token=raw_token
     )

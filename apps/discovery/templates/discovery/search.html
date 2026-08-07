@@ -7,8 +7,12 @@
 {% block content %}
   <section class="search-entry home-articles" aria-labelledby="search-title">
     <header class="page-heading home-articles__heading">
-      <h1 id="search-title">搜索文章</h1>
+      <h1 id="search-title">搜索{{ search_type_label|default:"文章" }}</h1>
     </header>
-    {% include "discovery/partials/article_index.html" %}
+    {% if search_type == "author" %}
+      {% include "discovery/partials/author_search_results.html" %}
+    {% else %}
+      {% include "discovery/partials/article_index.html" %}
+    {% endif %}
   </section>
 {% endblock %}

@@ -6,6 +6,9 @@
       <strong>{{ item.author.label }}</strong>
     {% endif %}
     <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"Y-m-d H:i" }}</time>
+    {% if item.is_pinned %}
+      <span class="comment-item__pin-state"><i data-lucide="pin"></i>已置顶</span>
+    {% endif %}
     {% if item.depth > 4 %}<span>第 {{ item.depth }} 层回复</span>{% endif %}
   </header>
   {% if item.is_deleted %}
@@ -27,8 +30,32 @@
       </ul>
     {% endif %}
   {% endif %}
-  {% if item.can_reply or item.can_report or item.deletion_mode %}
+  {% if item.can_reply or item.can_report or item.deletion_mode or item.can_pin %}
     <footer class="comment-item__actions">
+      {% if item.can_pin %}
+        <form
+          class="comment-pin-control"
+          method="post"
+          action="{% url 'article:comment-pin' article_id=comment_article_id comment_id=item.id %}"
+          hx-post="{% url 'article:comment-pin' article_id=comment_article_id comment_id=item.id %}"
+          hx-target="#comment-public-list"
+          hx-swap="outerHTML"
+          data-submit-once
+        >
+          {% csrf_token %}
+          <input type="hidden" name="target_state" value="{% if item.is_pinned %}unpinned{% else %}pinned{% endif %}">
+          <input type="hidden" name="sort" value="{{ comment_page.sort }}">
+          <button
+            class="button button--secondary"
+            type="submit"
+            data-comment-pin-state="{% if item.is_pinned %}unpinned{% else %}pinned{% endif %}"
+            aria-label="{% if item.is_pinned %}取消置顶评论{% else %}置顶评论{% endif %}"
+          >
+            <i data-lucide="{% if item.is_pinned %}pin-off{% else %}pin{% endif %}"></i>
+            {% if item.is_pinned %}取消置顶{% else %}置顶{% endif %}
+          </button>
+        </form>
+      {% endif %}
       {% if item.can_reply %}
         <button
           class="button button--secondary"

@@ -10,7 +10,9 @@ from apps.content.public import visible_articles_by_ids
 from apps.core.time import to_shanghai
 
 from ..models import Bookmark
+from ..profile_identity import resolve_profile_identities
 from .home import ArticleIndexItem, article_index_item, page_window
+from .like_counts import article_like_counts
 from .view_counts import article_view_counts
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
@@ -76,8 +78,20 @@ def bookmark_page(*, account_id, page: int = 1, page_size: int = 20) -> Bookmark
     }
     view_counts = article_view_counts(article_ids=visible)
     comment_counts = article_comment_counts(article_ids=visible)
+    like_counts = article_like_counts(article_ids=visible)
+    authors = resolve_profile_identities(
+        tuple(dict.fromkeys(item.author_id for item in visible.values()))
+    )
     items = tuple(
-        _bookmark_item(row, visible, view_counts, comment_counts) for row in rows
+        _bookmark_item(
+            row,
+            visible,
+            authors,
+            view_counts,
+            comment_counts,
+            like_counts,
+        )
+        for row in rows
     )
     return BookmarkPage(
         items=items,
@@ -91,7 +105,9 @@ def bookmark_page(*, account_id, page: int = 1, page_size: int = 20) -> Bookmark
     )
 
 
-def _bookmark_item(row, visible, view_counts, comment_counts) -> BookmarkPageItem:
+def _bookmark_item(
+    row, visible, authors, view_counts, comment_counts, like_counts
+) -> BookmarkPageItem:
     source = visible.get(row.article_id)
     created = to_shanghai(row.created_at)
     if source is None:
@@ -104,8 +120,10 @@ def _bookmark_item(row, visible, view_counts, comment_counts) -> BookmarkPageIte
     else:
         article = article_index_item(
             source,
+            author=authors[source.author_id],
             view_count=view_counts.get(row.article_id, 0),
             comment_count=comment_counts.get(row.article_id, 0),
+            like_count=like_counts.get(row.article_id, 0),
         )
         unavailable = None
     return BookmarkPageItem(

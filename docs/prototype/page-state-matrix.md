@@ -30,9 +30,11 @@
 | `public:home` | discovery | 访客/用户/作者/管理员 | S0,S1,S2,S3,S4,S5；分页/筛选 | home |
 | `public:section` | discovery | 全部 | S0,S1,S2,S4,S5；未知/删除分区 | home |
 | `public:tag` | discovery | 全部 | S0,S1,S2,S4,S5；0/1/5 标签 OR | home |
-| `public:search` | discovery | 全部 | S0,S1,S2,S3,S4,S5；空查询/分页 | home |
-| `article:detail` | discovery | 全部 | S0,S1,S2,S4,S5；登录提醒/404/目录 | article |
+| `public:search` | discovery | 全部 | S0,S1,S2,S3,S4,S5；文章/作者、空查询/分页；即时建议仅登录可用且最多五条 | home |
+| `article:detail` | discovery | 全部 | S0,S1,S2,S4,S5；登录提醒/404/目录、右侧点赞、置顶评论 | article |
 | `article:bookmark` | discovery | 用户/作者/管理员 | S0,S1,S3,S4,S5；重复点击 | account |
+| `article:like` | discovery | 用户/作者/管理员 | S0,S1,S3,S4,S5；匿名跳登录、重复点击、计数同步 | article |
+| `article:comment-pin` | comments | 文章作者/管理员 | S0,S1,S4,S5,S6；替换/取消、首屏重排、游标去重 | article |
 | `public:profile` | discovery | 全部 | S0,S1,S2,S4,S5；禁用/删除账户 | account |
 | `public:about` | navigation | 全部 | S1,S2,S4,S5；空页隐藏入口 | publicstates |
 | `public:friend-links` | navigation | 全部 | S0,S1,S2,S4；缺图/恶意 URL | publicstates |
@@ -58,6 +60,8 @@
 | `authoring:comments-buffer` | authoring | 作者 | S0,S1,S2,S4,S5,S6,S7；10 分钟倒计时 | authorops |
 | `authoring:comments-article` | authoring | 作者 | S0,S1,S2,S3,S4,S5,S6；树/占位/关闭 | authorops |
 | `authoring:import` | authoring | 作者/管理员作为作者 | S0,S1,S2,S3,S4,S5,S6,S7；预览/部分成功 | authorops/exchange |
+
+`authoring:create/edit` 的 S7 同时覆盖剪贴板图片上传：单图/多图顺序、原光标位置替换、上传中保存与离页保护、Markdown/TipTap 撤销、失败清理、图片库刷新，以及普通文本粘贴不被拦截。临时 `kaj-upload:` 引用不得进入本地稿或提交内容。
 
 ## 管理页面
 

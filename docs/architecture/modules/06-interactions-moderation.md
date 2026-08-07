@@ -6,8 +6,8 @@
 
 ```text
 apps/comments/
-  models/{thread,comment}.py
-  services/{posting,replies,deletion,publication}.py
+  models/{thread,comment,pin}.py
+  services/{posting,replies,deletion,publication,pinning}.py
   policies/{thread_access,comment_commands}.py
   queries/{public_thread,author_management,admin_management}.py
   tasks/publication.py
@@ -24,6 +24,8 @@ DiscussionThread 的目标仅 ARTICLE/GUESTBOOK。Comment 保存 parent/root/dep
 
 状态 BUFFERED → VISIBLE → DELETED；所有评论创建后缓冲 10 分钟。删除清空公开正文、立即删图片、保留节点和子回复；文章物理删除才物理删整个线程。
 
+每个文章线程至多一条置顶评论。只有文章作者或管理员能置顶公开顶层评论；置顶另一条会原子替换原置顶，删除占位、回复和留言板不能置顶。
+
 ## 权限与冷却
 
 - 访客在文章/留言板允许且无需登录时只能发顶层评论，显示名固定“访客”。
@@ -34,7 +36,7 @@ DiscussionThread 的目标仅 ARTICLE/GUESTBOOK。Comment 保存 parent/root/dep
 
 ## 排序和加载
 
-默认顶层/回复最早在前；可选最新、最热门（reply_count）。顶层每批 20 自动触底加载；每个回复链先 10，每次展开再 10。排序偏好只存浏览器。深度无限，超过 100 对拥有者只告警一次。
+置顶评论始终位于文章评论首屏第一条，其余顶层/回复默认最早在前，可选最新、最热门（reply_count）。顶层每批 20 自动触底加载；置顶项只计入首批且后续游标排除，避免重复。每个回复链先 10，每次展开再 10。排序偏好只存浏览器。深度无限，超过 100 对拥有者只告警一次。
 
 ## 举报与申诉
 

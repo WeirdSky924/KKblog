@@ -7,7 +7,14 @@ from apps.comments.guestbook_views import (
     upload_guestbook_comment_image,
 )
 from apps.discovery.seo import public_sitemap
-from apps.discovery.views import home, public_profile, search, section, tag
+from apps.discovery.views import (
+    home,
+    public_profile,
+    search,
+    search_suggestions,
+    section,
+    tag,
+)
 from apps.navigation.presentation.public import (
     about_page,
     friend_links_page,
@@ -43,5 +50,6 @@ urlpatterns = [
     path("sections/<uuid:section_id>/", section, name="section"),
     path("tags/<uuid:tag_id>/", tag, name="tag"),
     path("search/", search, name="search"),
+    path("search/suggestions/", search_suggestions, name="search-suggestions"),
     path("people/<uuid:account_id>/", public_profile, name="profile"),
 ]

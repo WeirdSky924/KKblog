@@ -106,6 +106,21 @@ class CloudDraftDiscardForm(forms.Form):
     )
 
 
+class ArticleDeleteForm(forms.Form):
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("delete", "确认删除文章"),),
+        widget=forms.HiddenInput,
+    )
+    return_state = forms.ChoiceField(
+        choices=tuple(
+            (state, state) for state in ("PUBLISHED", "DRAFT", "SCHEDULED", "DELETED")
+        ),
+        widget=forms.HiddenInput,
+    )
+    return_page = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+
+
 class EditConflictResolutionForm(forms.Form):
     conflict_token = forms.CharField(max_length=128, widget=forms.HiddenInput)
     local_baseline_revision_id = forms.CharField(

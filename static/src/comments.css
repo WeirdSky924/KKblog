@@ -314,6 +314,12 @@
   border-block-end: 1px solid var(--line);
 }
 
+.comment-item--pinned {
+  padding-inline: 0.875rem;
+  border-inline-start: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
 .comment-item__content {
   display: grid;
   min-width: 0;
@@ -336,6 +342,19 @@
   font-weight: 700;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
+}
+
+.comment-item__pin-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.comment-item__pin-state .lucide {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .comment-item__body,
@@ -382,8 +401,18 @@
 
 .comment-item__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.comment-pin-control {
+  margin: 0;
+}
+
+.comment-item--pinned .comment-pin-control .button {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .comment-item__actions [data-comment-delete-mode] {

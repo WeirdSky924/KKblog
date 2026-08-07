@@ -136,6 +136,7 @@ def _view(
     can_edit: bool,
     admin_read_only: bool,
 ) -> ArticleView:
+    latest_published_at = article.latest_published_at
     can_discard_cloud_draft = (
         can_edit
         and article.publication_state != Article.PublicationState.SCHEDULED
@@ -158,7 +159,7 @@ def _view(
         cover_asset_id=revision.cover_asset_id,
         attachment_asset_id=revision.attachment_asset_id,
         tags=_visible_revision_tags(revision),
-        published_at=article.published_at,
+        published_at=latest_published_at,
         scheduled_for=article.scheduled_for,
         published_revision_id=article.published_revision_id,
         scheduled_revision_id=article.scheduled_revision_id,
@@ -259,7 +260,8 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
     _, readable_cover_asset_id, readable_attachment_asset_id = _reader_media_bindings(
         revision
     )
-    if article.published_at is None:
+    latest_published_at = article.latest_published_at
+    if latest_published_at is None:
         raise ArticleNotFound
     return PublicArticleCacheSnapshot(
         article_id=article.id,
@@ -267,7 +269,7 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
         author_id=article.author_id,
         title=revision.title,
         visibility=revision.visibility,
-        published_at=article.published_at,
+        published_at=latest_published_at,
         readable_cover_asset_id=readable_cover_asset_id,
         readable_attachment_asset_id=readable_attachment_asset_id,
         tags=_visible_revision_tags(revision),

@@ -42,10 +42,12 @@ class WorkspaceArticle:
     sequence: int
     timing_label: str
     timing_value: datetime
+    row_version: int
     has_unpublished_changes: bool
     can_edit: bool
     can_review: bool
     can_restore: bool
+    can_delete: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,10 +88,12 @@ def _article(item) -> WorkspaceArticle:
         sequence=item.sequence,
         timing_label=timing_label,
         timing_value=to_shanghai(timing_value),
+        row_version=item.row_version,
         has_unpublished_changes=item.has_unpublished_changes,
         can_edit=item.can_edit,
         can_review=item.can_review,
         can_restore=item.can_restore,
+        can_delete=item.can_delete,
     )
 
 

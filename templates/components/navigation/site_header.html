@@ -18,12 +18,41 @@
         {% if shell_home_url %}</a>{% else %}</div>{% endif %}
         {% include "components/navigation/theme_control.html" %}
       </div>
-      {% if shell_search_url %}<form class="header-search" action="{{ shell_search_url }}" method="get" role="search">
-        <label class="visually-hidden" for="header-search-query">搜索文章标题</label>
-        <input id="header-search-query" name="q" type="search" maxlength="100" value="{{ search_query|default:'' }}" placeholder="搜索文章标题" required>
+      {% if shell_search_url %}<form
+        class="header-search"
+        action="{{ shell_search_url }}"
+        method="get"
+        role="search"
+        data-header-search
+        {% if shell_account %}data-search-suggestions-url="{% url 'public:search-suggestions' %}"{% endif %}
+      >
+        <label class="visually-hidden" for="header-search-type">搜索类型</label>
+        <select id="header-search-type" class="header-search__type" name="type" data-header-search-type aria-label="搜索类型">
+          <option value="article"{% if search_type != "author" %} selected{% endif %}>文章</option>
+          <option value="author"{% if search_type == "author" %} selected{% endif %}>作者</option>
+        </select>
+        <label class="visually-hidden" for="header-search-query">搜索内容</label>
+        <input
+          id="header-search-query"
+          name="q"
+          type="search"
+          maxlength="100"
+          value="{{ search_query|default:'' }}"
+          placeholder="{% if search_type == 'author' %}搜索作者{% else %}搜索文章标题{% endif %}"
+          autocomplete="off"
+          data-header-search-query
+          {% if shell_account %}role="combobox" aria-autocomplete="list" aria-controls="header-search-suggestions" aria-expanded="false"{% endif %}
+          required
+        >
         <button class="icon-button" type="submit" aria-label="搜索" title="搜索">
           <i data-lucide="search"></i>
         </button>
+        {% if shell_account %}
+          <div id="header-search-suggestions" class="header-search__suggestions" data-header-search-suggestions hidden>
+            <div class="header-search__suggestion-list" data-header-search-suggestion-list role="listbox" aria-label="搜索建议"></div>
+            <p class="header-search__suggestion-status" data-header-search-status role="status" aria-live="polite"></p>
+          </div>
+        {% endif %}
       </form>{% endif %}
       <div class="identity-controls">
         {% if shell_account %}

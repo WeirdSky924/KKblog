@@ -67,9 +67,9 @@ presentation (templates/views/htmx)
 允许的高层依赖方向：
 
 ```text
-authoring --------> content / media / comments / exchange
+authoring --------> accounts / content / media / comments / exchange
 administration ---> accounts / content / comments / exchange / moderation / notifications / navigation / operations
-discovery --------> content public queries / comments public queries / navigation public queries
+discovery --------> content / comments / media / navigation public queries
 content ----------> accounts public / media public / operations public
 navigation -------> accounts public / content public / operations public
 media/comments/moderation -------------> operations public

@@ -1,7 +1,9 @@
 const ACTION_FEEDBACK_DURATION = 1050;
 const DOCK_OFFSET = 8;
+const READING_LINE_GAP = 16;
 const feedbackTimers = new WeakMap();
 let bookmarkFailureEventsBound = false;
+let likeFailureEventsBound = false;
 
 function announceFeedback(message, { level, key }) {
   document.dispatchEvent(
@@ -39,6 +41,124 @@ function markCopySucceeded(shell) {
   });
 }
 
+function fixedHeaderOffset() {
+  const siteHeader = document.querySelector("[data-site-header]");
+  return siteHeader instanceof HTMLElement
+    ? siteHeader.getBoundingClientRect().height + READING_LINE_GAP
+    : READING_LINE_GAP;
+}
+
+function storedReadingProgress(shell) {
+  const raw = shell.dataset.readingBookmarkProgress?.trim();
+  if (!raw) return null;
+  const progress = Number.parseFloat(raw);
+  return Number.isFinite(progress) && progress >= 0 && progress <= 1
+    ? progress
+    : null;
+}
+
+function currentReadingProgress(shell) {
+  const prose = shell.querySelector(".article-prose");
+  if (!(prose instanceof HTMLElement)) return null;
+  const bounds = prose.getBoundingClientRect();
+  const proseTop = window.scrollY + bounds.top;
+  const readingLine = window.scrollY + fixedHeaderOffset();
+  const progress = (readingLine - proseTop) / Math.max(bounds.height, 1);
+  return Math.min(1, Math.max(0, progress));
+}
+
+function syncReadingBookmarkControls(shell) {
+  const progress = storedReadingProgress(shell);
+  const hasBookmark = progress !== null;
+  shell.querySelectorAll("[data-reading-bookmark-goto]").forEach((control) => {
+    if (!(control instanceof HTMLButtonElement)) return;
+    control.disabled = !hasBookmark;
+    control.title = hasBookmark
+      ? "前往上次保存的阅读位置"
+      : "尚未保存阅读书签";
+  });
+  shell.querySelectorAll("[data-reading-bookmark-save]").forEach((control) => {
+    if (!(control instanceof HTMLButtonElement)) return;
+    control.dataset.saved = String(hasBookmark);
+    control.setAttribute(
+      "aria-label",
+      hasBookmark ? "更新当前阅读位置" : "保存当前阅读位置",
+    );
+    control.title = hasBookmark ? "更新当前阅读位置" : "保存当前阅读位置";
+  });
+}
+
+async function saveReadingBookmark(shell, button) {
+  const form = button.closest("[data-reading-bookmark-form]");
+  const progress = currentReadingProgress(shell);
+  if (!(form instanceof HTMLFormElement) || progress === null) return;
+  if (form.dataset.submitting === "true") return;
+
+  form.dataset.submitting = "true";
+  button.disabled = true;
+  const payload = new FormData(form);
+  payload.set("progress", progress.toFixed(6));
+  try {
+    const response = await fetch(form.action, {
+      method: "POST",
+      body: payload,
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+    if (response.redirected) {
+      window.location.assign(response.url);
+      return;
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("reading bookmark response was not JSON");
+    }
+    const result = await response.json();
+    if (!response.ok || result.ok !== true) {
+      throw new Error(result.error || "阅读书签保存失败。");
+    }
+    shell.dataset.readingBookmarkProgress = result.progress;
+    const input = form.querySelector("[data-reading-bookmark-input]");
+    if (input instanceof HTMLInputElement) input.value = result.progress;
+    syncReadingBookmarkControls(shell);
+    playActionFeedback(shell, "reading-bookmark");
+    announceFeedback(result.created ? "阅读书签已保存。" : "阅读书签已更新。", {
+      key: "article-reading-bookmark",
+      level: "success",
+    });
+  } catch (error) {
+    announceFeedback(
+      error instanceof Error ? error.message : "阅读书签保存失败。",
+      { key: "article-reading-bookmark", level: "error" },
+    );
+  } finally {
+    delete form.dataset.submitting;
+    button.disabled = false;
+  }
+}
+
+function scrollToReadingBookmark(shell) {
+  const progress = storedReadingProgress(shell);
+  const prose = shell.querySelector(".article-prose");
+  if (progress === null || !(prose instanceof HTMLElement)) return;
+  const bounds = prose.getBoundingClientRect();
+  const proseTop = window.scrollY + bounds.top;
+  const target = proseTop + bounds.height * progress - fixedHeaderOffset();
+  window.scrollTo({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
+    top: Math.max(0, target),
+  });
+  announceFeedback("已前往阅读书签。", {
+    key: "article-reading-bookmark-goto",
+    level: "success",
+  });
+}
+
 function syncBookmarkControls(shell) {
   const source = shell.querySelector(
     "#bookmark-control .bookmark-control__button[aria-pressed]",
@@ -52,6 +172,86 @@ function syncBookmarkControls(shell) {
     mirror.setAttribute("aria-label", pressed ? "取消收藏" : "收藏");
     mirror.title = pressed ? "从收藏中移除" : "收藏这篇文章";
     mirror.disabled = false;
+  });
+}
+
+function syncLikeControl(shell) {
+  const form = shell.querySelector("#like-control");
+  if (!(form instanceof HTMLFormElement)) return;
+  const button = form.querySelector(".article-action-like[aria-pressed]");
+  if (button instanceof HTMLButtonElement) button.disabled = false;
+  const count = form.dataset.likeCount;
+  if (count === undefined) return;
+  shell.querySelectorAll("[data-article-like-count]").forEach((target) => {
+    target.textContent = count;
+  });
+}
+
+function bindLikeFailureEvents() {
+  if (likeFailureEventsBound) return;
+  likeFailureEventsBound = true;
+
+  const restoreLikeControl = (event) => {
+    const trigger = event.detail?.elt;
+    if (!(trigger instanceof Element)) return;
+    const form = trigger.closest("#like-control");
+    const shell = form?.closest("[data-article-actions]");
+    if (!(form instanceof HTMLFormElement) || !(shell instanceof HTMLElement)) {
+      return;
+    }
+    delete form.dataset.submitting;
+    form.removeAttribute("aria-busy");
+    form.querySelectorAll("button").forEach((button) => {
+      button.removeAttribute("aria-disabled");
+      button.disabled = false;
+    });
+    announceFeedback("点赞操作未完成，请重试。", {
+      key: "article-like",
+      level: "error",
+    });
+  };
+
+  document.addEventListener("htmx:sendError", restoreLikeControl);
+  document.addEventListener("htmx:responseError", restoreLikeControl);
+  document.addEventListener("htmx:timeout", restoreLikeControl);
+}
+
+function handleLikeResponse(shell, root) {
+  const controls = [];
+  if (root instanceof HTMLElement && root.matches("#like-control")) {
+    controls.push(root);
+  }
+  root.querySelectorAll?.("#like-control").forEach((control) => {
+    controls.push(control);
+  });
+
+  controls.forEach((control) => {
+    if (
+      !(control instanceof HTMLFormElement) ||
+      !shell.contains(control) ||
+      control.dataset.articleFeedbackHandled === "true"
+    ) {
+      return;
+    }
+    control.dataset.articleFeedbackHandled = "true";
+    syncLikeControl(shell);
+    if (control.dataset.likeError) {
+      announceFeedback(control.dataset.likeError, {
+        key: "article-like",
+        level: "error",
+      });
+      return;
+    }
+    if (!control.classList.contains("like-control--confirmed")) return;
+    const liked =
+      control.querySelector(".article-action-like")?.getAttribute(
+        "aria-pressed",
+      ) === "true";
+    playActionFeedback(shell, "like");
+    announceFeedback(liked ? "文章已点赞。" : "已取消点赞。", {
+      key: "article-like",
+      level: "success",
+    });
   });
 }
 
@@ -219,6 +419,21 @@ function bindArticleActionShell(shell) {
       return;
     }
 
+    const readingBookmark = event.target.closest(
+      "[data-reading-bookmark-save]",
+    );
+    if (readingBookmark instanceof HTMLButtonElement) {
+      event.preventDefault();
+      void saveReadingBookmark(shell, readingBookmark);
+      return;
+    }
+
+    if (event.target.closest("[data-reading-bookmark-goto]")) {
+      event.preventDefault();
+      scrollToReadingBookmark(shell);
+      return;
+    }
+
     if (event.target.closest("[data-article-scroll-top]")) {
       event.preventDefault();
       document.getElementById("main-content")?.focus({ preventScroll: true });
@@ -234,6 +449,7 @@ function bindArticleActionShell(shell) {
   window.addEventListener("scroll", queueDockUpdate, { passive: true });
   window.addEventListener("resize", queueDockUpdate);
   syncBookmarkControls(shell);
+  syncReadingBookmarkControls(shell);
   updateDock();
 }
 
@@ -252,9 +468,12 @@ function articleActionShells(root) {
 
 export function initializeArticleActions(root = document) {
   bindBookmarkFailureEvents();
+  bindLikeFailureEvents();
   articleActionShells(root).forEach((shell) => {
     bindArticleActionShell(shell);
     syncBookmarkControls(shell);
+    syncLikeControl(shell);
     handleBookmarkResponse(shell, root);
+    handleLikeResponse(shell, root);
   });
 }

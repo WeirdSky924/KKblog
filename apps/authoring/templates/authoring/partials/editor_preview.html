@@ -1,4 +1,5 @@
 <section id="editor-live-preview" class="author-editor-preview" data-editor-preview aria-live="polite" aria-busy="false">
+  {{ editor_preview.block_start_lines|default_if_none:""|json_script:"editor-preview-block-lines" }}
   <header class="author-editor-pane__header">
     <strong>实时预览</strong>
     {% if editor_preview %}

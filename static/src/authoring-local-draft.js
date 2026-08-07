@@ -5,6 +5,8 @@ const SAVE_DELAY_MS = 500;
 const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FORMATS = new Set(["MARKDOWN", "TIPTAP_JSON"]);
+const PENDING_MARKDOWN_IMAGE =
+  /!\[正在上传图片\]\(kaj-upload:[0-9a-f-]{36}\)/g;
 function identityFor(form) {
   const identity = {
     userId: form.dataset.editorUserId || "",
@@ -55,9 +57,13 @@ function checked(form, name) {
   return input instanceof HTMLInputElement && input.checked;
 }
 function valuesFrom(form) {
+  const body = field(form, "body")?.value || "";
   return {
     title: field(form, "title")?.value || "",
-    body: field(form, "body")?.value || "",
+    body:
+      form.dataset.authorEditor === "MARKDOWN"
+        ? body.replaceAll(PENDING_MARKDOWN_IMAGE, "")
+        : body,
     summaryMode: field(form, "summary_mode")?.value || "",
     customSummary: field(form, "custom_summary")?.value || "",
     visibility: field(form, "visibility")?.value || "",
@@ -132,7 +138,13 @@ function syncCoverPreview(form, assetId) {
 
 function applyDraft(form, values) {
   setChoice(form, "title", values.title);
-  setChoice(form, "body", values.body);
+  setChoice(
+    form,
+    "body",
+    form.dataset.authorEditor === "MARKDOWN"
+      ? values.body.replaceAll(PENDING_MARKDOWN_IMAGE, "")
+      : values.body,
+  );
   setChoice(form, "summary_mode", values.summaryMode);
   setChoice(form, "custom_summary", values.customSummary);
   setChoice(form, "visibility", values.visibility);

@@ -4,6 +4,13 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
+from django.apps import apps
+from django.conf import settings
+from django.db import close_old_connections, transaction
+from django.test import override_settings
+from django.utils import timezone
+
+from apps.comments.models import Comment, DiscussionThread
 from apps.comments.services.publication import (
     CommentPublicationOutcome,
     due_buffered_comment_ids,
@@ -13,13 +20,6 @@ from apps.comments.tasks.publication import (
     dispatch_due_comments,
     publish_due_comment_task,
 )
-from django.apps import apps
-from django.conf import settings
-from django.db import close_old_connections, transaction
-from django.test import override_settings
-from django.utils import timezone
-
-from apps.comments.models import Comment, DiscussionThread
 from apps.core.ids import new_ulid
 
 pytestmark = pytest.mark.django_db(transaction=True)

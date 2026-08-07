@@ -17,6 +17,12 @@ from .guestbook import (
     GuestbookSettingsResult,
     update_guestbook_settings,
 )
+from .pinning import (
+    CommentPinError,
+    CommentPinState,
+    CommentPinUnavailableError,
+    set_article_comment_pin,
+)
 from .posting import TopLevelCommentResult, create_top_level_comment
 from .publication import (
     CommentPublicationOutcome,
@@ -40,6 +46,9 @@ from .uploads import stage_top_level_comment_image
 
 __all__ = [
     "CommentPostingError",
+    "CommentPinError",
+    "CommentPinState",
+    "CommentPinUnavailableError",
     "CommentDeletionError",
     "CommentDeletionResult",
     "CommentReportRecoveryError",
@@ -67,6 +76,7 @@ __all__ = [
     "restore_comment_from_report",
     "stage_top_level_comment_image",
     "set_article_comments_enabled",
+    "set_article_comment_pin",
     "sync_article_thread",
     "sync_guestbook_thread",
     "update_guestbook_settings",

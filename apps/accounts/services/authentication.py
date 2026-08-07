@@ -166,7 +166,11 @@ def request_login_code(
     restriction_store: RestrictionStore | None = None,
     clock: Clock | None = None,
 ) -> None:
-    account = _account_for_login(email)
+    try:
+        normalized = normalize_email(email)
+    except ValidationError as exc:
+        raise AuthenticationError(str(exc)) from None
+    account = Account.objects.filter(email=normalized).first()
     restrictions = restriction_store or store.restrictions
     _raise_if_restricted(
         account=account,
@@ -179,12 +183,13 @@ def request_login_code(
     try:
         request_verification_code(
             purpose=VerificationPurpose.LOGIN,
-            email=email,
+            email=normalized,
             client_ip=client_ip,
             trace_code=trace_code,
             store=store,
             account_id=account.id if account else None,
             code_generator=code_generator,
+            deliver=account is not None and account.status == Account.Status.ACTIVE,
             restriction_store=restrictions,
             clock=clock,
         )

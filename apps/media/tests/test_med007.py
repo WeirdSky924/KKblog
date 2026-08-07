@@ -89,6 +89,23 @@ def test_all_entry_points_share_versioned_sanitizer() -> None:
     )
 
 
+def test_markdown_exposes_top_level_source_lines_for_editor_preview_sync() -> None:
+    rendered = render_markdown(
+        "# 标题\n\n"
+        "第一段\n\n"
+        "- 列表一\n"
+        "- 列表二\n\n"
+        "```text\n"
+        "代码\n"
+        "```\n\n"
+        "| 列一 | 列二 |\n"
+        "| --- | --- |\n"
+        "| A | B |\n"
+    )
+
+    assert rendered.block_start_lines == (0, 2, 4, 7, 11)
+
+
 def test_links_are_protocol_checked_and_only_external_links_open_new_tab() -> None:
     rendered = render_author_html(
         '<p><a href="https://example.com/read?q=1" target="self">外链</a> '

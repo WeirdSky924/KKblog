@@ -131,9 +131,10 @@ def comment_thread_panel(
     cursor: str | None = None,
 ) -> CommentPanel:
     accounts = account_policy or default_comment_account_policy()
+    target = DiscussionTargetType(target_type)
     access = comment_thread_access(
         actor_id=actor_id,
-        target_type=target_type,
+        target_type=target,
         target_id=target_id,
         account_policy=accounts,
     )
@@ -181,6 +182,9 @@ def comment_thread_panel(
             is_administrator=access.is_administrator,
             can_reply=access.is_active_actor and access.comments_enabled,
             can_report=access.is_active_actor,
+            can_pin=(
+                target is DiscussionTargetType.ARTICLE and access.can_manage_buffer
+            ),
         ),
     )
 

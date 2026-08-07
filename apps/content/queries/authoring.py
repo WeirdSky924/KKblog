@@ -58,10 +58,12 @@ class AuthorArticleItem:
     scheduled_for: datetime | None
     deleted_at: datetime | None
     purge_after: datetime | None
+    row_version: int
     has_unpublished_changes: bool
     can_edit: bool
     can_review: bool
     can_restore: bool
+    can_delete: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,10 +176,11 @@ def _item(article: Article, state: str) -> AuthorArticleItem:
         sequence=revision.sequence,
         cover_asset_id=revision.cover_asset_id,
         updated_at=article.updated_at,
-        published_at=article.published_at,
+        published_at=article.latest_published_at,
         scheduled_for=article.scheduled_for,
         deleted_at=article.deleted_at,
         purge_after=article.purge_after,
+        row_version=article.row_version,
         has_unpublished_changes=(
             article.published_revision_id is not None
             and article.working_revision_id != article.published_revision_id
@@ -185,6 +188,7 @@ def _item(article: Article, state: str) -> AuthorArticleItem:
         can_edit=editable,
         can_review=editable,
         can_restore=state == "DELETED" and not masked,
+        can_delete=editable,
     )
 
 

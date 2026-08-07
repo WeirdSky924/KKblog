@@ -19,6 +19,7 @@ from ..ports import (
     default_comment_account_policy,
     default_comment_media_gateway,
 )
+from .pins import pinned_comment_id
 
 _CURSOR_SALT = "comments.thread-cursor.v1"
 _TOP_LEVEL_BATCH_SIZE = 20
@@ -56,6 +57,8 @@ class PublicCommentItem:
     deletion_mode: str | None
     can_reply: bool
     can_report: bool
+    is_pinned: bool
+    can_pin: bool
     reply_page: PublicReplyPage | None = None
 
 
@@ -186,6 +189,8 @@ def _present_rows(
     is_administrator: bool,
     can_reply: bool,
     can_report: bool,
+    pinned_id: str | None = None,
+    can_pin: bool = False,
 ) -> dict[str, PublicCommentItem]:
     if not rows:
         return {}
@@ -238,6 +243,8 @@ def _present_rows(
             ),
             can_reply=can_reply and not deleted,
             can_report=can_report and not deleted,
+            is_pinned=row.id == pinned_id,
+            can_pin=can_pin and row.parent_id is None and not deleted,
         )
     return result
 
@@ -325,6 +332,7 @@ def public_comment_page(
     is_administrator: bool = False,
     can_reply: bool = False,
     can_report: bool = False,
+    can_pin: bool = False,
 ) -> PublicCommentPage:
     identity = _thread_id(thread_id)
     ordering = _sort(sort)
@@ -342,6 +350,16 @@ def public_comment_page(
     query = _visible_rows(thread_id=identity, snapshot=snapshot).filter(
         parent__isnull=True
     )
+    stored_pinned_id = pinned_comment_id(thread_id=identity)
+    pinned_candidate = (
+        query.filter(pk=stored_pinned_id, state=Comment.State.VISIBLE).first()
+        if stored_pinned_id is not None
+        else None
+    )
+    pinned_id = pinned_candidate.id if pinned_candidate is not None else None
+    pinned_row = pinned_candidate if cursor is None else None
+    if pinned_id is not None:
+        query = query.exclude(pk=pinned_id)
     if created_at is not None and comment_id is not None:
         if ordering == CommentSort.EARLIEST:
             query = query.filter(
@@ -368,8 +386,10 @@ def public_comment_page(
         CommentSort.LATEST: ("-created_at", "-id"),
         CommentSort.HOTTEST: ("-reply_count", "created_at", "id"),
     }[ordering]
-    fetched = tuple(query.order_by(*order_by)[: _TOP_LEVEL_BATCH_SIZE + 1])
-    rows = fetched[:_TOP_LEVEL_BATCH_SIZE]
+    ordinary_limit = _TOP_LEVEL_BATCH_SIZE - (1 if pinned_row is not None else 0)
+    fetched = tuple(query.order_by(*order_by)[: ordinary_limit + 1])
+    ordinary_rows = fetched[:ordinary_limit]
+    rows = (pinned_row, *ordinary_rows) if pinned_row is not None else ordinary_rows
     previews = _reply_previews(
         thread_id=identity,
         root_ids=tuple(row.id for row in rows),
@@ -389,6 +409,8 @@ def public_comment_page(
         is_administrator=is_administrator,
         can_reply=can_reply,
         can_report=can_report,
+        pinned_id=pinned_id,
+        can_pin=can_pin,
     )
     items = tuple(
         replace(
@@ -407,7 +429,7 @@ def public_comment_page(
             snapshot=snapshot,
             row=rows[-1],
         )
-        if len(fetched) > _TOP_LEVEL_BATCH_SIZE
+        if len(fetched) > ordinary_limit
         else None
     )
     return PublicCommentPage(ordering, items, next_cursor)
@@ -472,6 +494,8 @@ def public_reply_page(
         is_administrator=is_administrator,
         can_reply=can_reply,
         can_report=can_report,
+        pinned_id=None,
+        can_pin=False,
     )
     next_cursor = (
         _reply_cursor(

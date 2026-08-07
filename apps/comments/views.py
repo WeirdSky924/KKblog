@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render
@@ -17,13 +19,19 @@ from .http import is_htmx as _is_htmx
 from .http import posting_status as _posting_status
 from .ports import CommentMediaError
 from .presentation import TopLevelCommentForm, article_comment_context
-from .queries import CommentCursorError
+from .queries import CommentCursorError, CommentSort
 from .receipts import (
     add_comment_receipt,
     decode_comment_receipts,
     set_comment_receipt_cookie,
 )
-from .services import create_top_level_comment, stage_top_level_comment_image
+from .services import (
+    CommentPinError,
+    CommentPinUnavailableError,
+    create_top_level_comment,
+    set_article_comment_pin,
+    stage_top_level_comment_image,
+)
 
 
 def _panel_response(request, article_id: str, context, *, status: int):
@@ -81,6 +89,68 @@ def delete_article_comment(request, article_id, comment_id):
             kwargs={"article_id": article_id, "comment_id": comment_id},
         ),
     )
+
+
+@require_POST
+def pin_article_comment(request, article_id, comment_id):
+    actor_id = getattr(request, "account_id", None)
+    if actor_id is None:
+        raise Http404
+    try:
+        ordering = CommentSort(request.POST.get("sort", CommentSort.EARLIEST))
+    except (TypeError, ValueError):
+        raise Http404 from None
+    state = request.POST.get("target_state")
+    if state not in {"pinned", "unpinned"}:
+        raise Http404
+
+    status = 200
+    feedback = ""
+    try:
+        result = set_article_comment_pin(
+            actor_id=actor_id,
+            article_id=article_id,
+            comment_id=comment_id,
+            pinned=state == "pinned",
+        )
+    except CommentPinError:
+        raise Http404 from None
+    except CommentPinUnavailableError as exc:
+        status = 503
+        feedback = exc.safe_message
+    else:
+        feedback = "评论已置顶。" if result.pinned else "已取消评论置顶。"
+
+    context = _article_context_or_404(
+        request=request,
+        article_id=article_id,
+        sort=ordering,
+    )
+    if not _is_htmx(request):
+        return HttpResponseRedirect(
+            f"{reverse('article:detail', kwargs={'article_id': article_id})}#comment-thread"
+        )
+    response = render(
+        request,
+        "comments/partials/public_list.html",
+        context,
+        status=status,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["HX-Trigger-After-Swap"] = json.dumps(
+        {
+            "kaj:feedback": {
+                "key": "comment-pin",
+                "level": "success" if status == 200 else "error",
+                "message": feedback,
+                "timeout": 2800,
+            }
+        },
+        ensure_ascii=False,
+    )
+    if status >= 500:
+        response.headers["X-Kaj-Inline-Error"] = "true"
+    return response
 
 
 @require_GET

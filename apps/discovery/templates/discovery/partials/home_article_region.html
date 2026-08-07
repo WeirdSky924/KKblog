@@ -1,0 +1,14 @@
+<div
+  id="home-article-region"
+  class="home-article-region"
+  data-home-article-region
+  data-focus-after-swap
+  tabindex="-1"
+>
+  <div class="home-articles__inner">
+    <header class="home-articles__heading">
+      <h2 id="home-articles-title">{{ home_article_heading|default:"最新文章" }}</h2>
+    </header>
+    {% include "discovery/partials/article_index.html" %}
+  </div>
+</div>

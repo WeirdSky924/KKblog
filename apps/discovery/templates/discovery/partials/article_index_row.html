@@ -3,9 +3,16 @@
     <img src="{{ item.cover_url }}" width="1600" height="900" alt="" loading="lazy">
   </a>
   <div class="article-index-row__body">
-    <div class="article-index-row__title-line">
-      <h3><a href="{% url 'article:detail' item.article_id %}">{{ item.title }}</a></h3>
-      {% if item.visibility == "AUTHENTICATED" %}<span class="article-visibility">登录可见</span>{% elif item.visibility == "PRIVATE" %}<span class="article-visibility">仅自己</span>{% endif %}
+    <div class="article-index-row__heading">
+      <div class="article-index-row__title-line">
+        <h3><a href="{% url 'article:detail' item.article_id %}">{{ item.title }}</a></h3>
+        {% if item.visibility == "AUTHENTICATED" %}<span class="article-visibility">登录可见</span>{% elif item.visibility == "PRIVATE" %}<span class="article-visibility">仅自己</span>{% endif %}
+      </div>
+      <a
+        class="article-index-row__author"
+        href="{{ item.author.profile_url }}"
+        aria-label="查看{{ item.author.display_name }}的公开主页"
+      >@{{ item.author.display_name }}</a>
     </div>
     {% if item.summary %}<p class="article-index-row__summary">{{ item.summary }}</p>{% endif %}
     {% if item.section_name or item.tags %}
@@ -26,6 +33,10 @@
       <div>
         <dt><i data-lucide="message-circle"></i><span class="visually-hidden">评论数</span></dt>
         <dd>{{ item.comment_count }}</dd>
+      </div>
+      <div>
+        <dt><i data-lucide="thumbs-up"></i><span class="visually-hidden">点赞数</span></dt>
+        <dd>{{ item.like_count }}</dd>
       </div>
     </dl>
   </div>

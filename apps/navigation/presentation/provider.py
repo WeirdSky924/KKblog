@@ -28,6 +28,7 @@ def database_site_presentation() -> SitePresentation:
                     url=item.url,
                     children=tuple(children),
                     key=item.key,
+                    section_id=item.section_id,
                 )
             )
         return result

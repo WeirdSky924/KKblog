@@ -1,16 +1,28 @@
 <footer class="site-footer" data-site-footer>
   <div class="site-footer__inner site-frame">
-    <p>
-      <strong>{{ site_presentation.site_name|default:"Kaj的小房间" }}</strong>
-      <span aria-hidden="true">/</span>
-      <span>© <time data-footer-year datetime="{{ site_year }}">{{ site_year }}</time></span>
-    </p>
-    {% if site_presentation.copyright_text %}<p>{{ site_presentation.copyright_text }}</p>{% endif %}
-    {% if site_presentation.privacy_url or site_presentation.terms_url %}
-      <nav aria-label="法律信息">
-        {% if site_presentation.privacy_url %}<a href="{{ site_presentation.privacy_url }}">隐私政策</a>{% endif %}
-        {% if site_presentation.terms_url %}<a href="{{ site_presentation.terms_url }}">使用条款</a>{% endif %}
-      </nav>
+    <div class="site-footer__primary">
+      <p>
+        <strong>{{ site_presentation.site_name|default:"Kaj的小房间" }}</strong>
+        <span aria-hidden="true">/</span>
+        <span>© <time data-footer-year datetime="{{ site_year }}">{{ site_year }}</time></span>
+      </p>
+      {% if site_presentation.copyright_text %}<p>{{ site_presentation.copyright_text }}</p>{% endif %}
+      {% if site_presentation.privacy_url or site_presentation.terms_url %}
+        <nav aria-label="法律信息">
+          {% if site_presentation.privacy_url %}<a href="{{ site_presentation.privacy_url }}">隐私政策</a>{% endif %}
+          {% if site_presentation.terms_url %}<a href="{{ site_presentation.terms_url }}">使用条款</a>{% endif %}
+        </nav>
+      {% endif %}
+    </div>
+    {% if footer_friend_links %}
+      <div class="site-footer__friends">
+        <strong>友情链接</strong>
+        <nav aria-label="友情链接">
+          {% for link in footer_friend_links %}
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>
+          {% endfor %}
+        </nav>
+      </div>
     {% endif %}
   </div>
 </footer>

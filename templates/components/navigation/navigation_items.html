@@ -6,12 +6,21 @@
       <a
         href="{{ item.url }}"
         {% if item.external %}target="_blank" rel="noopener noreferrer"{% endif %}
+        {% if home_section_switching and item.section_id %}
+          data-home-section-link
+          data-section-id="{{ item.section_id }}"
+          hx-get="{{ item.url }}"
+          hx-target="#home-article-region"
+          hx-swap="outerHTML"
+          hx-push-url="true"
+          {% if item.section_id == active_home_section_id %}aria-current="page"{% endif %}
+        {% endif %}
       >
         <span>{{ item.label }}</span>
         {% if item.external %}<i data-lucide="external-link"></i>{% endif %}
       </a>
       {% if item.children %}
-        {% include "components/navigation/navigation_items.html" with items=item.children nested=True only %}
+        {% include "components/navigation/navigation_items.html" with items=item.children nested=True home_section_switching=home_section_switching active_home_section_id=active_home_section_id only %}
       {% endif %}
     </li>
   {% endfor %}

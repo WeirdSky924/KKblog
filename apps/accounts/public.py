@@ -37,8 +37,11 @@ from apps.accounts.queries.ip_blocks import (
 from apps.accounts.queries.profile import (
     PublicAccountIdentity,
     PublicAccountNotFound,
+    PublicAuthorSearchPage,
     public_account_identities,
     public_account_identity,
+    search_public_author_page,
+    search_public_authors,
 )
 from apps.accounts.queries.security_events import (
     security_event_detail,
@@ -148,6 +151,7 @@ __all__ = [
     "MAX_VERIFICATION_EMAIL_TEMPLATE_BYTES",
     "PublicAccountIdentity",
     "PublicAccountNotFound",
+    "PublicAuthorSearchPage",
     "RestrictionError",
     "VerificationEmailConfiguration",
     "clear_account_restrictions",
@@ -167,6 +171,8 @@ __all__ = [
     "is_active_account",
     "public_account_identities",
     "public_account_identity",
+    "search_public_author_page",
+    "search_public_authors",
     "security_event_detail",
     "security_event_list",
     "set_account_enabled",

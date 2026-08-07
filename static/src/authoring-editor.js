@@ -6,6 +6,11 @@ import {
   MarkdownFileImportError,
   readMarkdownFile,
 } from "./markdown-file-import.js";
+import { initializeEditorPreviewScroll } from "./editor-preview-scroll.js";
+import {
+  initializeEditorImagePaste,
+  isPendingImageSource,
+} from "./editor-image-paste.js";
 
 const MEDIA_SOURCE = /^media:([0-9A-HJKMNP-TV-Z]{26})$/;
 const activeEditors = new WeakMap();
@@ -26,7 +31,22 @@ const AuthorImage = Node.create({
     return [{ tag: "img[data-author-media-id]" }];
   },
   renderHTML({ HTMLAttributes }) {
-    const matched = String(HTMLAttributes.src || "").match(MEDIA_SOURCE);
+    const rawSource = String(HTMLAttributes.src || "");
+    if (isPendingImageSource(rawSource)) {
+      const attributes = { ...HTMLAttributes };
+      delete attributes.src;
+      return [
+        "span",
+        mergeAttributes(attributes, {
+          class: "author-tiptap-upload",
+          "data-author-upload-source": rawSource,
+          contenteditable: "false",
+          role: "status",
+        }),
+        "正在上传图片",
+      ];
+    }
+    const matched = rawSource.match(MEDIA_SOURCE);
     const mediaId = matched?.[1] || "";
     const source = mediaId ? `/_kaj/media/${mediaId}` : "";
     return [
@@ -41,10 +61,13 @@ const AuthorImage = Node.create({
 
 function normalizeTiptap(value) {
   if (Array.isArray(value)) {
-    return value.map(normalizeTiptap);
+    return value.map(normalizeTiptap).filter((item) => item !== null);
   }
   if (!value || typeof value !== "object") {
     return value;
+  }
+  if (value.type === "image" && isPendingImageSource(value.attrs?.src)) {
+    return null;
   }
   const normalized = {};
   Object.entries(value).forEach(([key, item]) => {
@@ -141,7 +164,7 @@ function announceMarkdownImport(message, level = "error") {
   );
 }
 
-function initializeTiptap(root, source, changed) {
+function initializeTiptap(root, source, changed, selectionChanged) {
   const mount = root.querySelector("[data-tiptap-editor]");
   if (!(mount instanceof HTMLElement)) return null;
   let initial;
@@ -171,8 +194,12 @@ function initializeTiptap(root, source, changed) {
       source.value = JSON.stringify(normalizeTiptap(current.getJSON()));
       changed();
       updateToolbar(current);
+      selectionChanged();
     },
-    onSelectionUpdate: ({ editor: current }) => updateToolbar(current),
+    onSelectionUpdate: ({ editor: current }) => {
+      updateToolbar(current);
+      selectionChanged();
+    },
     onCreate: ({ editor: current }) => updateToolbar(current),
   });
   root.querySelectorAll("[data-editor-command]").forEach((button) => {
@@ -205,6 +232,8 @@ function initializeAuthorEditor(root) {
   const localMedia = new Map();
   let previewTimer = null;
   let previewRequest = null;
+  let previewScroll = null;
+  let imagePaste = null;
 
   if (!(source instanceof HTMLTextAreaElement)) {
     localDraft?.dispose();
@@ -226,6 +255,14 @@ function initializeAuthorEditor(root) {
       const id = image.dataset.authorMediaId || image.src.match(/\/_kaj\/media\/([0-9A-HJKMNP-TV-Z]{26})/)?.[1];
       if (id && localMedia.has(id)) image.src = localMedia.get(id);
     });
+  };
+
+  const registerLocalMedia = (assetId, file) => {
+    if (!(file instanceof File)) return;
+    const previous = localMedia.get(assetId);
+    if (previous) URL.revokeObjectURL(previous);
+    localMedia.set(assetId, URL.createObjectURL(file));
+    patchLocalImages();
   };
 
   const updateMetric = () => {
@@ -257,6 +294,7 @@ function initializeAuthorEditor(root) {
       const replacement = template.content.firstElementChild;
       if (replacement) preview.replaceWith(replacement);
       patchLocalImages();
+      previewScroll?.refresh();
       document.dispatchEvent(new CustomEvent("kaj:editor-preview", { detail: { root } }));
     } catch (error) {
       if (error.name !== "AbortError") {
@@ -282,13 +320,23 @@ function initializeAuthorEditor(root) {
     previewTimer = window.setTimeout(requestPreview, 250);
   };
 
-  const tiptap = format === "TIPTAP_JSON" ? initializeTiptap(root, source, schedulePreview) : null;
+  const tiptap =
+    format === "TIPTAP_JSON"
+      ? initializeTiptap(root, source, schedulePreview, () =>
+          previewScroll?.syncSelection(),
+        )
+      : null;
+  previewScroll = initializeEditorPreviewScroll({ root, source, format, tiptap });
 
-  const announce = (message, level = "success") => {
+  const announce = (
+    message,
+    level = "success",
+    key = `author-body-media-${level}`,
+  ) => {
     document.dispatchEvent(
       new CustomEvent("kaj:feedback", {
         detail: {
-          key: `author-body-media-${level}`,
+          key,
           level,
           message,
           timeout: level === "error" ? 6500 : 4500,
@@ -375,6 +423,17 @@ function initializeAuthorEditor(root) {
       return false;
     }
   };
+
+  imagePaste = initializeEditorImagePaste({
+    root,
+    source,
+    format,
+    tiptap,
+    announce: (message, level) =>
+      announce(message, level, "author-body-media-paste"),
+    registerLocalMedia,
+    refreshLibrary: refreshBodyMediaLibrary,
+  });
 
   root.addEventListener("click", async (event) => {
     const target = event.target;
@@ -521,6 +580,10 @@ function initializeAuthorEditor(root) {
   };
   const applyMarkdownFile = async () => {
     if (!(markdownFile instanceof File) || markdownImportApply?.disabled) return;
+    if (imagePaste?.pendingCount) {
+      imagePaste.announcePending();
+      return;
+    }
     const limit = Number.parseInt(root.dataset.editorBodyLimit || "", 10);
     if (markdownImportApply instanceof HTMLButtonElement) markdownImportApply.disabled = true;
     markdownImportCard?.setAttribute("aria-busy", "true");
@@ -615,6 +678,7 @@ function initializeAuthorEditor(root) {
       root.querySelectorAll("[data-editor-mode]").forEach((item) => {
         item.setAttribute("aria-pressed", String(item === button));
       });
+      previewScroll?.refresh();
     });
   });
 
@@ -625,7 +689,7 @@ function initializeAuthorEditor(root) {
     }
     if (event.detail?.adapter !== "article-body") return;
     const id = event.detail.assetId;
-    if (event.detail.file instanceof File) localMedia.set(id, URL.createObjectURL(event.detail.file));
+    registerLocalMedia(id, event.detail.file);
     insertBodyImage(id);
     refreshBodyMediaLibrary();
   });
@@ -634,7 +698,13 @@ function initializeAuthorEditor(root) {
     setCloudState("error", "云端保存失败，本地稿已保留");
   });
 
-  root.addEventListener("submit", () => {
+  root.addEventListener("submit", (event) => {
+    if (imagePaste?.pendingCount) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      imagePaste.announcePending();
+      return;
+    }
     if (tiptap) source.value = JSON.stringify(normalizeTiptap(tiptap.getJSON()));
     localDraft?.flushForCloudSave();
     setCloudState("saving", "正在保存云端草稿");
@@ -649,6 +719,8 @@ function initializeAuthorEditor(root) {
     window.clearTimeout(previewTimer);
     previewRequest?.abort();
     localDraft?.dispose();
+    previewScroll?.dispose();
+    imagePaste?.dispose();
     tiptap?.destroy();
     document.removeEventListener("click", closeMarkdownImportOnOutsideClick);
     document.removeEventListener("keydown", closeMarkdownImportOnEscape);

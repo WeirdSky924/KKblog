@@ -10,7 +10,7 @@
     <section class="auth-code-stage" aria-labelledby="complete-code-login-title">
       <header class="auth-section-heading">
         <h3 id="complete-code-login-title">输入验证码</h3>
-        <p>验证码已发送，请在 10 分钟内完成登录。</p>
+        <p>如果该邮箱已注册且可登录，验证码会发送到该邮箱，并在 10 分钟后失效。</p>
       </header>
       <p class="account-status auth-verification-status" role="status">
         <span>接收邮箱：<strong>{{ code_form.email.value }}</strong></span>
@@ -23,7 +23,8 @@
         {{ code_form.non_field_errors }}
         {{ code_form.email.errors }}
         {{ code_form.code.as_field_group }}
-        {{ code_form.remember.as_field_group }}
+        {{ code_form.remember.errors }}
+        {% include "components/forms/switch.html" with field=code_form.remember only %}
         <button class="button button--primary auth-form__submit" type="submit"><span>使用验证码登录</span><i data-lucide="arrow-right" aria-hidden="true"></i></button>
       </form>
     </section>
@@ -31,7 +32,7 @@
     <section class="auth-code-stage" aria-labelledby="request-login-code-title">
       <header class="auth-section-heading">
         <h3 id="request-login-code-title">接收验证码</h3>
-        <p>输入邮箱获取验证码，验证码将在 10 分钟后失效。</p>
+        <p>输入已注册邮箱获取验证码，验证码将在 10 分钟后失效。</p>
       </header>
       <form
         method="post"

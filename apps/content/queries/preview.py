@@ -31,6 +31,7 @@ class AuthorArticlePreview:
     body_bytes: int
     text_character_count: int
     media_count: int
+    block_start_lines: tuple[int, ...]
 
 
 def _media_ids(values) -> tuple[str, ...]:
@@ -107,4 +108,5 @@ def preview_article_body(
         body_bytes=body_bytes,
         text_character_count=len(text),
         media_count=len(referenced),
+        block_start_lines=rendered.block_start_lines,
     )

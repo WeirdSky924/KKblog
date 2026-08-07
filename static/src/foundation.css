@@ -191,6 +191,90 @@ svg {
   height: 1.125rem;
 }
 
+.switch-control {
+  position: relative;
+  display: inline-grid;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 2.75rem;
+  grid-template-columns: 2.625rem minmax(0, auto);
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.switch-control input[type="checkbox"] {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  width: 2.625rem;
+  height: 1.5rem;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.switch-control__track {
+  position: relative;
+  display: block;
+  width: 2.625rem;
+  height: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.switch-control__thumb {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0.1875rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  background: var(--text-secondary);
+  transform: translateY(-50%);
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.switch-control input[type="checkbox"]:checked + .switch-control__track {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.switch-control input[type="checkbox"]:checked
+  + .switch-control__track
+  .switch-control__thumb {
+  background: var(--accent-contrast);
+  transform: translate(1.125rem, -50%);
+}
+
+.switch-control input[type="checkbox"]:focus-visible + .switch-control__track {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.switch-control input[type="checkbox"]:disabled ~ * {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.switch-control__label {
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 @media (max-width: 48rem) {
   .site-frame {
     --site-frame-gutter: 1.5rem;

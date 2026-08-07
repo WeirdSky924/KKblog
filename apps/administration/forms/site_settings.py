@@ -22,7 +22,11 @@ class SiteConfigurationForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2}),
     )
     copyright_text = forms.CharField(label="版权信息", max_length=200, required=False)
-    registration_enabled = forms.BooleanField(label="开放直接注册", required=False)
+    registration_enabled = forms.BooleanField(
+        label="开放直接注册",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"role": "switch"}),
+    )
     article_body_max_bytes = forms.IntegerField(
         label="正文上限（字节）",
         min_value=SITE_MIN_ARTICLE_BODY_BYTES,

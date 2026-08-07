@@ -72,6 +72,7 @@
       {{ pagination_form.per_page.errors }}
       {{ pagination_form.tags.errors }}
       {{ pagination_form.q.errors }}
+      {{ pagination_form.type.errors }}
     </div>
   {% elif index_page.items %}
     <p class="article-index__count" aria-live="polite">共 {{ index_page.total_items }} 篇</p>
@@ -96,7 +97,10 @@
       >
         {% for tag_id in selected_tag_ids %}<input type="hidden" name="tags" value="{{ tag_id }}">{% endfor %}
         {% if selected_section_id %}<input type="hidden" name="section" value="{{ selected_section_id }}">{% endif %}
-        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+        {% if search_query %}
+          <input type="hidden" name="q" value="{{ search_query }}">
+          <input type="hidden" name="type" value="{{ search_type|default:'article' }}">
+        {% endif %}
         <label for="article-page-size">每页</label>
         <select id="article-page-size" name="per_page">
           {% for value, label in pagination_form.fields.per_page.choices %}

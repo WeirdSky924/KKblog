@@ -1,0 +1,38 @@
+{% if like_login_url %}
+  <a
+    class="button button--secondary article-action-button article-action-like"
+    href="{{ like_login_url }}"
+    data-article-action="like"
+    data-article-like-login
+    aria-label="登录后点赞"
+    title="登录后点赞"
+  >
+    <i data-lucide="thumbs-up"></i>
+  </a>
+{% else %}
+  <form
+    id="like-control"
+    class="like-control{% if like_message %} like-control--confirmed{% endif %}"
+    action="{% url 'article:like' like_article_id %}"
+    method="post"
+    hx-post="{% url 'article:like' like_article_id %}"
+    hx-target="this"
+    hx-swap="outerHTML"
+    data-like-count="{{ like_count }}"
+    {% if like_error %}data-like-error="{{ like_error }}"{% endif %}
+    data-submit-once
+  >
+    {% csrf_token %}
+    <input type="hidden" name="target_state" value="{% if like_is_saved %}unliked{% else %}liked{% endif %}">
+    <button
+      class="button button--secondary article-action-button article-action-like"
+      type="submit"
+      data-article-action="like"
+      aria-label="{% if like_is_saved %}取消点赞{% else %}点赞{% endif %}"
+      aria-pressed="{% if like_is_saved %}true{% else %}false{% endif %}"
+      title="{% if like_is_saved %}取消点赞{% else %}点赞这篇文章{% endif %}"
+    >
+      <i data-lucide="thumbs-up"></i>
+    </button>
+  </form>
+{% endif %}

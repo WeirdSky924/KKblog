@@ -30,8 +30,8 @@ ALLOWED_APP_DEPENDENCIES = {
     "operations": {"core"},
     "exchange": {"core", "operations"},
     "analytics": {"accounts", "core", "operations"},
-    "discovery": {"comments", "content", "core", "navigation"},
-    "authoring": {"comments", "content", "core", "exchange", "media"},
+    "discovery": {"comments", "content", "core", "media", "navigation"},
+    "authoring": {"accounts", "comments", "content", "core", "exchange", "media"},
     "administration": {
         "accounts",
         "analytics",
@@ -105,6 +105,7 @@ def test_core_contains_only_approved_cross_cutting_capabilities() -> None:
         "apps.py",
         "errors",
         "events",
+        "http.py",
         "ids.py",
         "management",
         "migrations",

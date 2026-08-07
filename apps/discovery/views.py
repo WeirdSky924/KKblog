@@ -1,22 +1,36 @@
 from urllib.parse import urlencode
 
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.comments.public import article_comment_context
-from apps.content.public import ArticleLoginRequired, ArticleNotFound
+from apps.content.public import (
+    ArticleLoginRequired,
+    ArticleNotFound,
+    search_visible_titles,
+)
 from apps.core.http import is_htmx_fragment_request
 from apps.discovery.presentation.forms import (
+    ArticleLikeStateForm,
     BookmarkStateForm,
     HomePageForm,
     PaginationForm,
     ProfilePageForm,
+    ReadingBookmarkProgressForm,
+    SearchCategory,
     SearchPageForm,
+    SearchSuggestionForm,
+)
+from apps.discovery.profile_identity import (
+    resolve_profile_identities,
+    search_profile_identities,
 )
 from apps.discovery.queries import (
     article_detail_page,
+    article_like_count,
+    author_search_page,
     bookmark_page,
     discovery_filters,
     home_article_page,
@@ -26,9 +40,17 @@ from apps.discovery.queries import (
     tag_article_page,
 )
 from apps.discovery.services import (
+    ArticleLikeCommandError,
+    ArticleLikeUnavailableError,
     BookmarkCommandError,
+    ReadingBookmarkCommandError,
+    ReadingBookmarkUnavailableError,
+    is_article_liked,
     is_bookmarked,
+    reading_bookmark_progress,
     record_article_view,
+    save_reading_bookmark,
+    set_article_like,
     set_bookmark,
 )
 
@@ -72,6 +94,54 @@ def _bookmark_control_context(
         "bookmark_login_url": None,
         "bookmark_message": message,
         "bookmark_error": error,
+    }
+
+
+def _like_control_context(
+    *, actor_id, article_id: str, article_path: str, message: str = "", error: str = ""
+):
+    count = article_like_count(article_id=article_id)
+    if actor_id is None:
+        return {
+            "like_article_id": article_id,
+            "like_is_saved": False,
+            "like_count": count,
+            "like_login_url": _login_url(article_path),
+            "like_message": message,
+            "like_error": error,
+        }
+    return {
+        "like_article_id": article_id,
+        "like_is_saved": is_article_liked(
+            account_id=actor_id,
+            article_id=article_id,
+        ),
+        "like_count": count,
+        "like_login_url": None,
+        "like_message": message,
+        "like_error": error,
+    }
+
+
+def _reading_bookmark_context(
+    *, actor_id, article_id: str, article_path: str
+) -> dict[str, object]:
+    if actor_id is None:
+        return {
+            "reading_bookmark_progress": None,
+            "reading_bookmark_progress_value": "",
+            "reading_bookmark_login_url": _login_url(article_path),
+        }
+    progress = reading_bookmark_progress(
+        account_id=actor_id,
+        article_id=article_id,
+    )
+    return {
+        "reading_bookmark_progress": progress,
+        "reading_bookmark_progress_value": (
+            f"{progress:.6f}" if progress is not None else ""
+        ),
+        "reading_bookmark_login_url": None,
     }
 
 
@@ -134,11 +204,19 @@ def home(request):
         "clear_filter_url": reverse("public:home"),
         "selected_tag_ids": selected_tag_ids,
         "sections_managed_by_navigation": True,
+        "home_article_heading": "最新文章",
+        "home_article_jump_label": "查看最新文章",
+        "active_home_section_id": None,
     }
     return _no_store(
         render(
             request,
-            _page_template(request, "discovery/home.html"),
+            (
+                "discovery/partials/home_article_region.html"
+                if is_htmx_fragment_request(request)
+                and request.headers.get("HX-Target") == "home-article-region"
+                else _page_template(request, "discovery/home.html")
+            ),
             context,
             status=status,
         )
@@ -179,13 +257,43 @@ def _collection_page(request, *, identity, loader, route_name, template):
 
 
 def section(request, section_id):
-    return _collection_page(
-        request,
-        identity={"section_id": section_id},
-        loader=section_article_page,
-        route_name="public:section",
-        template="discovery/section.html",
+    form = PaginationForm(request.GET)
+    valid = form.is_valid()
+    page = form.cleaned_data["page"] if valid else 1
+    page_size = form.cleaned_data["per_page"] if valid else 20
+    collection = section_article_page(
+        actor_id=_actor_id(request),
+        section_id=section_id,
+        page=page,
+        page_size=page_size,
     )
+    if collection is None:
+        raise Http404 from None
+    section_url = reverse("public:section", kwargs={"section_id": section_id})
+    context = {
+        "collection": collection,
+        "pagination_form": form,
+        "index_page": collection.index_page,
+        "pagination_query": (
+            _pagination_query(request, collection.index_page.page_size) if valid else ""
+        ),
+        "index_action": section_url,
+        "selected_tag_ids": (),
+        "sections_managed_by_navigation": True,
+        "home_article_heading": collection.name,
+        "home_article_jump_label": f"查看{collection.name}文章",
+        "home_section_name": collection.name,
+        "active_home_section_id": str(section_id),
+    }
+    if is_htmx_fragment_request(request):
+        template = (
+            "discovery/partials/home_article_region.html"
+            if request.headers.get("HX-Target") == "home-article-region"
+            else "discovery/partials/article_index.html"
+        )
+    else:
+        template = "discovery/home.html"
+    return _no_store(render(request, template, context, status=200 if valid else 422))
 
 
 def tag(request, tag_id):
@@ -204,17 +312,28 @@ def search(request):
     index_page = None
     pagination_query = ""
     search_query = None
+    search_type = SearchCategory.ARTICLE
     status = 200
     if requested and form.is_valid():
         search_query = form.cleaned_data["q"]
-        index_page = search_article_page(
-            actor_id=_actor_id(request),
-            query=search_query,
-            page=form.cleaned_data["page"],
-            page_size=form.cleaned_data["per_page"],
-        )
+        search_type = form.cleaned_data["type"]
+        if search_type == SearchCategory.AUTHOR:
+            index_page = author_search_page(
+                query=search_query,
+                page=form.cleaned_data["page"],
+                page_size=form.cleaned_data["per_page"],
+            )
+        else:
+            index_page = search_article_page(
+                actor_id=_actor_id(request),
+                query=search_query,
+                page=form.cleaned_data["page"],
+                page_size=form.cleaned_data["per_page"],
+            )
         pagination_query = _pagination_query(request, index_page.page_size)
     elif requested:
+        if request.GET.get("type") == SearchCategory.AUTHOR:
+            search_type = SearchCategory.AUTHOR
         status = 422
     context = {
         "pagination_form": form,
@@ -223,16 +342,90 @@ def search(request):
         "index_action": reverse("public:search"),
         "selected_tag_ids": (),
         "search_query": search_query,
-        "index_initial_prompt": "输入文章标题开始搜索。" if not requested else None,
+        "search_type": search_type,
+        "search_type_label": "作者" if search_type == SearchCategory.AUTHOR else "文章",
+        "index_initial_prompt": (
+            (
+                "输入作者昵称开始搜索。"
+                if search_type == SearchCategory.AUTHOR
+                else "输入文章标题开始搜索。"
+            )
+            if not requested
+            else None
+        ),
     }
+    template = (
+        (
+            "discovery/partials/author_search_results.html"
+            if search_type == SearchCategory.AUTHOR
+            else "discovery/partials/article_index.html"
+        )
+        if is_htmx_fragment_request(request)
+        else "discovery/search.html"
+    )
     return _no_store(
         render(
             request,
-            _page_template(request, "discovery/search.html"),
+            template,
             context,
             status=status,
         )
     )
+
+
+@require_GET
+def search_suggestions(request):
+    if _actor_id(request) is None:
+        return _no_store(JsonResponse({"items": []}))
+    if not request.GET.get("q", "").strip():
+        return _no_store(JsonResponse({"items": []}))
+    form = SearchSuggestionForm(request.GET)
+    if not form.is_valid():
+        return _no_store(
+            JsonResponse(
+                {"items": [], "error": "搜索条件无效。"},
+                status=422,
+            )
+        )
+    query = form.cleaned_data["q"]
+    search_type = form.cleaned_data["type"]
+    if search_type == SearchCategory.AUTHOR:
+        items = [
+            {
+                "label": identity.display_name,
+                "description": "作者",
+                "url": identity.profile_url,
+                "image_url": identity.avatar_url or "",
+                "initial": identity.avatar_initial,
+            }
+            for identity in search_profile_identities(query=query, limit=5)
+        ]
+    else:
+        source = search_visible_titles(
+            actor_id=_actor_id(request),
+            query=query,
+            page=1,
+            page_size=10,
+        )
+        visible = source.items[:5]
+        authors = resolve_profile_identities(tuple(item.author_id for item in visible))
+        items = [
+            {
+                "label": item.title,
+                "description": (
+                    f"@{authors[item.author_id].display_name} · 文章"
+                    if item.author_id in authors
+                    else "文章"
+                ),
+                "url": reverse(
+                    "article:detail", kwargs={"article_id": item.article_id}
+                ),
+                "section": item.section_name or "",
+                "tags": [tag.name for tag in item.tags],
+            }
+            for item in visible
+        ]
+    return _no_store(JsonResponse({"items": items}))
 
 
 @require_GET
@@ -264,6 +457,16 @@ def article_detail(request, article_id):
                 article_id=page.article_id,
                 article_path=article_path,
             ),
+            **_like_control_context(
+                actor_id=actor_id,
+                article_id=page.article_id,
+                article_path=article_path,
+            ),
+            **_reading_bookmark_context(
+                actor_id=actor_id,
+                article_id=page.article_id,
+                article_path=article_path,
+            ),
             **article_comment_context(
                 request=request,
                 article_id=page.article_id,
@@ -272,6 +475,54 @@ def article_detail(request, article_id):
     )
     response.headers["Cache-Control"] = "private, no-store"
     return response
+
+
+@require_POST
+def article_reading_bookmark(request, article_id):
+    article_path = reverse("article:detail", kwargs={"article_id": article_id})
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(request, next_path=article_path)
+
+    form = ReadingBookmarkProgressForm(request.POST)
+    if not form.is_valid():
+        return _no_store(
+            JsonResponse(
+                {"ok": False, "error": "阅读位置无效。"},
+                status=422,
+            )
+        )
+    try:
+        state = save_reading_bookmark(
+            account_id=actor_id,
+            article_id=article_id,
+            progress=form.cleaned_data["progress"],
+        )
+    except (ArticleLoginRequired, ArticleNotFound):
+        raise Http404 from None
+    except ReadingBookmarkUnavailableError as exc:
+        return _no_store(
+            JsonResponse(
+                {"ok": False, "error": exc.safe_message},
+                status=503,
+            )
+        )
+    except ReadingBookmarkCommandError as exc:
+        return _no_store(
+            JsonResponse(
+                {"ok": False, "error": exc.safe_message},
+                status=422,
+            )
+        )
+    return _no_store(
+        JsonResponse(
+            {
+                "ok": True,
+                "progress": f"{state.progress:.6f}",
+                "created": state.created,
+            }
+        )
+    )
 
 
 @require_POST
@@ -335,6 +586,65 @@ def article_bookmark(request, article_id):
             ),
             status=status,
         )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@require_POST
+def article_like(request, article_id):
+    article_path = reverse("article:detail", kwargs={"article_id": article_id})
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(request, next_path=article_path)
+
+    form = ArticleLikeStateForm(request.POST)
+    message = ""
+    error = ""
+    status = 200
+    if form.is_valid():
+        desired = (
+            form.cleaned_data["target_state"] == ArticleLikeStateForm.TargetState.LIKED
+        )
+        try:
+            state = set_article_like(
+                account_id=actor_id,
+                article_id=article_id,
+                liked=desired,
+            )
+        except (ArticleLoginRequired, ArticleNotFound):
+            raise Http404 from None
+        except ArticleLikeUnavailableError as exc:
+            error = exc.safe_message
+            status = 503
+        except ArticleLikeCommandError as exc:
+            error = exc.safe_message
+            status = 422
+        else:
+            message = "已点赞。" if state.liked else "已取消点赞。"
+    else:
+        error = next(
+            (str(item) for errors in form.errors.values() for item in errors),
+            "点赞状态无效。",
+        )
+        status = 422
+
+    if status == 200 and not is_htmx_fragment_request(request):
+        response = redirect(article_path)
+    else:
+        response = render(
+            request,
+            "discovery/partials/like_control.html",
+            _like_control_context(
+                actor_id=actor_id,
+                article_id=article_id,
+                article_path=article_path,
+                message=message,
+                error=error,
+            ),
+            status=status,
+        )
+        if status >= 500:
+            response.headers["X-Kaj-Inline-Error"] = "true"
     response.headers["Cache-Control"] = "private, no-store"
     return response
 

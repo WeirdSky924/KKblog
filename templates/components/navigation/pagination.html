@@ -1,5 +1,5 @@
 {% if index_page.total_pages > 1 %}
-  <nav class="pagination" aria-label="文章分页">
+  <nav class="pagination" aria-label="{{ pagination_label|default:'文章分页' }}">
     <a
       class="pagination__direction{% if not index_page.has_previous %} pagination__direction--disabled{% endif %}"
       {% if index_page.has_previous %}href="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'-1' }}" hx-get="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'-1' }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true"{% else %}aria-disabled="true"{% endif %}

@@ -76,6 +76,13 @@ class CommandResult[T]:
 
 媒体服务不判断文章业务可见性细节，而调用目标领域提供的 `MediaAccessDecision` 端口；目标领域也不拼路径或删文件。
 
+## discovery 公开服务
+
+| 服务 | 责任 |
+| --- | --- |
+| `set_article_like` | 登录账户对可读文章幂等点赞/取消，维持 `(account, article)` 唯一 |
+| `article_like_counts` | 按文章 ID 批量聚合点赞数，未迁移窗口安全降级为零 |
+
 ## comments 与 moderation 公开服务
 
 | 服务 | 责任 |
@@ -86,6 +93,7 @@ class CommandResult[T]:
 | `delete_own_comment` | 登录作者删除自己评论 |
 | `delete_comment_as_owner` | 文章作者管理自己文章；留言板管理员 |
 | `delete_comment_as_admin` | 任意评论、可选原因、终局审计 |
+| `set_article_comment_pin` | 文章作者/管理员置顶或取消公开顶层评论；每文章至多一条 |
 | `create_report` | 唯一举报、标签/描述/证据校验 |
 | `review_report` | 管理员初审与评论占位/通知 |
 | `appeal_report` | 结果对应一方的一次申诉 |

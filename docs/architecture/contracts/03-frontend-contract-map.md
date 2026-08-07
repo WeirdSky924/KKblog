@@ -6,19 +6,23 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 
 | URL name | 页面/模板 | 查询/命令 | HTMX 局部 | 必测状态 |
 | --- | --- | --- | --- | --- |
-| `public:home` | `discovery/home.html` | `visible_article_page` | 文章索引、标签筛选、页码 | 左侧导航展开/收起/本地恢复、10/20/50、五标签 OR、空结果 |
-| `public:section` | `discovery/section.html` | `articles_in_section` | 列表/页码 | 未知/删除分区不可导航 |
-| `public:tag` | `discovery/tag.html` | `articles_for_tags` | 列表/筛选 | 删除标签为空、恢复后读回 |
-| `public:search` | `discovery/search.html` | `search_visible_titles` | 结果/页码 | 模糊、相关度+时间、权限过滤 |
-| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view` | 评论区、收藏状态 | 登录提醒、私人/草稿 404、目录 H2 |
+| `public:home` | `discovery/home.html` | `visible_article_page` | 文章索引、标签筛选、页码 | 列表作者 ID/公开主页、左侧导航展开/收起/本地恢复、10/20/50、五标签 OR、空结果 |
+| `public:section` | `discovery/home.html` | `articles_in_section` | 主页文章区域/列表/页码 | 列表作者 ID/公开主页、侧栏同页切换、刷新保持主页结构、未知/删除分区不可导航 |
+| `public:tag` | `discovery/tag.html` | `articles_for_tags` | 列表/筛选 | 列表作者 ID/公开主页、删除标签为空、恢复后读回 |
+| `public:search` | `discovery/search.html` | `search_visible_titles`, `search_public_author_page` | 文章/作者结果与页码 | 文章列表作者 ID/公开主页、作者公开主页、模糊、相关度+时间、权限过滤 |
+| `public:search-suggestions` | Header JSON | `search_visible_titles`, `search_public_authors` | 登录用户即时建议 | 未登录固定空结果、文章分区/标签、作者头像、最多五条、无缓存 |
+| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count` | 评论区、收藏、点赞与阅读书签状态 | 作者头像/ID/公开主页、登录提醒、私人/草稿 404、目录 H2、恢复阅读位置 |
 | `article:bookmark` | partial action | `toggle_bookmark` | 收藏按钮 | 登录要求、重复点击幂等 |
+| `article:like` | `discovery/partials/like_control.html` | `set_article_like` | 右侧浮动点赞按钮、详情/列表计数 | 登录要求、固定尺寸、重复点击幂等 |
+| `article:comment-pin` | `comments/partials/public_list.html` | `set_article_comment_pin` | 评论首屏重排、置顶状态 | 仅文章作者/管理员、仅公开顶层、无整页闪烁 |
+| `article:reading-bookmark` | JSON action | `save_reading_bookmark` | 右侧阅读书签按钮 | 登录要求、正文相对进度 `0..1`、同账户同文章原位更新 |
 | `public:profile` | `discovery/public_profile.html` | `visible_articles_by_author` | 文章列表 | 空主页、不同调用者可见性 |
 | `public:about` | `navigation/static_page.html` | `published_static_page` | 无 | 无内容 404/隐藏入口 |
 | `public:friend-links` | `navigation/friend_links.html` | `visible_friend_links` | 无 | 安全新标签、缺图 |
 | `public:guestbook` | `comments/thread_page.html` | `guestbook_thread` | 评论列表/表单 | 开关、访客、登录、举报 |
 | `public:not-found` | `errors/404.html` | 安全错误映射 | 无 | 不泄露对象存在 |
 
-文章首屏的静态正文可缓存，浏览量、收藏和评论由独立查询组装。分享按钮只复制当前永久链接，不调用第三方平台。
+文章首屏的静态正文可缓存，浏览量、收藏、点赞、阅读书签和评论由独立查询组装。阅读书签保存正文内归一化进度，避免视口变化后绝对像素失效；分享按钮只复制当前永久链接，不调用第三方平台。
 
 ## 身份与个人页面
 
@@ -29,10 +33,10 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `accounts:password-reset` | 重置表单 | request/reset password | 第 5 次码错误、每日限制、全部会话撤销 |
 | `accounts:settings` | 资料/凭证/主题 tabs | change profile/email/password | 昵称冷却、头像预览、当前密码、新邮箱码 |
 | `accounts:sessions` | 设备会话表 | revoke session(s) | 当前会话、退出其他、退出所有二次确认 |
-| `accounts:bookmarks` | 私人收藏 | bookmark_page | 失效专属图、用户手动删除 |
+| `accounts:bookmarks` | 私人收藏 | bookmark_page | 可用文章作者 ID/公开主页、失效专属图、用户手动删除 |
 | `notifications:list` | 全量通知 | notifications_for/mark read | 未读、单条展开、一键全读、空态 |
 
-全局 Header：左上 Logo/主题切换；头像左侧通知控件；未登录显示登录/注册，登录后显示圆形头像、昵称/账号和个人菜单。管理员配置的公共导航只显示在首页可收起的左侧浮层，不进入 Header；分区节点和其他导航节点使用同一排序结果。通知 hover 浮层固定五条；点击条目打开完整浮层，不跳页；“查看全部”跳通知页。
+全局 Header：左上 Logo/主题切换；头像左侧通知控件；未登录显示登录/注册，登录后显示圆形头像、昵称/账号和个人菜单。搜索默认查文章，可切换作者；登录用户输入时显示最多五条即时建议，未登录不请求也不渲染建议层。管理员配置的公共导航只显示在首页可收起的左侧浮层，不进入 Header；分区节点和其他导航节点使用同一排序结果。点击分区节点只替换主页文章区域，标题、列表、分页 URL 和节点选中态同步更新；直接访问或刷新分区 URL 仍返回完整主页结构。通知 hover 浮层固定五条；点击条目打开完整浮层，不跳页；“查看全部”跳通知页。
 
 ## 作者工作台
 
@@ -40,7 +44,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | --- | --- | --- | --- |
 | `authoring:articles` | 我的文章 | content queries | 已发布、草稿、定时、冷静期、空态 |
 | `authoring:create` | 格式选择 | create_article | Markdown/富文本一经选择普通流程不可改 |
-| `authoring:edit` | 编辑器+预览 | save_revision/media | 本地自动保存、云保存、磁盘限制、冲突 |
+| `authoring:edit` | 编辑器+预览 | save_revision/media | 本地自动保存、云保存、磁盘限制、冲突、剪贴板图片上传/撤销/失败 |
 | `authoring:review` | 全文终稿审查 | prepare/publish/schedule | 返回编辑、立即/定时、退出存草稿 |
 | `authoring:versions` | 历史时间线 | revision queries/restore | 版本元数据、恢复预览、创建新修订 |
 | `authoring:comments-buffer` | 缓冲卡片 | buffered_comments/delete | 10 分钟倒计时、删除确认 |
@@ -48,6 +52,8 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `authoring:import` | 上传/预览/结果 | exchange import | 逐篇选择、分区/标签映射、部分成功 |
 
 编辑器桌面并列编辑/实时预览；手机使用“编辑/预览”分段切换。TipTap 和 Markdown 使用不同输入组件，但共同调用安全预览、媒体选择、版本令牌和发布审查组件。
+
+剪贴板图片必须调用既有 `article-body` 上传端点并沿用其格式、大小、权限和未绑定资源清理规则。前端最多接受同一批十张图片并串行上传，在粘贴位置保留不可持久化的临时标记；成功后换成 `media:<ULID>`，撤销后只保留图片库资源，失败后清除标记。存在待上传图片时，编辑器不得提交云端保存或用 `.md` 导入覆盖正文，并应在离页前提示。
 
 本地草稿存储键至少含 `user_id + article_id + base_revision_id + format`，防止账号/文章串稿。服务端保存成功前不得删除本地内容。
 

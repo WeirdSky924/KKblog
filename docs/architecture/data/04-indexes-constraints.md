@@ -22,6 +22,7 @@
 | `report` | `(reporter_id, target_comment_id)` 唯一 |
 | `report_appeal` | `report_id` 唯一 |
 | `notification_receipt` | `(notification_id, recipient_id)` 唯一 |
+| `discovery_reading_bookmark` | `(account_id, article_id)` 唯一；`0 <= progress <= 1` |
 | `task_run` | `(task_name, idempotency_key)` 唯一 |
 | `export_job` | `state IN (RUNNING, CANCEL_REQUESTED)` 全局部分唯一 |
 | `navigation_node` | 深度 `0..2`；父子不能形成环由延迟触发器或服务加锁校验 |
@@ -39,6 +40,8 @@
 | 标签增删 | 锁 Article；服务检查最多十个，再同步修订快照与当前投影 |
 | 评论回复 | 锁 parent 或 thread；计算 depth 并原子增加根评论 reply_count |
 | 评论缓冲公开 | 条件更新 `BUFFERED -> VISIBLE`，重复运行影响行数为零 |
+| 评论置顶 | 锁 thread；`thread_id`/`comment_id` 各自唯一；置顶另一条时原子替换 |
+| 文章点赞 | `(account_id, article_id)` 唯一；重复写入幂等 |
 | 举报裁决 | 锁 Report；只允许从当前状态走一条合法边 |
 | 单全局导出 | 先插入 `RUNNING`，并让 `RUNNING/CANCEL_REQUESTED` 共用部分唯一约束作为最终并发裁决 |
 | 软删除到期清理 | `skip_locked` 小批量领取；每个文章独立事务与幂等文件清理 |
@@ -66,8 +69,10 @@
 | 回复批次 | `(parent_id, created_at, id)` |
 | 热门评论 | `(thread_id, reply_count desc, created_at, id)` where parent null |
 | 缓冲评论 | `(visible_at, id)` where state buffered |
+| 点赞计数 | `(article_id, created_at)` |
 | 待审核举报 | `(state, created_at, id)` |
 | 未读通知 | `(recipient_id, read_at, notification_id)` where read_at null |
+| 最近更新的阅读书签 | `(account_id, updated_at desc, article_id)` |
 | 审计检索 | `(created_at desc)`、`(action, created_at)`、`(target_type,target_id)` |
 | 运行错误 | `(last_seen_at desc)`、`(error_code,last_seen_at)` |
 | 任务监控 | `(state, scheduled_at)`、唯一幂等键 |
@@ -80,7 +85,7 @@
 
 ## 数据删除与外键策略
 
-- 账户删除：会话、书签和通知回执 `CASCADE`；评论作者 `SET NULL` 并先写删除身份标志；举报和审计使用删除身份快照。
+- 账户删除：会话、收藏、点赞、阅读书签和通知回执 `CASCADE`；评论置顶操作者 `SET NULL`；评论作者 `SET NULL` 并先写删除身份标志；举报和审计使用删除身份快照。
 - 文章物理删除：修订、当前标签、讨论线程、评论 `CASCADE`；报告/申诉保留稳定目标 ID，不级联。
 - 媒体资产：不得由任意业务外键直接 `CASCADE` 删除磁盘文件；先解绑，再由媒体服务/任务删除文件并标记。
 - 标签删除：业务软删除，不依赖级联；当前关联移除并保留恢复历史。

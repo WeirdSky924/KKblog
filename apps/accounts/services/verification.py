@@ -137,6 +137,16 @@ class VerificationStore:
         if result != 1:
             raise VerificationError("请稍后再发送验证码")
 
+    def reserve_resend(self, *, email: str) -> None:
+        reserved = self.client.set(
+            self.resend_key(email=email),
+            b"1",
+            ex=RESEND_SECONDS,
+            nx=True,
+        )
+        if not reserved:
+            raise VerificationError("请稍后再发送验证码")
+
     def verify(
         self,
         *,
@@ -191,9 +201,12 @@ def request_verification_code(
     account_id=None,
     code_generator: Callable[[], str] = generate_code,
     binding: str = "",
+    deliver: bool = True,
     restriction_store: RestrictionStore | None = None,
     clock: Clock | None = None,
 ) -> None:
+    if type(deliver) is not bool:
+        raise VerificationError("验证码请求无效")
     normalized = normalize_email(email)
     restrictions = restriction_store or store.restrictions
     try:
@@ -210,6 +223,13 @@ def request_verification_code(
             safe_summary={"purpose": purpose.value},
         )
         raise VerificationError(str(exc)) from None
+    if not deliver:
+        try:
+            store.reserve_resend(email=normalized)
+        except VerificationError:
+            restrictions.rollback_verification_send(reservation)
+            raise
+        return
     code = code_generator()
     if not _CODE.fullmatch(code):
         restrictions.rollback_verification_send(reservation)

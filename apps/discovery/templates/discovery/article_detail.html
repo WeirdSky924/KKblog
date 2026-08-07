@@ -13,11 +13,23 @@
     class="article-reader"
     data-article-actions
     data-article-permalink="{{ permalink }}"
+    data-reading-bookmark-progress="{{ reading_bookmark_progress_value }}"
     aria-labelledby="article-title"
   >
     <header class="article-reader__header">
       <div>
         <h1 id="article-title">{{ article.title }}</h1>
+        <a
+          class="article-reader__author"
+          href="{{ article.author.profile_url }}"
+          aria-label="查看{{ article.author.display_name }}的公开主页"
+        >
+          {% include "accounts/partials/avatar.html" with identity=article.author only %}
+          <span>
+            <small>作者</small>
+            <strong>@{{ article.author.display_name }}</strong>
+          </span>
+        </a>
         <dl class="article-reader__meta">
           <div>
             <dt>发布时间</dt>
@@ -26,6 +38,10 @@
           <div>
             <dt><i data-lucide="eye"></i><span class="sr-only">浏览量</span></dt>
             <dd>{{ view_count }}</dd>
+          </div>
+          <div>
+            <dt><i data-lucide="thumbs-up"></i><span class="sr-only">点赞数</span></dt>
+            <dd data-article-like-count>{{ like_count }}</dd>
           </div>
         </dl>
         {% if article.tags %}
@@ -49,6 +65,24 @@
             <i data-lucide="copy"></i>
           </button>
         </div>
+        {% if reading_bookmark_login_url %}
+          <a
+            class="button button--secondary reading-bookmark-goto"
+            href="{{ reading_bookmark_login_url }}"
+            data-reading-bookmark-goto-login
+            title="登录后前往阅读书签"
+          >
+            <span>前往书签</span>
+          </a>
+        {% else %}
+          <button data-reading-bookmark-goto{% if reading_bookmark_progress == None %} disabled{% endif %}
+            class="button button--secondary reading-bookmark-goto"
+            type="button"
+            title="{% if reading_bookmark_progress == None %}尚未保存阅读书签{% else %}前往上次保存的阅读位置{% endif %}"
+          >
+            <span>前往书签</span>
+          </button>
+        {% endif %}
       </div>
     </header>
 
@@ -124,6 +158,7 @@
           <i data-lucide="bookmark"></i>
         </button>
       {% endif %}
+      {% include "discovery/partials/like_control.html" %}
       <button
         class="button button--secondary article-action-button"
         type="button"
@@ -135,6 +170,44 @@
       >
         <i data-lucide="copy"></i>
       </button>
+      {% if reading_bookmark_login_url %}
+        <a
+          class="button button--secondary article-action-button article-action-reading-bookmark"
+          href="{{ reading_bookmark_login_url }}"
+          data-article-action="reading-bookmark"
+          data-reading-bookmark-save
+          aria-label="登录后保存阅读书签"
+          title="登录后保存阅读书签"
+        >
+          <i data-lucide="bookmark-check"></i>
+        </a>
+      {% else %}
+        <form
+          class="reading-bookmark-control"
+          action="{% url 'article:reading-bookmark' article.article_id %}"
+          method="post"
+          data-reading-bookmark-form
+        >
+          {% csrf_token %}
+          <input
+            type="hidden"
+            name="progress"
+            value="{{ reading_bookmark_progress_value }}"
+            data-reading-bookmark-input
+          >
+          <button
+            class="button button--secondary article-action-button article-action-reading-bookmark"
+            type="submit"
+            data-article-action="reading-bookmark"
+            data-reading-bookmark-save
+            data-saved="{% if reading_bookmark_progress == None %}false{% else %}true{% endif %}"
+            aria-label="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
+            title="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
+          >
+            <i data-lucide="bookmark-check"></i>
+          </button>
+        </form>
+      {% endif %}
       <button
         class="button button--secondary article-action-button"
         type="button"

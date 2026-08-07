@@ -23,7 +23,9 @@ from .home import (
     section_article_page,
     tag_article_page,
 )
+from .like_counts import article_like_count, article_like_counts
 from .profiles import PublicProfilePage, profile_article_page
+from .search import AuthorSearchPage, author_search_page
 from .view_counts import article_view_count, article_view_counts
 
 __all__ = [
@@ -36,13 +38,17 @@ __all__ = [
     "ArticleIndexItem",
     "ArticleIndexPage",
     "ArticleIndexTag",
+    "AuthorSearchPage",
     "DiscoveryFilterOption",
     "DiscoveryFilters",
     "PublicProfilePage",
     "UnavailableBookmarkItem",
     "article_detail_page",
+    "article_like_count",
+    "article_like_counts",
     "article_view_count",
     "article_view_counts",
+    "author_search_page",
     "bookmark_page",
     "discovery_filters",
     "home_article_page",
