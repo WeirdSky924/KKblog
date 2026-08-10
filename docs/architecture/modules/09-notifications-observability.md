@@ -42,6 +42,8 @@ AuditSchema 默认拒绝未知字段；密码、码、token、Cookie、连接串
 
 未预期异常生成用户可查的 trace code，脱敏堆栈/上下文永久保存。相同 fingerprint 可聚合首次/最近时间和次数。管理员按 trace/错误码/关键字/时间搜索；普通用户只见通用提示。
 
+正文渲染性能使用 `apps.operations.services.performance` 的窄日志入口，不新建第二个正文或指标事实表。每次 content projection 记录格式、模式、schema、字节/节点/深度/表格计数、耗时、结果、稳定错误码和 trace；超过 250 ms 或被拒绝使用 warning，其余使用 info。入口拒绝自由文本和无界数值，绝不接收正文、URL、文件名、媒体 ID、对象 ID、路径或异常消息。
+
 ## TaskRun 与告警
 
 每个 Celery 执行记录 task、业务幂等键、attempt、状态、时序和最终错误。三次递增延迟后最终失败，写 RuntimeError、站内通知；运维类再发邮件。网页只查看，不提供手动重试。

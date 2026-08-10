@@ -53,8 +53,12 @@ apps/media/
 - Markdown、TipTap、作者 HTML 和导入预览走同一 allowlist。
 - 删除 script、事件属性、危险协议、任意 iframe/raw HTML 执行。
 - 外链 `target=_blank` 且带安全隔离属性。
-- Embed 只匹配管理员启用的主机/路径规则，初始仅 Bilibili；来源移除显示“来源不可用”。
+- Embed 只匹配管理员启用的主机/路径规则，初始仅 Bilibili。策略 owner 规范化来源 URL 并生成播放器地址；来源停用时，已认可且仍合法的历史 URL 降级为站外安全链接，未知/非法来源只显示“来源不可用”且不回显用户 URL。
+- 页面 CSP 只允许 frame 指向本站与 `https://player.bilibili.com`；正文、编辑器和 sanitizer 均不接受用户 iframe、HTML 或服务端抓取。
 - sanitizer 规则版本进入渲染缓存键；升级后旧缓存整体失效。
+- TipTap schema、renderer 与 sanitizer 当前分别以 schema fingerprint、`kaj-tiptap-renderer-v6`、`kaj-html-v7` 进入缓存身份；renderer 只渲染 schema 规范化结果，危险 v2 链接、越权媒体和不受信 embed 返回稳定错误，不以删除后成功替代拒绝。
+- heading outline projection 与 renderer 共用规范化 JSON 和锚点规则。v2 持久 `kaj-h-<UUID>` 直接输出；无锚点历史 revision 生成确定性 legacy ID。页面层只能消费 projection，不能解析 sanitized HTML 后替换 `id`。
+- `apps/content/rendering.py` 是文章出口投影的唯一 owner。content 的保存校验、编辑预览、终稿审查、公开/历史阅读、搜索摘要与便利导出不得直接调用 `render_markdown` 或 `render_tiptap`；该 owner 只选择显式资源模式并委托本模块的 schema、renderer 与 sanitizer，不复制节点规则。
 
 ## 生命周期与失败
 
@@ -64,10 +68,10 @@ apps/media/
 
 ## UI
 
-统一媒体选择器处理拖放/选择、格式与大小错误、上传进度、预览、移除和失败重试。附件使用文件名与大小清单，不伪装成图片预览；长文件名截断但保留完整表单状态。用途页面可定制裁切预览，但不能绕过上传入口。移动端文件选择和长错误文案需可达。
+统一媒体选择器处理拖放/选择、格式与大小错误、预览和移除；编辑器内的图片选择、粘贴、拖入、替换及附件选择把上传状态交给共享 upload tracker。tracker 统一处理进度、AbortSignal、取消、同文件重试和 pending count，固定浮窗只做状态投影，不成为媒体或 revision 事实。附件使用文件名与大小清单，不伪装成图片预览；长文件名截断但保留完整表单状态。用途页面可定制裁切预览，但不能绕过上传入口。移动端文件选择和长错误文案需可达。
 
 ## 验证
 
 伪造 MIME/双扩展、坏图、超 2 MiB、静态图 `8192`/`25 MP` 边界、动图 `200` 帧/`100 MP` 累计边界、EXIF、GIF 动画、ICO；路径穿越/符号链接；他人/私人资产直接 URL；绑定数量；数据库提交与文件移动/删除崩溃；低磁盘自动限制/恢复。
 
-施工依据：`data/03-interaction-operations-fields.md`、`data/05-storage-lifecycle.md`、`adr/ADR-006-filesystem-media.md`。
+施工依据：`data/03-interaction-operations-fields.md`、`data/05-storage-lifecycle.md`、`adr/ADR-006-filesystem-media.md`、`contracts/06-tiptap-schema.md`。

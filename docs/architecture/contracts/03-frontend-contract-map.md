@@ -11,7 +11,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:tag` | `discovery/tag.html` | `articles_for_tags` | 列表/筛选 | 列表作者 ID/公开主页、删除标签为空、恢复后读回 |
 | `public:search` | `discovery/search.html` | `search_visible_titles`, `search_public_author_page` | 文章/作者结果与页码 | 文章列表作者 ID/公开主页、作者公开主页、模糊、相关度+时间、权限过滤 |
 | `public:search-suggestions` | Header JSON | `search_visible_titles`, `search_public_authors` | 登录用户即时建议 | 未登录固定空结果、文章分区/标签、作者头像、最多五条、无缓存 |
-| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count` | 评论区、收藏、点赞与阅读书签状态 | 作者头像/ID/公开主页、登录提醒、私人/草稿 404、目录 H2、恢复阅读位置 |
+| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count` | 评论区、收藏、点赞与阅读书签状态 | 作者头像/ID/公开主页、登录提醒、私人/草稿 404、TipTap JSON projection/Markdown 兼容目录 H2、恢复阅读位置 |
 | `article:bookmark` | partial action | `toggle_bookmark` | 收藏按钮 | 登录要求、重复点击幂等 |
 | `article:like` | `discovery/partials/like_control.html` | `set_article_like` | 右侧浮动点赞按钮、详情/列表计数 | 登录要求、固定尺寸、重复点击幂等 |
 | `article:comment-pin` | `comments/partials/public_list.html` | `set_article_comment_pin` | 评论首屏重排、置顶状态 | 仅文章作者/管理员、仅公开顶层、无整页闪烁 |
@@ -54,6 +54,20 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 编辑器桌面并列编辑/实时预览；手机使用“编辑/预览”分段切换。TipTap 和 Markdown 使用不同输入组件，但共同调用安全预览、媒体选择、版本令牌和发布审查组件。
 
 剪贴板图片必须调用既有 `article-body` 上传端点并沿用其格式、大小、权限和未绑定资源清理规则。前端最多接受同一批十张图片并串行上传，在粘贴位置保留不可持久化的临时标记；成功后换成 `media:<ULID>`，撤销后只保留图片库资源，失败后清除标记。存在待上传图片时，编辑器不得提交云端保存或用 `.md` 导入覆盖正文，并应在离页前提示。
+
+富文本图片拖入复用同一批次上限、临时标记和串行上传合同，并按命中位置插入；选中图片的替换上传在成功前保留旧 revision 引用，成功后以单个可撤销 transaction 更新 `src`，alt/title/宽度保持不变。图片节点宽度只允许 `25/50/75/100`，删除节点只改变未保存正文，不绕过 media owner 删除服务器资产。
+
+富文本 attachment node 只能由有附件能力的作者通过既有 picker 插入或替换，document 最多一个，attrs 只含 `src: media:<ULID>`。前端文件名/MIME/大小来自 picker 的当前授权资产，公开卡片来自 revision binding 的 media 授权元数据；未授权作者不渲染上传或插入入口，隐藏 UI 不替代服务端拒绝。
+
+编辑器表单内所有媒体写入共用一个 upload tracker：任务状态只允许 `pending/success/error/cancelled`，进度、AbortSignal、取消、同文件重试和关闭由 tracker 投影到固定上传浮窗。任一任务为 pending 时，云端保存、Markdown 覆盖和离页都必须由同一 pending count 阻断；取消或失败不写媒体字段，成功后才更新 picker 或发出 TipTap transaction。TipTap 失败占位可以留在原位置等待重试，但序列化 JSON、本地草稿和服务端 revision 都不得包含 `kaj-upload:` 临时引用。
+
+编辑大纲只遍历当前 ProseMirror/TipTap JSON 的 H1-H6；`anchor` 缺失、非法或重复时由 heading extension 生成唯一安全值，改名和移动保留，复制去重并与同一历史步骤撤销恢复。桌面默认展开，窄屏默认折叠，条目激活后设置正文 selection 并只滚动编辑容器。公开 TipTap 目录消费 content/media 的 outline projection 并保留 renderer 已输出的 `id`；不得解析或重写 sanitized HTML。Markdown 仍沿用历史 H2 兼容目录。
+
+编辑/预览定位由 `editor-preview-scroll` 单一 owner 维护：Markdown 使用服务端 block start lines，TipTap 使用 selection 文档位置和 top-level block ratio；预览目标为可视高度的 2/3，但 `scrollTop` 始终 clamp 到 `0..maximum`，上方内容不足时必须从顶部开始且禁止伪元素前置留白。预览主动滚动把状态从 `following` 切为 `paused`，selection/content 更新不隐式恢复；替换预览 DOM 后按原滚动比例恢复。只有“继续跟随编辑位置”命令返回 `following`，执行后焦点落回预览正文。
+
+版本和 409 冲突界面的块级变化只显示 before/after 总数及新增、删除、移动、类型变化、内容变化计数。content 拥有有界比较，authoring presenter 拥有标签与方向文案；模板不得接收正文 diff、文本片段、媒体 ID 或内部哈希。块复制/删除继续复用 block menu 的独立可撤销事务，不产生第二套操作入口。
+
+本地草稿与 409 恢复必须把 TipTap JSON 和唯一 `attachmentAssetId` 作为一个一致快照；旧草稿仅可从唯一合法 attachment node 推导缺失字段。刷新、选择新基线和 HTMX workspace 替换后，正文 node、附件 hidden field 与 picker 状态同步恢复；字段/node 错配时显示本地稿不可读并保留云端事实，不把失败恢复伪装为成功。
 
 本地草稿存储键至少含 `user_id + article_id + base_revision_id + format`，防止账号/文章串稿。服务端保存成功前不得删除本地内容。
 

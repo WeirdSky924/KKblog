@@ -25,6 +25,7 @@ _FORBIDDEN = {
     "token",
     "url",
 }
+NOTIFICATION_MARKDOWN_MAX_LENGTH = 4000
 
 
 class NotificationRejected(ValueError):
@@ -37,6 +38,7 @@ class NotificationTemplateSchema:
     target_type: str
     allowed_payload_fields: frozenset[str]
     required_payload_fields: frozenset[str] = frozenset()
+    markdown_payload_fields: frozenset[str] = frozenset()
     payload_validator: Callable[[Mapping[str, object]], None] | None = None
 
     def __post_init__(self) -> None:
@@ -48,6 +50,8 @@ class NotificationTemplateSchema:
                 raise NotificationRejected("Unsafe notification field")
         if not self.required_payload_fields <= self.allowed_payload_fields:
             raise NotificationRejected("Invalid required notification field")
+        if not self.markdown_payload_fields <= self.allowed_payload_fields:
+            raise NotificationRejected("Invalid Markdown notification field")
         if self.payload_validator is not None and not callable(self.payload_validator):
             raise NotificationRejected("Invalid notification payload validator")
 
@@ -80,17 +84,21 @@ def registered_notification_templates() -> MappingProxyType:
     return MappingProxyType(_TEMPLATES)
 
 
-def _safe_value(value):
+def _safe_value(value, *, markdown: bool = False):
     if value is None or isinstance(value, bool | int):
         return value
     if isinstance(value, str):
+        limit = NOTIFICATION_MARKDOWN_MAX_LENGTH if markdown else 200
         if (
-            len(value) > 200
+            len(value) > limit
             or "\x00" in value
-            or "<" in value
-            or ">" in value
-            or "://" in value
+            or any(
+                not character.isprintable() and character not in "\n\t"
+                for character in value
+            )
         ):
+            raise NotificationRejected("Unsafe notification value")
+        if not markdown and ("<" in value or ">" in value or "://" in value):
             raise NotificationRejected("Unsafe notification value")
         return value
     if isinstance(value, list | tuple) and len(value) <= 20:
@@ -140,7 +148,10 @@ def deliver_notification(
         or not set(payload) <= schema.allowed_payload_fields
     ):
         raise NotificationRejected("Unknown notification payload field")
-    safe_payload = {key: _safe_value(value) for key, value in payload.items()}
+    safe_payload = {
+        key: _safe_value(value, markdown=key in schema.markdown_payload_fields)
+        for key, value in payload.items()
+    }
     schema.validate_payload(safe_payload)
     try:
         recipients = tuple(dict.fromkeys(UUID(str(value)) for value in recipient_ids))

@@ -13,13 +13,14 @@ from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.media.public import (
+    MediaAccessError,
     MediaBindingError,
     MediaPurpose,
     MediaTargetType,
     RenderingError,
+    TipTapAttachmentMetadata,
+    authorize_asset_read,
     markdown_media_ids,
-    render_markdown,
-    render_tiptap,
     target_binding_snapshot,
     tiptap_media_ids,
 )
@@ -27,7 +28,10 @@ from apps.media.public import (
 from ..events import ARTICLE_PUBLISHED
 from ..models import Article, ArticleRevision, PublicationReviewGrant, Tag
 from ..policies import article_is_reader_masked, author_is_content_masked
-from ..rendering_policy import configured_content_embed_policy
+from ..rendering import ArticleRenderingMode, render_article_body
+from ..rendering_policy import (
+    content_error_for_rendering,
+)
 
 REVIEW_LIFETIME = timedelta(minutes=15)
 
@@ -189,25 +193,63 @@ def _render_for_publication(revision: ArticleRevision) -> str:
         raise PublicationCommandError(
             "content.media_invalid.v1", "文章封面信息不一致。"
         )
+    attachment_ids = {
+        binding.asset_id
+        for binding in bindings
+        if binding.purpose == MediaPurpose.ATTACHMENT
+    }
+    if revision.attachment_asset_id is not None and attachment_ids != {
+        revision.attachment_asset_id
+    }:
+        raise PublicationCommandError(
+            "content.media_invalid.v1", "文章附件当前不可用。"
+        )
+    if revision.attachment_asset_id is None and attachment_ids:
+        raise PublicationCommandError(
+            "content.media_invalid.v1", "文章附件信息不一致。"
+        )
     try:
+        attachment_metadata = None
+        if revision.attachment_asset_id is not None:
+            try:
+                attachment = authorize_asset_read(
+                    actor_id=revision.created_by_id,
+                    asset_id=revision.attachment_asset_id,
+                )
+            except MediaAccessError:
+                raise PublicationCommandError(
+                    "content.media_invalid.v1",
+                    "文章附件当前不可用。",
+                ) from None
+            attachment_metadata = TipTapAttachmentMetadata(
+                asset_id=attachment.asset_id,
+                original_name=attachment.original_name,
+                detected_mime=attachment.detected_mime,
+                size_bytes=attachment.size_bytes,
+            )
         if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
             referenced = set(markdown_media_ids(revision.body_markdown or ""))
-            rendered = render_markdown(
-                revision.body_markdown or "",
-                embed_policy=configured_content_embed_policy(),
-                allowed_media_ids=body_ids,
-            )
+            body = revision.body_markdown or ""
         else:
-            referenced = set(tiptap_media_ids(revision.body_tiptap or {}))
-            rendered = render_tiptap(
-                revision.body_tiptap or {},
-                embed_policy=configured_content_embed_policy(),
-                allowed_media_ids=body_ids,
+            referenced = set(
+                tiptap_media_ids(
+                    revision.body_tiptap or {},
+                    schema_version=revision.tiptap_schema_version,
+                )
             )
-    except RenderingError:
-        raise PublicationCommandError(
-            "content.body_invalid.v1", "文章正文当前无法安全渲染。"
-        ) from None
+            body = revision.body_tiptap or {}
+        rendered = render_article_body(
+            content_format=revision.content_format,
+            body=body,
+            tiptap_schema_version=revision.tiptap_schema_version,
+            allowed_media_ids=body_ids,
+            allowed_attachment_id=revision.attachment_asset_id,
+            attachment_metadata=attachment_metadata,
+            mode=ArticleRenderingMode.STRICT,
+        )
+    except RenderingError as exc:
+        code, message = content_error_for_rendering(exc)
+        raise PublicationCommandError(code, message) from None
     if referenced != body_ids:
         raise PublicationCommandError(
             "content.media_invalid.v1", "正文图片绑定与正文不一致。"

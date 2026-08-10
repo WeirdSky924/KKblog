@@ -1,0 +1,131 @@
+.author-link-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: 6px;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  box-shadow: 0 20px 48px rgb(0 0 0 / 24%);
+}
+
+.author-link-dialog::backdrop {
+  background: rgb(20 24 22 / 48%);
+}
+
+.author-link-dialog form {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.author-link-dialog header,
+.author-link-dialog__actions,
+.author-link-dialog__actions > div {
+  display: flex;
+  align-items: center;
+}
+
+.author-link-dialog header {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.author-link-dialog h3,
+.author-link-dialog p {
+  margin: 0;
+}
+
+.author-link-dialog h3 {
+  font-size: 1rem;
+}
+
+.author-link-dialog__close {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.author-link-dialog__close:hover,
+.author-link-dialog__close:focus-visible {
+  background: var(--surface-muted);
+  color: var(--accent);
+}
+
+.author-link-dialog label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.author-link-dialog input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: 4px;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 500;
+}
+
+.author-link-dialog input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 1px;
+}
+
+.author-link-dialog input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.author-link-dialog__error {
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
+.author-link-dialog__actions {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.author-link-dialog__actions > div {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.author-link-dialog .button {
+  min-width: 0;
+}
+
+.author-link-dialog .lucide {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 32rem) {
+  .author-link-dialog__actions {
+    display: grid;
+  }
+
+  .author-link-dialog__actions > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .author-link-dialog .button {
+    width: 100%;
+    justify-content: center;
+  }
+}

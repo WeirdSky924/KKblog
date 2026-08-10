@@ -7,6 +7,11 @@
   data-media-favicon="{% if favicon_preview %}true{% else %}false{% endif %}"
   data-media-kind="{% if adapter == 'article-attachment' %}attachment{% else %}image{% endif %}"
   data-media-state="{% if current_asset_id %}ready{% else %}empty{% endif %}"
+  {% if adapter == "article-attachment" %}
+    data-media-current-name="{{ current_asset_name|default:'' }}"
+    data-media-current-size="{{ current_asset_size|default:'' }}"
+    data-media-current-mime="{{ current_asset_mime|default:'' }}"
+  {% endif %}
 >
   <div class="media-picker__header">
     <div>
@@ -98,6 +103,17 @@
         data-media-value
       >
       <div class="media-picker__actions">
+        {% if adapter == "article-attachment" %}
+          <button
+            class="button button--secondary"
+            type="button"
+            data-attachment-card-insert
+            {% if not current_asset_id %}hidden{% endif %}
+          >
+            <i data-lucide="paperclip"></i>
+            插入正文
+          </button>
+        {% endif %}
         <button class="button button--secondary" type="button" data-media-retry hidden>
           <i data-lucide="rotate-cw"></i>
           重试

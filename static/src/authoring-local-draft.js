@@ -1,3 +1,5 @@
+import { draftAttachmentAssetId } from "./authoring-local-draft-contract.js";
+
 const DRAFT_SCHEMA = "kaj.authoring.draft.v1";
 const DRAFT_PREFIX = `${DRAFT_SCHEMA}:`;
 const PENDING_SAVE_KEY = "kaj.authoring.pending-cloud-save.v1";
@@ -69,13 +71,22 @@ function valuesFrom(form) {
     visibility: field(form, "visibility")?.value || "",
     sectionId: field(form, "section_id")?.value || "",
     tagIds: Array.from(form.querySelectorAll("input[name='tag_ids']:checked"), (item) => item.value),
+    proposedTagNames: (() => {
+      try {
+        const values = JSON.parse(field(form, "proposed_tag_names")?.value || "[]");
+        return Array.isArray(values) ? values : [];
+      } catch {
+        return [];
+      }
+    })(),
     coverAssetId: field(form, "cover_asset_id")?.value || "",
+    attachmentAssetId: field(form, "attachment_asset_id")?.value || "",
     commentsEnabled: checked(form, "comments_enabled"),
     commentsViewLogin: checked(form, "comments_view_login"),
     commentsPostLogin: checked(form, "comments_post_login"),
   };
 }
-function validValues(values) {
+function validValues(values, format) {
   const strings = [
     "title",
     "body",
@@ -92,6 +103,12 @@ function validValues(values) {
     Array.isArray(values.tagIds) &&
     values.tagIds.length <= 10 &&
     values.tagIds.every((value) => typeof value === "string") &&
+    (values.proposedTagNames === undefined ||
+      (Array.isArray(values.proposedTagNames) &&
+        values.proposedTagNames.length <= 10 &&
+        values.proposedTagNames.every((value) => typeof value === "string"))) &&
+    values.tagIds.length + (values.proposedTagNames?.length || 0) <= 10 &&
+    draftAttachmentAssetId(format, values) !== null &&
     ["commentsEnabled", "commentsViewLogin", "commentsPostLogin"].every(
       (name) => typeof values[name] === "boolean",
     )
@@ -105,7 +122,7 @@ function validDraft(draft, identity) {
     draft.baselineRevisionId === identity.baselineRevisionId &&
     draft.format === identity.format &&
     Number.isSafeInteger(draft.savedAt) &&
-    validValues(draft.values)
+    validValues(draft.values, identity.format)
   );
 }
 function setChoice(form, name, value) {
@@ -136,7 +153,46 @@ function syncCoverPreview(form, assetId) {
   }
 }
 
+function syncAttachmentPreview(form, assetId, { preserveMetadata = false } = {}) {
+  const picker = form.querySelector("[data-media-picker='article-attachment']");
+  if (!(picker instanceof HTMLElement)) return;
+  const selected = ULID.test(assetId);
+  picker.dataset.mediaState = selected ? "ready" : "empty";
+  const preview = picker.querySelector("[data-media-preview]");
+  const empty = picker.querySelector("[data-media-empty]");
+  const name = picker.querySelector("[data-media-file-name]");
+  const size = picker.querySelector("[data-media-file-size]");
+  if (preview instanceof HTMLElement) preview.hidden = !selected;
+  if (empty instanceof HTMLElement) empty.hidden = selected;
+  if (name instanceof HTMLElement && selected && !preserveMetadata) {
+    name.textContent = "已恢复附件";
+  }
+  if (size instanceof HTMLElement && selected && !preserveMetadata) {
+    size.textContent = "";
+    size.hidden = true;
+  }
+  picker
+    .querySelectorAll("[data-media-remove], [data-attachment-card-insert]")
+    .forEach((control) => {
+      control.hidden = !selected;
+    });
+  if (!selected) {
+    picker.dataset.mediaCurrentName = "";
+    picker.dataset.mediaCurrentSize = "";
+    picker.dataset.mediaCurrentMime = "";
+  } else if (!preserveMetadata) {
+    picker.dataset.mediaCurrentName = "已恢复附件";
+    picker.dataset.mediaCurrentSize = "";
+    picker.dataset.mediaCurrentMime = "";
+  }
+}
+
 function applyDraft(form, values) {
+  const existingAttachmentId = field(form, "attachment_asset_id")?.value || "";
+  const attachmentAssetId = draftAttachmentAssetId(
+    form.dataset.authorEditor,
+    values,
+  );
   setChoice(form, "title", values.title);
   setChoice(
     form,
@@ -149,7 +205,13 @@ function applyDraft(form, values) {
   setChoice(form, "custom_summary", values.customSummary);
   setChoice(form, "visibility", values.visibility);
   setChoice(form, "section_id", values.sectionId);
+  setChoice(
+    form,
+    "proposed_tag_names",
+    JSON.stringify(values.proposedTagNames || []),
+  );
   setChoice(form, "cover_asset_id", values.coverAssetId);
+  setChoice(form, "attachment_asset_id", attachmentAssetId || "");
   const selectedTags = new Set(values.tagIds);
   form.querySelectorAll("input[name='tag_ids']").forEach((input) => {
     input.checked = selectedTags.has(input.value);
@@ -163,6 +225,9 @@ function applyDraft(form, values) {
     if (input instanceof HTMLInputElement) input.checked = value;
   });
   syncCoverPreview(form, values.coverAssetId);
+  syncAttachmentPreview(form, attachmentAssetId || "", {
+    preserveMetadata: existingAttachmentId === attachmentAssetId,
+  });
 }
 
 function parseStored(storage, key) {

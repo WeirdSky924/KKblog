@@ -8,6 +8,7 @@ from apps.accounts.public import is_active_author
 from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 
+from ..block_changes import BlockChangeSummary, project_article_block_changes
 from ..models import Article, ArticleRevision
 from ..policies import author_is_content_masked
 from .access import ArticleNotFound
@@ -65,4 +66,60 @@ def revision_timeline(
         for revision in ArticleRevision.objects.filter(article=article).order_by(
             "-sequence"
         )
+    )
+
+
+def revision_block_changes(
+    *,
+    actor_id,
+    article_id: str,
+    before_revision_id: str,
+    after_revision_id: str,
+    clock: Clock | None = None,
+) -> BlockChangeSummary:
+    try:
+        actor = UUID(str(actor_id))
+        identity = normalize_ulid(article_id)
+        before_id = normalize_ulid(before_revision_id)
+        after_id = normalize_ulid(after_revision_id)
+    except (TypeError, ValueError):
+        raise ArticleNotFound from None
+    if not is_active_author(actor) or author_is_content_masked(actor):
+        raise ArticleNotFound
+    now = (clock or SystemClock()).now()
+    try:
+        article = Article.objects.get(
+            Q(deleted_at__isnull=True) | Q(purge_after__gt=now),
+            pk=identity,
+            author_id=actor,
+        )
+        revisions = {
+            revision.id: revision
+            for revision in ArticleRevision.objects.filter(
+                article=article,
+                pk__in=(before_id, after_id),
+            )
+        }
+        before = revisions[before_id]
+        after = revisions[after_id]
+    except (Article.DoesNotExist, KeyError):
+        raise ArticleNotFound from None
+    before_body = (
+        before.body_markdown
+        if before.content_format == ArticleRevision.ContentFormat.MARKDOWN
+        else before.body_tiptap
+    )
+    after_body = (
+        after.body_markdown
+        if after.content_format == ArticleRevision.ContentFormat.MARKDOWN
+        else after.body_tiptap
+    )
+    assert before_body is not None and after_body is not None
+    return project_article_block_changes(
+        before_content_format=before.content_format,
+        before_body=before_body,
+        before_schema_version=before.tiptap_schema_version,
+        after_content_format=after.content_format,
+        after_body=after_body,
+        after_schema_version=after.tiptap_schema_version,
     )

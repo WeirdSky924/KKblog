@@ -18,8 +18,24 @@ from .html_policy import (
     render_cache_key,
 )
 from .markdown import render_markdown
-from .references import markdown_media_ids, tiptap_media_ids
-from .tiptap import render_tiptap
+from .references import markdown_media_ids, tiptap_attachment_ids, tiptap_media_ids
+from .tiptap import (
+    TIPTAP_RENDERER_VERSION,
+    TipTapAttachmentMetadata,
+    TipTapOutlineItem,
+    project_tiptap_outline,
+    render_tiptap,
+)
+from .tiptap_schema import (
+    CURRENT_TIPTAP_SCHEMA_VERSION,
+    LEGACY_TIPTAP_SCHEMA_VERSION,
+    SUPPORTED_TIPTAP_SCHEMA_VERSIONS,
+    TIPTAP_CODE_LANGUAGES,
+    TIPTAP_SCHEMA_FINGERPRINT,
+    NormalizedTipTapDocument,
+    TipTapSchemaError,
+    normalize_tiptap_document,
+)
 
 
 class ContentFormat(StrEnum):
@@ -58,15 +74,29 @@ def render_import_preview(
             raise RenderingError("TipTap import source must be valid JSON") from exc
     if not isinstance(source, dict):
         raise RenderingError("TipTap import source must be an object")
-    return render_tiptap(source, **options)
+    return render_tiptap(
+        source,
+        schema_version=CURRENT_TIPTAP_SCHEMA_VERSION,
+        **options,
+    )
 
 
 __all__ = [
     "ContentFormat",
+    "CURRENT_TIPTAP_SCHEMA_VERSION",
+    "LEGACY_TIPTAP_SCHEMA_VERSION",
+    "NormalizedTipTapDocument",
     "RenderedContent",
     "RenderingError",
     "SANITIZER_VERSION",
+    "SUPPORTED_TIPTAP_SCHEMA_VERSIONS",
+    "TIPTAP_CODE_LANGUAGES",
+    "TIPTAP_RENDERER_VERSION",
+    "TipTapAttachmentMetadata",
+    "TipTapOutlineItem",
+    "TIPTAP_SCHEMA_FINGERPRINT",
     "TrustedEmbedPolicy",
+    "TipTapSchemaError",
     "configure_trusted_embed_policy_provider",
     "configured_rendering_version",
     "configured_trusted_embed_policy",
@@ -75,6 +105,9 @@ __all__ = [
     "render_import_preview",
     "render_markdown",
     "render_tiptap",
+    "project_tiptap_outline",
     "markdown_media_ids",
+    "normalize_tiptap_document",
+    "tiptap_attachment_ids",
     "tiptap_media_ids",
 ]

@@ -1,3 +1,4 @@
+from ..rendering import sanitized_article_plain_text
 from .administration import (
     ADMIN_ARTICLE_STATES,
     ADMIN_TAG_STATES,
@@ -45,7 +46,6 @@ from .discovery import (
     article_ids_by_author_for_cache,
     current_public_article_revisions,
     public_article_sitemap_items,
-    sanitized_article_plain_text,
     search_visible_titles,
     visible_article_page,
     visible_articles_by_author,
@@ -70,7 +70,11 @@ from .imports import (
 )
 from .preview import ArticlePreviewError, AuthorArticlePreview, preview_article_body
 from .publication import PublishedRevision, published_revision
-from .revisions import RevisionTimelineItem, revision_timeline
+from .revisions import (
+    RevisionTimelineItem,
+    revision_block_changes,
+    revision_timeline,
+)
 
 __all__ = [
     "ADMIN_ARTICLE_STATES",
@@ -145,6 +149,7 @@ __all__ = [
     "published_revision",
     "preview_article_body",
     "revision_timeline",
+    "revision_block_changes",
     "import_conflict_facts",
     "export_article_snapshots",
     "export_revision_payloads",

@@ -1,5 +1,5 @@
-import { Editor, Node, mergeAttributes } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
+import { Editor } from "@tiptap/core";
+import Link from "@tiptap/extension-link";
 
 import { initializeLocalDraft } from "./authoring-local-draft.js";
 import {
@@ -7,56 +7,77 @@ import {
   readMarkdownFile,
 } from "./markdown-file-import.js";
 import { initializeEditorPreviewScroll } from "./editor-preview-scroll.js";
+import { recordAuthorEditorPerformance } from "./editor-performance.js";
+import {
+  createAuthorHeadingExtension,
+  initializeEditorOutline,
+  normalizeHeadingDocument,
+} from "./editor-outline.js";
+import {
+  EDITOR_LINK_OPTIONS,
+  initializeEditorLinkDialog,
+} from "./editor-link-dialog.js";
 import {
   initializeEditorImagePaste,
   isPendingImageSource,
 } from "./editor-image-paste.js";
+import {
+  AUTHOR_MEDIA_SOURCE,
+  createAuthorImageExtension,
+  initializeEditorImageWorkflow,
+  normalizeAuthorImageAttributes,
+} from "./editor-image.js";
+import {
+  createAuthorInputExtensions,
+  createAuthorStarterKit,
+} from "./editor-input-behaviors.js";
+import {
+  createAuthorPasteExtensions,
+  initializeEditorPasteContract,
+} from "./editor-paste-contract.js";
+import { initializeEditorBlockMenu } from "./editor-block-menu.js";
+import {
+  createAuthorAttachmentExtension,
+  normalizeAuthorAttachmentAttributes,
+  removeAuthorAttachment,
+  upsertAuthorAttachment,
+} from "./editor-attachment.js";
+import {
+  createAuthorCodeBlockExtension,
+  normalizeCodeLanguage,
+} from "./editor-code-block.js";
+import { initializeEditorSelectionToolbar } from "./editor-selection-toolbar.js";
+import { initializeEditorSlashMenu } from "./editor-slash-menu.js";
+import { createAuthorStructureExtensions } from "./editor-structure-blocks.js";
+import {
+  createAuthorTableExtensions,
+  initializeEditorTableToolbar,
+  normalizeAuthorTableAttributes,
+} from "./editor-table.js";
+import { initializeEditorToolbar } from "./editor-toolbar.js";
+import {
+  disposeEditorUploadTracker,
+  editorUploadTrackerFor,
+} from "./editor-upload-state.js";
+import {
+  createAuthorEmbedExtension,
+  initializeEditorEmbedDialog,
+  normalizeAuthorEmbedAttributes,
+} from "./editor-embed.js";
 
-const MEDIA_SOURCE = /^media:([0-9A-HJKMNP-TV-Z]{26})$/;
 const activeEditors = new WeakMap();
 
-const AuthorImage = Node.create({
-  name: "image",
-  group: "block",
-  atom: true,
-  draggable: true,
+const AuthorLink = Link.extend({
   addAttributes() {
     return {
-      src: { default: null },
-      alt: { default: null },
+      href: { default: null },
       title: { default: null },
     };
   },
-  parseHTML() {
-    return [{ tag: "img[data-author-media-id]" }];
-  },
-  renderHTML({ HTMLAttributes }) {
-    const rawSource = String(HTMLAttributes.src || "");
-    if (isPendingImageSource(rawSource)) {
-      const attributes = { ...HTMLAttributes };
-      delete attributes.src;
-      return [
-        "span",
-        mergeAttributes(attributes, {
-          class: "author-tiptap-upload",
-          "data-author-upload-source": rawSource,
-          contenteditable: "false",
-          role: "status",
-        }),
-        "正在上传图片",
-      ];
-    }
-    const matched = rawSource.match(MEDIA_SOURCE);
-    const mediaId = matched?.[1] || "";
-    const source = mediaId ? `/_kaj/media/${mediaId}` : "";
-    return [
-      "img",
-      mergeAttributes(HTMLAttributes, {
-        src: source,
-        "data-author-media-id": mediaId,
-      }),
-    ];
-  },
+}).configure({
+  ...EDITOR_LINK_OPTIONS,
+  openOnClick: false,
+  HTMLAttributes: {},
 });
 
 function normalizeTiptap(value) {
@@ -75,11 +96,19 @@ function normalizeTiptap(value) {
       return;
     }
     if (key === "attrs" && value.type === "image") {
-      normalized.attrs = Object.fromEntries(
-        ["src", "alt", "title"]
-          .filter((name) => typeof item[name] === "string" && item[name])
-          .map((name) => [name, item[name]]),
-      );
+      normalized.attrs = normalizeAuthorImageAttributes(item);
+      return;
+    }
+    if (key === "attrs" && value.type === "attachment") {
+      normalized.attrs = normalizeAuthorAttachmentAttributes(item);
+      return;
+    }
+    if (key === "attrs" && value.type === "embed") {
+      normalized.attrs = normalizeAuthorEmbedAttributes(item);
+      return;
+    }
+    if (key === "attrs" && value.type === "codeBlock") {
+      normalized.attrs = { language: normalizeCodeLanguage(item.language) };
       return;
     }
     if (key === "attrs" && value.type === "link") {
@@ -88,6 +117,12 @@ function normalizeTiptap(value) {
           .filter((name) => typeof item[name] === "string" && item[name])
           .map((name) => [name, item[name]]),
       );
+      return;
+    }
+    if (key === "attrs") {
+      const tableAttributes = normalizeAuthorTableAttributes(value.type, item);
+      if (tableAttributes === null) return;
+      normalized.attrs = normalizeTiptap(tableAttributes);
       return;
     }
     normalized[key] = normalizeTiptap(item);
@@ -122,22 +157,6 @@ function sourceMetrics(format, source) {
   }
 }
 
-function commandFor(editor, name) {
-  const chain = editor.chain().focus();
-  return {
-    bold: () => chain.toggleBold().run(),
-    italic: () => chain.toggleItalic().run(),
-    strike: () => chain.toggleStrike().run(),
-    heading: () => chain.toggleHeading({ level: 2 }).run(),
-    bulletList: () => chain.toggleBulletList().run(),
-    orderedList: () => chain.toggleOrderedList().run(),
-    blockquote: () => chain.toggleBlockquote().run(),
-    codeBlock: () => chain.toggleCodeBlock().run(),
-    undo: () => chain.undo().run(),
-    redo: () => chain.redo().run(),
-  }[name];
-}
-
 function markdownImportMessage(error) {
   if (!(error instanceof MarkdownFileImportError)) {
     return "Markdown 导入失败，请重试。";
@@ -164,54 +183,140 @@ function announceMarkdownImport(message, level = "error") {
   );
 }
 
-function initializeTiptap(root, source, changed, selectionChanged) {
+function initializeTiptap(root, source, changed, selectionChanged, announce) {
   const mount = root.querySelector("[data-tiptap-editor]");
   if (!(mount instanceof HTMLElement)) return null;
   let initial;
   try {
-    initial = JSON.parse(source.value || "");
+    initial = normalizeHeadingDocument(normalizeTiptap(JSON.parse(source.value || "")));
+    source.value = JSON.stringify(initial);
   } catch {
     initial = { type: "doc", content: [] };
   }
-  const updateToolbar = (editor) => {
-    root.querySelectorAll("[data-editor-command]").forEach((button) => {
-      const command = button.dataset.editorCommand;
-      const active =
-        command === "heading"
-          ? editor.isActive("heading", { level: 2 })
-          : ["bold", "italic", "strike", "bulletList", "orderedList", "blockquote", "codeBlock"].includes(command)
-            ? editor.isActive(command)
-            : false;
-      button.setAttribute("aria-pressed", String(active));
-    });
-  };
+  let toolbarController = null;
+  let blockMenuController = null;
+  let linkController = null;
+  let selectionToolbarController = null;
+  let slashMenuController = null;
+  let tableToolbarController = null;
+  let outlineController = null;
+  let embedController = null;
+  let pasteController = null;
+  const enabledEmbedSources = (() => {
+    try {
+      const value = JSON.parse(
+        root.querySelector("#editor-embed-sources")?.textContent || "[]",
+      );
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  })();
+  const updateToolbar = () => toolbarController?.update();
   const editor = new Editor({
     element: mount,
-    extensions: [StarterKit.configure({ link: { openOnClick: false } }), AuthorImage],
+    extensions: [
+      createAuthorStarterKit(),
+      createAuthorHeadingExtension(),
+      AuthorLink,
+      createAuthorImageExtension(),
+      createAuthorAttachmentExtension({
+        getMetadata: (assetId) => {
+          const picker = root.querySelector(
+            '[data-media-picker="article-attachment"]',
+          );
+          const selected = picker?.querySelector("[data-media-value]")?.value;
+          if (!picker || selected !== assetId) return null;
+          return {
+            name: picker.dataset.mediaCurrentName || "文章附件",
+            mime: picker.dataset.mediaCurrentMime || "",
+            size: Number(picker.dataset.mediaCurrentSize || 0),
+          };
+        },
+      }),
+      createAuthorEmbedExtension({
+        enabledSources: enabledEmbedSources,
+        openDialog: (options) => embedController?.open(options) || false,
+      }),
+      createAuthorCodeBlockExtension(),
+      ...createAuthorInputExtensions({
+        openLink: () => linkController?.open() || false,
+      }),
+      ...createAuthorPasteExtensions({ announce, enabledEmbedSources }),
+      ...createAuthorStructureExtensions(),
+      ...createAuthorTableExtensions(),
+    ],
     content: initial,
     editorProps: { attributes: { class: "author-tiptap__content" } },
     onUpdate: ({ editor: current }) => {
-      source.value = JSON.stringify(normalizeTiptap(current.getJSON()));
-      changed();
-      updateToolbar(current);
+      const startedAt = performance.now();
+      try {
+        source.value = JSON.stringify(normalizeTiptap(current.getJSON()));
+        changed();
+        updateToolbar();
+        selectionChanged();
+      } finally {
+        recordAuthorEditorPerformance("editor_update", performance.now() - startedAt, {
+          units: current.state.doc.nodeSize,
+        });
+      }
+    },
+    onSelectionUpdate: () => {
+      updateToolbar();
       selectionChanged();
     },
-    onSelectionUpdate: ({ editor: current }) => {
-      updateToolbar(current);
-      selectionChanged();
+  });
+  pasteController = initializeEditorPasteContract({
+    editor,
+    announce,
+    enabledEmbedSources,
+  });
+  linkController = initializeEditorLinkDialog({ root, editor });
+  embedController = initializeEditorEmbedDialog({
+    root,
+    editor,
+    enabledSources: enabledEmbedSources,
+  });
+  const actions = {
+    "link-dialog": ({ trigger }) => linkController.open(trigger),
+    "embed-dialog": ({ trigger }) => embedController.open({ trigger }),
+  };
+  toolbarController = initializeEditorToolbar({
+    root,
+    editor,
+    actions,
+  });
+  selectionToolbarController = initializeEditorSelectionToolbar({
+    root,
+    editor,
+    actions,
+  });
+  blockMenuController = initializeEditorBlockMenu({ root, editor });
+  slashMenuController = initializeEditorSlashMenu({ root, editor });
+  tableToolbarController = initializeEditorTableToolbar({ root, editor });
+  outlineController = initializeEditorOutline({ root, editor });
+  toolbarController.update();
+  return {
+    editor,
+    dispose: () => {
+      pasteController?.dispose();
+      tableToolbarController?.dispose();
+      outlineController?.dispose();
+      slashMenuController?.dispose();
+      blockMenuController?.dispose();
+      selectionToolbarController?.dispose();
+      toolbarController?.dispose();
+      linkController?.dispose();
+      embedController?.dispose();
     },
-    onCreate: ({ editor: current }) => updateToolbar(current),
-  });
-  root.querySelectorAll("[data-editor-command]").forEach((button) => {
-    button.addEventListener("click", () => commandFor(editor, button.dataset.editorCommand)?.());
-  });
-  return editor;
+  };
 }
 
 function initializeAuthorEditor(root) {
   if (!(root instanceof HTMLFormElement) || root.dataset.editorBound === "true") return;
   const format = root.dataset.authorEditor;
   const localDraft = initializeLocalDraft(root);
+  const uploadTracker = editorUploadTrackerFor(root);
   const source = root.querySelector("[data-editor-source]");
   const cloudState = root
     .closest("#author-editor-workspace")
@@ -222,8 +327,6 @@ function initializeAuthorEditor(root) {
   const commentRequirements = root.querySelectorAll(
     "input[name='comments_view_login'], input[name='comments_post_login']",
   );
-  const tagInputs = root.querySelectorAll("input[name='tag_ids']");
-  const tagCount = root.querySelector("[data-editor-tag-count]");
   const markdownImport = root.querySelector("[data-markdown-import]");
   const workspace = root.closest("#author-editor-workspace");
   const mediaDeleteDialog = workspace?.querySelector(
@@ -234,12 +337,33 @@ function initializeAuthorEditor(root) {
   let previewRequest = null;
   let previewScroll = null;
   let imagePaste = null;
+  let imageWorkflow = null;
+  const previewToggle = root.querySelector("[data-editor-preview-toggle]");
 
   if (!(source instanceof HTMLTextAreaElement)) {
     localDraft?.dispose();
+    disposeEditorUploadTracker(root);
     return;
   }
   root.dataset.editorBound = "true";
+
+  const setPreviewCollapsed = (collapsed) => {
+    root.dataset.previewCollapsed = String(collapsed);
+    if (previewToggle instanceof HTMLButtonElement) {
+      const label = collapsed ? "展开实时预览" : "收起实时预览";
+      previewToggle.setAttribute("aria-expanded", String(!collapsed));
+      previewToggle.setAttribute("aria-label", label);
+      previewToggle.title = label;
+    }
+    if (!collapsed) {
+      requestAnimationFrame(() => previewScroll?.refresh());
+    }
+  };
+  const togglePreview = () => {
+    setPreviewCollapsed(root.dataset.previewCollapsed !== "true");
+  };
+  previewToggle?.addEventListener("click", togglePreview);
+  setPreviewCollapsed(root.dataset.previewCollapsed === "true");
 
   const setCloudState = (state, text) => {
     if (!(cloudState instanceof HTMLElement)) return;
@@ -278,6 +402,9 @@ function initializeAuthorEditor(root) {
     previewRequest?.abort();
     previewRequest = new AbortController();
     preview.setAttribute("aria-busy", "true");
+    const startedAt = performance.now();
+    let metricOutcome = "error";
+    let requestRecorded = false;
     try {
       const response = await fetch(root.dataset.editorPreviewUrl, {
         method: "POST",
@@ -289,14 +416,37 @@ function initializeAuthorEditor(root) {
       if (response.status !== 200 && response.status !== 422) {
         throw new Error("preview request failed");
       }
+      metricOutcome = response.status === 422 ? "rejected" : "success";
+      const responseHtml = await response.text();
+      recordAuthorEditorPerformance(
+        "preview_request",
+        performance.now() - startedAt,
+        { outcome: metricOutcome },
+      );
+      requestRecorded = true;
+      const renderStartedAt = performance.now();
       const template = document.createElement("template");
-      template.innerHTML = (await response.text()).trim();
-      const replacement = template.content.firstElementChild;
-      if (replacement) preview.replaceWith(replacement);
-      patchLocalImages();
-      previewScroll?.refresh();
-      document.dispatchEvent(new CustomEvent("kaj:editor-preview", { detail: { root } }));
+      try {
+        template.innerHTML = responseHtml.trim();
+        const replacement = template.content.firstElementChild;
+        if (replacement) preview.replaceWith(replacement);
+        patchLocalImages();
+        previewScroll?.refresh();
+        document.dispatchEvent(
+          new CustomEvent("kaj:editor-preview", { detail: { root } }),
+        );
+      } catch (error) {
+        metricOutcome = "error";
+        throw error;
+      } finally {
+        recordAuthorEditorPerformance(
+          "preview_render",
+          performance.now() - renderStartedAt,
+          { outcome: metricOutcome },
+        );
+      }
     } catch (error) {
+      if (error.name === "AbortError") metricOutcome = "cancelled";
       if (error.name !== "AbortError") {
         preview.removeAttribute("aria-busy");
         const body = preview.querySelector("[data-preview-body], [data-preview-error]");
@@ -309,6 +459,14 @@ function initializeAuthorEditor(root) {
           }));
         }
       }
+    } finally {
+      if (!requestRecorded) {
+        recordAuthorEditorPerformance(
+          "preview_request",
+          performance.now() - startedAt,
+          { outcome: metricOutcome },
+        );
+      }
     }
   };
 
@@ -319,14 +477,6 @@ function initializeAuthorEditor(root) {
     window.clearTimeout(previewTimer);
     previewTimer = window.setTimeout(requestPreview, 250);
   };
-
-  const tiptap =
-    format === "TIPTAP_JSON"
-      ? initializeTiptap(root, source, schedulePreview, () =>
-          previewScroll?.syncSelection(),
-        )
-      : null;
-  previewScroll = initializeEditorPreviewScroll({ root, source, format, tiptap });
 
   const announce = (
     message,
@@ -345,8 +495,21 @@ function initializeAuthorEditor(root) {
     );
   };
 
+  const tiptapController =
+    format === "TIPTAP_JSON"
+      ? initializeTiptap(
+          root,
+          source,
+          schedulePreview,
+          () => previewScroll?.syncSelection(),
+          announce,
+        )
+      : null;
+  const tiptap = tiptapController?.editor || null;
+  previewScroll = initializeEditorPreviewScroll({ root, source, format, tiptap });
+
   const insertBodyImage = (assetId) => {
-    if (!MEDIA_SOURCE.test(`media:${assetId}`)) return;
+    if (!AUTHOR_MEDIA_SOURCE.test(`media:${assetId}`)) return;
     if (tiptap) {
       tiptap
         .chain()
@@ -434,10 +597,33 @@ function initializeAuthorEditor(root) {
     registerLocalMedia,
     refreshLibrary: refreshBodyMediaLibrary,
   });
+  if (tiptap) {
+    imageWorkflow = initializeEditorImageWorkflow({
+      root,
+      editor: tiptap,
+      announce: (message, level) =>
+        announce(message, level, "author-body-image-workflow"),
+      registerLocalMedia,
+      refreshLibrary: refreshBodyMediaLibrary,
+    });
+  }
 
   root.addEventListener("click", async (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+    const attachmentInsert = target.closest("[data-attachment-card-insert]");
+    if (
+      attachmentInsert instanceof HTMLButtonElement &&
+      root.contains(attachmentInsert)
+    ) {
+      const assetId = root.querySelector(
+        '[data-media-picker="article-attachment"] [data-media-value]',
+      )?.value;
+      if (tiptap && upsertAuthorAttachment(tiptap, assetId || "")) {
+        announce("附件卡片已插入正文。", "success", "author-attachment-card");
+      }
+      return;
+    }
     const button = target.closest("[data-body-media-action]");
     if (!(button instanceof HTMLButtonElement) || !root.contains(button)) return;
     const action = button.dataset.bodyMediaAction;
@@ -580,8 +766,14 @@ function initializeAuthorEditor(root) {
   };
   const applyMarkdownFile = async () => {
     if (!(markdownFile instanceof File) || markdownImportApply?.disabled) return;
-    if (imagePaste?.pendingCount) {
-      imagePaste.announcePending();
+    if (
+      uploadTracker?.pendingCount ||
+      imagePaste?.pendingCount ||
+      imageWorkflow?.pendingCount
+    ) {
+      if (uploadTracker?.pendingCount) uploadTracker.announcePending();
+      else if (imageWorkflow?.pendingCount) imageWorkflow.announcePending();
+      else imagePaste.announcePending();
       return;
     }
     const limit = Number.parseInt(root.dataset.editorBodyLimit || "", 10);
@@ -662,18 +854,11 @@ function initializeAuthorEditor(root) {
   commentsEnabled?.addEventListener("change", updateComments);
   updateComments();
 
-  const updateTags = () => {
-    const selected = Array.from(tagInputs).filter((field) => field.checked).length;
-    if (tagCount instanceof HTMLElement) tagCount.textContent = `已选择 ${selected} / 10`;
-    tagInputs.forEach((field) => {
-      field.disabled = selected >= 10 && !field.checked;
-    });
-  };
-  tagInputs.forEach((field) => field.addEventListener("change", updateTags));
-  updateTags();
-
   root.querySelectorAll("[data-editor-mode]").forEach((button) => {
     button.addEventListener("click", () => {
+      if (button.dataset.editorMode === "preview") {
+        setPreviewCollapsed(false);
+      }
       root.dataset.mobileMode = button.dataset.editorMode;
       root.querySelectorAll("[data-editor-mode]").forEach((item) => {
         item.setAttribute("aria-pressed", String(item === button));
@@ -683,6 +868,17 @@ function initializeAuthorEditor(root) {
   });
 
   root.addEventListener("kaj:media-ready", (event) => {
+    if (event.detail?.adapter === "article-attachment") {
+      schedulePreview();
+      if (tiptap && upsertAuthorAttachment(tiptap, event.detail.assetId || "")) {
+        announce(
+          "附件已上传并插入正文。",
+          "success",
+          "author-attachment-card",
+        );
+      }
+      return;
+    }
     if (event.detail?.adapter === "article-cover") {
       schedulePreview();
       return;
@@ -694,15 +890,28 @@ function initializeAuthorEditor(root) {
     refreshBodyMediaLibrary();
   });
 
+  const attachmentValue = root.querySelector(
+    '[data-media-picker="article-attachment"] [data-media-value]',
+  );
+  attachmentValue?.addEventListener("input", () => {
+    if (tiptap && !attachmentValue.value) removeAuthorAttachment(tiptap);
+  });
+
   root.addEventListener("kaj:cloud-save-failed", () => {
     setCloudState("error", "云端保存失败，本地稿已保留");
   });
 
   root.addEventListener("submit", (event) => {
-    if (imagePaste?.pendingCount) {
+    if (
+      uploadTracker?.pendingCount ||
+      imagePaste?.pendingCount ||
+      imageWorkflow?.pendingCount
+    ) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      imagePaste.announcePending();
+      if (uploadTracker?.pendingCount) uploadTracker.announcePending();
+      else if (imageWorkflow?.pendingCount) imageWorkflow.announcePending();
+      else imagePaste.announcePending();
       return;
     }
     if (tiptap) source.value = JSON.stringify(normalizeTiptap(tiptap.getJSON()));
@@ -721,7 +930,11 @@ function initializeAuthorEditor(root) {
     localDraft?.dispose();
     previewScroll?.dispose();
     imagePaste?.dispose();
+    imageWorkflow?.dispose();
+    disposeEditorUploadTracker(root);
+    tiptapController?.dispose();
     tiptap?.destroy();
+    previewToggle?.removeEventListener("click", togglePreview);
     document.removeEventListener("click", closeMarkdownImportOnOutsideClick);
     document.removeEventListener("keydown", closeMarkdownImportOnEscape);
     window.removeEventListener("pagehide", clearLocalMedia);

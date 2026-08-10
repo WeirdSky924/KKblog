@@ -3,11 +3,15 @@ from datetime import datetime
 
 from apps.content.public import (
     ArticlePreviewError,
+    ArticleRenderingMode,
     ContentFormat,
     Visibility,
     preview_article_body,
+    project_article_block_changes,
 )
 from apps.core.time import to_shanghai
+
+from .block_changes import BlockChangePresentation, block_change_presentation
 
 _FORMAT_LABELS = {
     ContentFormat.MARKDOWN: "Markdown",
@@ -59,6 +63,7 @@ class VersionPreview:
     cover_asset_id: str | None
     attachment_asset_id: str | None
     change_labels: tuple[str, ...]
+    block_changes: BlockChangePresentation
     can_restore: bool
 
 
@@ -85,10 +90,23 @@ def version_preview(preview, *, can_restore: bool) -> VersionPreview:
             content_format=preview.source.content_format,
             body=preview.source.body,
             body_asset_ids=preview.source.body_asset_ids,
+            tiptap_schema_version=preview.source.tiptap_schema_version,
+            attachment_asset_id=preview.source.attachment_asset_id,
+            mode=ArticleRenderingMode.READER,
         )
         html, error = rendered.html, ""
     except ArticlePreviewError as exc:
         html, error = "", exc.safe_message
+    block_changes = block_change_presentation(
+        project_article_block_changes(
+            before_content_format=preview.current.content_format,
+            before_body=preview.current.body,
+            before_schema_version=preview.current.tiptap_schema_version,
+            after_content_format=preview.source.content_format,
+            after_body=preview.source.body,
+            after_schema_version=preview.source.tiptap_schema_version,
+        )
+    )
     return VersionPreview(
         source_revision_id=preview.source_revision_id,
         row_version=preview.row_version,
@@ -103,5 +121,6 @@ def version_preview(preview, *, can_restore: bool) -> VersionPreview:
         cover_asset_id=preview.source.cover_asset_id,
         attachment_asset_id=preview.source.attachment_asset_id,
         change_labels=tuple(_CHANGE_LABELS[item] for item in preview.changed_fields),
+        block_changes=block_changes,
         can_restore=can_restore and not error,
     )

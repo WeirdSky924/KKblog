@@ -8,6 +8,7 @@ from django.db import close_old_connections
 
 from apps.content.models import Article, ArticleEditGrant, ArticleRevision
 from apps.content.public import (
+    ArticleNotFound,
     ArticleSnapshot,
     ContentCommandError,
     ContentFormat,
@@ -20,6 +21,7 @@ from apps.content.public import (
     prepare_publication,
     publish_article,
     resolve_edit_conflict,
+    revision_block_changes,
     save_revision,
     save_revision_with_token,
 )
@@ -220,3 +222,80 @@ def test_edit_token_is_hashed_and_cannot_cross_actor_or_article() -> None:
                 snapshot=_snapshot(section.section_id, "不应保存"),
                 capacity_check=lambda: None,
             )
+
+
+def test_revision_block_changes_are_authorized_counts_without_body() -> None:
+    admin = _admin("block-change-owner")
+    other = _author("block-change-other")
+    section = create_section(
+        actor_id=admin.id,
+        name="块级变化",
+        trace_code=new_trace_code(),
+        client_ip="127.0.0.1",
+    )
+    before_body = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "private-before"}],
+            },
+            {"type": "horizontalRule"},
+        ],
+    }
+    article = create_article(
+        actor_id=admin.id,
+        snapshot=ArticleSnapshot(
+            content_format=ContentFormat.TIPTAP_JSON,
+            title="块级变化",
+            body=before_body,
+            section_id=section.section_id,
+        ),
+        capacity_check=lambda: None,
+    )
+    after_body = {
+        "type": "doc",
+        "content": [
+            {"type": "horizontalRule"},
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2,
+                    "anchor": "kaj-h-22222222-2222-4222-8222-222222222222",
+                },
+                "content": [{"type": "text", "text": "private-before"}],
+            },
+        ],
+    }
+    current = save_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        expected_row_version=article.row_version,
+        snapshot=ArticleSnapshot(
+            content_format=ContentFormat.TIPTAP_JSON,
+            title="块级变化",
+            body=after_body,
+            section_id=section.section_id,
+        ),
+        capacity_check=lambda: None,
+    )
+
+    summary = revision_block_changes(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        before_revision_id=article.revision_id,
+        after_revision_id=current.revision_id,
+    )
+
+    assert summary.moved_blocks == 1
+    assert summary.type_changed_blocks == 1
+    assert summary.added_blocks == 0
+    assert summary.deleted_blocks == 0
+    assert "private-before" not in repr(summary)
+    with pytest.raises(ArticleNotFound):
+        revision_block_changes(
+            actor_id=other.id,
+            article_id=article.article_id,
+            before_revision_id=article.revision_id,
+            after_revision_id=current.revision_id,
+        )

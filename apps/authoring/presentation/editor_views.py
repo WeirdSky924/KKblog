@@ -29,12 +29,14 @@ from apps.content.public import (
     EditTokenError,
     PublicationCommandError,
     article_for_author,
+    configured_content_embed_policy,
     create_article,
     discard_cloud_draft,
     open_edit_session,
     preview_article_body,
     republish_saved_revision,
     resolve_edit_conflict,
+    revision_block_changes,
     revision_timeline,
     save_revision_with_token,
     section_list,
@@ -42,7 +44,11 @@ from apps.content.public import (
 )
 from apps.core.http import is_htmx_fragment_request
 from apps.core.ids import new_ulid, normalize_ulid
-from apps.media.public import MediaAccessError, authorize_asset_read
+from apps.media.public import (
+    MediaAccessError,
+    TipTapAttachmentMetadata,
+    authorize_asset_read,
+)
 
 from .access import author_id_or_response, private_response
 
@@ -67,6 +73,7 @@ def _editor_context(
     actor_id,
     content_format: str,
     mode: str,
+    tiptap_schema_version: int | None = None,
     article_id: str = "",
     saved: bool = False,
     cloud_error: bool = False,
@@ -84,11 +91,16 @@ def _editor_context(
     auto_published: bool = False,
     auto_publish_error: str = "",
 ) -> dict:
-    preview, preview_error = preview_from_form(form, content_format)
+    preview, preview_error = preview_from_form(
+        form,
+        content_format,
+        tiptap_schema_version=tiptap_schema_version,
+    )
     upload_scope = form["upload_scope"].value() or ""
     attachment_asset_id = form["attachment_asset_id"].value() or ""
     attachment_name = ""
     attachment_size = None
+    attachment_mime = ""
     if attachment_asset_id:
         try:
             attachment = authorize_asset_read(
@@ -100,6 +112,7 @@ def _editor_context(
         else:
             attachment_name = attachment.original_name
             attachment_size = attachment.size_bytes
+            attachment_mime = attachment.detected_mime
     query = urlencode({"target": upload_scope})
     try:
         body_media_workspace = article_body_media_workspace(
@@ -156,8 +169,10 @@ def _editor_context(
         "editor_auto_publish_error": auto_publish_error,
         "editor_body_limit": ArticleBodyLimit.configured().maximum_bytes,
         "editor_can_upload_attachment": can_upload_attachments(actor_id),
+        "editor_embed_sources": list(configured_content_embed_policy().enabled_sources),
         "attachment_name": attachment_name,
         "attachment_size": attachment_size,
+        "attachment_mime": attachment_mime,
         "body_media_workspace": body_media_workspace,
         "cover_upload_url": (
             f"{reverse('media:upload', kwargs={'adapter': 'article-cover'})}?{query}"
@@ -180,6 +195,12 @@ def _conflict_context(*, actor_id, conflict, session, error: str = "") -> dict:
     workspace = conflict_workspace(
         conflict,
         revision_timeline(actor_id=actor_id, article_id=conflict.article_id),
+        revision_block_changes(
+            actor_id=actor_id,
+            article_id=conflict.article_id,
+            before_revision_id=conflict.baseline.revision_id,
+            after_revision_id=conflict.current.revision_id,
+        ),
     )
     form = EditConflictResolutionForm(
         initial={
@@ -327,6 +348,7 @@ def edit(request, article_id: str):
                     actor_id=actor_id,
                     content_format=article.content_format,
                     mode="edit",
+                    tiptap_schema_version=session.snapshot.tiptap_schema_version,
                     article_id=article_id,
                     frozen=True,
                     row_version=article.row_version,
@@ -349,6 +371,7 @@ def edit(request, article_id: str):
                 actor_id=actor_id,
                 content_format=article.content_format,
                 mode="edit",
+                tiptap_schema_version=session.snapshot.tiptap_schema_version,
                 article_id=article_id,
                 saved=request.GET.get("created") == "1",
                 row_version=session.row_version,
@@ -420,10 +443,11 @@ def edit(request, article_id: str):
                 actor_id=actor_id,
                 article_id=article_id,
             )
+            saved_choices = _choices()
             form = ArticleEditorForm(
                 initial=initial_from_session(result.next_session),
                 locked_format=article.content_format,
-                **choices,
+                **saved_choices,
             )
             response = _render_editor(
                 request,
@@ -432,6 +456,9 @@ def edit(request, article_id: str):
                     actor_id=actor_id,
                     content_format=article.content_format,
                     mode="edit",
+                    tiptap_schema_version=(
+                        result.next_session.snapshot.tiptap_schema_version
+                    ),
                     article_id=article_id,
                     saved=True,
                     row_version=result.next_session.row_version,
@@ -564,6 +591,7 @@ def resolve_conflict(request, article_id: str):
             actor_id=actor_id,
             content_format=article.content_format,
             mode="edit",
+            tiptap_schema_version=session.snapshot.tiptap_schema_version,
             article_id=article_id,
             row_version=session.row_version,
             can_discard_cloud_draft=article.can_discard_cloud_draft,
@@ -647,7 +675,7 @@ def discard_draft(request, article_id: str):
 
 
 def preview(request):
-    _, response = author_id_or_response(request)
+    actor_id, response = author_id_or_response(request)
     if response is not None:
         return response
     if request.method != "POST":
@@ -655,10 +683,34 @@ def preview(request):
     content_format = request.POST.get("content_format", "")
     source = request.POST.get("body", "")
     try:
+        attachment_id = request.POST.get("attachment_asset_id") or None
+        attachment_metadata = None
+        if attachment_id is not None:
+            try:
+                attachment = authorize_asset_read(
+                    actor_id=actor_id,
+                    asset_id=attachment_id,
+                )
+            except MediaAccessError:
+                raise ArticlePreviewError(
+                    "文章附件当前不可用。",
+                    code="content.media_invalid.v1",
+                ) from None
+            attachment_metadata = TipTapAttachmentMetadata(
+                asset_id=attachment.asset_id,
+                original_name=attachment.original_name,
+                detected_mime=attachment.detected_mime,
+                size_bytes=attachment.size_bytes,
+            )
         body = (
             source if content_format == ContentFormat.MARKDOWN else json.loads(source)
         )
-        rendered = preview_article_body(content_format=content_format, body=body)
+        rendered = preview_article_body(
+            content_format=content_format,
+            body=body,
+            attachment_asset_id=attachment_id,
+            attachment_metadata=attachment_metadata,
+        )
     except (ArticlePreviewError, json.JSONDecodeError, TypeError) as exc:
         message = getattr(exc, "safe_message", "正文格式不合法，无法生成预览。")
         response = render(
@@ -668,6 +720,9 @@ def preview(request):
             status=422,
         )
         response.headers["X-Kaj-Inline-Error"] = "true"
+        response.headers["X-Kaj-Error-Code"] = getattr(
+            exc, "code", "content.body_invalid.v1"
+        )
     else:
         response = render(
             request,

@@ -56,6 +56,7 @@ class ArticleSnapshot:
     content_format: ContentFormat | str
     title: str
     body: str | dict[str, Any]
+    tiptap_schema_version: int | None = None
     summary_mode: SummaryMode | str = SummaryMode.AUTO
     custom_summary: str | None = None
     visibility: Visibility | str = Visibility.PUBLIC
@@ -67,12 +68,19 @@ class ArticleSnapshot:
     comments_enabled: bool = True
     comments_view_login: bool = False
     comments_post_login: bool = False
+    proposed_tag_names: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.body_asset_ids, tuple):
             object.__setattr__(self, "body_asset_ids", tuple(self.body_asset_ids))
         if not isinstance(self.tag_ids, tuple):
             object.__setattr__(self, "tag_ids", tuple(self.tag_ids))
+        if not isinstance(self.proposed_tag_names, (tuple, str, bytes)):
+            object.__setattr__(
+                self,
+                "proposed_tag_names",
+                tuple(self.proposed_tag_names),
+            )
 
 
 @dataclass(frozen=True, slots=True)

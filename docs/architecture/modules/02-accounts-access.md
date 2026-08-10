@@ -21,7 +21,7 @@ apps/accounts/
 
 ## 数据与不变量
 
-- Account UUID 永不复用；邮箱大小写不敏感唯一；昵称按 16 单位预算，以 Unicode `casefold` 规范值执行大小写不敏感全站唯一，展示保留原始大小写。
+- Account UUID 永不复用；邮箱大小写不敏感唯一；昵称允许安全可见字符，按汉字 2、其他字符 1 的 16 单位预算，以 Unicode `casefold` 规范值执行大小写不敏感全站唯一，展示保留原始大小写。
 - 角色只有 AUTHOR/ADMINISTRATOR；管理员最多一个且必须同时是作者。
 - `attachment_upload_enabled` 是作者角色之上的独立能力，默认关闭；撤销作者角色时同步关闭。
 - Session 只存 token 摘要；12 小时默认或 30 天 remembered。

@@ -52,8 +52,7 @@ class Tag(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=("normalized_name",),
-                condition=~models.Q(state="DELETED"),
-                name="content_tag_live_name_unique",
+                name="content_tag_name_unique",
             )
         ]
 

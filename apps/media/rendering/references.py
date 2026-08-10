@@ -8,9 +8,12 @@ from markdown_it import MarkdownIt
 from apps.core.ids import normalize_ulid
 
 from .html_policy import RenderingError, validate_source_text
+from .tiptap_schema import (
+    LEGACY_TIPTAP_SCHEMA_VERSION,
+    normalize_tiptap_document,
+)
 
 _MARKDOWN = MarkdownIt("commonmark", {"html": True})
-_MAX_TIPTAP_NODES = 10_000
 
 
 def _normalize_source(value: object) -> str | None:
@@ -40,26 +43,23 @@ def markdown_media_ids(source: str) -> tuple[str, ...]:
     return _ordered_unique(references)
 
 
-def tiptap_media_ids(document: dict[str, Any]) -> tuple[str, ...]:
-    if not isinstance(document, dict):
-        raise RenderingError("TipTap document root must be an object")
-    references: list[str] = []
-    stack: list[object] = [document]
-    visited = 0
-    while stack:
-        node = stack.pop()
-        visited += 1
-        if visited > _MAX_TIPTAP_NODES:
-            raise RenderingError("TipTap document exceeds structural limits")
-        if not isinstance(node, dict):
-            continue
-        if node.get("type") == "image":
-            attrs = node.get("attrs")
-            if isinstance(attrs, dict):
-                normalized = _normalize_source(attrs.get("src"))
-                if normalized is not None:
-                    references.append(normalized)
-        content = node.get("content", ())
-        if isinstance(content, list):
-            stack.extend(reversed(content))
-    return _ordered_unique(references)
+def tiptap_media_ids(
+    document: dict[str, Any],
+    *,
+    schema_version: int = LEGACY_TIPTAP_SCHEMA_VERSION,
+) -> tuple[str, ...]:
+    return normalize_tiptap_document(
+        document,
+        schema_version=schema_version,
+    ).body_media_ids
+
+
+def tiptap_attachment_ids(
+    document: dict[str, Any],
+    *,
+    schema_version: int = LEGACY_TIPTAP_SCHEMA_VERSION,
+) -> tuple[str, ...]:
+    return normalize_tiptap_document(
+        document,
+        schema_version=schema_version,
+    ).attachment_media_ids

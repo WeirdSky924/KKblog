@@ -27,10 +27,13 @@
         {% if shell_account %}data-search-suggestions-url="{% url 'public:search-suggestions' %}"{% endif %}
       >
         <label class="visually-hidden" for="header-search-type">搜索类型</label>
-        <select id="header-search-type" class="header-search__type" name="type" data-header-search-type aria-label="搜索类型">
-          <option value="article"{% if search_type != "author" %} selected{% endif %}>文章</option>
-          <option value="author"{% if search_type == "author" %} selected{% endif %}>作者</option>
-        </select>
+        <span class="header-search__type-wrap">
+          <select id="header-search-type" class="header-search__type" name="type" data-header-search-type aria-label="搜索类型">
+            <option value="article"{% if search_type != "author" %} selected{% endif %}>文章</option>
+            <option value="author"{% if search_type == "author" %} selected{% endif %}>作者</option>
+          </select>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </span>
         <label class="visually-hidden" for="header-search-query">搜索内容</label>
         <input
           id="header-search-query"

@@ -1,3 +1,4 @@
+from .block_changes import BlockChangeSummary, project_article_block_changes
 from .consumers import consume_account_status_event
 from .policies import (
     register_article_administrative_action_policy,
@@ -73,8 +74,8 @@ from .queries import (
     published_revision,
     render_public_article_body,
     resolve_import_metadata,
+    revision_block_changes,
     revision_timeline,
-    sanitized_article_plain_text,
     search_visible_titles,
     section_by_id,
     section_list,
@@ -87,6 +88,13 @@ from .queries import (
     visible_articles_by_ids,
     visible_filter_tags,
 )
+from .rendering import (
+    ArticleBodyProjection,
+    ArticleRenderingMode,
+    render_article_body,
+    sanitized_article_plain_text,
+)
+from .rendering_policy import configured_content_embed_policy
 from .services import (
     AccountArticleDispositionError,
     AdminAuthorArticleCount,
@@ -200,6 +208,8 @@ __all__ = [
     "apply_account_deletion_disposition",
     "AUTHOR_ARTICLE_STATES",
     "ArticleBodyLimit",
+    "ArticleBodyProjection",
+    "BlockChangeSummary",
     "ArticleCommentTarget",
     "ArticleCommentPurgeResult",
     "ArticleDeletionError",
@@ -207,6 +217,7 @@ __all__ = [
     "ArticleLoginRequired",
     "ArticleNotFound",
     "ArticlePreviewError",
+    "ArticleRenderingMode",
     "ArticleSnapshot",
     "ArticleWriteResult",
     "ArticleView",
@@ -276,6 +287,7 @@ __all__ = [
     "create_article",
     "cancel_schedule",
     "change_visibility",
+    "configured_content_embed_policy",
     "consume_account_status_event",
     "create_section",
     "create_tag",
@@ -327,7 +339,10 @@ __all__ = [
     "public_article_cache_snapshot",
     "public_article_sitemap_items",
     "preview_article_body",
+    "project_article_block_changes",
     "render_public_article_body",
+    "render_article_body",
+    "revision_block_changes",
     "resolve_import_metadata",
     "sanitized_article_plain_text",
     "selectable_tag_list",

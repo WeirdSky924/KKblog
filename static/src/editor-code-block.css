@@ -1,0 +1,101 @@
+.author-code-block,
+.article-code-block {
+  min-width: 0;
+  margin-block: 0 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: 6px;
+  background: var(--surface-muted);
+}
+
+.author-code-block__tools,
+.article-code-block__tools {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-inline-start: 0.75rem;
+  border-block-end: 1px solid var(--line);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.author-code-block__language {
+  width: min(11rem, calc(100% - 3.25rem));
+  height: 2.75rem;
+  padding-inline: 0.625rem 2rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.code-block-tools__copy {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-inline-start: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.code-block-tools__copy:hover,
+.code-block-tools__copy:focus-visible,
+.code-block-tools__copy[data-copied] {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+.code-block-tools__copy:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.author-code-block pre,
+.article-code-block pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.author-code-block pre {
+  padding: 1rem 1.125rem;
+  background: transparent;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.author-code-block code {
+  display: block;
+  min-width: max-content;
+  outline: 0;
+  white-space: pre;
+}
+
+.article-code-block {
+  margin-block: 1.25rem;
+}
+
+.article-code-block__tools span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-code-block .article-prose pre,
+.article-code-block pre {
+  margin-block: 0;
+}

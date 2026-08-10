@@ -110,7 +110,7 @@
         </aside>
       {% endif %}
     </div>
-    {% if article.attachment %}
+    {% if article.attachment and not article.attachment_embedded %}
       <section class="article-reader__attachment" aria-labelledby="article-attachment-title">
         <i data-lucide="paperclip" aria-hidden="true"></i>
         <div>

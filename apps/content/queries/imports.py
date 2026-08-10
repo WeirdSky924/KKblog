@@ -94,19 +94,18 @@ def _resolve_tag_names(
     rows = {
         tag.normalized_name: tag
         for tag in Tag.objects.filter(
-            normalized_name__in=[key for _, key in normalized_names]
+            normalized_name__in=[key for _, key in normalized_names],
+            state__in=(Tag.State.PENDING, Tag.State.ACTIVE),
         ).order_by("created_at", "id")
     }
     tag_ids: list[UUID] = []
     proposed: list[str] = []
     for display, key in normalized_names:
         tag = rows.get(key)
-        if tag is None or tag.state == Tag.State.DELETED:
+        if tag is None:
             proposed.append(display)
-        elif tag.state in {Tag.State.ACTIVE, Tag.State.PENDING}:
-            tag_ids.append(tag.id)
         else:
-            raise ImportContentError("content.import_tag_unavailable.v1")
+            tag_ids.append(tag.id)
     return tuple(tag_ids), tuple(proposed)
 
 

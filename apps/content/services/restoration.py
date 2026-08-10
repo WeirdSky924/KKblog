@@ -345,6 +345,7 @@ def restore_revision(
                 title=source.title,
                 body_markdown=source.body_markdown,
                 body_tiptap=source.body_tiptap,
+                tiptap_schema_version=source.tiptap_schema_version,
                 summary_mode=source.summary_mode,
                 custom_summary=source.custom_summary,
                 visibility=source.visibility,

@@ -1,5 +1,11 @@
 from django import forms
 
+from apps.notifications.public import (
+    BROADCAST_MESSAGE_MAX_LENGTH,
+    BroadcastError,
+    normalize_broadcast_message_markdown,
+)
+
 
 def _plain_text(value: str, *, single_line: bool = False) -> str:
     normalized = value.strip()
@@ -26,21 +32,27 @@ class BroadcastForm(forms.Form):
         widget=forms.TextInput(attrs={"autocomplete": "off"}),
     )
     message = forms.CharField(
-        label="通知内容",
-        max_length=200,
-        widget=forms.Textarea(attrs={"rows": 5}),
+        label="通知内容（Markdown）",
+        max_length=BROADCAST_MESSAGE_MAX_LENGTH,
+        widget=forms.Textarea(attrs={"rows": 10}),
     )
 
     def clean_headline(self) -> str:
         return _plain_text(self.cleaned_data["headline"], single_line=True)
 
     def clean_message(self) -> str:
-        return _plain_text(self.cleaned_data["message"])
+        try:
+            return normalize_broadcast_message_markdown(self.cleaned_data["message"])
+        except BroadcastError:
+            raise forms.ValidationError("请输入有效的 Markdown 通知内容。") from None
 
 
 class BroadcastConfirmationForm(BroadcastForm):
     headline = forms.CharField(max_length=100, widget=forms.HiddenInput)
-    message = forms.CharField(max_length=200, widget=forms.HiddenInput)
+    message = forms.CharField(
+        max_length=BROADCAST_MESSAGE_MAX_LENGTH,
+        widget=forms.HiddenInput,
+    )
     confirm = forms.ChoiceField(
         choices=(("broadcast", "确认群发"),),
         widget=forms.HiddenInput,

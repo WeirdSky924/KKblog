@@ -2,11 +2,21 @@
   {{ editor_preview.block_start_lines|default_if_none:""|json_script:"editor-preview-block-lines" }}
   <header class="author-editor-pane__header">
     <strong>实时预览</strong>
-    {% if editor_preview %}
-      <span data-editor-body-metric>{{ editor_preview.text_character_count }} 字 · {{ editor_preview.body_bytes }} 字节 · {{ editor_preview.media_count }} 张图片</span>
-    {% else %}
-      <span data-editor-body-metric>0 字 · 0 字节 · 0 张图片</span>
-    {% endif %}
+    <div class="author-editor-preview__status">
+      {% if editor_preview %}
+        <span data-editor-body-metric>{{ editor_preview.text_character_count }} 字 · {{ editor_preview.body_bytes }} 字节 · {{ editor_preview.media_count }} 张图片</span>
+      {% else %}
+        <span data-editor-body-metric>0 字 · 0 字节 · 0 张图片</span>
+      {% endif %}
+      <button
+        class="author-editor-preview__resume"
+        type="button"
+        data-preview-follow-resume
+        aria-label="继续跟随编辑位置"
+        title="继续跟随编辑位置"
+        hidden
+      ><i data-lucide="locate-fixed"></i></button>
+    </div>
   </header>
   {% if editor_preview_error %}
     <div class="author-editor-preview__error" role="alert" data-preview-error>

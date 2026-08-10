@@ -17,6 +17,7 @@ class PublishedRevision:
     content_format: str
     body_markdown: str | None
     body_tiptap: dict[str, Any] | None
+    tiptap_schema_version: int | None
     visibility: str
 
 
@@ -57,5 +58,6 @@ def published_revision(
         revision.content_format,
         revision.body_markdown,
         revision.body_tiptap,
+        revision.tiptap_schema_version,
         revision.visibility,
     )

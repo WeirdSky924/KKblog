@@ -61,6 +61,13 @@ def _article(author, *, tag_ids=()):
     )
 
 
+def _publish_for_tag_review(article) -> None:
+    Article.objects.filter(pk=article.article_id).update(
+        publication_state=Article.PublicationState.PUBLISHED,
+        published_revision_id=article.revision_id,
+    )
+
+
 def test_author_tag_proposals_are_casefold_unique_under_concurrency() -> None:
     first = _account("tag-author-one", author=True)
     second = _account("tag-author-two", author=True)
@@ -91,6 +98,7 @@ def test_author_tag_proposals_are_casefold_unique_under_concurrency() -> None:
 
     first_article = _article(first, tag_ids=(tag.id,))
     second_article = _article(second, tag_ids=(tag.id,))
+    _publish_for_tag_review(first_article)
     admin = _account("shared-tag-admin", administrator=True)
     review_tag(
         actor_id=admin.id,
@@ -114,6 +122,7 @@ def test_pending_tag_is_visible_and_rejection_removes_current_projection() -> No
     author = _account("tag-review-author", author=True)
     proposed = propose_tag(actor_id=author.id, name="待审核")
     article = _article(author, tag_ids=(proposed.tag_id,))
+    _publish_for_tag_review(article)
 
     assert [
         (item.name, item.state) for item in tags_for_article(article.article_id)
@@ -142,8 +151,41 @@ def test_pending_tag_is_visible_and_rejection_removes_current_projection() -> No
     assert event.payload["outcome"] == "rejected"
     assert event.payload["recipient_id"] == str(author.id)
 
+    next_author = _account("tag-review-next-author", author=True)
+    reproposed = propose_tag(actor_id=next_author.id, name="待审核")
+    assert reproposed.tag_id == proposed.tag_id
+    assert Tag.objects.filter(normalized_name="待审核").count() == 1
+    tag = Tag.objects.get(pk=proposed.tag_id)
+    assert tag.state == Tag.State.PENDING
+    assert tag.proposed_by_id == next_author.id
+    assert tag.reviewed_by_id is None
+    assert tag.reviewed_at is None
+
+    reproposed_article = _article(next_author, tag_ids=(reproposed.tag_id,))
+    _publish_for_tag_review(reproposed_article)
+    reapproved = review_tag(
+        actor_id=admin.id,
+        tag_id=reproposed.tag_id,
+        approved=True,
+        **_context(),
+    )
+    assert reapproved.tag_id == proposed.tag_id
+    assert reapproved.state == Tag.State.ACTIVE
+    audit_model = apps.get_model("operations", "AuditEntry")
+    review_history = list(
+        audit_model.objects.filter(
+            action="content.tag.review",
+            target_type="tag",
+            target_id=str(proposed.tag_id),
+        )
+        .order_by("created_at", "id")
+        .values_list("after_safe", flat=True)
+    )
+    assert [item["outcome"] for item in review_history] == ["rejected", "approved"]
+
     pending_approval = propose_tag(actor_id=author.id, name="可通过")
     approved_article = _article(author, tag_ids=(pending_approval.tag_id,))
+    _publish_for_tag_review(approved_article)
     approved = review_tag(
         actor_id=admin.id,
         tag_id=pending_approval.tag_id,

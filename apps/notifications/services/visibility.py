@@ -6,7 +6,7 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.notifications.models import Notification
 from apps.notifications.services.broadcast import (
-    BROADCAST_TEMPLATE_KEY,
+    BROADCAST_TEMPLATE_KEYS,
     AdministratorAuthorizer,
     AuditWriter,
     _actor_id,
@@ -54,7 +54,7 @@ def _change_visibility(
         _require_administrator(actor, authorize_administrator)
         notification = (
             Notification.objects.select_for_update()
-            .filter(pk=normalized_id, template_key=BROADCAST_TEMPLATE_KEY)
+            .filter(pk=normalized_id, template_key__in=BROADCAST_TEMPLATE_KEYS)
             .first()
         )
         if notification is None:

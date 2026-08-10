@@ -3,6 +3,8 @@ from datetime import datetime
 
 from apps.content.public import ContentFormat, Visibility
 
+from .block_changes import BlockChangePresentation, block_change_presentation
+
 _FORMAT_LABELS = {
     ContentFormat.MARKDOWN: "Markdown",
     ContentFormat.TIPTAP_JSON: "富文本",
@@ -35,9 +37,10 @@ class ConflictWorkspace:
     baseline_revision_id: str
     current_revision_id: str
     revisions: tuple[ConflictRevision, ...]
+    block_changes: BlockChangePresentation
 
 
-def conflict_workspace(conflict, timeline) -> ConflictWorkspace:
+def conflict_workspace(conflict, timeline, block_changes) -> ConflictWorkspace:
     return ConflictWorkspace(
         article_id=conflict.article_id,
         baseline_revision_id=conflict.baseline.revision_id,
@@ -58,4 +61,5 @@ def conflict_workspace(conflict, timeline) -> ConflictWorkspace:
             )
             for item in timeline
         ),
+        block_changes=block_change_presentation(block_changes),
     )

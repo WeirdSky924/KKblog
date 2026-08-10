@@ -41,6 +41,7 @@
         data-cloud-saved="{% if editor_saved %}true{% else %}false{% endif %}"
         data-cloud-error="{% if editor_cloud_error %}true{% else %}false{% endif %}"
         data-editor-preview-url="{% url 'authoring:preview' %}"
+        data-preview-collapsed="{% if editor_format == 'TIPTAP_JSON' %}true{% else %}false{% endif %}"
         data-editor-body-limit="{{ editor_body_limit }}"
         data-editor-frozen="{% if editor_frozen %}true{% else %}false{% endif %}"
         data-editor-skip-local-restore="{% if editor_skip_local_restore %}true{% else %}false{% endif %}"
@@ -57,6 +58,7 @@
         {{ editor_form.upload_scope }}
         {{ editor_form.baseline_revision_id }}
         {{ editor_form.edit_token }}
+        {{ editor_embed_sources|json_script:"editor-embed-sources" }}
 
         {% if editor_form.errors %}
           <div class="author-editor-errors" role="alert" tabindex="-1" data-error-focus>
@@ -109,9 +111,79 @@
           </div>
           <fieldset class="field-group author-editor-tags">
             <legend>标签</legend>
-            {{ editor_form.tag_ids }}
-            <span class="field-help" data-editor-tag-count>已选择 0 / 10</span>
+            {{ editor_form.proposed_tag_names }}
+            <button
+              class="author-tag-picker__trigger"
+              type="button"
+              data-tag-picker-trigger
+              aria-haspopup="dialog"
+              aria-controls="author-tag-picker-dialog"
+            >
+              <span class="author-tag-picker__trigger-copy">
+                <span data-tag-picker-summary>选择文章标签</span>
+                <small data-editor-tag-count>已选择 0 / 10</small>
+              </span>
+              <i data-lucide="chevron-down"></i>
+            </button>
             {{ editor_form.tag_ids.errors }}
+            {{ editor_form.proposed_tag_names.errors }}
+            <dialog
+              id="author-tag-picker-dialog"
+              class="author-tag-picker"
+              data-tag-picker-dialog
+              aria-labelledby="author-tag-picker-title"
+            >
+              <div class="author-tag-picker__panel">
+                <header class="author-tag-picker__header">
+                  <div>
+                    <h2 id="author-tag-picker-title">选择文章标签</h2>
+                    <p>最多选择 10 个，待审核标签仅在审核通过后公开显示。</p>
+                  </div>
+                  <button
+                    class="author-tag-picker__close"
+                    type="button"
+                    data-tag-picker-close
+                    aria-label="关闭标签选择"
+                  >
+                    <i data-lucide="x"></i>
+                  </button>
+                </header>
+                <label class="author-tag-picker__search" for="author-tag-picker-search">
+                  <span class="visually-hidden">搜索标签</span>
+                  <i data-lucide="search"></i>
+                  <input
+                    id="author-tag-picker-search"
+                    type="search"
+                    maxlength="50"
+                    autocomplete="off"
+                    placeholder="搜索或申请标签"
+                    data-tag-picker-search
+                    data-editor-transient
+                  >
+                </label>
+                <button
+                  class="author-tag-picker__proposal"
+                  type="button"
+                  data-tag-picker-proposal
+                  hidden
+                >
+                  <i data-lucide="plus"></i>
+                  <span data-tag-picker-proposal-label></span>
+                </button>
+                <div class="author-tag-picker__status" aria-live="polite" data-tag-picker-status></div>
+                <div class="author-tag-picker__options" data-tag-picker-options>
+                  <div data-tag-picker-existing>
+                    {{ editor_form.tag_ids }}
+                  </div>
+                  <div data-tag-picker-proposed></div>
+                  <p class="author-tag-picker__empty" data-tag-picker-empty hidden>没有匹配的标签</p>
+                </div>
+                <footer class="author-tag-picker__footer">
+                  <span data-tag-picker-footer-count>已选择 0 / 10</span>
+                  <button class="button button--primary" type="button" data-tag-picker-done>完成</button>
+                </footer>
+              </div>
+            </dialog>
           </fieldset>
           </div>
 
@@ -126,7 +198,7 @@
             {% include "media/partials/picker.html" with adapter="article-cover" upload_url=cover_upload_url input_name="cover_asset_id" label="文章封面" picker_id="article-cover" current_asset_id=editor_form.cover_asset_id.value current_preview_url=cover_preview_url favicon_preview=False %}
             {% include "media/partials/picker.html" with adapter="article-body" upload_url=body_upload_url input_name="body_asset_id" label="正文图片" picker_id="article-body" current_asset_id="" current_preview_url="" favicon_preview=False %}
             {% if editor_can_upload_attachment %}
-              {% include "media/partials/picker.html" with adapter="article-attachment" upload_url=attachment_upload_url input_name="attachment_asset_id" label="文章附件" picker_id="article-attachment" current_asset_id=editor_form.attachment_asset_id.value current_asset_name=attachment_name current_asset_size=attachment_size favicon_preview=False %}
+              {% include "media/partials/picker.html" with adapter="article-attachment" upload_url=attachment_upload_url input_name="attachment_asset_id" label="文章附件" picker_id="article-attachment" current_asset_id=editor_form.attachment_asset_id.value current_asset_name=attachment_name current_asset_size=attachment_size current_asset_mime=attachment_mime favicon_preview=False %}
             {% endif %}
           </div>
           {% if editor_can_upload_attachment %}
@@ -221,27 +293,32 @@
               <span data-editor-local-state aria-live="polite">本地暂无修改</span>
             </header>
             {% if editor_format == "TIPTAP_JSON" %}
-              <div class="author-tiptap-toolbar" role="toolbar" aria-label="富文本格式">
-                <button type="button" data-editor-command="bold" aria-label="粗体" title="粗体"><i data-lucide="bold"></i></button>
-                <button type="button" data-editor-command="italic" aria-label="斜体" title="斜体"><i data-lucide="italic"></i></button>
-                <button type="button" data-editor-command="strike" aria-label="删除线" title="删除线"><i data-lucide="strikethrough"></i></button>
-                <button type="button" data-editor-command="heading" aria-label="二级标题" title="二级标题"><i data-lucide="heading-2"></i></button>
-                <button type="button" data-editor-command="bulletList" aria-label="无序列表" title="无序列表"><i data-lucide="list"></i></button>
-                <button type="button" data-editor-command="orderedList" aria-label="有序列表" title="有序列表"><i data-lucide="list-ordered"></i></button>
-                <button type="button" data-editor-command="blockquote" aria-label="引用" title="引用"><i data-lucide="quote"></i></button>
-                <button type="button" data-editor-command="codeBlock" aria-label="代码块" title="代码块"><i data-lucide="square-code"></i></button>
-                <span aria-hidden="true"></span>
-                <button type="button" data-editor-command="undo" aria-label="撤销" title="撤销"><i data-lucide="undo-2"></i></button>
-                <button type="button" data-editor-command="redo" aria-label="重做" title="重做"><i data-lucide="redo-2"></i></button>
+              <div class="author-tiptap-workspace">
+                <div data-editor-outline-host></div>
+                <div class="author-tiptap-workspace__editor">
+                  <div class="author-tiptap-toolbar" data-editor-toolbar role="toolbar" aria-label="富文本格式"></div>
+                  <textarea name="body" id="{{ editor_form.body.id_for_label }}" data-editor-source hidden>{{ editor_form.body.value|default_if_none:"" }}</textarea>
+                  <div class="author-tiptap" data-tiptap-editor aria-label="文章正文"></div>
+                </div>
               </div>
-              <textarea name="body" id="{{ editor_form.body.id_for_label }}" data-editor-source hidden>{{ editor_form.body.value|default_if_none:"" }}</textarea>
-              <div class="author-tiptap" data-tiptap-editor aria-label="文章正文"></div>
             {% else %}
               <label for="{{ editor_form.body.id_for_label }}">正文</label>
               {{ editor_form.body }}
             {% endif %}
             {{ editor_form.body.errors }}
           </section>
+
+          <button
+            class="author-editor-rail-toggle author-editor-preview-toggle"
+            type="button"
+            data-editor-preview-toggle
+            aria-controls="editor-live-preview"
+            aria-expanded="{% if editor_format == 'TIPTAP_JSON' %}false{% else %}true{% endif %}"
+            aria-label="{% if editor_format == 'TIPTAP_JSON' %}展开实时预览{% else %}收起实时预览{% endif %}"
+            title="{% if editor_format == 'TIPTAP_JSON' %}展开实时预览{% else %}收起实时预览{% endif %}"
+          >
+            <i data-lucide="chevron-right"></i>
+          </button>
 
           <div class="author-editor-pane author-editor-pane--preview" data-editor-pane="preview">
             {% include "authoring/partials/editor_preview.html" with editor_preview=editor_preview editor_preview_error=editor_preview_error editor_preview_title=editor_form.title.value %}

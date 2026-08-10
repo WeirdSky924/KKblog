@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from datetime import datetime
 
 from django import forms
@@ -12,7 +13,12 @@ from apps.content.public import (
     Visibility,
 )
 from apps.core.ids import normalize_ulid
-from apps.media.public import markdown_media_ids, tiptap_media_ids
+from apps.media.public import (
+    CURRENT_TIPTAP_SCHEMA_VERSION,
+    RenderingError,
+    markdown_media_ids,
+    tiptap_media_ids,
+)
 
 _FORMAT_CHOICES = (
     (ContentFormat.MARKDOWN, "Markdown"),
@@ -196,6 +202,12 @@ class ArticleEditorForm(forms.Form):
         required=False,
         widget=forms.CheckboxSelectMultiple,
     )
+    proposed_tag_names = forms.CharField(
+        required=False,
+        max_length=1024,
+        initial="[]",
+        widget=forms.HiddenInput(attrs={"data-proposed-tag-names": ""}),
+    )
     cover_asset_id = forms.CharField(
         required=False,
         max_length=26,
@@ -220,6 +232,12 @@ class ArticleEditorForm(forms.Form):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.locked_format = locked_format
+        self.tag_normalized_names = {
+            str(item.tag_id): unicodedata.normalize("NFKC", item.name)
+            .strip()
+            .casefold()
+            for item in tags
+        }
         self.fields["section_id"].choices = (
             ("", "未选择分区"),
             *((str(item.section_id), item.name) for item in sections),
@@ -279,6 +297,34 @@ class ArticleEditorForm(forms.Form):
             raise forms.ValidationError("每篇文章最多选择 10 个标签。")
         return values
 
+    def clean_proposed_tag_names(self) -> tuple[str, ...]:
+        raw = self.cleaned_data.get("proposed_tag_names") or "[]"
+        try:
+            values = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            raise forms.ValidationError("标签申请信息不完整，请重新选择。") from None
+        if (
+            not isinstance(values, list)
+            or len(values) > 10
+            or any(not isinstance(value, str) for value in values)
+        ):
+            raise forms.ValidationError("标签申请信息不完整，请重新选择。")
+        names: list[str] = []
+        normalized: set[str] = set()
+        for value in values:
+            display = unicodedata.normalize("NFKC", value).strip()
+            key = display.casefold()
+            if (
+                not display
+                or len(display) > 50
+                or any(ord(char) < 32 for char in display)
+            ):
+                raise forms.ValidationError("标签名称须为 1 至 50 个字符。")
+            if key not in normalized:
+                normalized.add(key)
+                names.append(display)
+        return tuple(names)
+
     def clean(self):
         values = super().clean()
         content_format = values.get("content_format")
@@ -293,8 +339,19 @@ class ArticleEditorForm(forms.Form):
                     self.add_error("body", "富文本正文数据不完整，请重新打开页面。")
                 else:
                     values["body_document"] = document
-        else:
+                    try:
+                        values["body_media_ids"] = tiptap_media_ids(
+                            document,
+                            schema_version=CURRENT_TIPTAP_SCHEMA_VERSION,
+                        )
+                    except RenderingError:
+                        self.add_error("body", "正文格式不合法，请修正后重试。")
+        elif content_format == ContentFormat.MARKDOWN:
             values["body_document"] = body_source
+            try:
+                values["body_media_ids"] = markdown_media_ids(body_source)
+            except RenderingError:
+                self.add_error("body", "正文格式不合法，请修正后重试。")
         summary_mode = values.get("summary_mode")
         custom_summary = (values.get("custom_summary") or "").strip()
         if summary_mode == SummaryMode.CUSTOM and not custom_summary:
@@ -306,17 +363,23 @@ class ArticleEditorForm(forms.Form):
         if not values.get("comments_enabled"):
             values["comments_view_login"] = False
             values["comments_post_login"] = False
+        tag_ids = values.get("tag_ids") or ()
+        proposed_names = values.get("proposed_tag_names") or ()
+        selected_names = {
+            self.tag_normalized_names.get(str(tag_id), "") for tag_id in tag_ids
+        }
+        additional_names = {
+            unicodedata.normalize("NFKC", name).strip().casefold()
+            for name in proposed_names
+        } - selected_names
+        if len(tag_ids) + len(additional_names) > 10:
+            self.add_error("proposed_tag_names", "每篇文章最多选择 10 个标签。")
         return values
 
     def snapshot(self) -> ArticleSnapshot:
         if not self.is_valid():
             raise ValueError("Cannot create an article snapshot from an invalid form")
         body = self.cleaned_data["body_document"]
-        media_ids = (
-            markdown_media_ids(body)
-            if self.cleaned_data["content_format"] == ContentFormat.MARKDOWN
-            else tiptap_media_ids(body)
-        )
         return ArticleSnapshot(
             content_format=self.cleaned_data["content_format"],
             title=self.cleaned_data["title"],
@@ -326,9 +389,10 @@ class ArticleEditorForm(forms.Form):
             visibility=self.cleaned_data["visibility"],
             section_id=self.cleaned_data["section_id"] or None,
             tag_ids=tuple(self.cleaned_data["tag_ids"]),
+            proposed_tag_names=tuple(self.cleaned_data["proposed_tag_names"]),
             cover_asset_id=self.cleaned_data["cover_asset_id"],
             attachment_asset_id=self.cleaned_data["attachment_asset_id"],
-            body_asset_ids=media_ids,
+            body_asset_ids=self.cleaned_data["body_media_ids"],
             comments_enabled=self.cleaned_data["comments_enabled"],
             comments_view_login=self.cleaned_data["comments_view_login"],
             comments_post_login=self.cleaned_data["comments_post_login"],

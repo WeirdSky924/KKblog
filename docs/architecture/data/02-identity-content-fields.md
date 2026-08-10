@@ -9,7 +9,7 @@
 | `id` | UUIDv4 | 否 | 主键、永不复用、不得由邮箱或昵称推导 |
 | `email` | varchar(254) | 否 | 保存规范化地址，大小写不敏感唯一 |
 | `password_hash` | Django password | 否 | 仅使用 Django 哈希器，不进入日志/审计 |
-| `nickname` | varchar(16) | 是 | 中英文字符；中文计 2、英文计 1，总预算 16；保留用户输入的原始大小写用于展示 |
+| `nickname` | varchar(16) | 是 | 安全可见字符；汉字计 2、其他字符计 1，总预算 16；拒绝空白、控制和不可见字符，保留用户输入的原始大小写用于展示 |
 | `normalized_nickname` | text | 是 | 由 `nickname` 以唯一共享函数产生 Unicode `casefold` 规范值；大小写不敏感唯一约束和冲突裁决作用于此字段 |
 | `status` | enum | 否 | `ACTIVE`、`DISABLED`；删除账户物理移除并保留匿名历史引用 |
 | `theme` | enum | 否 | `LIGHT`、`DARK`、`EYE_CARE`，默认 `LIGHT` |

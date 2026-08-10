@@ -111,6 +111,7 @@ def test_core_contains_only_approved_cross_cutting_capabilities() -> None:
         "migrations",
         "models.py",
         "observability",
+        "security_headers.py",
         "time",
     }
     actual = {

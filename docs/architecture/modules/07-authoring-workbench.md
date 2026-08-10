@@ -24,16 +24,22 @@ apps/authoring/
 - 附件选择器只向拥有独立附件能力的作者显示；服务端保存重新裁决。能力撤销后可保留当前工作修订已有附件，但不能新增或更换。
 - 桌面实时并列预览；手机编辑/预览分段切换。
 - 预览调用与最终发布相同 sanitizer，不执行原始 HTML。
+- TipTap 粘贴只接受普通文本、明确 Markdown 语法、清洗后的受控 HTML 和由 media owner 处理的本地图片；粘贴不会改变 revision 的 `content_format`，也不保存原始剪贴板 HTML。
+- TipTap 导出的 Markdown 只是可读便利副本。将其重新导入时按新的 Markdown 输入显式处理，不覆盖或伪装成原 TipTap 无损事实。
 
 ## 本地与云草稿
 
-内容变化 debounce 后存浏览器，键含 user/article/base revision/format。只有点击“保存草稿”才调用 content `save_revision` 写云端。页面恢复先加载本地，没有再加载云 working revision，无需弹窗。
+内容变化 debounce 后存浏览器，键含 user/article/base revision/format。值必须覆盖正文、标题、摘要、可见性、分区、标签、封面、唯一附件 ID 与评论设置；正文图片继续由 TipTap/Markdown 正文引用推导。只有点击“保存草稿”才调用 content `save_revision` 写云端。页面恢复先加载本地，没有再加载云 working revision，无需弹窗。
+
+本地草稿 schema v1 新写入 `attachmentAssetId`。兼容旧 v1 草稿时，TipTap 只可从唯一合法 attachment node 推导该 ID；显式字段与 node 不同、重复 node、非法 ID 或畸形 JSON 都拒绝恢复，不猜测或覆盖云端附件。恢复后 hidden field、picker ready 状态和正文 node 必须同步；文件名未知时只显示“已恢复附件”，真实名称仍由 media 授权结果在云保存/重新加载后注入。
 
 成功发布、手动删除对应云草稿或浏览器数据清除时删除本地稿。请求失败/异常退出不能删除。管理员可只读查看他人工作修订并通知作者，但 authoring 编辑入口永不授予管理员代编能力。
 
 ## 并发冲突
 
 保存携带 base revision 与 row version。409 后停止继续编辑，展示当前工作版本、用户基线和历史元数据；作者选择新基线后覆盖编辑画布并取得新令牌。未解决冲突不能保存/发布，发布版本不受影响。
+
+版本预览与冲突 partial 只消费 content 返回的安全 block 计数，由 `presenters/block_changes.py` 统一生成中文标签。界面必须明确比较方向，不展示正文片段、媒体 ID、内部指纹或客户端未保存输入；无变化时显示结构与内容一致，Markdown/跨格式时沿用字段级变化而不伪造 block diff。
 
 ## 发布审查
 

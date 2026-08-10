@@ -17,7 +17,9 @@
     <div class="notification-dialog__body">
       <h2 id="notification-dialog-title">{{ notification_item.title }}</h2>
       <time datetime="{{ notification_item.created_at|date:'c' }}">{{ notification_item.created_at|date:"Y年m月d日 H:i" }}</time>
-      <p id="notification-dialog-message">{{ notification_item.message }}</p>
+      <div id="notification-dialog-message" class="article-prose notification-markdown">
+        {{ notification_item.message_html|safe }}
+      </div>
     </div>
     <footer class="notification-dialog__actions">
       {% if notification_item.target_url %}

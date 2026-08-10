@@ -90,12 +90,13 @@ def test_query_masks_list_ip_and_reveals_detail_to_admin() -> None:
         after={"status": "DISABLED", "role_ids": ["AUTHOR"]},
         summary="account status changed",
     )
+    entry_date = timezone.localdate(entry.created_at)
     rows = search_audit(
         keyword="status",
         action="test.account.changed",
         target_id=target_id,
-        start=timezone.now().date(),
-        end=timezone.now().date(),
+        start=entry_date,
+        end=entry_date,
         is_admin=True,
     )
     assert rows[0].client_ip == "203.0.113.***"

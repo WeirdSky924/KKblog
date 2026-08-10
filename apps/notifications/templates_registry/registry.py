@@ -1,9 +1,17 @@
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from html import unescape
 from types import MappingProxyType
 
+from django.utils.html import strip_tags
+
+from apps.notifications.markdown import (
+    NotificationMarkdownRenderingError,
+    render_notification_markdown,
+)
 from apps.notifications.services.delivery import (
+    NOTIFICATION_MARKDOWN_MAX_LENGTH,
     NotificationRejected,
     registered_notification_templates,
 )
@@ -34,6 +42,7 @@ class NotificationTemplateDefinition:
 class RenderedNotification:
     title: str
     message: str
+    message_html: str
 
 
 _DEFINITIONS: dict[str, NotificationTemplateDefinition] = {}
@@ -54,6 +63,27 @@ def _plain_text(value: object, *, limit: int) -> str:
     ):
         raise NotificationRejected("Unsafe rendered notification text")
     return value
+
+
+def _markdown_source(value: object) -> str:
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= NOTIFICATION_MARKDOWN_MAX_LENGTH
+        or "\x00" in value
+        or any(
+            not character.isprintable() and character not in "\n\t"
+            for character in value
+        )
+    ):
+        raise NotificationRejected("Unsafe rendered notification Markdown")
+    return value
+
+
+def _message_summary(message_html: str) -> str:
+    summary = " ".join(unescape(strip_tags(message_html)).split())
+    if not summary:
+        raise NotificationRejected("Notification message has no readable content")
+    return f"{summary[:237]}..." if len(summary) > 240 else summary
 
 
 def register_template_definition(
@@ -90,12 +120,17 @@ def render_notification(
             if callable(definition.title)
             else definition.title
         )
-        message = definition.render_message(MappingProxyType(dict(payload)))
+        message_source = definition.render_message(MappingProxyType(dict(payload)))
     except NotificationRejected:
         raise
     except (KeyError, TypeError, ValueError):
         raise NotificationRejected("Notification rendering failed") from None
+    try:
+        message_html = render_notification_markdown(_markdown_source(message_source))
+    except NotificationMarkdownRenderingError:
+        raise NotificationRejected("Notification rendering failed") from None
     return RenderedNotification(
         title=_plain_text(title, limit=100),
-        message=_plain_text(message, limit=1000),
+        message=_message_summary(message_html),
+        message_html=message_html,
     )

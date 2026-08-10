@@ -135,19 +135,36 @@
   background: transparent;
 }
 
+.header-search__type-wrap {
+  position: relative;
+  min-width: 0;
+  border-inline-end: 1px solid var(--line);
+}
+
 .header-search__type {
   width: 100%;
   min-width: 0;
   height: 2.75rem;
-  padding-inline: 0.75rem 1.75rem;
+  padding-inline: 0.75rem 1.5rem;
+  appearance: none;
   border: 0;
-  border-inline-end: 1px solid var(--line);
   border-radius: 0;
   outline: 0;
   background-color: transparent;
   color: var(--text-primary);
   font: inherit;
   cursor: pointer;
+}
+
+.header-search__type-wrap > .lucide {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 0.5rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .header-search__type:focus-visible {

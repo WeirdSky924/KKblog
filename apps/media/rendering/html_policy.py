@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from hashlib import sha256
 from html import escape
 from html.parser import HTMLParser
+from unicodedata import category
 from urllib.parse import urlsplit
 
 import nh3
@@ -11,14 +13,16 @@ import nh3
 from apps.core.ids import normalize_ulid
 
 from .embeds import TrustedEmbedPolicy, configured_trusted_embed_policy
+from .headings import is_safe_heading_anchor
 
-SANITIZER_VERSION = "kaj-html-v2"
+SANITIZER_VERSION = "kaj-html-v7"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_CANDIDATE_BYTES = 8 * MAX_SOURCE_BYTES
 
 _ALLOWED_TAGS = {
     "a",
     "abbr",
+    "aside",
     "b",
     "blockquote",
     "br",
@@ -38,6 +42,7 @@ _ALLOWED_TAGS = {
     "hr",
     "i",
     "img",
+    "input",
     "kaj-embed",
     "kbd",
     "li",
@@ -47,6 +52,7 @@ _ALLOWED_TAGS = {
     "pre",
     "s",
     "strong",
+    "span",
     "sub",
     "summary",
     "sup",
@@ -72,12 +78,24 @@ _CLEAN_CONTENT_TAGS = {
     "template",
 }
 _ALLOWED_ATTRIBUTES = {
-    "a": {"href", "title"},
-    "img": {"alt", "src", "title"},
+    "a": {"data-kaj-attachment", "download", "href", "title"},
+    "aside": {"data-callout", "data-kaj-attachment-card"},
+    "code": {"data-language"},
+    "div": {"data-table-scroll"},
+    "img": {"alt", "data-width", "src", "title"},
+    "input": {"checked", "disabled", "type"},
     "kaj-embed": {"data-source", "data-url"},
+    "li": {"data-task-checked"},
     "ol": {"start"},
+    "span": {"role"},
+    "ul": {"data-task-list"},
 }
-_VOID_TAGS = {"br", "hr", "img"}
+for _heading_tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+    _ALLOWED_ATTRIBUTES[_heading_tag] = {"id"}
+_VOID_TAGS = {"br", "hr", "img", "input"}
+_SAFE_CODE_LANGUAGE = re.compile(r"[a-z0-9][a-z0-9+-]{0,31}")
+_IMAGE_WIDTHS = frozenset({"25", "50", "75", "100"})
+_CALLOUT_KINDS = frozenset({"info", "success", "warning"})
 
 
 class RenderingError(ValueError):
@@ -90,6 +108,10 @@ class RenderedContent:
     sanitizer_version: str
     cache_key: str
     block_start_lines: tuple[int, ...] = ()
+    source_bytes: int = 0
+    node_count: int = 0
+    max_depth: int = 0
+    table_cells: int = 0
 
 
 def validate_source_text(source: str) -> None:
@@ -136,7 +158,7 @@ def sanitize_candidate_html(
     if len(candidate_html.encode("utf-8")) > MAX_CANDIDATE_BYTES:
         raise RenderingError("Rendered candidate exceeds the safety limit")
     policy = embed_policy or configured_trusted_embed_policy()
-    normalized_media_ids = _normalize_media_ids(allowed_media_ids)
+    normalized_media_ids = normalize_allowed_media_ids(allowed_media_ids)
     cleaned = nh3.clean(
         candidate_html,
         tags=_ALLOWED_TAGS,
@@ -158,6 +180,7 @@ def sanitize_candidate_html(
             policy_fingerprint=policy.fingerprint,
             allowed_media_ids=normalized_media_ids,
         ),
+        source_bytes=len(source.encode("utf-8")),
     )
 
 
@@ -181,7 +204,7 @@ def configured_rendering_version() -> str:
     return f"{SANITIZER_VERSION}-p{fingerprint}"
 
 
-def _normalize_media_ids(media_ids: object) -> frozenset[str]:
+def normalize_allowed_media_ids(media_ids: object) -> frozenset[str]:
     if isinstance(media_ids, (str, bytes)):
         raise RenderingError("Allowed media IDs must be a collection")
     try:
@@ -216,7 +239,12 @@ class _SafeFragmentTransformer(HTMLParser):
             rendered = self._embed_policy.render(
                 values.get("data-source", ""), values.get("data-url", "")
             )
-            self._parts.append(rendered or '<span role="note">来源不可用</span>')
+            fallback = self._embed_policy.fallback(
+                values.get("data-source", ""), values.get("data-url", "")
+            )
+            self._parts.append(
+                rendered or fallback or '<span role="note">来源不可用</span>'
+            )
             self._embed_depth = 1
             return
         if tag == "a":
@@ -225,9 +253,33 @@ class _SafeFragmentTransformer(HTMLParser):
         if tag == "img":
             self._append_image(values)
             return
+        if tag == "input":
+            self._append_task_checkbox(values)
+            return
         safe_attrs: list[tuple[str, str]] = []
         if tag == "ol" and values.get("start", "").isdigit():
             safe_attrs.append(("start", values["start"]))
+        elif tag == "aside":
+            if values.get("data-callout") in _CALLOUT_KINDS:
+                safe_attrs.append(("data-callout", values["data-callout"]))
+            elif values.get("data-kaj-attachment-card") == "true":
+                safe_attrs.append(("data-kaj-attachment-card", "true"))
+        elif tag == "code" and _SAFE_CODE_LANGUAGE.fullmatch(
+            values.get("data-language", "")
+        ):
+            safe_attrs.append(("data-language", values["data-language"]))
+        elif tag == "div" and values.get("data-table-scroll") == "true":
+            safe_attrs.append(("data-table-scroll", "true"))
+        elif tag == "ul" and values.get("data-task-list") == "true":
+            safe_attrs.append(("data-task-list", "true"))
+        elif tag == "li" and values.get("data-task-checked") in {"true", "false"}:
+            safe_attrs.append(("data-task-checked", values["data-task-checked"]))
+        elif tag in {"h1", "h2", "h3", "h4", "h5", "h6"} and is_safe_heading_anchor(
+            values.get("id")
+        ):
+            safe_attrs.append(("id", values["id"]))
+        elif tag == "span" and values.get("role") == "note":
+            safe_attrs.append(("role", "note"))
         self._append_start(tag, safe_attrs)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -248,7 +300,7 @@ class _SafeFragmentTransformer(HTMLParser):
             self._parts.append(escape(data, quote=False))
 
     def _append_link(self, attrs: dict[str, str]) -> None:
-        href = _safe_link(attrs.get("href", ""))
+        href = normalize_safe_link(attrs.get("href", ""))
         safe_attrs: list[tuple[str, str]] = []
         if href is not None:
             normalized_href, external = href
@@ -259,6 +311,20 @@ class _SafeFragmentTransformer(HTMLParser):
                 safe_attrs.extend(
                     (("rel", "noopener noreferrer"), ("target", "_blank"))
                 )
+        attachment = attrs.get("data-kaj-attachment") == "true" and (
+            normalized_href.startswith("/_kaj/media/")
+        )
+        if attachment:
+            safe_attrs.append(("data-kaj-attachment", "true"))
+            download = attrs.get("download", "")
+            if (
+                "download" in attrs
+                and len(download) <= 255
+                and "/" not in download
+                and "\\" not in download
+                and not any(category(character) == "Cc" for character in download)
+            ):
+                safe_attrs.append(("download", download))
         self._append_start("a", safe_attrs)
 
     def _append_image(self, attrs: dict[str, str]) -> None:
@@ -275,7 +341,17 @@ class _SafeFragmentTransformer(HTMLParser):
         for name in ("alt", "title"):
             if attrs.get(name):
                 safe_attrs.append((name, attrs[name]))
+        if attrs.get("data-width") in _IMAGE_WIDTHS:
+            safe_attrs.append(("data-width", attrs["data-width"]))
         self._append_start("img", safe_attrs)
+
+    def _append_task_checkbox(self, attrs: dict[str, str]) -> None:
+        if attrs.get("type") != "checkbox" or "disabled" not in attrs:
+            return
+        safe_attrs = [("type", "checkbox"), ("disabled", "")]
+        if "checked" in attrs:
+            safe_attrs.append(("checked", ""))
+        self._append_start("input", safe_attrs)
 
     def _append_start(self, tag: str, attrs: list[tuple[str, str]]) -> None:
         serialized = "".join(
@@ -284,8 +360,12 @@ class _SafeFragmentTransformer(HTMLParser):
         self._parts.append(f"<{tag}{serialized}>")
 
 
-def _safe_link(value: str) -> tuple[str, bool] | None:
-    if not value or value != value.strip() or any(ord(char) < 32 for char in value):
+def normalize_safe_link(value: str) -> tuple[str, bool] | None:
+    if (
+        not value
+        or value != value.strip()
+        or any(category(char) == "Cc" for char in value)
+    ):
         return None
     if value.startswith(("//", "\\")):
         return None

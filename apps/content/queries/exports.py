@@ -4,11 +4,9 @@ from datetime import datetime
 from uuid import UUID
 
 from apps.core.ids import normalize_ulid
-from apps.media.public import render_tiptap
 
 from ..models import Article, ArticleRevision
-from ..rendering_policy import configured_content_embed_policy
-from .discovery import sanitized_article_plain_text
+from ..rendering import ArticleRenderingMode, render_article_body
 
 
 class ContentExportError(ValueError):
@@ -53,6 +51,7 @@ class ExportRevisionPayload:
     title: str
     body_markdown: str | None
     body_tiptap: dict | None
+    tiptap_schema_version: int | None
     convenience_markdown: str
     summary_mode: str
     custom_summary: str | None
@@ -211,12 +210,12 @@ def export_revision_payloads(*, revision_ids) -> tuple[ExportRevisionPayload, ..
         )
         convenience_markdown = revision.body_markdown or ""
         if tiptap_source is not None:
-            convenience_markdown = sanitized_article_plain_text(
-                render_tiptap(
-                    tiptap_source,
-                    embed_policy=configured_content_embed_policy(),
-                ).html
-            )
+            convenience_markdown = render_article_body(
+                content_format=revision.content_format,
+                body=tiptap_source,
+                tiptap_schema_version=revision.tiptap_schema_version,
+                mode=ArticleRenderingMode.EXPORT,
+            ).readable_markdown
         tags = tuple(
             ExportRevisionTag(item.tag_id, item.tag.name, item.tag.state)
             for item in sorted(
@@ -235,6 +234,7 @@ def export_revision_payloads(*, revision_ids) -> tuple[ExportRevisionPayload, ..
                 title=revision.title,
                 body_markdown=revision.body_markdown,
                 body_tiptap=tiptap_source,
+                tiptap_schema_version=revision.tiptap_schema_version,
                 convenience_markdown=convenience_markdown,
                 summary_mode=revision.summary_mode,
                 custom_summary=revision.custom_summary,

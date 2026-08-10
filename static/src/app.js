@@ -1,9 +1,13 @@
 import Alpine from "alpinejs";
 import "htmx.org";
 import {
+  ArrowDownToLine,
   ArrowLeft,
+  ArrowLeftToLine,
   ArrowRight,
+  ArrowRightToLine,
   ArrowUp,
+  ArrowUpToLine,
   Bell,
   Bold,
   Bookmark,
@@ -15,8 +19,12 @@ import {
   CircleCheck,
   CircleCheckBig,
   CircleX,
+  Code,
+  Columns3,
   Copy,
+  CornerDownLeft,
   Download,
+  Ellipsis,
   Eye,
   ExternalLink,
   FileArchive,
@@ -25,46 +33,66 @@ import {
   Flag,
   GitCompareArrows,
   GripVertical,
+  Heading1,
   Heading2,
+  Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
   History,
   ImageUp,
   Info,
   Italic,
   KeyRound,
   List,
+  ListChecks,
   ListOrdered,
+  ListTree,
+  Link,
   LockKeyhole,
+  LocateFixed,
   LogIn,
   LogOut,
   Mail,
   Menu,
   MessageCircle,
+  Minus,
   MonitorSmartphone,
   Move,
   Moon,
   NotebookPen,
   Paperclip,
+  PanelTop,
   PencilLine,
+  Pencil,
+  Pilcrow,
   Pin,
   PinOff,
+  Plus,
   Quote,
   Redo2,
+  RemoveFormatting,
   Replace,
   Reply,
   RotateCw,
   RotateCcw,
+  Rows3,
   Save,
   Send,
   Search,
   Settings,
   ShieldCheck,
   SquareCode,
+  SquarePlay,
   Strikethrough,
   Sun,
+  Table2,
   ThumbsUp,
   Trash2,
   Timer,
   TriangleAlert,
+  Underline,
+  Unlink,
   Undo2,
   UserPlus,
   UserRound,
@@ -104,12 +132,22 @@ import {
 } from "./live-submit.js";
 import { initializePasswordReveals } from "./password-reveal.js";
 import { initializeHeaderSearch } from "./header-search.js";
-import { uploadMediaFile } from "./media-upload.js";
+import {
+  MediaUploadRequestError,
+  uploadMediaFile,
+} from "./media-upload.js";
+import { initializeReadableCodeBlocks } from "./editor-code-block.js";
+import { initializeEditorTagPickers } from "./editor-tag-picker.js";
+import { editorUploadTrackerFor } from "./editor-upload-state.js";
 
 const availableIcons = {
+  ArrowDownToLine,
   ArrowLeft,
+  ArrowLeftToLine,
   ArrowRight,
+  ArrowRightToLine,
   ArrowUp,
+  ArrowUpToLine,
   Bell,
   Bold,
   Bookmark,
@@ -121,8 +159,12 @@ const availableIcons = {
   CircleCheck,
   CircleCheckBig,
   CircleX,
+  Code,
+  Columns3,
   Copy,
+  CornerDownLeft,
   Download,
+  Ellipsis,
   Eye,
   ExternalLink,
   FileArchive,
@@ -131,46 +173,66 @@ const availableIcons = {
   Flag,
   GitCompareArrows,
   GripVertical,
+  Heading1,
   Heading2,
+  Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
   History,
   ImageUp,
   Info,
   Italic,
   KeyRound,
   List,
+  ListChecks,
   ListOrdered,
+  ListTree,
+  Link,
   LockKeyhole,
+  LocateFixed,
   LogIn,
   LogOut,
   Mail,
   Menu,
   MessageCircle,
+  Minus,
   MonitorSmartphone,
   Move,
   Moon,
   NotebookPen,
   Paperclip,
+  PanelTop,
   PencilLine,
+  Pencil,
+  Pilcrow,
   Pin,
   PinOff,
+  Plus,
   Quote,
   Redo2,
+  RemoveFormatting,
   Replace,
   Reply,
   RotateCw,
   RotateCcw,
+  Rows3,
   Save,
   Send,
   Search,
   Settings,
   ShieldCheck,
   SquareCode,
+  SquarePlay,
   Strikethrough,
   Sun,
+  Table2,
   ThumbsUp,
   Trash2,
   Timer,
   TriangleAlert,
+  Underline,
+  Unlink,
   Undo2,
   UserPlus,
   UserRound,
@@ -507,10 +569,14 @@ function initializeMediaPickers(root = document) {
     const dropzone = picker.querySelector("[data-media-dropzone]");
     const result = picker.querySelector("[data-media-result]");
     const retry = picker.querySelector("[data-media-retry]");
+    const attachmentInsert = picker.querySelector(
+      "[data-attachment-card-insert]",
+    );
     const remove = picker.querySelector("[data-media-remove]");
     const progressWrap = picker.querySelector("[data-media-progress-wrap]");
     const progress = picker.querySelector("[data-media-progress]");
     const csrf = picker.querySelector("input[name='csrfmiddlewaretoken']");
+    const uploadTracker = editorUploadTrackerFor(picker);
     if (
       !(input instanceof HTMLInputElement) ||
       !(value instanceof HTMLInputElement) ||
@@ -523,6 +589,7 @@ function initializeMediaPickers(root = document) {
 
     let selectedFile = null;
     let previewUrl = null;
+    let uploadController = null;
     const isAttachment = picker.dataset.mediaKind === "attachment";
     const mediaLabel = isAttachment ? "附件" : "图片";
     const pickerLabel =
@@ -600,7 +667,8 @@ function initializeMediaPickers(root = document) {
 
     const showClientError = (message) => {
       result.replaceChildren();
-      retry?.removeAttribute("hidden");
+      if (uploadTracker) retry?.setAttribute("hidden", "");
+      else retry?.removeAttribute("hidden");
       setMediaPickerState(picker, "error");
       announceUpload(message, "error");
     };
@@ -610,23 +678,43 @@ function initializeMediaPickers(root = document) {
         return;
       }
       const activeFile = selectedFile;
+      const controller = new AbortController();
+      uploadController = controller;
+      const uploadTask = uploadTracker?.begin({
+        key: `picker-${picker.dataset.mediaPicker || "asset"}`,
+        label: `${pickerLabel} · ${activeFile.name}`,
+        onCancel: () => controller.abort(),
+        onRetry: () => upload(),
+      });
       setControlsBusy(true);
       retry?.setAttribute("hidden", "");
       remove?.setAttribute("hidden", "");
       progress.value = 0;
       setMediaPickerState(picker, "uploading");
       try {
-        const { assetId } = await uploadMediaFile({
-          file: activeFile,
-          url: picker.dataset.mediaUploadUrl || "",
-          csrfToken: csrf instanceof HTMLInputElement ? csrf.value : "",
-          mediaLabel,
-          onProgress: (value) => {
-            progress.value = value;
-          },
-        });
+        const requestUpload = () =>
+          uploadMediaFile({
+            file: activeFile,
+            url: picker.dataset.mediaUploadUrl || "",
+            csrfToken: csrf instanceof HTMLInputElement ? csrf.value : "",
+            mediaLabel,
+            signal: controller.signal,
+            onProgress: (value) => {
+              progress.value = value;
+              uploadTask?.progress(value);
+            },
+          });
+        const { assetId } = await (
+          uploadTracker ? uploadTracker.schedule(requestUpload) : requestUpload()
+        );
         result.replaceChildren();
         value.value = assetId;
+        if (isAttachment) {
+          picker.dataset.mediaCurrentName = activeFile.name;
+          picker.dataset.mediaCurrentSize = String(activeFile.size);
+          picker.dataset.mediaCurrentMime = activeFile.type;
+          attachmentInsert?.removeAttribute("hidden");
+        }
         value.dispatchEvent(new Event("input", { bubbles: true }));
         progress.value = 100;
         remove?.removeAttribute("hidden");
@@ -651,13 +739,25 @@ function initializeMediaPickers(root = document) {
           favicon.href = previewUrl;
         }
         announceUpload(`${pickerLabel}上传成功，可以继续保存。`);
+        uploadTask?.success(`${pickerLabel}上传完成`);
       } catch (error) {
-        showClientError(
-          error instanceof Error
-            ? error.message
-            : `${pickerLabel}上传未完成，请重试。`,
-        );
+        if (
+          error instanceof MediaUploadRequestError &&
+          error.code === "aborted"
+        ) {
+          setMediaPickerState(picker, selectedFile ? "select" : "empty");
+          uploadTask?.cancelled(`${pickerLabel}上传已取消`);
+          announceUpload(`${pickerLabel}上传已取消。`, "info");
+        } else {
+          const message =
+            error instanceof Error
+              ? error.message
+              : `${pickerLabel}上传未完成，请重试。`;
+          uploadTask?.error(message);
+          showClientError(message);
+        }
       } finally {
+        if (uploadController === controller) uploadController = null;
         setControlsBusy(false);
       }
     };
@@ -680,6 +780,12 @@ function initializeMediaPickers(root = document) {
       selectedFile = null;
       input.value = "";
       value.value = "";
+      if (isAttachment) {
+        delete picker.dataset.mediaCurrentName;
+        delete picker.dataset.mediaCurrentSize;
+        delete picker.dataset.mediaCurrentMime;
+        attachmentInsert?.setAttribute("hidden", "");
+      }
       value.dispatchEvent(new Event("input", { bubbles: true }));
       result.replaceChildren();
       retry?.setAttribute("hidden", "");
@@ -728,9 +834,12 @@ function initializeMediaPickers(root = document) {
     picker.closest("form")?.addEventListener("submit", (event) => {
       if (picker.dataset.mediaState === "uploading") {
         event.preventDefault();
-        showClientError(`请等待${mediaLabel}校验完成后再保存。`);
-        retry?.setAttribute("hidden", "");
-        setMediaPickerState(picker, "uploading");
+        if (uploadTracker) uploadTracker.announcePending();
+        else {
+          showClientError(`请等待${mediaLabel}校验完成后再保存。`);
+          retry?.setAttribute("hidden", "");
+          setMediaPickerState(picker, "uploading");
+        }
       }
     });
     setMediaPickerState(picker, value.value ? "ready" : "empty");
@@ -1068,11 +1177,13 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeNotificationDialogs();
   initializeConfirmDialogs(root);
   initializeArticleActions(root);
+  initializeReadableCodeBlocks(root);
   initializeCharacterCounts(root);
   initializePublicationForms(root);
   initializePasswordReveals(root);
   initializeArticleDraftClears(root);
   initializeAuthorEditors(root);
+  initializeEditorTagPickers(root);
   initializeMediaPickers(root);
   initializeCommentForms(root);
   initializeCommentThreads(root);
@@ -1171,11 +1282,13 @@ initializeNotificationCenters();
 initializeNotificationDialogs();
 initializeConfirmDialogs();
 initializeArticleActions();
+initializeReadableCodeBlocks();
 initializeCharacterCounts();
 initializePublicationForms();
 initializePasswordReveals();
 initializeArticleDraftClears();
 initializeAuthorEditors();
+initializeEditorTagPickers();
 initializeMediaPickers();
 initializeCommentForms();
 initializeAuthorOperations();

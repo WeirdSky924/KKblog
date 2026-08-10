@@ -93,6 +93,7 @@ def test_open_direct_registration_creates_remembered_session(store, mailpit) -> 
     )
     result = register_account(
         email="direct@kaj.test",
+        nickname="Kaj_01!",
         code="123456",
         password="Valid-password-1",
         invite_code="",
@@ -102,8 +103,39 @@ def test_open_direct_registration_creates_remembered_session(store, mailpit) -> 
         trace_code="KJ-REG-DIRECT",
         store=store,
     )
+    result.account.refresh_from_db()
+    assert result.account.nickname == "Kaj_01!"
+    assert result.account.normalized_nickname == "kaj_01!"
     assert result.session.kind == LoginSession.Kind.REMEMBER_30D
     assert result.raw_session_token not in result.session.token_digest
+
+
+def test_registration_rejects_invalid_nickname_before_creating_account(
+    store, mailpit
+) -> None:
+    open_policy = RegistrationPolicy(direct_enabled=True)
+    request_code(
+        store=store,
+        mailpit=mailpit,
+        email="invalid-nickname@kaj.test",
+        policy=open_policy,
+    )
+
+    with pytest.raises(RegistrationError):
+        register_account(
+            email="invalid-nickname@kaj.test",
+            nickname="Bad Name",
+            code="123456",
+            password="Valid-password-1",
+            invite_code="",
+            remember=False,
+            policy=open_policy,
+            client_ip="203.0.113.11",
+            trace_code="KJ-REG-NICKNAME",
+            store=store,
+        )
+
+    assert not Account.objects.filter(email="invalid-nickname@kaj.test").exists()
 
 
 def test_unique_conflict_does_not_consume_invite(store, mailpit, invite) -> None:

@@ -68,6 +68,19 @@ def _asset(owner, root: Path, purpose: MediaPurpose, article_id: str):
     )
 
 
+def _attachment(owner, root: Path, article_id: str, name: str):
+    return stage_upload(
+        owner_id=owner.id,
+        purpose=MediaPurpose.ATTACHMENT,
+        original_name=name,
+        declared_content_type="text/plain",
+        chunks=[f"attachment-{name}".encode()],
+        storage=FilesystemMediaStorage(root),
+        capacity_check=lambda: None,
+        target_id=article_id,
+    )
+
+
 def _snapshot(
     *,
     section_id,
@@ -76,6 +89,7 @@ def _snapshot(
     content_format=ContentFormat.MARKDOWN,
     tag_ids=(),
     cover_asset_id=None,
+    attachment_asset_id=None,
     body_asset_ids=(),
     visibility=Visibility.PUBLIC,
     summary_mode=SummaryMode.AUTO,
@@ -91,6 +105,7 @@ def _snapshot(
         section_id=section_id,
         tag_ids=tuple(tag_ids),
         cover_asset_id=cover_asset_id,
+        attachment_asset_id=attachment_asset_id,
         body_asset_ids=tuple(body_asset_ids),
         visibility=visibility,
         summary_mode=summary_mode,
@@ -231,6 +246,121 @@ def test_restore_copies_full_snapshot_and_requires_final_review(
             trace_code=new_trace_code(),
         )
     assert captured.value.code == "content.final_review_required.v1"
+
+
+def test_restore_attachment_replacement_keeps_all_referenced_files(
+    isolated_media_root: Path,
+) -> None:
+    admin = _admin("restore-attachment")
+    admin.attachment_upload_enabled = True
+    admin.save(update_fields=("attachment_upload_enabled",))
+    section = create_section(actor_id=admin.id, name="附件恢复", **_context())
+    article = create_article(
+        actor_id=admin.id,
+        snapshot=_snapshot(
+            section_id=section.section_id,
+            body={"type": "doc", "content": []},
+            content_format=ContentFormat.TIPTAP_JSON,
+        ),
+        capacity_check=lambda: None,
+    )
+    first_attachment = _attachment(
+        admin, isolated_media_root, article.article_id, "first.txt"
+    )
+    second_attachment = _attachment(
+        admin, isolated_media_root, article.article_id, "second.txt"
+    )
+    source_body = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "attachment",
+                "attrs": {"src": f"media:{first_attachment.id}"},
+            }
+        ],
+    }
+    source = save_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        expected_row_version=article.row_version,
+        snapshot=_snapshot(
+            section_id=section.section_id,
+            body=source_body,
+            content_format=ContentFormat.TIPTAP_JSON,
+            attachment_asset_id=first_attachment.id,
+        ),
+        capacity_check=lambda: None,
+    )
+    current_body = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "attachment",
+                "attrs": {"src": f"media:{second_attachment.id}"},
+            }
+        ],
+    }
+    current = save_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        expected_row_version=source.row_version,
+        snapshot=_snapshot(
+            section_id=section.section_id,
+            body=current_body,
+            content_format=ContentFormat.TIPTAP_JSON,
+            attachment_asset_id=second_attachment.id,
+        ),
+        capacity_check=lambda: None,
+    )
+    preview = prepare_restore_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        source_revision_id=source.revision_id,
+    )
+    restored = restore_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        source_revision_id=source.revision_id,
+        expected_row_version=current.row_version,
+        restore_token=preview.token,
+    )
+
+    binding = apps.get_model("media", "MediaBinding")
+    asset = apps.get_model("media", "MediaAsset")
+    restored_revision = ArticleRevision.objects.get(pk=restored.revision_id)
+    assert restored_revision.body_tiptap == source_body
+    assert restored_revision.attachment_asset_id == first_attachment.id
+    assert binding.objects.filter(asset_id=first_attachment.id).count() == 2
+    assert binding.objects.filter(asset_id=second_attachment.id).count() == 1
+    for media in (first_attachment, second_attachment):
+        media.refresh_from_db()
+        assert media.state == "ACTIVE"
+        assert (isolated_media_root / media.storage_key).is_file()
+
+    revision_count = ArticleRevision.objects.filter(
+        article_id=article.article_id
+    ).count()
+    asset.objects.filter(pk=first_attachment.id).update(state="DELETE_PENDING")
+    failed_preview = prepare_restore_revision(
+        actor_id=admin.id,
+        article_id=article.article_id,
+        source_revision_id=source.revision_id,
+    )
+    with pytest.raises(RestoreCommandError) as captured:
+        restore_revision(
+            actor_id=admin.id,
+            article_id=article.article_id,
+            source_revision_id=source.revision_id,
+            expected_row_version=restored.row_version,
+            restore_token=failed_preview.token,
+        )
+    assert captured.value.code == "content.restore_media_unavailable.v1"
+    assert (
+        ArticleRevision.objects.filter(article_id=article.article_id).count()
+        == revision_count
+    )
+    assert binding.objects.filter(asset_id=second_attachment.id).count() == 1
+    assert (isolated_media_root / second_attachment.storage_key).is_file()
 
 
 def test_restore_token_detects_conflict_and_timeline_contains_no_body() -> None:

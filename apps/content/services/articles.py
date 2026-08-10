@@ -1,30 +1,36 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from uuid import UUID
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.accounts.public import can_upload_attachments, is_active_author
 from apps.core.ids import normalize_ulid
 from apps.media.public import (
+    CURRENT_TIPTAP_SCHEMA_VERSION,
     BindingInput,
     MediaBindingError,
     RenderingError,
     bind_revision_snapshot_assets,
     markdown_media_ids,
-    render_markdown,
-    render_tiptap,
-    tiptap_media_ids,
 )
 from apps.operations.public import require_text_creation_capacity
 
 from ..models import Article, ArticleRevision, ArticleTag, RevisionTag, Section, Tag
+from ..models.tag import normalize_tag_name
 from ..policies import article_is_reader_masked
-from ..rendering_policy import configured_content_embed_policy
+from ..rendering import (
+    ArticleRenderingMode,
+    normalize_article_tiptap_body,
+    render_article_body,
+)
+from ..rendering_policy import (
+    content_error_for_rendering,
+)
 from ..snapshots import (
     ArticleBodyLimit,
     ArticleSnapshot,
@@ -33,6 +39,7 @@ from ..snapshots import (
     SummaryMode,
     Visibility,
 )
+from .tags import TagCommandError, resolve_proposed_tags
 
 CapacityCheck = Callable[[], object]
 
@@ -50,11 +57,13 @@ class _ValidatedSnapshot:
     title: str
     body_markdown: str | None
     body_tiptap: dict | None
+    tiptap_schema_version: int | None
     summary_mode: str
     custom_summary: str | None
     visibility: str
     section_id: UUID | None
     tag_ids: tuple[UUID, ...]
+    proposed_tag_names: tuple[str, ...]
     cover_asset_id: str | None
     attachment_asset_id: str | None
     body_asset_ids: tuple[str, ...]
@@ -127,6 +136,35 @@ def _normalize_tag_ids(values) -> tuple[UUID, ...]:
     return tag_ids
 
 
+def _normalize_proposed_tag_names(values) -> tuple[str, ...]:
+    if isinstance(values, (str, bytes)):
+        raise ContentCommandError("content.tag_invalid.v1", "标签申请信息不合法。")
+    try:
+        raw_names = tuple(values)
+    except TypeError:
+        raise ContentCommandError(
+            "content.tag_invalid.v1", "标签申请信息不合法。"
+        ) from None
+    if len(raw_names) > 10:
+        raise ContentCommandError(
+            "content.tag_invalid.v1", "每篇文章最多选择 10 个标签。"
+        )
+    names: list[str] = []
+    normalized_names: set[str] = set()
+    for value in raw_names:
+        try:
+            display, normalized = normalize_tag_name(value)
+        except ValidationError:
+            raise ContentCommandError(
+                "content.tag_invalid.v1", "标签名称须为 1 至 50 个字符。"
+            ) from None
+        if normalized in normalized_names:
+            continue
+        normalized_names.add(normalized)
+        names.append(display)
+    return tuple(names)
+
+
 def _validate_snapshot(
     snapshot: ArticleSnapshot,
     body_limit: ArticleBodyLimit | None,
@@ -191,7 +229,9 @@ def _validate_snapshot(
     attachment_id = _normalize_media_id(snapshot.attachment_asset_id)
     section_id = _normalize_section_id(snapshot.section_id)
     tag_ids = _normalize_tag_ids(snapshot.tag_ids)
+    proposed_tag_names = _normalize_proposed_tag_names(snapshot.proposed_tag_names)
 
+    normalized_tiptap = None
     try:
         if content_format == ContentFormat.MARKDOWN:
             if not isinstance(snapshot.body, str):
@@ -201,17 +241,16 @@ def _validate_snapshot(
         else:
             if not isinstance(snapshot.body, dict):
                 raise RenderingError("TipTap source must be an object")
-            serialized = json.dumps(
+            normalized_tiptap = normalize_article_tiptap_body(
                 snapshot.body,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                sort_keys=True,
+                schema_version=CURRENT_TIPTAP_SCHEMA_VERSION,
+                mode=ArticleRenderingMode.STRICT,
             )
-            markdown, tiptap = None, snapshot.body
-    except (RenderingError, TypeError, ValueError, RecursionError):
-        raise ContentCommandError(
-            "content.body_invalid.v1", "正文格式不合法。"
-        ) from None
+            serialized = normalized_tiptap.serialized
+            markdown, tiptap = None, normalized_tiptap.document
+    except (RenderingError, TypeError, ValueError, RecursionError) as exc:
+        code, message = content_error_for_rendering(exc)
+        raise ContentCommandError(code, message) from None
     if len(serialized.encode("utf-8")) > policy.maximum_bytes:
         raise ContentCommandError(
             "content.body_too_large.v1",
@@ -220,36 +259,50 @@ def _validate_snapshot(
     try:
         if content_format == ContentFormat.MARKDOWN:
             referenced = markdown_media_ids(snapshot.body)
-            render_markdown(
-                snapshot.body,
-                embed_policy=configured_content_embed_policy(),
-                allowed_media_ids=set(body_ids),
-            )
         else:
-            referenced = tiptap_media_ids(snapshot.body)
-            render_tiptap(
-                snapshot.body,
-                embed_policy=configured_content_embed_policy(),
-                allowed_media_ids=set(body_ids),
-            )
-    except (RenderingError, TypeError, ValueError, RecursionError):
-        raise ContentCommandError(
-            "content.body_invalid.v1", "正文格式不合法。"
-        ) from None
+            assert normalized_tiptap is not None
+            referenced = normalized_tiptap.body_media_ids
+        render_article_body(
+            content_format=content_format,
+            body=(normalized_tiptap or snapshot.body),
+            tiptap_schema_version=(
+                CURRENT_TIPTAP_SCHEMA_VERSION
+                if content_format == ContentFormat.TIPTAP_JSON
+                else None
+            ),
+            allowed_media_ids=set(body_ids),
+            allowed_attachment_id=attachment_id,
+            mode=ArticleRenderingMode.STRICT,
+        )
+    except (RenderingError, TypeError, ValueError, RecursionError) as exc:
+        code, message = content_error_for_rendering(exc)
+        raise ContentCommandError(code, message) from None
     if set(referenced) != set(body_ids):
         raise ContentCommandError(
             "content.media_invalid.v1", "正文图片引用与提交列表不一致。"
+        )
+    if normalized_tiptap is not None and any(
+        media_id != attachment_id for media_id in normalized_tiptap.attachment_media_ids
+    ):
+        raise ContentCommandError(
+            "content.media_invalid.v1", "正文附件引用与所选附件不一致。"
         )
     return _ValidatedSnapshot(
         content_format=content_format,
         title=title,
         body_markdown=markdown,
         body_tiptap=tiptap,
+        tiptap_schema_version=(
+            CURRENT_TIPTAP_SCHEMA_VERSION
+            if content_format == ContentFormat.TIPTAP_JSON
+            else None
+        ),
         summary_mode=summary_mode,
         custom_summary=custom_summary,
         visibility=visibility,
         section_id=section_id,
         tag_ids=tag_ids,
+        proposed_tag_names=proposed_tag_names,
         cover_asset_id=cover_id,
         attachment_asset_id=attachment_id,
         body_asset_ids=body_ids,
@@ -278,6 +331,7 @@ def _create_revision(
         title=snapshot.title,
         body_markdown=snapshot.body_markdown,
         body_tiptap=snapshot.body_tiptap,
+        tiptap_schema_version=snapshot.tiptap_schema_version,
         summary_mode=snapshot.summary_mode,
         custom_summary=snapshot.custom_summary,
         visibility=snapshot.visibility,
@@ -308,6 +362,24 @@ def _lock_snapshot_tags(
     ):
         raise ContentCommandError("content.tag_invalid.v1", "标签不存在或不可用。")
     return ordered
+
+
+def _resolve_snapshot_tags(
+    *, actor_id: UUID, tag_ids: tuple[UUID, ...], proposed_tag_names: tuple[str, ...]
+) -> tuple[Tag, ...]:
+    try:
+        proposed_ids = resolve_proposed_tags(
+            actor_id=actor_id,
+            names=proposed_tag_names,
+        )
+    except TagCommandError as exc:
+        raise ContentCommandError("content.tag_invalid.v1", exc.safe_message) from None
+    combined_ids = tuple(dict.fromkeys((*tag_ids, *proposed_ids)))
+    if len(combined_ids) > 10:
+        raise ContentCommandError(
+            "content.tag_invalid.v1", "每篇文章最多选择 10 个标签。"
+        )
+    return _lock_snapshot_tags(actor_id=actor_id, tag_ids=combined_ids)
 
 
 def _write_tag_snapshot(
@@ -365,9 +437,10 @@ def create_article(
     try:
         with transaction.atomic():
             article = Article.objects.create(author_id=actor, row_version=1)
-            tags = _lock_snapshot_tags(
+            tags = _resolve_snapshot_tags(
                 actor_id=actor,
                 tag_ids=validated.tag_ids,
+                proposed_tag_names=validated.proposed_tag_names,
             )
             revision = _create_revision(
                 article=article,
@@ -471,9 +544,10 @@ def save_revision(
                 raise ContentCommandError(
                     "content.format_immutable.v1", "文章格式不能在普通编辑中切换。"
                 )
-            tags = _lock_snapshot_tags(
+            tags = _resolve_snapshot_tags(
                 actor_id=actor,
                 tag_ids=validated.tag_ids,
+                proposed_tag_names=validated.proposed_tag_names,
             )
             sequence = (
                 article.revisions.order_by("-sequence")

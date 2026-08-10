@@ -4,6 +4,7 @@ from .articles import (
     WorkspaceTab,
     article_workspace,
 )
+from .block_changes import BlockChangePresentation, block_change_presentation
 from .comments import (
     BufferedCommentCard,
     CommentArticleRow,
@@ -19,6 +20,7 @@ from .versions import VersionPreview, VersionRow, version_preview, version_rows
 __all__ = [
     "ArticleWorkspace",
     "BufferedCommentCard",
+    "BlockChangePresentation",
     "CommentArticleRow",
     "CommentWorkspacePage",
     "ConflictRevision",
@@ -32,6 +34,7 @@ __all__ = [
     "WorkspaceArticle",
     "WorkspaceTab",
     "article_workspace",
+    "block_change_presentation",
     "comment_workspace_page",
     "conflict_workspace",
     "initial_from_session",

@@ -1,6 +1,6 @@
 # Migration 验证与兼容记录
 
-本页记录 P12 `QA-001` 及后续能力变更对当前 50 条 Django migration 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
+本页记录 P12 `QA-001` 及后续能力变更对当前 53 条 Django migration 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
 
 当前源码可作为部署候选，但没有生产域名、管理员邮箱、Resend 身份或密钥，也没有生产数据库的规模与锁窗口读回。P12 未连接或迁移生产数据库，未创建生产迁移前备份，未执行生产部署或服务重启。
 
@@ -8,7 +8,7 @@
 
 - 当前代码的 11 个 migration leaf 已由发布门禁完整应用到隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。相对上一正式版本，本次新增评论置顶、阅读书签和文章点赞三张独立表，不回填既有数据。
 - 目标结构就是仓库当前 models 与 migration graph；本次增加账户附件能力、修订附件引用，并扩展媒体用途、大小与可空尺寸约束，不回填既有数据。
-- 空库读回覆盖 47 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
+- 空库读回覆盖 53 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
 - 生产表量级未知。任何锁时长、索引耗时和备份体积必须在获授权部署前从生产只读统计重新估算。
 
 ## expand/migrate/contract
@@ -52,6 +52,9 @@
 | `content.0010_article_revision_title_trgm` | `pg_trgm` 与标题 GIN | I/C1 | B/R1 |
 | `content.0011_articlerevision_reason` | revision 增加原因枚举字段 | M/C0 | B/R1 |
 | `content.0012_articlerevision_attachment_asset_id` | revision 增加可空附件引用 | M/C0 | B/R1 |
+| `content.0013_articlerevision_tiptap_schema_version` | revision 增加 TipTap schema 版本与正文形状约束 | M/C1 | B/R1 |
+| `content.0014_allow_rejected_tag_name_reproposal` | 临时允许驳回标签名称再次提议 | M/C1 | B/R1 |
+| `content.0015_merge_duplicate_tag_identities` | 归并同名标签及其修订/文章关联、删除恢复历史、审计和通知目标，并改为规范名全局唯一 | M+D/C2 | B/R2 |
 | `core.0001_outbox_foundation` | Outbox 表、租约/就绪索引与状态约束 | N/C0 | B/R1 |
 | `discovery.0001_article_view_counter` | 浏览计数与 article 级联外键 | N/C0 | B/R1 |
 | `discovery.0002_bookmark` | 私有收藏与 account 级联外键 | N/C0 | B/R1 |

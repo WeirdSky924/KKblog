@@ -53,6 +53,21 @@
                 <div><dt>分区</dt><dd>{{ selected_version.section_name }}</dd></div>
               </dl>
               {% if selected_version.change_labels %}<p class="author-version-changes"><strong>与当前工作版不同：</strong>{{ selected_version.change_labels|join:"、" }}</p>{% else %}<p class="author-version-changes">与当前工作版内容一致。</p>{% endif %}
+              {% if selected_version.block_changes.available %}
+                <section class="author-block-changes" aria-labelledby="version-block-changes-title">
+                  <div>
+                    <h3 id="version-block-changes-title">块级变化</h3>
+                    <p>{{ selected_version.block_changes.before_blocks }} 个块变为 {{ selected_version.block_changes.after_blocks }} 个块</p>
+                  </div>
+                  {% if selected_version.block_changes.labels %}
+                    <ul aria-label="所选版本相较当前工作版">
+                      {% for label in selected_version.block_changes.labels %}<li>{{ label }}</li>{% endfor %}
+                    </ul>
+                  {% else %}
+                    <p>所选版本与当前工作版的块结构及内容一致。</p>
+                  {% endif %}
+                </section>
+              {% endif %}
             </header>
             {% if selected_version.cover_asset_id %}
               <figure class="author-review-cover"><img src="/_kaj/media/{{ selected_version.cover_asset_id }}" alt="《{{ selected_version.title }}》封面"></figure>

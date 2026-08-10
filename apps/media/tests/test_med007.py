@@ -172,7 +172,10 @@ def test_tiptap_schema_is_bounded_and_rejects_unknown_active_nodes() -> None:
         ],
     }
     rendered = render_tiptap(valid).html
-    assert "<h2><strong>标题</strong></h2>" in rendered
+    assert re.search(
+        r'<h2 id="kaj-h-legacy-[0-9a-f]{20}"><strong>标题</strong></h2>',
+        rendered,
+    )
     assert 'target="_blank"' in rendered
     with pytest.raises(RenderingError):
         render_tiptap({"type": "doc", "content": [{"type": "script", "text": "x"}]})
@@ -202,7 +205,9 @@ def test_only_policy_generated_bilibili_embed_survives_and_removal_is_visible() 
 
     removed = render_author_html(source, embed_policy=TrustedEmbedPolicy(()))
     assert "<iframe" not in removed.html
-    assert "来源不可用" in removed.html
+    assert 'data-kaj-embed-fallback="bilibili"' in removed.html
+    assert "当前无法播放此内容。" in removed.html
+    assert 'href="https://www.bilibili.com/video/BV1xx411c7mD"' in removed.html
     assert enabled.cache_key != removed.cache_key
 
 

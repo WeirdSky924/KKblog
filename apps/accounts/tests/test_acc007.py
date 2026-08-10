@@ -60,6 +60,8 @@ def _change(account: Account, **overrides) -> Account:
         ("Straße", 6),
         ("中文中文中文中文", 16),
         ("abcdefghijklmnop", 16),
+        ("Kaj_01!🎉", 8),
+        ("<Kaj_01>", 8),
     ],
 )
 def test_nickname_validation_preserves_display_and_counts_unicode(
@@ -75,13 +77,14 @@ def test_nickname_validation_preserves_display_and_counts_unicode(
     [
         "abcdefghijklmnopq",
         "中文中文中文中文A",
-        "Kaj_房间",
         "Kaj  房间",
-        "Kaj1",
-        "Kaj!",
+        "Kaj\t房间",
+        "Kaj\x00房间",
+        "Kaj\u202e房间",
+        "Kaj\u200d房间",
     ],
 )
-def test_nickname_validation_rejects_over_budget_and_non_letters(
+def test_nickname_validation_rejects_over_budget_and_unsafe_characters(
     nickname: str,
 ) -> None:
     with pytest.raises(ValidationError):
@@ -273,10 +276,14 @@ def test_settings_profile_theme_and_empty_public_page_flow() -> None:
 
     invalid = client.post(
         "/accounts/settings/",
-        {"action": "change_profile", "nickname": "Bad!", "avatar_asset_id": ""},
+        {
+            "action": "change_profile",
+            "nickname": "Bad Name",
+            "avatar_asset_id": "",
+        },
     )
     assert invalid.status_code == 422
-    assert "昵称只能使用文字" in invalid.content.decode()
+    assert "昵称不能包含空白、控制或不可见字符" in invalid.content.decode()
     duplicate = client.post(
         "/accounts/settings/",
         {

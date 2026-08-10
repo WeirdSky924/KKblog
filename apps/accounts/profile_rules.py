@@ -23,24 +23,34 @@ def validate_nickname(value: str | None) -> ValidatedNickname:
     display = value.strip()
     if not display:
         return ValidatedNickname(None, None, 0)
+    normalized_display = unicodedata.normalize("NFKC", display)
+    if not _is_safe_visible_text(display) or not _is_safe_visible_text(
+        normalized_display
+    ):
+        raise ValidationError(
+            "昵称不能包含空白、控制或不可见字符。",
+            code="invalid_characters",
+        )
     budget = 0
     for character in display:
         if _is_han(character):
             budget += 2
-        elif character.isalpha():
-            budget += 1
         else:
-            raise ValidationError(
-                "昵称只能使用文字，不能包含数字、空格或符号。",
-                code="invalid_characters",
-            )
+            budget += 1
     if budget > NICKNAME_BUDGET:
         raise ValidationError(
-            "昵称最多 16 个英文单位，中文每个计 2。",
+            "昵称最多 16 个单位，汉字每个计 2，其他安全字符每个计 1。",
             code="budget_exceeded",
         )
-    normalized = unicodedata.normalize("NFKC", display).casefold()
+    normalized = normalized_display.casefold()
     return ValidatedNickname(display, normalized, budget)
+
+
+def _is_safe_visible_text(value: str) -> bool:
+    return bool(value) and all(
+        not character.isspace() and unicodedata.category(character)[0] not in {"C", "Z"}
+        for character in value
+    )
 
 
 def _is_han(character: str) -> bool:

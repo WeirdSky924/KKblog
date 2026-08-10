@@ -33,6 +33,10 @@ from apps.operations.services.capacity import (
 )
 from apps.operations.services.celery import execute_celery_entry
 from apps.operations.services.errors import capture_runtime_error
+from apps.operations.services.performance import (
+    RICH_TEXT_RENDER_BUDGET_MS,
+    record_rich_text_render_metric,
+)
 from apps.operations.services.tasks import (
     RetryableTaskError,
     StartOutcome,
@@ -58,6 +62,7 @@ __all__ = [
     "PostgresDumpConfig",
     "PostgresDumpRunner",
     "RetryableTaskError",
+    "RICH_TEXT_RENDER_BUDGET_MS",
     "StartOutcome",
     "TaskFinalFailed",
     "TaskRetryScheduled",
@@ -78,6 +83,7 @@ __all__ = [
     "expire_backup",
     "mark_backup_task_final_failed",
     "record_audit_entry",
+    "record_rich_text_render_metric",
     "register_audit_schema",
     "search_audit",
     "search_runtime_errors",

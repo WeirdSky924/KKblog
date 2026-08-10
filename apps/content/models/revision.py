@@ -67,6 +67,7 @@ class ArticleRevision(models.Model):
     title = models.CharField(max_length=30)
     body_markdown = models.TextField(null=True, blank=True)
     body_tiptap = models.JSONField(null=True, blank=True)
+    tiptap_schema_version = models.PositiveSmallIntegerField(null=True, blank=True)
     summary_mode = models.CharField(
         max_length=16,
         choices=SummaryMode.choices,
@@ -154,6 +155,20 @@ class ArticleRevision(models.Model):
                     )
                 ),
                 name="article_revision_body_shape",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        content_format="MARKDOWN",
+                        tiptap_schema_version__isnull=True,
+                    )
+                    | models.Q(
+                        content_format="TIPTAP_JSON",
+                        tiptap_schema_version__isnull=False,
+                        tiptap_schema_version__in=(1, 2),
+                    )
+                ),
+                name="article_revision_tiptap_schema_shape",
             ),
             models.CheckConstraint(
                 condition=(

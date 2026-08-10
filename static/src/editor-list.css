@@ -1,0 +1,64 @@
+:where(.author-tiptap__content, .article-prose)
+  :where(ul:not([data-type="taskList"]):not([data-task-list="true"]), ol) {
+  list-style-position: outside;
+}
+
+.author-tiptap__content
+  :where(ul:not([data-type="taskList"]):not([data-task-list="true"]), ol) {
+  margin-block: 0 0.75rem;
+  padding-inline-start: 1.75rem;
+}
+
+:where(.author-tiptap__content, .article-prose)
+  ul:not([data-type="taskList"]):not([data-task-list="true"]) {
+  list-style-type: disc;
+}
+
+:where(.author-tiptap__content, .article-prose)
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"]) {
+  list-style-type: circle;
+}
+
+:where(.author-tiptap__content, .article-prose)
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"]) {
+  list-style-type: square;
+}
+
+:where(.author-tiptap__content, .article-prose)
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"])
+  ul:not([data-type="taskList"]):not([data-task-list="true"]) {
+  list-style-type: disc;
+}
+
+:where(.author-tiptap__content, .article-prose) ol {
+  list-style-type: decimal;
+}
+
+:where(.author-tiptap__content, .article-prose) ol ol {
+  list-style-type: lower-alpha;
+}
+
+:where(.author-tiptap__content, .article-prose) ol ol ol {
+  list-style-type: lower-roman;
+}
+
+:where(.author-tiptap__content, .article-prose) ol ol ol ol {
+  list-style-type: decimal;
+}
+
+.author-tiptap__content
+  :where(ul:not([data-type="taskList"]):not([data-task-list="true"]), ol)
+  > li {
+  padding-inline-start: 0.25rem;
+}
+
+.author-tiptap__content
+  li
+  > :where(ul:not([data-type="taskList"]):not([data-task-list="true"]), ol) {
+  margin-block: 0.375rem 0;
+}

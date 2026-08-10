@@ -48,6 +48,8 @@ apps/content/
 - 发布普通文章必须一个分区；最多十标签；作者待审标签立即显示。
 - 发布后编辑不改变读者版本；作者按设置显式或自动重发，但都创建新修订。
 - 版本恢复先完整预览、创建新修订，再按普通发布流程。
+- `block_changes.py` 只对两份已授权 TipTap revision 生成瞬时安全计数：新增、删除、移动、类型变化和内容变化。匹配以进程内 SHA-256 指纹与重复块出现次序完成，移动计数使用最长递增子序列，最坏为 `O(n log n)`；返回值不含正文、属性、媒体 ID 或指纹，不持久化、不写事件/日志/通知。Markdown 或跨格式比较明确标记为不可用，不建立第二份 diff 事实。
+- 历史恢复复制不可变 source revision 的正文、schema version、附件字段与全部 ACTIVE binding，创建新的 working revision；同一资产可同时被 source、current 和 restored revision 引用。恢复或附件替换不得按“旧 working”推断孤儿并删除文件，只有 media owner 在全部绑定解除后执行清理。任一历史 binding 不可用时整笔恢复回滚，不新增 revision、不移动 working 指针，也不影响当前 revision 的绑定。
 - 软删除 7 天可恢复；到期正文/修订/媒体/评论物理清理，案件/审计保留。
 
 ## 事件与任务

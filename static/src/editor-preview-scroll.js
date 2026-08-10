@@ -1,9 +1,45 @@
 const MARKDOWN_FORMAT = "MARKDOWN";
 const PREVIEW_LINES_ID = "editor-preview-block-lines";
 const PREVIEW_CURSOR_RATIO = 2 / 3;
+const PREVIEW_FOLLOW_STATES = new Set(["following", "paused"]);
+const PREVIEW_SCROLL_KEYS = new Set([
+  "ArrowDown",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+  " ",
+]);
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function scrollableHeight(viewportHeight, scrollHeight) {
+  return Math.max(Number(scrollHeight) - Number(viewportHeight), 0);
+}
+
+export function previewScrollTop({ cursorTop, viewportHeight, scrollHeight }) {
+  const viewport = Math.max(Number(viewportHeight) || 0, 0);
+  const target = (Number(cursorTop) || 0) - viewport * PREVIEW_CURSOR_RATIO;
+  return clamp(target, 0, scrollableHeight(viewport, scrollHeight));
+}
+
+export function previewScrollProgress({ scrollTop, viewportHeight, scrollHeight }) {
+  const maximum = scrollableHeight(viewportHeight, scrollHeight);
+  return maximum ? clamp((Number(scrollTop) || 0) / maximum, 0, 1) : 0;
+}
+
+export function scrollTopForPreviewProgress({ progress, viewportHeight, scrollHeight }) {
+  return clamp(Number(progress) || 0, 0, 1) * scrollableHeight(viewportHeight, scrollHeight);
+}
+
+export function previewFollowTransition(current, event) {
+  const state = PREVIEW_FOLLOW_STATES.has(current) ? current : "following";
+  if (event === "manual") return "paused";
+  if (event === "resume") return "following";
+  return state;
 }
 
 export function blockIndexForLine(blockStartLines, line) {
@@ -110,7 +146,9 @@ function tiptapSelectionAnchor(editor) {
 function visibleTiptapBlock(mount) {
   const content = mount.querySelector(".author-tiptap__content");
   if (!(content instanceof HTMLElement)) return { index: 0, blockRatio: 0 };
-  const blocks = Array.from(content.children);
+  const blocks = Array.from(content.children).filter(
+    (element) => !element.hasAttribute("data-editor-block-controls"),
+  );
   if (!blocks.length) return { index: 0, blockRatio: 0 };
   const mountRect = mount.getBoundingClientRect();
   const readingTop = mountRect.top + mount.clientHeight * PREVIEW_CURSOR_RATIO;
@@ -145,6 +183,10 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   const tiptapMount = root.querySelector("[data-tiptap-editor]");
   let lineStarts = lineStartsFor(source.value);
   let frame = 0;
+  let followState = "following";
+  let manualProgress = 0;
+  let boundBody = null;
+  let boundResume = null;
   let anchor =
     format === MARKDOWN_FORMAT
       ? {
@@ -156,17 +198,90 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
           ...tiptapSelectionAnchor(tiptap),
         };
 
+  const updateFollowUi = () => {
+    const preview = root.querySelector("[data-editor-preview]");
+    if (preview instanceof HTMLElement) preview.dataset.previewFollow = followState;
+    const resume = root.querySelector("[data-preview-follow-resume]");
+    if (resume instanceof HTMLButtonElement) {
+      resume.hidden = followState !== "paused";
+      resume.setAttribute("aria-hidden", String(resume.hidden));
+    }
+  };
+
+  const pauseFollow = () => {
+    if (!(boundBody instanceof HTMLElement)) return;
+    manualProgress = previewScrollProgress({
+      scrollTop: boundBody.scrollTop,
+      viewportHeight: boundBody.clientHeight,
+      scrollHeight: boundBody.scrollHeight,
+    });
+    followState = previewFollowTransition(followState, "manual");
+    updateFollowUi();
+  };
+
+  const trackManualScroll = () => {
+    if (followState !== "paused" || !(boundBody instanceof HTMLElement)) return;
+    manualProgress = previewScrollProgress({
+      scrollTop: boundBody.scrollTop,
+      viewportHeight: boundBody.clientHeight,
+      scrollHeight: boundBody.scrollHeight,
+    });
+  };
+
+  const pauseFromKeyboard = (event) => {
+    if (PREVIEW_SCROLL_KEYS.has(event.key)) pauseFollow();
+  };
+
+  const resumeFollow = () => {
+    followState = previewFollowTransition(followState, "resume");
+    updateFollowUi();
+    scheduleApply();
+    requestAnimationFrame(() => boundBody?.focus({ preventScroll: true }));
+  };
+
+  const bindCurrentPreview = () => {
+    const body = previewBody(root);
+    if (body !== boundBody) {
+      boundBody?.removeEventListener("wheel", pauseFollow);
+      boundBody?.removeEventListener("touchstart", pauseFollow);
+      boundBody?.removeEventListener("pointerdown", pauseFollow);
+      boundBody?.removeEventListener("keydown", pauseFromKeyboard);
+      boundBody?.removeEventListener("scroll", trackManualScroll);
+      boundBody = body;
+      boundBody?.addEventListener("wheel", pauseFollow, { passive: true });
+      boundBody?.addEventListener("touchstart", pauseFollow, { passive: true });
+      boundBody?.addEventListener("pointerdown", pauseFollow, { passive: true });
+      boundBody?.addEventListener("keydown", pauseFromKeyboard);
+      boundBody?.addEventListener("scroll", trackManualScroll, { passive: true });
+    }
+    const resume = root.querySelector("[data-preview-follow-resume]");
+    if (resume !== boundResume) {
+      boundResume?.removeEventListener("click", resumeFollow);
+      boundResume = resume instanceof HTMLButtonElement ? resume : null;
+      boundResume?.addEventListener("click", resumeFollow);
+    }
+    updateFollowUi();
+    return body;
+  };
+
   const apply = () => {
     frame = 0;
-    const body = previewBody(root);
+    const body = bindCurrentPreview();
     if (!body || body.clientHeight <= 0) return;
     const cursorOffset = body.clientHeight * PREVIEW_CURSOR_RATIO;
     const atDocumentStart = anchorIsDocumentStart(anchor);
-    body.style.setProperty("--editor-preview-cursor-offset", "0px");
     body.style.setProperty(
       "--editor-preview-tail-offset",
       `${body.clientHeight - cursorOffset}px`,
     );
+    if (followState === "paused") {
+      body.scrollTop = scrollTopForPreviewProgress({
+        progress: manualProgress,
+        viewportHeight: body.clientHeight,
+        scrollHeight: body.scrollHeight,
+      });
+      return;
+    }
     const blocks = previewBlocks(body);
     if (!blocks.length) return;
     let index;
@@ -213,10 +328,13 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
     const blockRect = block.getBoundingClientRect();
     const blockTop = body.scrollTop + blockRect.top - bodyRect.top;
     const cursorTop = blockTop + blockRect.height * clamp(blockRatio, 0, 1);
-    const maximum = Math.max(body.scrollHeight - body.clientHeight, 0);
     body.scrollTop = atDocumentStart
       ? 0
-      : clamp(cursorTop - cursorOffset, 0, maximum);
+      : previewScrollTop({
+          cursorTop,
+          viewportHeight: body.clientHeight,
+          scrollHeight: body.scrollHeight,
+        });
     body.querySelectorAll("img").forEach((image) => {
       if (image.complete || image.dataset.previewScrollBound === "true") return;
       image.dataset.previewScrollBound = "true";
@@ -231,6 +349,7 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   };
 
   const syncMarkdownSelection = () => {
+    followState = previewFollowTransition(followState, "selection");
     anchor = {
       kind: "markdown",
       line: lineIndexForPosition(lineStarts, source.selectionStart),
@@ -239,11 +358,13 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   };
 
   const syncMarkdownInput = () => {
+    followState = previewFollowTransition(followState, "content");
     lineStarts = lineStartsFor(source.value);
     syncMarkdownSelection();
   };
 
   const syncMarkdownViewport = () => {
+    followState = previewFollowTransition(followState, "selection");
     anchor = {
       kind: "markdown",
       line: markdownLineFromViewport(source, lineStarts),
@@ -252,6 +373,7 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   };
 
   const syncTiptapSelection = () => {
+    followState = previewFollowTransition(followState, "selection");
     anchor = {
       kind: "tiptap",
       ...tiptapSelectionAnchor(tiptap),
@@ -262,6 +384,7 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   const syncTiptapViewport = () => {
     if (!(tiptapMount instanceof HTMLElement)) return;
     const visible = visibleTiptapBlock(tiptapMount);
+    followState = previewFollowTransition(followState, "selection");
     anchor = { kind: "tiptap", ...visible };
     scheduleApply();
   };
@@ -275,6 +398,7 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
   } else if (tiptapMount instanceof HTMLElement) {
     tiptapMount.addEventListener("scroll", syncTiptapViewport, { passive: true });
   }
+  scheduleApply();
 
   return {
     refresh: scheduleApply,
@@ -291,6 +415,12 @@ export function initializeEditorPreviewScroll({ root, source, format, tiptap }) 
       } else if (tiptapMount instanceof HTMLElement) {
         tiptapMount.removeEventListener("scroll", syncTiptapViewport);
       }
+      boundBody?.removeEventListener("wheel", pauseFollow);
+      boundBody?.removeEventListener("touchstart", pauseFollow);
+      boundBody?.removeEventListener("pointerdown", pauseFollow);
+      boundBody?.removeEventListener("keydown", pauseFromKeyboard);
+      boundBody?.removeEventListener("scroll", trackManualScroll);
+      boundResume?.removeEventListener("click", resumeFollow);
     },
   };
 }

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "apps.core.observability.trace.TraceMiddleware",
+    "apps.core.security_headers.ContentSecurityPolicyMiddleware",
     "apps.core.errors.handlers.ErrorResponseMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "apps.accounts.middleware.NetworkPolicyMiddleware",
@@ -196,6 +197,9 @@ ANALYTICS_DATABASE_URL = ""
 ANALYTICS_WEBSITE_ID = ""
 NAVIGATION_SITE_PRESENTATION_PROVIDER = (
     "apps.navigation.presentation.provider.database_site_presentation"
+)
+NOTIFICATION_MARKDOWN_RENDERER_PROVIDER = (
+    "config.notification_integrations.render_notification_markdown"
 )
 
 LOGGING = {

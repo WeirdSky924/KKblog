@@ -4,6 +4,7 @@ from datetime import date
 
 from apps.core.ids import is_ulid
 from apps.notifications.services.delivery import (
+    NOTIFICATION_MARKDOWN_MAX_LENGTH,
     NotificationRejected,
     NotificationTemplateSchema,
     register_notification_template,
@@ -101,6 +102,25 @@ def _broadcast(payload: Mapping[str, object]) -> None:
         and _safe_reason(headline)
     )
     _reject_unless(_safe_reason(message))
+
+
+def _broadcast_v2(payload: Mapping[str, object]) -> None:
+    headline = payload["headline"]
+    message = payload["message_markdown"]
+    _reject_unless(
+        isinstance(headline, str)
+        and 1 <= len(headline) <= 100
+        and "\n" not in headline
+        and "\r" not in headline
+        and _safe_reason(headline)
+    )
+    _reject_unless(
+        isinstance(message, str)
+        and bool(message.strip())
+        and len(message) <= NOTIFICATION_MARKDOWN_MAX_LENGTH
+        and "\x00" not in message
+        and all(character.isprintable() or character in "\n\t" for character in message)
+    )
 
 
 def _task_final_failure(payload: Mapping[str, object]) -> None:
@@ -338,12 +358,15 @@ def _schema(
     target_type: str,
     fields: frozenset[str],
     validator: PayloadValidator,
+    *,
+    markdown_fields: frozenset[str] = frozenset(),
 ) -> NotificationTemplateSchema:
     return NotificationTemplateSchema(
         key=key,
         target_type=target_type,
         allowed_payload_fields=fields,
         required_payload_fields=fields,
+        markdown_payload_fields=markdown_fields,
         payload_validator=validator,
     )
 
@@ -402,6 +425,20 @@ _BUILTINS = (
             "admin.broadcast.v1",
             lambda payload: payload["headline"],
             lambda payload: payload["message"],
+        ),
+    ),
+    (
+        _schema(
+            "admin.broadcast.v2",
+            "broadcast",
+            frozenset({"headline", "message_markdown"}),
+            _broadcast_v2,
+            markdown_fields=frozenset({"message_markdown"}),
+        ),
+        NotificationTemplateDefinition(
+            "admin.broadcast.v2",
+            lambda payload: payload["headline"],
+            lambda payload: payload["message_markdown"],
         ),
     ),
     (

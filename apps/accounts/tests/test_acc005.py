@@ -12,7 +12,7 @@ from apps.accounts.services.authentication import (
     authenticate_password,
     request_login_code,
 )
-from apps.accounts.services.verification import VerificationStore
+from apps.accounts.services.verification import VerificationPurpose, VerificationStore
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -80,6 +80,33 @@ def test_email_code_login_and_purpose(account, store, mailpit) -> None:
             trace_code="KJ-LOGIN-REPLAY",
             store=store,
         )
+
+
+def test_login_code_is_not_delivered_or_issued_for_unavailable_accounts(
+    account, store, mailpit
+) -> None:
+    account.status = Account.Status.DISABLED
+    account.save(update_fields=("status", "updated_at"))
+
+    requests = (
+        ("missing@kaj.test", "203.0.113.22"),
+        (account.email, "203.0.113.23"),
+    )
+    for email, client_ip in requests:
+        request_login_code(
+            email=email,
+            client_ip=client_ip,
+            trace_code="KJ-LOGIN-UNAVAILABLE",
+            store=store,
+            code_generator=lambda: "876543",
+        )
+        challenge = store.challenge_key(
+            purpose=VerificationPurpose.LOGIN,
+            email=email,
+        )
+        assert not store.client.exists(challenge)
+
+    assert mailpit.messages() == []
 
 
 def test_middleware_rejects_expired_revoked_and_disabled_sessions(account) -> None:

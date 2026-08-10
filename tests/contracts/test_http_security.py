@@ -31,6 +31,9 @@ def test_csrf_middleware_rejects_missing_token_and_accepts_matching_token() -> N
     accepted = client.post("/_test/write/", HTTP_X_CSRFTOKEN=token)
     assert accepted.status_code == 200
     assert accepted.headers["X-Frame-Options"] == "DENY"
+    assert accepted.headers["Content-Security-Policy"] == (
+        "frame-src 'self' https://player.bilibili.com"
+    )
 
 
 @override_settings(
@@ -42,5 +45,8 @@ def test_security_headers_apply_to_unified_internal_error() -> None:
     assert response.status_code == 500
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Content-Security-Policy"] == (
+        "frame-src 'self' https://player.bilibili.com"
+    )
     assert response.headers["Cache-Control"] == "no-store"
     assert b"http-security-private-sentinel" not in response.content

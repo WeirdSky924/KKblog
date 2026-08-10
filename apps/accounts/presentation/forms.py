@@ -39,7 +39,7 @@ class RegistrationForm(RegistrationCodeForm):
     nickname = forms.CharField(
         label="用户名",
         max_length=16,
-        help_text="中文每个计 2，其他文字每个计 1，总计不超过 16。",
+        help_text="汉字每个计 2，其他安全字符每个计 1，总计不超过 16。",
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
     password = forms.CharField(
@@ -201,7 +201,7 @@ class ProfileForm(forms.Form):
         label="昵称",
         max_length=16,
         required=False,
-        help_text="中文每个计 2，其他文字每个计 1，总计不超过 16。",
+        help_text="汉字每个计 2，其他安全字符每个计 1，总计不超过 16。",
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
     avatar_asset_id = forms.CharField(

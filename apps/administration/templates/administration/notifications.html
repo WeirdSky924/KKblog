@@ -123,7 +123,9 @@
         <div class="broadcast-detail__summary">
           <div>
             <h3>{{ broadcast_detail.headline }}</h3>
-            <p>{{ broadcast_detail.message }}</p>
+            <div class="article-prose notification-markdown">
+              {{ broadcast_detail.message_html|safe }}
+            </div>
           </div>
           <dl class="broadcast-counts">
             <div><dt>全部</dt><dd>{{ broadcast_detail.recipient_count }}</dd></div>

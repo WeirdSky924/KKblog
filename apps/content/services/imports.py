@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 
 from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
@@ -14,7 +14,6 @@ from apps.media.public import MediaBindingError
 
 from ..events import ARTICLE_PUBLISHED, ARTICLE_SCHEDULED
 from ..models import Article, ArticleRevision, Tag
-from ..models.tag import normalize_tag_name
 from ..policies import article_is_reader_masked
 from ..snapshots import ArticleBodyLimit, ArticleSnapshot, ContentFormat
 from .articles import (
@@ -30,6 +29,7 @@ from .articles import (
     _write_tag_snapshot,
 )
 from .publication import PublicationCommandError, _render_for_publication
+from .tags import TagCommandError, resolve_proposed_tags
 
 
 class ImportOperation(StrEnum):
@@ -147,38 +147,18 @@ def imported_article_result(*, actor_id, import_key: str) -> ImportArticleResult
 
 
 def _proposed_tags(*, actor_id: UUID, names: tuple[str, ...]) -> tuple[Tag, ...]:
-    tags: list[Tag] = []
-    for raw_name in names:
-        try:
-            display, normalized = normalize_tag_name(raw_name)
-        except Exception:
-            raise ImportArticleError("content.import_tags_invalid.v1") from None
-        tag = (
-            Tag.objects.select_for_update()
-            .filter(normalized_name=normalized)
-            .exclude(state=Tag.State.DELETED)
-            .first()
-        )
-        if tag is None:
-            try:
-                with transaction.atomic():
-                    tag = Tag.objects.create(
-                        name=display,
-                        normalized_name=normalized,
-                        state=Tag.State.PENDING,
-                        proposed_by_id=actor_id,
-                    )
-            except IntegrityError:
-                tag = (
-                    Tag.objects.select_for_update()
-                    .filter(normalized_name=normalized)
-                    .exclude(state=Tag.State.DELETED)
-                    .first()
-                )
-        if tag is None or tag.state not in {Tag.State.ACTIVE, Tag.State.PENDING}:
-            raise ImportArticleError("content.import_tag_unavailable.v1")
-        tags.append(tag)
-    return tuple(tags)
+    try:
+        tag_ids = resolve_proposed_tags(actor_id=actor_id, names=names)
+    except TagCommandError as exc:
+        raise ImportArticleError(
+            "content.import_tag_unavailable.v1", exc.safe_message
+        ) from None
+    tags = {
+        tag.id: tag for tag in Tag.objects.select_for_update().filter(pk__in=tag_ids)
+    }
+    if len(tags) != len(tag_ids):
+        raise ImportArticleError("content.import_tag_unavailable.v1")
+    return tuple(tags[tag_id] for tag_id in tag_ids)
 
 
 def _publication_status(value: str) -> ImportPublicationStatus:

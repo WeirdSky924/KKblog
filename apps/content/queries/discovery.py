@@ -3,7 +3,6 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
-from html.parser import HTMLParser
 from uuid import UUID
 
 from django.conf import settings
@@ -14,14 +13,13 @@ from django.db.models import Count, Prefetch, Q
 
 from apps.accounts.public import is_active_account, is_active_author
 from apps.core.ids import normalize_ulid
-from apps.media.public import render_markdown, render_tiptap
 
 from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, Tag
 from ..policies import apply_article_reader_scope
-from ..rendering_policy import configured_content_embed_policy
+from ..rendering import ArticleRenderingMode, render_article_body
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
-FILTERABLE_TAG_STATES = (Tag.State.ACTIVE, Tag.State.PENDING)
+FILTERABLE_TAG_STATES = (Tag.State.ACTIVE,)
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,7 +150,7 @@ def visible_filter_tags(*, actor_id) -> tuple[VisibleArticleTag, ...]:
 def _index_projection(queryset):
     tag_rows = (
         RevisionTag.objects.select_related("tag")
-        .exclude(tag__state__in=(Tag.State.REJECTED, Tag.State.DELETED))
+        .filter(tag__state__in=FILTERABLE_TAG_STATES)
         .order_by("tag__normalized_name", "tag_id")
     )
     return queryset.select_related("published_revision__section").prefetch_related(
@@ -387,69 +385,20 @@ def _visible_item(article: Article) -> VisibleArticleItem:
     )
 
 
-_BLOCK_TAGS = frozenset(
-    {
-        "blockquote",
-        "br",
-        "div",
-        "figcaption",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "hr",
-        "li",
-        "p",
-        "pre",
-        "table",
-        "td",
-        "th",
-    }
-)
-
-
-class _PlainTextParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs) -> None:
-        del attrs
-        if tag in _BLOCK_TAGS:
-            self.parts.append(" ")
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in _BLOCK_TAGS:
-            self.parts.append(" ")
-
-    def handle_data(self, data: str) -> None:
-        self.parts.append(data)
-
-
-def sanitized_article_plain_text(html: str) -> str:
-    if not isinstance(html, str):
-        raise TypeError("sanitized article body must be text")
-    parser = _PlainTextParser()
-    parser.feed(html)
-    parser.close()
-    return " ".join("".join(parser.parts).split())
-
-
 def _card_summary(revision: ArticleRevision) -> str | None:
     if revision.summary_mode == ArticleRevision.SummaryMode.NONE:
         return None
     if revision.summary_mode == ArticleRevision.SummaryMode.CUSTOM:
         return revision.custom_summary
-    if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
-        rendered = render_markdown(
-            revision.body_markdown or "",
-            embed_policy=configured_content_embed_policy(),
-        )
-    else:
-        rendered = render_tiptap(
-            revision.body_tiptap or {},
-            embed_policy=configured_content_embed_policy(),
-        )
-    return sanitized_article_plain_text(rendered.html)[:100]
+    body = (
+        revision.body_markdown
+        if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN
+        else revision.body_tiptap
+    )
+    rendered = render_article_body(
+        content_format=revision.content_format,
+        body=body if body is not None else "",
+        tiptap_schema_version=revision.tiptap_schema_version,
+        mode=ArticleRenderingMode.SUMMARY,
+    )
+    return rendered.plain_text[:100]

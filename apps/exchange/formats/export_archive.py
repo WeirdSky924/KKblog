@@ -102,6 +102,7 @@ def _revision_metadata(revision, media_items) -> dict[str, object]:
             "view_login_required": revision.comments_view_login,
         },
         "content_format": revision.content_format,
+        "tiptap_schema_version": revision.tiptap_schema_version,
         "cover_asset_id": revision.cover_asset_id,
         "attachment_asset_id": revision.attachment_asset_id,
         "created_at": revision.created_at,
@@ -228,6 +229,7 @@ def write_export_zip(
                     if (
                         revision.body_markdown is None
                         or revision.body_tiptap is not None
+                        or revision.tiptap_schema_version is not None
                     ):
                         raise ExportArchiveFormatError(
                             "Invalid Markdown export payload"
@@ -240,6 +242,7 @@ def write_export_zip(
                     if (
                         revision.body_tiptap is None
                         or revision.body_markdown is not None
+                        or revision.tiptap_schema_version not in {1, 2}
                     ):
                         raise ExportArchiveFormatError("Invalid TipTap export payload")
                     writer.write_json(

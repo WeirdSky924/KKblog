@@ -30,6 +30,7 @@ def initial_from_session(session) -> dict:
         "visibility": snapshot.visibility,
         "section_id": str(snapshot.section_id or ""),
         "tag_ids": tuple(str(value) for value in snapshot.tag_ids),
+        "proposed_tag_names": "[]",
         "cover_asset_id": snapshot.cover_asset_id or "",
         "attachment_asset_id": snapshot.attachment_asset_id or "",
         "comments_enabled": snapshot.comments_enabled,
@@ -38,12 +39,31 @@ def initial_from_session(session) -> dict:
     }
 
 
-def preview_from_form(form, content_format: str):
+def preview_from_form(
+    form,
+    content_format: str,
+    *,
+    tiptap_schema_version: int | None = None,
+):
     source = form["body"].value() or ""
     try:
         body = (
             source if content_format == ContentFormat.MARKDOWN else json.loads(source)
         )
-        return preview_article_body(content_format=content_format, body=body), ""
-    except (ArticlePreviewError, json.JSONDecodeError, TypeError):
+        return (
+            preview_article_body(
+                content_format=content_format,
+                body=body,
+                tiptap_schema_version=tiptap_schema_version,
+                attachment_asset_id=(
+                    form["attachment_asset_id"].value()
+                    if "attachment_asset_id" in form.fields
+                    else None
+                ),
+            ),
+            "",
+        )
+    except ArticlePreviewError as exc:
+        return None, exc.safe_message
+    except (json.JSONDecodeError, TypeError):
         return None, "正文格式不合法，无法生成预览。"

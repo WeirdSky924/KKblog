@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
 from apps.notifications.models import Notification, NotificationReceipt
-from apps.notifications.services.broadcast import BROADCAST_TEMPLATE_KEY
+from apps.notifications.services.broadcast import BROADCAST_TEMPLATE_KEYS
 from apps.notifications.templates_registry import render_notification
 
 _CURSOR_SALT = "notifications.inbox-cursor.v1"
@@ -36,6 +36,7 @@ class NotificationItem:
     notification_id: str
     title: str
     message: str
+    message_html: str
     target_url: str | None
     is_read: bool
     created_at: datetime
@@ -59,6 +60,7 @@ class BroadcastSummary:
     notification_id: str
     headline: str
     message: str
+    message_html: str
     state: str
     recipient_count: int
     read_count: int
@@ -80,6 +82,7 @@ class BroadcastDetail:
     notification_id: str
     headline: str
     message: str
+    message_html: str
     state: str
     recipient_count: int
     read_count: int
@@ -114,7 +117,9 @@ def _broadcast_state(notification: Notification) -> str:
 
 
 def _broadcast_query():
-    return Notification.objects.filter(template_key=BROADCAST_TEMPLATE_KEY).annotate(
+    return Notification.objects.filter(
+        template_key__in=BROADCAST_TEMPLATE_KEYS
+    ).annotate(
         recipient_count_value=Count("receipts"),
         read_count_value=Count("receipts", filter=Q(receipts__read_at__isnull=False)),
     )
@@ -128,6 +133,7 @@ def _broadcast_summary(notification: Notification) -> BroadcastSummary:
         notification_id=notification.id,
         headline=rendered.title,
         message=rendered.message,
+        message_html=rendered.message_html,
         state=_broadcast_state(notification),
         recipient_count=recipient_count,
         read_count=read_count,
@@ -200,6 +206,7 @@ def broadcast_detail(
         notification_id=summary.notification_id,
         headline=summary.headline,
         message=summary.message,
+        message_html=summary.message_html,
         state=summary.state,
         recipient_count=summary.recipient_count,
         read_count=summary.read_count,
@@ -248,6 +255,7 @@ def _item(receipt: NotificationReceipt) -> NotificationItem:
         notification_id=notification.id,
         title=rendered.title,
         message=rendered.message,
+        message_html=rendered.message_html,
         target_url=_target_url(notification.target_type, notification.target_id),
         is_read=receipt.read_at is not None,
         created_at=notification.created_at,

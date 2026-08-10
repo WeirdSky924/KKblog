@@ -1,0 +1,77 @@
+.author-slash-menu {
+  position: fixed;
+  z-index: 34;
+  display: grid;
+  width: min(20rem, calc(100dvw - 1rem));
+  max-height: var(--author-slash-max-height, 22rem);
+  padding: 0.25rem;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: 6px;
+  background: var(--surface-panel);
+  box-shadow: 0 14px 32px rgb(0 0 0 / 20%);
+  scrollbar-width: thin;
+}
+
+.author-slash-menu[hidden] {
+  display: none;
+}
+
+.author-slash-menu__option {
+  display: grid;
+  min-height: 3.5rem;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.author-slash-menu__option[aria-selected="true"],
+.author-slash-menu__option:hover {
+  background: var(--surface-muted);
+  color: var(--accent);
+}
+
+.author-slash-menu__option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.author-slash-menu__option > .lucide {
+  justify-self: center;
+}
+
+.author-slash-menu__option > span {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+  padding: 0.5rem 0.625rem 0.5rem 0;
+}
+
+.author-slash-menu__option :where(strong, small) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author-slash-menu__option strong {
+  font-size: 0.8125rem;
+}
+
+.author-slash-menu__option small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.author-slash-menu__empty {
+  margin: 0;
+  padding: 0.875rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  text-align: center;
+}

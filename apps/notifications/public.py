@@ -11,7 +11,12 @@ from apps.notifications.queries import (
     notification_for_recipient,
     notifications_for_recipient,
 )
-from apps.notifications.services.broadcast import BroadcastError, create_broadcast
+from apps.notifications.services.broadcast import (
+    BROADCAST_MESSAGE_MAX_LENGTH,
+    BroadcastError,
+    create_broadcast,
+    normalize_broadcast_message_markdown,
+)
 from apps.notifications.services.delivery import (
     NotificationRejected,
     NotificationTemplateSchema,
@@ -28,6 +33,7 @@ from apps.notifications.services.visibility import (
 __all__ = [
     "NotificationRejected",
     "NotificationTemplateSchema",
+    "BROADCAST_MESSAGE_MAX_LENGTH",
     "BroadcastError",
     "BroadcastStateError",
     "broadcast_detail",
@@ -41,6 +47,7 @@ __all__ = [
     "consume_author_role_changed",
     "consume_account_deleted",
     "notification_for_recipient",
+    "normalize_broadcast_message_markdown",
     "hide_broadcast",
     "notifications_for_recipient",
     "register_notification_template",

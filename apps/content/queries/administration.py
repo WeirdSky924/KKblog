@@ -233,6 +233,22 @@ def _admin_tag_queryset():
     )
 
 
+def _visible_admin_tag_queryset():
+    return (
+        _admin_tag_queryset()
+        .filter(
+            ~Q(state=Tag.State.PENDING)
+            | Q(
+                revision_snapshots__revision__published_for_articles__publication_state=(
+                    Article.PublicationState.PUBLISHED
+                ),
+                revision_snapshots__revision__published_for_articles__deleted_at__isnull=True,
+            )
+        )
+        .distinct()
+    )
+
+
 def _tag_item(tag: Tag) -> AdminTagItem:
     current_count = int(tag.current_article_count)
     history_count = int(tag.association_history_count)
@@ -271,7 +287,7 @@ def admin_tag_page(
         raise ValueError("Invalid administrator tag state")
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator tag limit")
-    rows = _admin_tag_queryset()
+    rows = _visible_admin_tag_queryset()
     if state:
         rows = rows.filter(state=state)
     rows = rows.annotate(
@@ -288,13 +304,23 @@ def admin_tag_page(
 
 def admin_pending_tag_review_count(*, actor_id) -> int:
     _require_classification_administrator(actor_id)
-    return Tag.objects.filter(state=Tag.State.PENDING).count()
+    return (
+        Tag.objects.filter(
+            state=Tag.State.PENDING,
+            revision_snapshots__revision__published_for_articles__publication_state=(
+                Article.PublicationState.PUBLISHED
+            ),
+            revision_snapshots__revision__published_for_articles__deleted_at__isnull=True,
+        )
+        .distinct()
+        .count()
+    )
 
 
 def admin_tag_item(*, actor_id, tag_id) -> AdminTagItem:
     _require_classification_administrator(actor_id)
     identity = _classification_id(tag_id, object_name="tag")
-    tag = _admin_tag_queryset().filter(pk=identity).first()
+    tag = _visible_admin_tag_queryset().filter(pk=identity).first()
     if tag is None:
         raise LookupError("Administrator tag not found")
     return _tag_item(tag)

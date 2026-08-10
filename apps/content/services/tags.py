@@ -106,26 +106,98 @@ def _changed(*, tag_id: UUID, actor_id: UUID, trace_code: str, action: str) -> N
 
 def propose_tag(*, actor_id, name: str) -> TagResult:
     actor = _author(actor_id)
+    tag = _propose_tag(actor_id=actor, name=name)
+    return TagResult(tag.id, tag.name, tag.state)
+
+
+def _existing_tag_for_update(normalized_name: str) -> Tag | None:
+    tags = tuple(
+        Tag.objects.select_for_update()
+        .filter(normalized_name=normalized_name)
+        .order_by("created_at", "id")
+    )
+    for state in (
+        Tag.State.ACTIVE,
+        Tag.State.PENDING,
+        Tag.State.REJECTED,
+        Tag.State.DELETED,
+    ):
+        for tag in tags:
+            if tag.state == state:
+                return tag
+    return None
+
+
+def _reuse_tag_proposal(*, tag: Tag, actor_id: UUID, display_name: str) -> Tag:
+    if tag.state in {Tag.State.PENDING, Tag.State.ACTIVE}:
+        return tag
+    if tag.state == Tag.State.DELETED:
+        raise TagCommandError(
+            "content.tag_name_conflict.v1", "标签已被删除，请联系管理员恢复。"
+        )
+    if tag.state != Tag.State.REJECTED:
+        raise TagCommandError(
+            "content.tag_name_conflict.v1", "标签名称已存在且不可使用。"
+        )
+    tag.name = display_name
+    tag.state = Tag.State.PENDING
+    tag.proposed_by_id = actor_id
+    tag.reviewed_by_id = None
+    tag.reviewed_at = None
+    tag.save(
+        update_fields=(
+            "name",
+            "state",
+            "proposed_by",
+            "reviewed_by",
+            "reviewed_at",
+            "updated_at",
+        )
+    )
+    return tag
+
+
+def _propose_tag(*, actor_id: UUID, name: str) -> Tag:
     display, normalized = _name(name)
     try:
         with transaction.atomic():
-            tag = Tag.objects.create(
+            tag = _existing_tag_for_update(normalized)
+            if tag is not None:
+                return _reuse_tag_proposal(
+                    tag=tag,
+                    actor_id=actor_id,
+                    display_name=display,
+                )
+            return Tag.objects.create(
                 name=display,
                 normalized_name=normalized,
                 state=Tag.State.PENDING,
-                proposed_by_id=actor,
+                proposed_by_id=actor_id,
             )
     except IntegrityError:
-        tag = (
-            Tag.objects.filter(normalized_name=normalized)
-            .exclude(state=Tag.State.DELETED)
-            .first()
-        )
-        if tag is None or tag.state not in {Tag.State.PENDING, Tag.State.ACTIVE}:
-            raise TagCommandError(
-                "content.tag_name_conflict.v1", "标签名称已存在且不可使用。"
-            ) from None
-    return TagResult(tag.id, tag.name, tag.state)
+        with transaction.atomic():
+            tag = _existing_tag_for_update(normalized)
+            if tag is None:
+                raise TagCommandError(
+                    "content.tag_name_conflict.v1", "标签名称已存在且不可使用。"
+                ) from None
+            return _reuse_tag_proposal(
+                tag=tag,
+                actor_id=actor_id,
+                display_name=display,
+            )
+
+
+def resolve_proposed_tags(*, actor_id, names: tuple[str, ...]) -> tuple[UUID, ...]:
+    actor = _author(actor_id)
+    if not isinstance(names, tuple):
+        raise TagCommandError("content.tag_name_invalid.v1", "标签申请信息不合法。")
+    resolved: list[UUID] = []
+    for name in names:
+        tag = _propose_tag(actor_id=actor, name=name)
+        if tag.id not in resolved:
+            resolved.append(tag.id)
+    return tuple(resolved)
 
 
 def create_tag(*, actor_id, name: str, trace_code: str, client_ip: str) -> TagResult:
@@ -198,6 +270,15 @@ def review_tag(
             raise TagCommandError("content.tag_not_found.v1", "标签不存在。") from None
         if tag.state != Tag.State.PENDING:
             raise TagCommandError("content.tag_review_invalid.v1", "标签当前不能审核。")
+        if not Article.objects.filter(
+            publication_state=Article.PublicationState.PUBLISHED,
+            deleted_at__isnull=True,
+            published_revision__tag_snapshots__tag_id=identity,
+        ).exists():
+            raise TagCommandError(
+                "content.tag_not_published.v1",
+                "标签尚未随文章发布，当前不能审核。",
+            )
         previous = tag.state
         tag.state = Tag.State.ACTIVE if approved else Tag.State.REJECTED
         tag.reviewed_by_id = actor

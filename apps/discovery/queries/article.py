@@ -53,6 +53,7 @@ class ArticleDetailPage:
     cover_url: str
     uses_default_cover: bool
     attachment: ArticleAttachment | None
+    attachment_embedded: bool
     published_at: datetime
     published_label: str
     seo: ArticleSeoMetadata
@@ -155,6 +156,16 @@ def _outline(html: str) -> tuple[SafeString, tuple[ArticleTocItem, ...]]:
     return mark_safe(id_parser.html), tuple(toc)
 
 
+def _tiptap_outline(
+    html: str, outline
+) -> tuple[SafeString, tuple[ArticleTocItem, ...]]:
+    return mark_safe(html), tuple(
+        ArticleTocItem(item.anchor, item.text)
+        for item in outline
+        if item.level == 2 and item.text
+    )
+
+
 def _same_public_revision(left, right) -> bool:
     return (
         left.article_id == right.article_id
@@ -220,7 +231,10 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
             raise RuntimeError("reader article is missing rendered body") from None
         sanitized_html = source.rendered_body_html
         indexable = False
-    body_html, toc = _outline(sanitized_html)
+    if source.content_format == "TIPTAP_JSON":
+        body_html, toc = _tiptap_outline(sanitized_html, source.outline)
+    else:
+        body_html, toc = _outline(sanitized_html)
     cover_asset_id = source.readable_cover_asset_id
     attachment = None
     if source.readable_attachment_asset_id:
@@ -261,6 +275,7 @@ def article_detail_page(*, actor_id, article_id: str) -> ArticleDetailPage:
         ),
         uses_default_cover=cover_asset_id is None,
         attachment=attachment,
+        attachment_embedded='data-kaj-attachment-card="true"' in sanitized_html,
         published_at=source.published_at,
         published_label=published.strftime("%Y-%m-%d %H:%M"),
         seo=article_seo_metadata(

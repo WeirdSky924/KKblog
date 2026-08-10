@@ -121,6 +121,7 @@ def _snapshot(revision: ArticleRevision) -> ArticleSnapshot:
         content_format=revision.content_format,
         title=revision.title,
         body=body,
+        tiptap_schema_version=revision.tiptap_schema_version,
         summary_mode=revision.summary_mode,
         custom_summary=revision.custom_summary,
         visibility=revision.visibility,

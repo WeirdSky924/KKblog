@@ -15,6 +15,21 @@
   <p>
     另一窗口已经保存了新版本。当前画布保留冲突前的本地输入，但在选择新的编辑基线前不能继续编辑、保存或发布。
   </p>
+  {% if editor_conflict.block_changes.available %}
+    <section class="author-block-changes author-block-changes--conflict" aria-labelledby="conflict-block-changes-title">
+      <div>
+        <h3 id="conflict-block-changes-title">云端版本的块级变化</h3>
+        <p>{{ editor_conflict.block_changes.before_blocks }} 个块变为 {{ editor_conflict.block_changes.after_blocks }} 个块</p>
+      </div>
+      {% if editor_conflict.block_changes.labels %}
+        <ul aria-label="云端当前版相较你的编辑基线">
+          {% for label in editor_conflict.block_changes.labels %}<li>{{ label }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <p>云端当前版与编辑基线的块结构及内容一致。</p>
+      {% endif %}
+    </section>
+  {% endif %}
   <form
     method="post"
     action="{{ editor_conflict_url }}"

@@ -18,18 +18,21 @@ from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, SystemClock
 from apps.core.time.shanghai import shanghai_business_date
 from apps.media.public import (
+    MediaAccessError,
     MediaPurpose,
     MediaTargetType,
-    render_markdown,
-    render_tiptap,
+    TipTapAttachmentMetadata,
+    TipTapOutlineItem,
+    authorize_asset_read,
+    project_tiptap_outline,
     target_binding_snapshot,
 )
 
 from ..events import ARTICLE_ADMIN_VIEWED
 from ..models import AdminArticleViewReceipt, Article, ArticleRevision, RevisionTag, Tag
 from ..policies import article_is_reader_masked, author_is_content_masked
+from ..rendering import ArticleRenderingMode, render_article_body
 from ..rendering_policy import (
-    configured_content_embed_policy,
     content_rendering_version,
 )
 from .classification import TagItem
@@ -59,6 +62,7 @@ class ArticleView:
     content_format: str
     body_markdown: str | None
     body_tiptap: dict[str, Any] | None
+    tiptap_schema_version: int | None
     visibility: str
     publication_state: str
     deleted_at: datetime | None
@@ -78,6 +82,7 @@ class ArticleView:
     rendered_body_html: str | None = None
     readable_cover_asset_id: str | None = None
     readable_attachment_asset_id: str | None = None
+    outline: tuple[TipTapOutlineItem, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,12 +102,14 @@ class PublicArticleCacheSnapshot:
     revision_id: str
     author_id: UUID
     title: str
+    content_format: str
     visibility: str
     published_at: datetime
     readable_cover_asset_id: str | None
     readable_attachment_asset_id: str | None
     tags: tuple[TagItem, ...]
     sanitizer_version: str
+    outline: tuple[TipTapOutlineItem, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +142,7 @@ def _view(
     *,
     can_edit: bool,
     admin_read_only: bool,
+    include_pending_tags: bool,
 ) -> ArticleView:
     latest_published_at = article.latest_published_at
     can_discard_cloud_draft = (
@@ -153,12 +161,16 @@ def _view(
         content_format=revision.content_format,
         body_markdown=revision.body_markdown,
         body_tiptap=revision.body_tiptap,
+        tiptap_schema_version=revision.tiptap_schema_version,
         visibility=revision.visibility,
         publication_state=article.publication_state,
         deleted_at=article.deleted_at,
         cover_asset_id=revision.cover_asset_id,
         attachment_asset_id=revision.attachment_asset_id,
-        tags=_visible_revision_tags(revision),
+        tags=_visible_revision_tags(
+            revision,
+            include_pending=include_pending_tags,
+        ),
         published_at=latest_published_at,
         scheduled_for=article.scheduled_for,
         published_revision_id=article.published_revision_id,
@@ -172,17 +184,38 @@ def _view(
             article.published_revision_id is None
             or article.working_revision_id != article.published_revision_id
         ),
+        outline=_revision_outline(revision),
     )
 
 
-def _visible_revision_tags(revision: ArticleRevision) -> tuple[TagItem, ...]:
+def _visible_revision_tags(
+    revision: ArticleRevision, *, include_pending: bool
+) -> tuple[TagItem, ...]:
+    states = (
+        (Tag.State.ACTIVE, Tag.State.PENDING)
+        if include_pending
+        else (Tag.State.ACTIVE,)
+    )
     rows = (
         RevisionTag.objects.select_related("tag")
         .filter(revision=revision)
-        .exclude(tag__state__in=(Tag.State.REJECTED, Tag.State.DELETED))
+        .filter(tag__state__in=states)
         .order_by("tag__normalized_name", "tag_id")
     )
     return tuple(TagItem(row.tag_id, row.tag.name, row.tag.state) for row in rows)
+
+
+def _revision_outline(revision: ArticleRevision) -> tuple[TipTapOutlineItem, ...]:
+    if (
+        revision.content_format != ArticleRevision.ContentFormat.TIPTAP_JSON
+        or revision.body_tiptap is None
+        or revision.tiptap_schema_version is None
+    ):
+        return ()
+    return project_tiptap_outline(
+        revision.body_tiptap,
+        schema_version=revision.tiptap_schema_version,
+    )
 
 
 def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
@@ -226,10 +259,16 @@ def article_for_reader(*, actor_id, article_id: str) -> ArticleView:
     _require_reader_access(article, revision, actor)
     owner = actor == article.author_id and is_active_author(actor)
     rendered_body_html, readable_cover_asset_id, readable_attachment_asset_id = (
-        _reader_media(revision)
+        _reader_media(revision, actor_id=actor)
     )
     return replace(
-        _view(article, revision, can_edit=owner, admin_read_only=False),
+        _view(
+            article,
+            revision,
+            can_edit=owner,
+            admin_read_only=False,
+            include_pending_tags=False,
+        ),
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,
         readable_attachment_asset_id=readable_attachment_asset_id,
@@ -268,12 +307,14 @@ def public_article_cache_snapshot(*, article_id: str) -> PublicArticleCacheSnaps
         revision_id=revision.id,
         author_id=article.author_id,
         title=revision.title,
+        content_format=revision.content_format,
         visibility=revision.visibility,
         published_at=latest_published_at,
         readable_cover_asset_id=readable_cover_asset_id,
         readable_attachment_asset_id=readable_attachment_asset_id,
-        tags=_visible_revision_tags(revision),
+        tags=_visible_revision_tags(revision, include_pending=False),
         sanitizer_version=content_rendering_version(),
+        outline=_revision_outline(revision),
     )
 
 
@@ -291,7 +332,7 @@ def render_public_article_body(
         or revision.id != expected_revision
     ):
         raise ArticleNotFound
-    rendered_body_html, _, _ = _reader_media(revision)
+    rendered_body_html, _, _ = _reader_media(revision, actor_id=None)
     return PublicArticleRender(
         article_id=article.id,
         revision_id=revision.id,
@@ -333,22 +374,44 @@ def _reader_media_bindings(
     return active_body_ids, readable_cover_asset_id, readable_attachment_asset_id
 
 
-def _reader_media(revision: ArticleRevision) -> tuple[str, str | None, str | None]:
+def _reader_media(
+    revision: ArticleRevision,
+    *,
+    actor_id: UUID | None,
+) -> tuple[str, str | None, str | None]:
     active_body_ids, readable_cover_asset_id, readable_attachment_asset_id = (
         _reader_media_bindings(revision)
     )
     if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
-        rendered = render_markdown(
-            revision.body_markdown or "",
-            embed_policy=configured_content_embed_policy(),
-            allowed_media_ids=active_body_ids,
-        )
+        body = revision.body_markdown or ""
+        attachment_metadata = None
     else:
-        rendered = render_tiptap(
-            revision.body_tiptap or {},
-            embed_policy=configured_content_embed_policy(),
-            allowed_media_ids=active_body_ids,
-        )
+        body = revision.body_tiptap or {}
+        attachment_metadata = None
+        if readable_attachment_asset_id is not None:
+            try:
+                attachment = authorize_asset_read(
+                    actor_id=actor_id,
+                    asset_id=readable_attachment_asset_id,
+                )
+            except MediaAccessError:
+                pass
+            else:
+                attachment_metadata = TipTapAttachmentMetadata(
+                    asset_id=attachment.asset_id,
+                    original_name=attachment.original_name,
+                    detected_mime=attachment.detected_mime,
+                    size_bytes=attachment.size_bytes,
+                )
+    rendered = render_article_body(
+        content_format=revision.content_format,
+        body=body,
+        tiptap_schema_version=revision.tiptap_schema_version,
+        allowed_media_ids=active_body_ids,
+        allowed_attachment_id=readable_attachment_asset_id,
+        attachment_metadata=attachment_metadata,
+        mode=ArticleRenderingMode.READER,
+    )
     return rendered.html, readable_cover_asset_id, readable_attachment_asset_id
 
 
@@ -379,6 +442,7 @@ def article_for_author(
         article.working_revision,
         can_edit=article.deleted_at is None and not moderated,
         admin_read_only=False,
+        include_pending_tags=True,
     )
 
 
@@ -430,7 +494,7 @@ def article_for_admin(
                     clock=active_clock,
                 )
     rendered_body_html, readable_cover_asset_id, readable_attachment_asset_id = (
-        _reader_media(selected)
+        _reader_media(selected, actor_id=actor)
     )
     return replace(
         _view(
@@ -438,6 +502,7 @@ def article_for_admin(
             selected,
             can_edit=actor == article.author_id and article.deleted_at is None,
             admin_read_only=actor != article.author_id,
+            include_pending_tags=True,
         ),
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,

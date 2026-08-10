@@ -5,9 +5,17 @@ from django.db import connection, transaction
 
 from apps.core.ids import new_ulid
 from apps.notifications.models import NotificationReceipt
-from apps.notifications.services.delivery import deliver_notification
+from apps.notifications.services.delivery import (
+    NOTIFICATION_MARKDOWN_MAX_LENGTH,
+    deliver_notification,
+)
 
-BROADCAST_TEMPLATE_KEY = "admin.broadcast.v1"
+LEGACY_BROADCAST_TEMPLATE_KEY = "admin.broadcast.v1"
+BROADCAST_TEMPLATE_KEY = "admin.broadcast.v2"
+BROADCAST_TEMPLATE_KEYS = frozenset(
+    {LEGACY_BROADCAST_TEMPLATE_KEY, BROADCAST_TEMPLATE_KEY}
+)
+BROADCAST_MESSAGE_MAX_LENGTH = NOTIFICATION_MARKDOWN_MAX_LENGTH
 
 AdministratorAuthorizer = Callable[[UUID], bool]
 AuditWriter = Callable[..., object]
@@ -15,6 +23,23 @@ AuditWriter = Callable[..., object]
 
 class BroadcastError(ValueError):
     pass
+
+
+def normalize_broadcast_message_markdown(value: object) -> str:
+    if not isinstance(value, str):
+        raise BroadcastError("Broadcast message must be Markdown text")
+    normalized = value.strip()
+    if (
+        not normalized
+        or len(normalized) > BROADCAST_MESSAGE_MAX_LENGTH
+        or "\x00" in normalized
+        or any(
+            not character.isprintable() and character not in "\n\t"
+            for character in normalized
+        )
+    ):
+        raise BroadcastError("Broadcast message Markdown is invalid")
+    return normalized
 
 
 def _actor_id(value: UUID | str) -> UUID:
@@ -57,8 +82,13 @@ def create_broadcast(
     actor = _actor_id(actor_id)
     if not callable(audit_writer):
         raise TypeError("Broadcast audit writer must be callable")
+    message_markdown = normalize_broadcast_message_markdown(message)
+    payload = {"headline": headline, "message_markdown": message_markdown}
     with transaction.atomic():
         _require_administrator(actor, authorize_administrator)
+        from apps.notifications.templates_registry import render_notification
+
+        render_notification(BROADCAST_TEMPLATE_KEY, payload)
         recipients = _registered_recipient_ids()
         if not recipients:
             raise BroadcastError("Broadcast requires registered recipients")
@@ -66,7 +96,7 @@ def create_broadcast(
             template_key=BROADCAST_TEMPLATE_KEY,
             recipient_ids=recipients,
             target_id=new_ulid(),
-            payload={"headline": headline, "message": message},
+            payload=payload,
             actor_id=actor,
         )
         audit_writer(
