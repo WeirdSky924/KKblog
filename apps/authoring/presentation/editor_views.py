@@ -234,6 +234,15 @@ def _render_editor(request, *, status=200, **context):
     )
 
 
+def _review_response(request, *, article_id: str):
+    review_url = reverse("authoring:review", args=(article_id,))
+    if is_htmx_fragment_request(request):
+        response = HttpResponse(status=204)
+        response.headers["HX-Redirect"] = review_url
+        return private_response(response)
+    return private_response(redirect(review_url))
+
+
 def create(request):
     actor_id, response = author_id_or_response(request)
     if response is not None:
@@ -290,6 +299,8 @@ def create(request):
         except ContentCommandError as exc:
             form.add_error(None, exc.safe_message)
         else:
+            if request.POST.get("save_intent") == "review":
+                return _review_response(request, article_id=created.article_id)
             return redirect(
                 f"{reverse('authoring:edit', kwargs={'article_id': created.article_id})}"
                 "?created=1"
@@ -433,12 +444,7 @@ def edit(request, article_id: str):
                     else:
                         auto_published = republished.published
             if request.POST.get("save_intent") == "review":
-                review_url = reverse("authoring:review", args=(article_id,))
-                if is_htmx_fragment_request(request):
-                    response = HttpResponse(status=204)
-                    response.headers["HX-Redirect"] = review_url
-                    return private_response(response)
-                return private_response(redirect(review_url))
+                return _review_response(request, article_id=article_id)
             saved_article = article_for_author(
                 actor_id=actor_id,
                 article_id=article_id,

@@ -540,6 +540,7 @@ class TaskRunStatus(models.TextChoices):
     RETRY_WAIT = "retry_wait", "Retry wait"
     SUCCEEDED = "succeeded", "Succeeded"
     FINAL_FAILED = "final_failed", "Final failed"
+    CANCELLED = "cancelled", "Cancelled"
 
 
 class TaskRun(models.Model):
@@ -585,6 +586,7 @@ class TaskRun(models.Model):
                             TaskRunStatus.RETRY_WAIT,
                             TaskRunStatus.SUCCEEDED,
                             TaskRunStatus.FINAL_FAILED,
+                            TaskRunStatus.CANCELLED,
                         ),
                         attempt__gte=1,
                     )
@@ -604,6 +606,7 @@ class TaskRun(models.Model):
                             TaskRunStatus.RETRY_WAIT,
                             TaskRunStatus.SUCCEEDED,
                             TaskRunStatus.FINAL_FAILED,
+                            TaskRunStatus.CANCELLED,
                         ),
                         lease_token__isnull=True,
                         lease_expires_at__isnull=True,
@@ -625,6 +628,7 @@ class TaskRun(models.Model):
                         status__in=(
                             TaskRunStatus.SUCCEEDED,
                             TaskRunStatus.FINAL_FAILED,
+                            TaskRunStatus.CANCELLED,
                         ),
                         completed_at__isnull=False,
                     )

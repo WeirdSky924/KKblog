@@ -13,6 +13,7 @@ from .classification import (
     create_section,
     delete_section,
     rename_section,
+    update_section,
     validate_publication_section,
 )
 from .deletion import (
@@ -156,6 +157,7 @@ __all__ = [
     "publish_article",
     "publish_scheduled_article",
     "rename_section",
+    "update_section",
     "restore_tag",
     "restore_deleted_article",
     "restore_article_from_moderation",

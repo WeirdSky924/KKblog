@@ -1,0 +1,110 @@
+<section class="opportunity-public__results" aria-live="polite" data-opportunity-results>
+  {% if opportunity_view == "jobs" %}
+    <div class="opportunity-public__results-heading">
+      <h2>岗位记录</h2>
+      <span>{{ opportunity_jobs.total_count }} 条结果</span>
+    </div>
+    {% if opportunity_jobs.items %}
+      <div class="opportunity-job-list">
+        {% for job in opportunity_jobs.items %}
+          <article class="opportunity-job" data-state="{{ job.verification_status|lower }}">
+            <header class="opportunity-job__identity">
+              <p>{{ job.company_name }}</p>
+              <h3>
+                <a href="{{ job.target_url }}" target="_blank" rel="noopener noreferrer">
+                  {{ job.title }}<i data-lucide="external-link" aria-hidden="true"></i>
+                </a>
+              </h3>
+              <div class="opportunity-job__context" aria-label="招聘信息">
+                <span>{{ job.plan }}</span>
+                {% if job.recruitment_type_label != job.plan %}<span>{{ job.recruitment_type_label }}</span>{% endif %}
+                <span>{{ job.cohorts|join:"、"|default:"未标注届别" }}</span>
+              </div>
+            </header>
+
+            <dl class="opportunity-job__facts">
+              <div>
+                <dt>岗位类别</dt>
+                <dd class="opportunity-public__tags">
+                  {% for label in job.categories %}<span>{{ label }}</span>{% empty %}<span>未分类</span>{% endfor %}
+                </dd>
+              </div>
+              <div>
+                <dt>城市 / 地点</dt>
+                <dd>{{ job.cities|join:"、"|default:"未标注" }}{% if job.location_text %}<small>{{ job.location_text }}</small>{% endif %}</dd>
+              </div>
+            </dl>
+
+            <div class="opportunity-job__verification">
+              <span>核实状态</span>
+              <strong>{{ job.verification_status_label }}</strong>
+              <small>{{ job.availability_label }}{% if job.last_verified_at %} · {{ job.last_verified_at|date:"Y-m-d H:i" }}{% endif %}</small>
+            </div>
+
+            <div class="opportunity-public__actions">
+              {% if opportunity_authenticated %}
+                {% include "opportunities/partials/bookmark_button.html" with bookmark_opportunity_id=job.opportunity_id bookmark_selected=job.bookmarked opportunity_current_path=opportunity_current_path csrf_token=csrf_token only %}
+              {% else %}
+                <a class="icon-button" href="{{ opportunity_login_url }}" aria-label="登录后收藏" title="收藏">
+                  <i data-lucide="bookmark"></i>
+                </a>
+              {% endif %}
+              <button
+                class="icon-button"
+                type="button"
+                data-opportunity-evidence
+                aria-expanded="false"
+                aria-controls="opportunity-evidence-{{ job.opportunity_id }}"
+                title="查看公开证据"
+                aria-label="查看 {{ job.title }} 的公开证据"
+              ><i data-lucide="file-text"></i></button>
+            </div>
+          </article>
+          <div id="opportunity-evidence-{{ job.opportunity_id }}" class="opportunity-job__evidence" hidden>
+            <p>{{ job.public_evidence }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="opportunity-public__empty">
+        <h3>当前条件下没有公开岗位</h3>
+        {% if opportunity_active_filters %}<a href="{{ opportunity_clear_url }}">清除筛选</a>{% endif %}
+      </div>
+    {% endif %}
+    {% include "opportunities/partials/results_footer.html" with page_data=opportunity_jobs page_parameter="job_page" %}
+  {% else %}
+    <div class="opportunity-public__results-heading">
+      <h2>官方来源</h2>
+      <span>{{ opportunity_sources.total_count }} 个结果</span>
+    </div>
+    {% if opportunity_sources.items %}
+      <div class="opportunity-public__table-wrap">
+        <table class="opportunity-source-table">
+          <thead><tr><th>企业</th><th>来源类型</th><th>官方入口</th><th>状态</th><th>最近成功检查</th><th>公开岗位</th></tr></thead>
+          <tbody>
+            {% for source in opportunity_sources.items %}
+              <tr class="opportunity-source-table__item" data-state="{{ source.status_label }}">
+                <td data-label="企业"><strong>{{ source.company_name }}</strong></td>
+                <td data-label="来源类型">{{ source.source_type_label }}</td>
+                <td data-label="官方入口">
+                  <a href="{{ source.official_url }}" target="_blank" rel="noopener noreferrer">
+                    打开官方入口<i data-lucide="external-link" aria-hidden="true"></i>
+                  </a>
+                </td>
+                <td data-label="状态">{{ source.status_label }}</td>
+                <td data-label="最近成功检查">{% if source.last_success_at %}{{ source.last_success_at|date:"Y-m-d H:i" }}{% else %}尚无成功记录{% endif %}</td>
+                <td data-label="公开岗位">{{ source.public_opportunity_count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="opportunity-public__empty">
+        <h3>当前条件下没有公开来源</h3>
+        {% if opportunity_active_filters %}<a href="{{ opportunity_clear_url }}">清除筛选</a>{% endif %}
+      </div>
+    {% endif %}
+    {% include "opportunities/partials/results_footer.html" with page_data=opportunity_sources page_parameter="source_page" %}
+  {% endif %}
+</section>

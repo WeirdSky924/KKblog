@@ -10,6 +10,7 @@ def _section_changed(payload: Mapping[str, object]) -> None:
     if set(payload) != {"action"} or payload["action"] not in {
         "created",
         "renamed",
+        "updated",
         "deleted",
     }:
         raise EventValidationError("Section event payload shape is invalid")

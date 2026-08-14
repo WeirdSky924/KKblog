@@ -32,6 +32,7 @@ from ..rendering import ArticleRenderingMode, render_article_body
 from ..rendering_policy import (
     content_error_for_rendering,
 )
+from .publication_history import record_article_publication
 
 REVIEW_LIFETIME = timedelta(minutes=15)
 
@@ -395,6 +396,11 @@ def _apply_publication(
             "last_published_at",
             "updated_at",
         )
+    )
+    record_article_publication(
+        article=article,
+        revision=revision,
+        published_at=now,
     )
     enqueue_event(
         ARTICLE_PUBLISHED,

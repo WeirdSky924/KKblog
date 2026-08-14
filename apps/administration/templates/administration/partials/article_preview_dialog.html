@@ -1,0 +1,29 @@
+<dialog
+  id="article-preview-dialog"
+  class="admin-article-preview"
+  aria-labelledby="article-preview-dialog-title"
+  data-confirm-dialog
+  data-admin-article-preview-dialog
+  data-dialog-return-url="{{ preview_return_url }}"
+  {% if preview_dialog_open %}
+    open
+    data-auto-modal
+    data-dialog-return-focus="article-view-{% if preview_mode == 'working' %}working{% else %}published{% endif %}-{{ preview_article.id }}"
+  {% endif %}
+>
+  <div class="admin-article-preview__surface">
+    <header class="admin-article-preview__header">
+      <div>
+        <p>管理 · 文章只读预览</p>
+        <h2 id="article-preview-dialog-title">文章预览</h2>
+      </div>
+      <button class="icon-button" type="button" data-dialog-cancel aria-label="关闭文章预览" title="关闭文章预览">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+    <p class="admin-article-preview__status" role="status" data-article-preview-status hidden></p>
+    <div id="article-preview-content" class="admin-article-preview__content">
+      {% if preview_dialog_open %}{% include "administration/partials/article_preview_content.html" %}{% endif %}
+    </div>
+  </div>
+</dialog>

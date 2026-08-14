@@ -60,22 +60,33 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class NavigationItem:
     label: str
-    url: str
+    url: str | None
     children: tuple["NavigationItem", ...] = ()
     key: str = ""
     section_id: str | None = None
+    default_expanded: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.label, str) or not self.label.strip():
             raise ValueError("Navigation label is required")
         if len(self.label) > 80:
             raise ValueError("Navigation label is too long")
-        require_safe_navigation_url(self.url)
         if not isinstance(self.children, tuple) or not all(
             isinstance(child, NavigationItem) for child in self.children
         ):
             raise TypeError("Navigation children must be NavigationItem values")
+        if type(self.default_expanded) is not bool:
+            raise TypeError("Navigation expansion state must be boolean")
+        if self.default_expanded and not self.children:
+            raise ValueError("Navigation leaf cannot default to expanded")
+        if self.url is None:
+            if not self.children:
+                raise ValueError("Navigation group requires visible children")
+        else:
+            require_safe_navigation_url(self.url)
         if self.section_id is not None:
+            if self.url is None:
+                raise ValueError("Navigation group cannot target a section")
             try:
                 UUID(str(self.section_id))
             except (TypeError, ValueError):
@@ -83,7 +94,7 @@ class NavigationItem:
 
     @property
     def external(self) -> bool:
-        return urlsplit(self.url).scheme == "https"
+        return self.url is not None and urlsplit(self.url).scheme == "https"
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +102,8 @@ class SitePresentation:
     site_name: str
     site_description: str | None
     logo_url: str | None
+    hero_url: str | None
+    hero_is_video: bool
     navigation: tuple[NavigationItem, ...]
     copyright_text: str | None
     privacy_url: str | None
@@ -105,7 +118,11 @@ class SitePresentation:
             isinstance(item, NavigationItem) for item in self.navigation
         ):
             raise TypeError("Navigation must contain NavigationItem values")
-        for value in (self.logo_url, self.privacy_url, self.terms_url):
+        if type(self.hero_is_video) is not bool:
+            raise TypeError("Hero video state must be boolean")
+        if self.hero_is_video and self.hero_url is None:
+            raise ValueError("Hero video requires a media URL")
+        for value in (self.logo_url, self.hero_url, self.privacy_url, self.terms_url):
             if value is not None:
                 require_safe_navigation_url(value)
                 if urlsplit(value).scheme:
@@ -128,6 +145,8 @@ def default_site_presentation() -> SitePresentation:
         site_name="Kaj的小房间",
         site_description=None,
         logo_url=None,
+        hero_url=None,
+        hero_is_video=False,
         navigation=(),
         copyright_text=None,
         privacy_url=None,

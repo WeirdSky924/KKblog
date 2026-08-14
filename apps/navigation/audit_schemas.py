@@ -10,6 +10,7 @@ def register_navigation_audit_schemas() -> None:
             "position",
             "depth",
             "hidden",
+            "default_expanded",
             "target_ref",
             "row_version",
             "deleted",
@@ -36,6 +37,7 @@ def register_navigation_audit_schemas() -> None:
                     "registration_enabled",
                     "article_text_limit_bytes",
                     "logo_asset_id",
+                    "hero_asset_id",
                     "backup_destination",
                     "row_version",
                 }
@@ -75,7 +77,6 @@ def register_navigation_audit_schemas() -> None:
             "name",
             "url_host",
             "position",
-            "logo_asset_id",
             "row_version",
             "deleted",
         }

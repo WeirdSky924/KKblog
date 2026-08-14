@@ -22,14 +22,23 @@ def _render_upload(
     target_id: str | None = None,
 ) -> HttpResponse:
     is_attachment = purpose == MediaPurpose.ATTACHMENT
+    is_hero = purpose == MediaPurpose.HERO
     select_message = (
-        "请选择一个附件后重试。" if is_attachment else "请选择一张图片后重试。"
+        "请选择一个附件后重试。"
+        if is_attachment
+        else (
+            "请选择一张图片或一个视频后重试。" if is_hero else "请选择一张图片后重试。"
+        )
     )
     if request.method != "POST":
         response = render(
             request,
             "media/partials/upload_result.html",
-            {"upload_error": select_message, "is_attachment": is_attachment},
+            {
+                "upload_error": select_message,
+                "is_attachment": is_attachment,
+                "is_hero": is_hero,
+            },
             status=405,
         )
         response.headers["Cache-Control"] = "no-store"
@@ -39,7 +48,11 @@ def _render_upload(
         response = render(
             request,
             "media/partials/upload_result.html",
-            {"upload_error": select_message, "is_attachment": is_attachment},
+            {
+                "upload_error": select_message,
+                "is_attachment": is_attachment,
+                "is_hero": is_hero,
+            },
             status=422,
         )
         response.headers["Cache-Control"] = "no-store"
@@ -66,6 +79,7 @@ def _render_upload(
                 "original_name": uploaded.name,
                 "input_name": input_name,
                 "is_attachment": is_attachment,
+                "is_hero": is_hero,
             },
             status=422,
         )
@@ -77,6 +91,8 @@ def _render_upload(
                 "asset": asset,
                 "input_name": input_name,
                 "is_attachment": is_attachment,
+                "is_hero": is_hero,
+                "is_video": asset.detected_mime.startswith("video/"),
             },
             status=201,
         )

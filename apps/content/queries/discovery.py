@@ -17,6 +17,7 @@ from apps.core.ids import normalize_ulid
 from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, Tag
 from ..policies import apply_article_reader_scope
 from ..rendering import ArticleRenderingMode, render_article_body
+from .covers import ArticleCoverCandidate, resolve_article_covers
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
 FILTERABLE_TAG_STATES = (Tag.State.ACTIVE,)
@@ -165,14 +166,36 @@ def _index_projection(queryset):
 def _visible_page(queryset, *, page, page_size: int) -> VisibleArticlePage:
     paginator = Paginator(_index_projection(queryset), page_size)
     selected = paginator.get_page(_page_number(page))
+    articles = tuple(selected.object_list)
+    items = _visible_items(articles)
     return VisibleArticlePage(
-        items=tuple(_visible_item(article) for article in selected.object_list),
+        items=items,
         page_number=selected.number,
         page_size=page_size,
         total_items=paginator.count,
         total_pages=paginator.num_pages,
         has_previous=selected.has_previous(),
         has_next=selected.has_next(),
+    )
+
+
+def _visible_items(articles: tuple[Article, ...]) -> tuple[VisibleArticleItem, ...]:
+    covers = resolve_article_covers(
+        tuple(
+            ArticleCoverCandidate(
+                article.published_revision.id,
+                article.published_revision.cover_asset_id,
+                article.published_revision.section_id,
+            )
+            for article in articles
+        )
+    )
+    return tuple(
+        _visible_item(
+            article,
+            cover_asset_id=covers[article.published_revision.id].asset_id,
+        )
+        for article in articles
     )
 
 
@@ -257,7 +280,7 @@ def visible_articles_by_ids(*, actor_id, article_ids) -> tuple[VisibleArticleIte
     queryset = _index_projection(
         _visible_articles(actor_id=actor_id).filter(pk__in=identities)
     )
-    return tuple(_visible_item(article) for article in queryset)
+    return _visible_items(tuple(queryset))
 
 
 def current_public_article_revisions(
@@ -361,7 +384,9 @@ def search_visible_titles(
         return _visible_page(queryset, page=page, page_size=page_size)
 
 
-def _visible_item(article: Article) -> VisibleArticleItem:
+def _visible_item(
+    article: Article, *, cover_asset_id: str | None
+) -> VisibleArticleItem:
     revision = article.published_revision
     assert revision is not None
     latest_published_at = article.latest_published_at
@@ -380,7 +405,7 @@ def _visible_item(article: Article) -> VisibleArticleItem:
             VisibleArticleTag(row.tag_id, row.tag.name, row.tag.state)
             for row in revision.visible_index_tags
         ),
-        cover_asset_id=revision.cover_asset_id,
+        cover_asset_id=cover_asset_id,
         published_at=latest_published_at,
     )
 

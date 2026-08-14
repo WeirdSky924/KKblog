@@ -27,6 +27,7 @@ class NavigationNode(models.Model):
         INTERNAL_PAGE = "INTERNAL_PAGE", "站内页"
         SECTION = "SECTION", "文章分区"
         EXTERNAL_LINK = "EXTERNAL_LINK", "外链"
+        GROUP = "GROUP", "仅分组"
 
     id = models.UUIDField(primary_key=True, default=new_uuid, editable=False)
     label = models.CharField(max_length=80)
@@ -43,6 +44,7 @@ class NavigationNode(models.Model):
     position = models.PositiveIntegerField()
     depth = models.PositiveSmallIntegerField()
     hidden = models.BooleanField(default=False)
+    default_expanded = models.BooleanField(default=False)
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True, editable=False)
@@ -66,6 +68,11 @@ class NavigationNode(models.Model):
             models.CheckConstraint(
                 condition=(
                     models.Q(
+                        node_type="GROUP",
+                        target_id__isnull=True,
+                        target_url__isnull=True,
+                    )
+                    | models.Q(
                         node_type="SECTION",
                         target_id__isnull=False,
                         target_url__isnull=True,

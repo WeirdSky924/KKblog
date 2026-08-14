@@ -74,6 +74,12 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem("analytics", "访问分析", "admin:analytics"),
         ),
     ),
+    AdminNavigationGroup(
+        label="招聘管理",
+        items=(
+            AdminNavigationItem("opportunities", "工作机会", "admin:opportunities"),
+        ),
+    ),
 )
 
 

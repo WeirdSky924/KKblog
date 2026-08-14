@@ -13,12 +13,13 @@
           <li>
             <a
               href="{{ item.url }}"
+              data-admin-navigation-key="{{ item.key }}"
               {% if item.review_count %}class="administration-navigation__link--review"{% endif %}
               {% if item.route_name == admin_current_route %}aria-current="page"{% endif %}
             >
               <span class="administration-navigation__item-label">{{ item.label }}</span>
               {% if item.review_count %}
-                <span class="administration-navigation__review-count" aria-label="{{ item.review_count }} 项待审核">
+                <span class="administration-navigation__review-count" aria-label="{{ item.review_count }} 项待处理">
                   <span aria-hidden="true">{{ item.review_count }}</span>
                 </span>
               {% endif %}

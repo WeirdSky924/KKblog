@@ -29,9 +29,13 @@
     {% if dialog_form_fields %}
       {% for field in confirmation_form.visible_fields %}
         <div{% if dialog_node_form and field.name == "target_url" %} data-navigation-target="url"{% elif dialog_node_form and field.name == "section_id" %} data-navigation-target="section"{% endif %}>
-          {{ field.label_tag }}
           {{ field.errors }}
-          {{ field }}
+          {% if dialog_node_form and field.name == "default_expanded" %}
+            {% include "components/forms/switch.html" with field=field only %}
+          {% else %}
+            {{ field.label_tag }}
+            {{ field }}
+          {% endif %}
           {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
         </div>
       {% endfor %}

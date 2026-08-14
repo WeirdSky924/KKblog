@@ -131,7 +131,7 @@
             <p><strong>{{ row.item.result_label }}</strong>{% if row.item.result_reason_label %} · {{ row.item.result_reason_label }}{% endif %}</p>
           </div>
           {% if row.item.result_article_id %}
-            <a class="button button--secondary" href="{% url 'authoring:edit' article_id=row.item.result_article_id %}"><i data-lucide="pencil-line"></i><span>打开文章</span></a>
+            <a class="button button--secondary" href="{% url 'authoring:edit' article_id=row.item.result_article_id %}"><i data-lucide="pencil-line"></i><span>继续编辑</span></a>
           {% endif %}
         </li>
       {% endfor %}

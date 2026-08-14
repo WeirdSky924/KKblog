@@ -1,0 +1,75 @@
+<div
+  class="opportunity-filter-picker{% if picker_variant == 'editor' %} opportunity-filter-picker--editor{% endif %}"
+  data-opportunity-filter-picker
+  data-opportunity-filter-auto-submit="{% if auto_submit %}true{% else %}false{% endif %}"
+  data-opportunity-filter-display="{% if picker_variant == 'editor' %}chips{% else %}summary{% endif %}"
+  data-opportunity-filter-required="{% if field.field.required %}true{% else %}false{% endif %}"
+>
+  <span id="{{ picker_id }}-label" class="opportunity-filter-picker__label">{{ title }}</span>
+  {{ field.errors }}
+  <button
+    id="{{ picker_id }}-trigger"
+    class="opportunity-filter-picker__trigger"
+    type="button"
+    data-opportunity-filter-trigger
+    aria-haspopup="dialog"
+    aria-controls="{{ picker_id }}-dialog"
+    aria-labelledby="{{ picker_id }}-label {{ picker_id }}-summary"
+    aria-required="{% if field.field.required %}true{% else %}false{% endif %}"
+    {% if picker_variant == "editor" %}title="编辑{{ title }}"{% endif %}
+  >
+    <span id="{{ picker_id }}-summary" data-opportunity-filter-summary>
+      {% if field.value %}已选择 {{ field.value|length }} 项{% elif field.field.required %}请选择{% else %}不限{% endif %}
+    </span>
+    <span class="opportunity-filter-picker__trigger-meta">
+      <small data-opportunity-filter-trigger-count>{% if picker_variant == "editor" %}{% if field.value %}编辑{% else %}选择{% endif %}{% elif field.value %}{{ field.value|length }} 项{% else %}未选择{% endif %}</small>
+      <i data-lucide="{% if picker_variant == 'editor' %}pencil{% else %}chevron-down{% endif %}" aria-hidden="true"></i>
+    </span>
+  </button>
+  <dialog
+    id="{{ picker_id }}-dialog"
+    class="opportunity-filter-dialog"
+    data-opportunity-filter-dialog
+    aria-labelledby="{{ picker_id }}-title"
+  >
+    <div class="opportunity-filter-dialog__panel">
+      <header class="opportunity-filter-dialog__header">
+        <h2 id="{{ picker_id }}-title">选择{{ title }}</h2>
+        <button class="icon-button" type="button" data-opportunity-filter-close aria-label="关闭{{ title }}选择">
+          <i data-lucide="x"></i>
+        </button>
+      </header>
+      <label class="opportunity-filter-dialog__search" for="{{ picker_id }}-search">
+        <span class="visually-hidden">搜索{{ title }}</span>
+        <i data-lucide="search" aria-hidden="true"></i>
+        <input
+          id="{{ picker_id }}-search"
+          type="search"
+          maxlength="100"
+          autocomplete="off"
+          placeholder="搜索{{ title }}"
+          data-opportunity-filter-search
+        >
+      </label>
+      <div class="opportunity-filter-dialog__options" data-opportunity-filter-options>
+        {% for choice in field %}
+          <label
+            data-opportunity-filter-option
+            data-opportunity-filter-label="{{ choice.choice_label }}"
+          >
+            {{ choice.tag }}
+            <span>{{ choice.choice_label }}</span>
+          </label>
+        {% empty %}
+          <p class="opportunity-filter-dialog__empty">暂无可用选项</p>
+        {% endfor %}
+        <p class="opportunity-filter-dialog__empty" data-opportunity-filter-empty hidden>没有匹配的选项</p>
+      </div>
+      <footer class="opportunity-filter-dialog__footer">
+        <button class="button button--secondary" type="button" data-opportunity-filter-clear>清空</button>
+        <span data-opportunity-filter-count>已选择 {{ field.value|length }} 项</span>
+        <button class="button button--primary" type="button" data-opportunity-filter-done>完成</button>
+      </footer>
+    </div>
+  </dialog>
+</div>

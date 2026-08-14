@@ -22,6 +22,7 @@ from ..policies import article_is_reader_masked
 from ..snapshots import Visibility
 from .articles import ContentCommandError
 from .publication import _render_for_publication
+from .publication_history import record_article_publication
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +170,11 @@ def change_visibility(
                     "last_published_at",
                     "updated_at",
                 )
+            )
+            record_article_publication(
+                article=article,
+                revision=revision,
+                published_at=now,
             )
             enqueue_event(
                 ARTICLE_VISIBILITY_CHANGED,

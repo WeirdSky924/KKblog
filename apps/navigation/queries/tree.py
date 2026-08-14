@@ -38,6 +38,7 @@ class AdminNavigationNode:
     position: int
     depth: int
     hidden: bool
+    default_expanded: bool
     row_version: int
     children: tuple["AdminNavigationNode", ...] = ()
 
@@ -60,6 +61,8 @@ def _state_version() -> int:
 
 
 def _target(node: NavigationNode, sections: dict[str, str]) -> tuple[str, bool]:
+    if node.node_type == NavigationNode.NodeType.GROUP:
+        return "无链接，仅用于分组", False
     if node.node_type == NavigationNode.NodeType.SECTION:
         label = sections.get(node.target_id or "")
         return (label or "分区已删除", label is None)
@@ -90,6 +93,7 @@ def _flat_items(rows: tuple[NavigationNode, ...]) -> dict[UUID, AdminNavigationN
             position=row.position,
             depth=row.depth,
             hidden=row.hidden,
+            default_expanded=row.default_expanded,
             row_version=row.row_version,
         )
     return items
@@ -177,13 +181,17 @@ def admin_navigation_tree(*, actor_id) -> AdminNavigationTree:
 def _public_item(node: AdminNavigationNode) -> NavigationItem | None:
     if node.hidden or node.target_missing:
         return None
-    if node.node_type == NavigationNode.NodeType.SECTION:
-        url = reverse("public:section", kwargs={"section_id": node.target_id})
-    else:
-        url = node.target_url or ""
     children = tuple(
         child for source in node.children if (child := _public_item(source)) is not None
     )
+    if node.node_type == NavigationNode.NodeType.GROUP:
+        if not children:
+            return None
+        url = None
+    elif node.node_type == NavigationNode.NodeType.SECTION:
+        url = reverse("public:section", kwargs={"section_id": node.target_id})
+    else:
+        url = node.target_url or ""
     return NavigationItem(
         label=node.label,
         url=url,
@@ -192,6 +200,7 @@ def _public_item(node: AdminNavigationNode) -> NavigationItem | None:
         section_id=node.target_id
         if node.node_type == NavigationNode.NodeType.SECTION
         else None,
+        default_expanded=node.default_expanded and bool(children),
     )
 
 

@@ -1,0 +1,69 @@
+<div id="friend-link-manager" class="friend-link-manager">
+  <div class="friend-link-manager__toolbar">
+    <p><strong>{{ friend_link_entries|length }}</strong> 个公开链接</p>
+    <a
+      id="friend-link-create"
+      class="button button--primary"
+      href="{% url 'admin:site-settings' %}?friend_dialog=create#friend-links"
+      hx-get="{% url 'admin:site-settings' %}?friend_dialog=create"
+      hx-target="#friend-link-dialog-host"
+      hx-swap="innerHTML"
+      data-dialog-trigger
+      aria-controls="friend-link-dialog"
+    >
+      <i data-lucide="plus" aria-hidden="true"></i>
+      <span>新增友情链接</span>
+    </a>
+  </div>
+
+  {% if friend_link_entries %}
+    <ol class="friend-link-list" aria-label="友情链接列表">
+      {% for link, update_form, delete_form in friend_link_entries %}
+        <li class="friend-link-row" data-friend-link-id="{{ link.id }}">
+          <span class="friend-link-row__position" aria-label="位置 {{ link.position|add:'1' }}">{{ link.position|add:"1" }}</span>
+          <span class="friend-link-row__content">
+            <strong>{{ link.name }}</strong>
+            <span>{{ link.description }}</span>
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+              <span>{{ link.url }}</span>
+              <i data-lucide="external-link" aria-hidden="true"></i>
+            </a>
+          </span>
+          <span class="friend-link-row__actions">
+            <a
+              id="friend-link-edit-{{ link.id }}"
+              class="icon-button"
+              href="{% url 'admin:site-settings' %}?friend_dialog=edit&amp;link_id={{ link.id }}#friend-links"
+              hx-get="{% url 'admin:site-settings' %}?friend_dialog=edit&amp;link_id={{ link.id }}"
+              hx-target="#friend-link-dialog-host"
+              hx-swap="innerHTML"
+              data-dialog-trigger
+              aria-controls="friend-link-dialog"
+              aria-label="编辑{{ link.name }}"
+              title="编辑{{ link.name }}"
+            ><i data-lucide="pencil" aria-hidden="true"></i></a>
+            <a
+              id="friend-link-delete-{{ link.id }}"
+              class="icon-button friend-link-row__delete"
+              href="{% url 'admin:site-settings' %}?friend_dialog=delete&amp;link_id={{ link.id }}#friend-links"
+              hx-get="{% url 'admin:site-settings' %}?friend_dialog=delete&amp;link_id={{ link.id }}"
+              hx-target="#friend-link-dialog-host"
+              hx-swap="innerHTML"
+              data-dialog-trigger
+              aria-controls="friend-link-dialog"
+              aria-label="删除{{ link.name }}"
+              title="删除{{ link.name }}"
+            ><i data-lucide="trash-2" aria-hidden="true"></i></a>
+          </span>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <div class="admin-queue__empty friend-link-manager__empty">
+      <h3>还没有友情链接</h3>
+      <p>新增后会立即出现在公开友情链接页和页脚。</p>
+    </div>
+  {% endif %}
+
+  <div id="friend-link-dialog-host"></div>
+</div>

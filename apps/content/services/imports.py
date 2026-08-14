@@ -29,6 +29,7 @@ from .articles import (
     _write_tag_snapshot,
 )
 from .publication import PublicationCommandError, _render_for_publication
+from .publication_history import record_article_publication
 from .tags import TagCommandError, resolve_proposed_tags
 
 
@@ -383,6 +384,13 @@ def import_article_item(
                     "updated_at",
                 )
             )
+            if status == ImportPublicationStatus.PUBLISHED:
+                assert article.last_published_at is not None
+                record_article_publication(
+                    article=article,
+                    revision=revision,
+                    published_at=article.last_published_at,
+                )
     except ImportArticleError:
         raise
     except (ContentCommandError, MediaBindingError, PublicationCommandError) as exc:

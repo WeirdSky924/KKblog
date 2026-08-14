@@ -200,3 +200,26 @@ def test_content_normalization_records_structural_rejection(monkeypatch) -> None
             "error_code": "media.tiptap.structure_limit.v1",
         }
     ]
+
+
+def test_markdown_summary_projection_has_a_bounded_source_budget(monkeypatch) -> None:
+    metrics = []
+    monkeypatch.setattr(
+        "apps.content.rendering_policy._provider",
+        lambda: TrustedEmbedPolicy(),
+    )
+    monkeypatch.setattr(
+        "apps.content.rendering.record_rich_text_render_metric",
+        lambda **values: metrics.append(values),
+    )
+    body = "# 摘要标题\n\n" + ("正文内容 " * 20_000)
+
+    rendered = render_article_body(
+        content_format="MARKDOWN",
+        body=body,
+        mode=ArticleRenderingMode.SUMMARY,
+    )
+
+    assert rendered.plain_text.startswith("摘要标题 正文内容")
+    assert metrics[0]["source_bytes"] <= 4 * 1024
+    assert metrics[0]["source_bytes"] < len(body.encode("utf-8"))

@@ -1,0 +1,56 @@
+{% if preview_error %}
+  <section class="admin-article-preview__message" data-article-preview-error role="alert">
+    <h3>无法加载文章</h3>
+    <p>{{ preview_error }}</p>
+  </section>
+{% elif preview_detail %}
+  <section class="admin-article-preview__document" data-article-preview-document>
+    <header class="admin-article-preview__document-header">
+      <div>
+        <p>{% if preview_mode == "working" %}当前工作版本{% else %}发布历史{% endif %} · 只读</p>
+        <h3 tabindex="-1" data-article-preview-title>{{ preview_detail.title }}</h3>
+      </div>
+      {% if preview_mode == "published" and preview_history %}
+        <form
+          class="admin-article-preview__version-form"
+          method="get"
+          action="{% url 'admin:articles' %}"
+          hx-get="{{ preview_url }}?revision=published"
+          hx-trigger="change"
+          hx-target="#article-preview-content"
+          hx-swap="innerHTML"
+          data-article-preview-version-form
+        >
+          <input type="hidden" name="detail" value="{{ preview_article.id }}">
+          <input type="hidden" name="revision" value="published">
+          <label for="article-preview-revision">发布版本</label>
+          <select id="article-preview-revision" name="revision_id">
+            {% for item in preview_history %}
+              <option value="{{ item.revision_id }}"{% if item.revision_id == preview_detail.revision_id %} selected{% endif %}>
+                第 {{ item.sequence }} 版 · {{ item.published_at|date:"Y-m-d H:i" }}{% if item.is_current %} · 当前{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <noscript><button class="button button--secondary" type="submit">查看</button></noscript>
+        </form>
+      {% endif %}
+    </header>
+
+    <dl class="admin-article-preview__metadata">
+      {% if preview_selected_publication %}<div><dt>版本</dt><dd>第 {{ preview_selected_publication.sequence }} 版</dd></div>{% else %}<div><dt>修订编号</dt><dd><code>{{ preview_detail.revision_id }}</code></dd></div>{% endif %}
+      <div><dt>格式</dt><dd>{{ preview_detail.content_format }}</dd></div>
+      <div><dt>可见性</dt><dd>{{ preview_detail.visibility }}</dd></div>
+      {% if preview_selected_publication %}<div><dt>发布时间</dt><dd><time datetime="{{ preview_selected_publication.published_at|date:'c' }}">{{ preview_selected_publication.published_at|date:"Y-m-d H:i:s" }}</time></dd></div>{% endif %}
+    </dl>
+
+    {% if preview_detail.readable_cover_asset_id %}
+      <img class="admin-article-preview__cover" src="/_kaj/media/{{ preview_detail.readable_cover_asset_id }}" alt="《{{ preview_detail.title }}》封面">
+    {% endif %}
+    <article class="article-prose admin-article-preview__body">{{ preview_detail.rendered_body_html|safe }}</article>
+  </section>
+{% else %}
+  <section class="admin-article-preview__message" role="status">
+    <h3>{{ preview_article.title }}</h3>
+    <p>尚无发布版本。</p>
+  </section>
+{% endif %}

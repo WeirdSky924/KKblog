@@ -1,0 +1,52 @@
+{% if page_data.total_pages > 1 %}
+  <nav class="pagination" aria-label="工作机会分页">
+    <a
+      class="pagination__direction{% if not page_data.has_previous %} pagination__direction--disabled{% endif %}"
+      {% if page_data.has_previous %}
+        href="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ page_data.page_number|add:'-1' }}"
+        hx-get="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ page_data.page_number|add:'-1' }}"
+        hx-target="#opportunity-workspace"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-sync="#opportunity-workspace:replace"
+      {% else %}
+        aria-disabled="true"
+      {% endif %}
+    ><i data-lucide="chevron-left"></i><span>上一页</span></a>
+    <ol>
+      {% for number in page_data.page_window %}
+        <li>
+          {% if number %}
+            <a
+              href="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ number }}"
+              {% if number == page_data.page_number %}
+                aria-current="page"
+              {% else %}
+                hx-get="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ number }}"
+                hx-target="#opportunity-workspace"
+                hx-swap="outerHTML"
+                hx-push-url="true"
+                hx-sync="#opportunity-workspace:replace"
+              {% endif %}
+            >{{ number }}</a>
+          {% else %}
+            <span aria-hidden="true">…</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    <a
+      class="pagination__direction{% if not page_data.has_next %} pagination__direction--disabled{% endif %}"
+      {% if page_data.has_next %}
+        href="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ page_data.page_number|add:'1' }}"
+        hx-get="?{{ opportunity_pagination_query }}&amp;{{ page_parameter }}={{ page_data.page_number|add:'1' }}"
+        hx-target="#opportunity-workspace"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-sync="#opportunity-workspace:replace"
+      {% else %}
+        aria-disabled="true"
+      {% endif %}
+    ><span>下一页</span><i data-lucide="chevron-right"></i></a>
+  </nav>
+{% endif %}

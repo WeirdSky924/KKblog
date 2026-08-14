@@ -12,6 +12,7 @@ from apps.media.errors import MediaUploadError
 from apps.media.imaging import sanitize_image
 from apps.media.models import (
     MAX_ATTACHMENT_BYTES,
+    MAX_HERO_VIDEO_BYTES,
     MAX_IMAGE_BYTES,
     DetectedFormat,
     MediaAsset,
@@ -19,8 +20,15 @@ from apps.media.models import (
     MediaState,
 )
 from apps.media.storage import MediaStorage, StorageLimitExceeded
+from apps.media.video import (
+    VideoProbeResult,
+    is_hero_video_name,
+    probe_video,
+    validate_video_probe,
+)
 
 CapacityCheck = Callable[[], None]
+VideoProbe = Callable[[bytes, str], VideoProbeResult]
 _SAFE_TARGET = re.compile(r"^[0-9A-HJKMNP-TV-Z]{26}$")
 
 
@@ -96,6 +104,10 @@ def _storage_key(
         return f"site/brand/{asset_id}.{extension}"
     if purpose == MediaPurpose.FRIEND_LOGO:
         return f"site/friend-links/{asset_id}.{extension}"
+    if purpose == MediaPurpose.SECTION_COVER:
+        return f"site/sections/{asset_id}.{extension}"
+    if purpose == MediaPurpose.HERO:
+        return f"site/hero/{asset_id}.{extension}"
     if purpose == MediaPurpose.AVATAR:
         return f"users/{owner_id}/avatar/{asset_id}.{extension}"
     if purpose == MediaPurpose.COMMENT and target_id == "site":
@@ -123,23 +135,33 @@ def stage_upload(
     storage: MediaStorage,
     capacity_check: CapacityCheck,
     target_id: str | None = None,
+    video_probe: VideoProbe | None = None,
 ) -> MediaAsset:
     if not isinstance(owner_id, UUID):
         raise MediaUploadError("media.owner_invalid.v1", "上传者身份不合法。")
     try:
         normalized_purpose = MediaPurpose(purpose)
     except (TypeError, ValueError):
-        raise MediaUploadError("media.purpose_invalid.v1", "图片用途不合法。") from None
+        raise MediaUploadError("media.purpose_invalid.v1", "媒体用途不合法。") from None
     if not callable(capacity_check):
         raise TypeError("capacity_check must be callable")
+    if normalized_purpose == MediaPurpose.FRIEND_LOGO:
+        raise MediaUploadError(
+            "media.purpose_retired.v1",
+            "友情链接不再使用 Logo。",
+        )
     del declared_content_type
     capacity_check()
 
-    max_bytes = (
-        MAX_ATTACHMENT_BYTES
-        if normalized_purpose == MediaPurpose.ATTACHMENT
-        else MAX_IMAGE_BYTES
+    hero_video = normalized_purpose == MediaPurpose.HERO and is_hero_video_name(
+        original_name
     )
+    if normalized_purpose == MediaPurpose.ATTACHMENT:
+        max_bytes = MAX_ATTACHMENT_BYTES
+    elif hero_video:
+        max_bytes = MAX_HERO_VIDEO_BYTES
+    else:
+        max_bytes = MAX_IMAGE_BYTES
     try:
         raw = storage.stage(chunks, max_bytes=max_bytes)
     except StorageLimitExceeded:
@@ -147,7 +169,11 @@ def stage_upload(
             "media.file_too_large.v1",
             "附件不能超过 10 MiB。"
             if normalized_purpose == MediaPurpose.ATTACHMENT
-            else "单张图片不能超过 2 MiB。",
+            else (
+                "首页视频不能超过 10 MiB。"
+                if hero_video
+                else "单张图片不能超过 2 MiB。"
+            ),
         ) from None
     if normalized_purpose == MediaPurpose.ATTACHMENT:
         try:
@@ -158,6 +184,24 @@ def stage_upload(
             raise
         staged = raw
         width = height = None
+    elif hero_video:
+        try:
+            with storage.open_staged(raw) as stream:
+                content = stream.read()
+            active_probe = video_probe or probe_video
+            probed = validate_video_probe(
+                content,
+                original_name,
+                active_probe(content, original_name),
+            )
+        except Exception:
+            storage.discard(raw)
+            raise
+        staged = raw
+        detected = probed.detected_mime
+        extension = probed.extension
+        width = probed.width
+        height = probed.height
     else:
         try:
             with storage.open_staged(raw) as stream:
@@ -209,7 +253,7 @@ def stage_upload(
                     original_name,
                     fallback="attachment"
                     if normalized_purpose == MediaPurpose.ATTACHMENT
-                    else "image",
+                    else "media",
                 ),
                 detected_mime=detected,
                 size_bytes=staged.size_bytes,

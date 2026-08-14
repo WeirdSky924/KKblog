@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}工作机会 · {{ site_presentation.site_name }}{% endblock %}
+{% block meta %}<meta name="description" content="查看公开招聘岗位和官方招聘来源。">{% endblock %}
+{% block main_class %}opportunity-public-main{% endblock %}
+
+{% block content %}
+  <section class="opportunity-public" aria-labelledby="opportunity-title">
+    <header class="opportunity-public__header">
+      <div>
+        <p>公开招聘信息</p>
+        <h1 id="opportunity-title">工作机会</h1>
+      </div>
+      <dl aria-label="公开工作机会摘要">
+        <div><dt>公开岗位</dt><dd>{{ opportunity_summary.total }}</dd></div>
+        <div><dt>已确认</dt><dd>{{ opportunity_summary.confirmed }}</dd></div>
+        <div><dt>待确认</dt><dd>{{ opportunity_summary.pending }}</dd></div>
+        <div><dt>官方来源</dt><dd>{{ opportunity_summary.sources }}</dd></div>
+      </dl>
+    </header>
+
+    {% include "opportunities/partials/workspace.html" %}
+  </section>
+{% endblock %}

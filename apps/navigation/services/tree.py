@@ -104,6 +104,15 @@ def _tree_version(value) -> int:
     return version
 
 
+def _default_expanded(value) -> bool:
+    if type(value) is not bool:
+        raise NavigationCommandError(
+            "navigation.default_expanded_invalid.v1",
+            "导航默认展开状态不合法。",
+        )
+    return value
+
+
 def _versions(value) -> dict[UUID, int]:
     if isinstance(value, str):
         try:
@@ -131,6 +140,12 @@ def _versions(value) -> dict[UUID, int]:
 
 
 def _target(node_type: str, target_url, target_id) -> tuple[str | None, str | None]:
+    if node_type == NavigationNode.NodeType.GROUP:
+        if target_url not in (None, "") or target_id not in (None, ""):
+            raise NavigationCommandError(
+                "navigation.group_target_invalid.v1", "仅分组节点不能配置目标。"
+            )
+        return None, None
     if node_type == NavigationNode.NodeType.INTERNAL_PAGE:
         try:
             return normalize_internal_navigation_url(target_url), None
@@ -213,6 +228,7 @@ def _snapshot(node: NavigationNode) -> dict[str, object]:
         "position": node.position,
         "depth": node.depth,
         "hidden": node.hidden,
+        "default_expanded": node.default_expanded,
         "target_ref": target_ref,
         "row_version": node.row_version,
     }
@@ -297,6 +313,7 @@ def create_navigation_node(
     expected_tree_version,
     trace_code: str,
     client_ip: str,
+    default_expanded: bool = False,
 ) -> NavigationNodeResult:
     actor = _actor(actor_id)
     try:
@@ -306,6 +323,11 @@ def create_navigation_node(
             "navigation.label_invalid.v1", str(error)
         ) from None
     normalized_url, normalized_id = _target(node_type, target_url, target_id)
+    if _default_expanded(default_expanded):
+        raise NavigationCommandError(
+            "navigation.default_expanded_leaf.v1",
+            "新导航节点尚无子项，不能默认展开。",
+        )
     parent_identity = _parent_identity(parent_id)
     with transaction.atomic():
         state, locked = _lock_tree()
@@ -380,6 +402,7 @@ def edit_navigation_node(
     expected_tree_version,
     trace_code: str,
     client_ip: str,
+    default_expanded: bool = False,
 ) -> NavigationNodeResult:
     actor = _actor(actor_id)
     identity = _identity(node_id)
@@ -390,6 +413,7 @@ def edit_navigation_node(
             "navigation.label_invalid.v1", str(error)
         ) from None
     normalized_url, normalized_id = _target(node_type, target_url, target_id)
+    expanded = _default_expanded(default_expanded)
     with transaction.atomic():
         state, locked = _lock_tree()
         _check_tree_version(state, expected_tree_version)
@@ -402,11 +426,17 @@ def edit_navigation_node(
             raise NavigationCommandError(
                 "navigation.edit_conflict.v1", "导航节点已被更新，请刷新后重试。"
             )
+        if expanded and not any(item.parent_id == node.id for item in locked):
+            raise NavigationCommandError(
+                "navigation.default_expanded_leaf.v1",
+                "只有包含子项的导航节点可以默认展开。",
+            )
         before = _snapshot(node)
         node.label = normalized_label
         node.node_type = node_type
         node.target_url = normalized_url
         node.target_id = normalized_id
+        node.default_expanded = expanded
         node.row_version += 1
         node.save(
             update_fields=(
@@ -414,6 +444,7 @@ def edit_navigation_node(
                 "node_type",
                 "target_url",
                 "target_id",
+                "default_expanded",
                 "row_version",
                 "updated_at",
             )
@@ -558,6 +589,15 @@ def move_navigation_subtree(
                 *destination,
             )
         }
+        former_parent = nodes.get(old_parent_id)
+        reset_former_parent = bool(
+            old_parent_id != parent_identity
+            and former_parent is not None
+            and not old_siblings
+            and former_parent.default_expanded
+        )
+        if reset_former_parent:
+            affected[former_parent.id] = former_parent
         expected_subset = {
             item_id: submitted_versions[item_id]
             for item_id in affected
@@ -583,6 +623,8 @@ def move_navigation_subtree(
         depth_delta = new_depth - node.depth
         for item in subtree:
             item.depth += depth_delta
+        if reset_former_parent:
+            former_parent.default_expanded = False
         for item in affected.values():
             item.row_version += 1
             item.save(
@@ -590,6 +632,7 @@ def move_navigation_subtree(
                     "parent",
                     "position",
                     "depth",
+                    "default_expanded",
                     "row_version",
                     "updated_at",
                 )
@@ -640,6 +683,12 @@ def delete_navigation_subtree(
             item for item in grouped.get(node.parent_id, ()) if item.id != node.id
         ]
         affected = {item.id: item for item in (*subtree, *siblings)}
+        parent = nodes.get(node.parent_id)
+        reset_parent = bool(
+            parent is not None and not siblings and parent.default_expanded
+        )
+        if reset_parent:
+            affected[parent.id] = parent
         expected_subset = {
             item_id: submitted_versions[item_id]
             for item_id in affected
@@ -672,6 +721,20 @@ def delete_navigation_subtree(
                 before=before[sibling.id],
                 after=_snapshot(sibling),
                 summary="Reorder public navigation after subtree deletion",
+            )
+        if reset_parent:
+            parent.default_expanded = False
+            parent.row_version += 1
+            parent.save(update_fields=("default_expanded", "row_version", "updated_at"))
+            record_audit_entry(
+                action="navigation.node.delete",
+                actor_id=actor,
+                target_id=str(parent.id),
+                trace_code=trace_code,
+                client_ip=client_ip,
+                before=before[parent.id],
+                after=_snapshot(parent),
+                summary="Collapse public navigation parent after subtree deletion",
             )
         tree_version = _advance(
             state,

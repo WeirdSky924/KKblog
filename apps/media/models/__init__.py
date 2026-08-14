@@ -1,5 +1,6 @@
 from .asset import (
     MAX_ATTACHMENT_BYTES,
+    MAX_HERO_VIDEO_BYTES,
     MAX_IMAGE_BYTES,
     MediaAsset,
     validate_storage_key,
@@ -16,6 +17,7 @@ __all__ = [
     "DetectedFormat",
     "MAX_IMAGE_BYTES",
     "MAX_ATTACHMENT_BYTES",
+    "MAX_HERO_VIDEO_BYTES",
     "MediaAsset",
     "MediaBinding",
     "MediaPurpose",

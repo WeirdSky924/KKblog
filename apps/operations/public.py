@@ -40,8 +40,11 @@ from apps.operations.services.performance import (
 from apps.operations.services.tasks import (
     RetryableTaskError,
     StartOutcome,
+    TaskCancelled,
     TaskFinalFailed,
+    TaskLeaseLost,
     TaskRetryScheduled,
+    current_task_run_id,
     execute_tracked_task,
 )
 
@@ -65,6 +68,8 @@ __all__ = [
     "RICH_TEXT_RENDER_BUDGET_MS",
     "StartOutcome",
     "TaskFinalFailed",
+    "TaskLeaseLost",
+    "TaskCancelled",
     "TaskRetryScheduled",
     "TASK_RUN_STATUSES",
     "capture_runtime_error",
@@ -80,6 +85,7 @@ __all__ = [
     "error_detail",
     "execute_celery_entry",
     "execute_tracked_task",
+    "current_task_run_id",
     "expire_backup",
     "mark_backup_task_final_failed",
     "record_audit_entry",

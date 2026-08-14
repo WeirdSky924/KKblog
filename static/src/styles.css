@@ -15,8 +15,13 @@
 @import "./comments.css";
 @import "./moderation.css";
 @import "./administration.css";
+@import "./administration-friend-links.css";
+@import "./administration-article-preview.css";
 @import "./administration-navigation.css";
 @import "./administration-operations.css";
+@import "./administration-opportunities.css";
+@import "./opportunities.css";
+@import "./opportunity-filter-picker.css";
 @import "./analytics.css";
 @import "./authoring.css";
 @import "./editor-tag-picker.css";

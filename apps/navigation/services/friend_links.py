@@ -52,7 +52,7 @@ def _position(value, *, maximum: int) -> int:
     return position
 
 
-def _values(*, name, url, description, logo_asset_id) -> dict[str, str]:
+def _values(*, name, url, description) -> dict[str, str]:
     label = normalized_text(name, field="站点名称", maximum=80, required=True)
     details = normalized_text(description, field="站点描述", maximum=300, required=True)
     try:
@@ -61,16 +61,10 @@ def _values(*, name, url, description, logo_asset_id) -> dict[str, str]:
         raise SiteContentCommandError(
             "navigation.friend_link_url_invalid.v1", str(error)
         ) from None
-    logo_id = str(logo_asset_id).strip() if logo_asset_id else ""
-    if not logo_id:
-        raise SiteContentCommandError(
-            "navigation.friend_link_logo_required.v1", "友情链接必须设置 Logo。"
-        )
     return {
         "name": label,
         "url": target,
         "description": details,
-        "logo_asset_id": logo_id,
     }
 
 
@@ -79,7 +73,6 @@ def _snapshot(row: FriendLink) -> dict[str, object]:
         "name": row.name,
         "url_host": urlsplit(row.url).hostname or "external",
         "position": row.position,
-        "logo_asset_id": row.logo_asset_id,
         "row_version": row.row_version,
     }
 
@@ -128,7 +121,6 @@ def _save_order(
                     "name",
                     "url",
                     "description",
-                    "logo_asset_id",
                     "position",
                     "row_version",
                     "updated_at",
@@ -158,30 +150,22 @@ def create_friend_link(
     name,
     url,
     description,
-    logo_asset_id,
     position,
     trace_code: str,
     client_ip: str,
 ) -> FriendLinkResult:
     actor = require_administrator(actor_id)
-    values = _values(
-        name=name,
-        url=url,
-        description=description,
-        logo_asset_id=logo_asset_id,
-    )
+    values = _values(name=name, url=url, description=description)
     with transaction.atomic():
         rows = list(FriendLink.objects.select_for_update().order_by("position", "id"))
         target_position = _position(position, maximum=len(rows))
         before = {row.id: _snapshot(row) for row in rows}
         temporary_position = (rows[-1].position + 1 if rows else 0) + len(rows) + 1
-        link = FriendLink.objects.create(position=temporary_position, **values)
-        try:
-            navigation_media_gateway().replace_friend_logo(
-                actor, str(link.id), values["logo_asset_id"]
-            )
-        except NavigationMediaError as error:
-            raise SiteContentCommandError(error.code, error.safe_message) from None
+        link = FriendLink.objects.create(
+            position=temporary_position,
+            logo_asset_id="",
+            **values,
+        )
         rows.insert(target_position, link)
         _temporarily_clear_positions(rows)
         _save_order(
@@ -203,7 +187,6 @@ def update_friend_link(
     name,
     url,
     description,
-    logo_asset_id,
     position,
     expected_version,
     trace_code: str,
@@ -212,12 +195,7 @@ def update_friend_link(
     actor = require_administrator(actor_id)
     identity = _identity(link_id)
     version = require_version(expected_version)
-    values = _values(
-        name=name,
-        url=url,
-        description=description,
-        logo_asset_id=logo_asset_id,
-    )
+    values = _values(name=name, url=url, description=description)
     with transaction.atomic():
         rows = list(FriendLink.objects.select_for_update().order_by("position", "id"))
         try:
@@ -234,13 +212,6 @@ def update_friend_link(
         primary_description_before = link.description
         target_position = _position(position, maximum=len(rows) - 1)
         before = {row.id: _snapshot(row) for row in rows}
-        if link.logo_asset_id != values["logo_asset_id"]:
-            try:
-                navigation_media_gateway().replace_friend_logo(
-                    actor, str(link.id), values["logo_asset_id"]
-                )
-            except NavigationMediaError as error:
-                raise SiteContentCommandError(error.code, error.safe_message) from None
         for key, value in values.items():
             setattr(link, key, value)
         rows.remove(link)
@@ -285,25 +256,25 @@ def delete_friend_link(
             )
         before = _snapshot(link)
         try:
-            navigation_media_gateway().release_friend_logo(str(link.id))
+            navigation_media_gateway().release_friend_legacy_media(str(link.id))
         except NavigationMediaError as error:
             raise SiteContentCommandError(error.code, error.safe_message) from None
         rows.remove(link)
+        link.delete()
         _temporarily_clear_positions(rows)
         _save_order(
             rows,
             actor_id=actor,
             before={row.id: _snapshot(row) for row in rows},
-            primary_id=link.id,
+            primary_id=identity,
             primary_action="navigation.friend_link.delete",
             trace_code=trace_code,
             client_ip=client_ip,
         )
-        link.delete()
         record_audit_entry(
             action="navigation.friend_link.delete",
             actor_id=actor,
-            target_id=str(link.id),
+            target_id=str(identity),
             trace_code=trace_code,
             client_ip=client_ip,
             before=before,

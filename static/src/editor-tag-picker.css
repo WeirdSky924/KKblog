@@ -1,6 +1,7 @@
 .author-tag-picker__trigger {
   display: flex;
   width: 100%;
+  height: 2.75rem;
   min-width: 0;
   min-height: 2.75rem;
   align-items: center;
@@ -26,20 +27,26 @@
 }
 
 .author-tag-picker__trigger-copy {
-  display: grid;
+  display: flex;
+  flex: 1 1 auto;
   min-width: 0;
-  gap: 0.125rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .author-tag-picker__trigger-copy > span {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .author-tag-picker__trigger-copy small {
+  flex: 0 0 auto;
   color: var(--text-secondary);
   font-size: 0.6875rem;
+  white-space: nowrap;
 }
 
 .author-tag-picker__trigger > .lucide {
@@ -212,7 +219,13 @@
 
 .author-tag-picker__options [data-tag-picker-existing] > div {
   display: grid;
-  gap: 0.375rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.author-tag-picker__options [data-tag-picker-proposed] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
 .author-tag-picker__options > div + div {
@@ -225,6 +238,7 @@
 
 .author-tag-picker__options label {
   display: grid;
+  height: 100%;
   min-width: 0;
   min-height: 2.75rem;
   grid-template-columns: 1rem minmax(0, 1fr) auto;
@@ -278,6 +292,13 @@
   font-size: 0.75rem;
 }
 
+@media (max-width: 44rem) {
+  .author-tag-picker__options [data-tag-picker-existing] > div,
+  .author-tag-picker__options [data-tag-picker-proposed] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 32rem) {
   .author-tag-picker {
     width: calc(100vw - 1rem);
@@ -301,6 +322,13 @@
   .author-tag-picker__status,
   .author-tag-picker__options {
     padding-inline: 1rem;
+  }
+}
+
+@media (max-width: 23rem) {
+  .author-tag-picker__options [data-tag-picker-existing] > div,
+  .author-tag-picker__options [data-tag-picker-proposed] {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

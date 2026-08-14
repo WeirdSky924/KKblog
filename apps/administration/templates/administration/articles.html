@@ -27,6 +27,7 @@
           <thead><tr><th>文章</th><th>作者</th><th>状态</th><th>案件</th><th>操作</th></tr></thead>
           <tbody>
             {% for row in rows %}
+              {% url 'admin:article-preview' row.article.id as article_preview_url %}
               <tr>
                 <td><strong>{{ row.article.title }}</strong><small>{{ row.article.id }}</small></td>
                 <td>{{ row.author_label }}</td>
@@ -39,8 +40,8 @@
                   {% if row.case.reason %}<small>已填写操作原因</small>{% endif %}
                 </td>
                 <td><div class="admin-queue__actions">
-                  {% if row.article.has_working_revision %}<a id="article-view-working-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=working#article-detail">查看工作版本</a>{% endif %}
-                  {% if row.article.has_published_revision %}<a id="article-view-published-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=published#article-detail">查看发布版本</a>{% endif %}
+                  {% if row.article.has_working_revision %}<a id="article-view-working-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=working#article-preview-dialog" hx-get="{{ article_preview_url }}?revision=working" hx-target="#article-preview-content" hx-swap="innerHTML" data-dialog-trigger data-dialog-return-hash="article-list" data-article-preview-trigger aria-controls="article-preview-dialog">查看工作版本</a>{% endif %}
+                  {% if row.article.has_published_revision %}<a id="article-view-published-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=published#article-preview-dialog" hx-get="{{ article_preview_url }}?revision=published" hx-target="#article-preview-content" hx-swap="innerHTML" data-dialog-trigger data-dialog-return-hash="article-list" data-article-preview-trigger aria-controls="article-preview-dialog">查看发布历史</a>{% endif %}
                   {% if row.can_hide %}<a id="article-hide-{{ row.article.id }}" href="?confirm_action=hide&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">隐藏</a>{% endif %}
                   {% if row.can_delete %}<a id="article-delete-{{ row.article.id }}" href="?confirm_action=delete&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">删除</a>{% endif %}
                   {% if row.can_restore %}<a id="article-restore-{{ row.article.id }}" href="?confirm_action=restore&amp;case_id={{ row.case.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">恢复</a>{% endif %}
@@ -55,19 +56,6 @@
       </div>
     {% else %}
       <div class="admin-queue__empty" id="article-list"><h2>没有匹配文章</h2><p>调整标题、作者或状态条件后重新搜索。</p><a href="{% url 'admin:articles' %}">清除筛选</a></div>
-    {% endif %}
-
-    {% if detail %}
-      <section id="article-detail" class="admin-queue__detail" aria-labelledby="article-detail-title">
-        <header>
-          <p>{{ detail_revision|upper }} · 只读</p>
-          <h2 id="article-detail-title">{{ detail.title }}</h2>
-          <p>{{ detail.publication_state }} · {{ detail.visibility }} · 修订 {{ detail.revision_id }}</p>
-        </header>
-        {% if detail.readable_cover_asset_id %}<img class="admin-queue__cover" src="/_kaj/media/{{ detail.readable_cover_asset_id }}" alt="《{{ detail.title }}》封面">{% endif %}
-        <article class="article-prose admin-queue__article-body">{{ detail.rendered_body_html|safe }}</article>
-        <p><a href="{% url 'admin:articles' %}#article-list">关闭详情</a></p>
-      </section>
     {% endif %}
 
     {% if selected_case %}
@@ -89,6 +77,8 @@
       </section>
     {% endif %}
   </section>
+
+  {% include "administration/partials/article_preview_dialog.html" %}
 
   {% if confirmation_kind %}
     {% include "components/feedback/confirm_dialog.html" with dialog_id="article-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}

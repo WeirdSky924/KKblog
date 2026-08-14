@@ -10,32 +10,55 @@
       <p>维护大小写不敏感的唯一分区；删除分区只移除分类关联，不删除文章。</p>
       {% if saved == "created" %}<p role="status">文章分区已创建。</p>{% endif %}
       {% if saved == "renamed" %}<p role="status">文章分区已重命名。</p>{% endif %}
+      {% if saved == "updated" %}<p role="status">文章分区已更新。</p>{% endif %}
       {% if saved == "deleted" %}<p role="status">分区已删除，{{ affected_articles }} 篇文章的 {{ affected_revisions }} 个修订已转为未知分区。</p>{% endif %}
     </header>
 
-    <form method="post" class="admin-queue__create" data-submit-once>
+    {% if section_cover_schema_ready %}
+    <form method="post" class="admin-queue__create admin-section-editor" data-submit-once>
       {% csrf_token %}
       <input type="hidden" name="action" value="section_create">
-      <div>{{ create_form.name.label_tag }}{{ create_form.name.errors }}{{ create_form.name }}</div>
-      {{ create_form.non_field_errors }}
-      <button class="button button--primary" type="submit">新增分区</button>
+      <div class="admin-section-editor__fields">
+        <div>{{ create_form.name.label_tag }}{{ create_form.name.errors }}{{ create_form.name }}</div>
+        {{ create_form.non_field_errors }}
+      </div>
+      <div class="admin-section-cover" role="group" aria-labelledby="section-create-cover-label">
+        <p id="section-create-cover-label" class="admin-section-cover__label">默认封面 <small>可选</small></p>
+        {{ create_form.default_cover_asset_id.errors }}
+        {% include "media/partials/picker.html" with adapter="section-cover" upload_url=section_cover_upload_url input_name="default_cover_asset_id" label="封面" picker_id="section-create-cover" current_asset_id=create_form.default_cover_asset_id.value current_preview_url=create_cover_preview_url favicon_preview=False %}
+      </div>
+      <button class="button button--primary admin-section-editor__submit" type="submit">新增分区</button>
     </form>
+    {% endif %}
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
 
     {% if items %}
       <div id="section-list" class="admin-queue__table-wrap" tabindex="0" aria-label="文章分区列表">
         <table class="admin-queue__table admin-queue__table--sections">
-          <thead><tr><th>分区</th><th>关联文章</th><th>关联修订</th><th>最近更新</th><th>操作</th></tr></thead>
+          <thead><tr><th>分区</th><th>默认封面</th><th>关联文章</th><th>关联修订</th><th>最近更新</th><th>操作</th></tr></thead>
           <tbody>
             {% for item in items %}
               <tr>
                 <td><strong>{{ item.name }}</strong><small>{{ item.id }}</small></td>
+                <td>
+                  {% if not section_cover_schema_ready %}
+                    <small>等待结构更新</small>
+                  {% elif item.default_cover_asset_id %}
+                    <img class="admin-section-cover__thumbnail" src="{% url 'media:direct-delivery' asset_id=item.default_cover_asset_id %}" alt="{{ item.name }}的默认封面">
+                  {% else %}
+                    <small>使用全站默认图</small>
+                  {% endif %}
+                </td>
                 <td>{{ item.affected_article_count }}</td>
                 <td>{{ item.affected_revision_count }}</td>
                 <td>{{ item.updated_at|date:"Y-m-d H:i" }}</td>
                 <td><div class="admin-queue__actions">
-                  <a id="section-rename-{{ item.id }}" href="?confirm_action=rename&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">重命名</a>
-                  <a id="section-delete-{{ item.id }}" href="?confirm_action=delete&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">删除</a>
+                  {% if section_cover_schema_ready %}
+                    <a id="section-edit-{{ item.id }}" href="?confirm_action=edit&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">编辑</a>
+                    <a id="section-delete-{{ item.id }}" href="?confirm_action=delete&amp;section_id={{ item.id }}#section-list" data-dialog-trigger data-dialog-return-hash="section-list" aria-controls="section-action-dialog">删除</a>
+                  {% else %}
+                    <small>迁移后可编辑</small>
+                  {% endif %}
                 </div></td>
               </tr>
             {% endfor %}
@@ -52,7 +75,44 @@
     </aside>
   </section>
 
-  {% if confirmation_kind %}
+  {% if confirmation_kind == "edit" %}
+    <dialog
+      id="section-action-dialog"
+      class="confirm-dialog admin-section-dialog"
+      data-confirm-dialog
+      open
+      data-auto-modal
+      data-dialog-return-focus="{{ dialog.return_focus_id }}"
+      data-dialog-return-url="{{ dialog.return_url }}"
+      aria-labelledby="section-action-dialog-title"
+      aria-describedby="section-action-dialog-description"
+    >
+      <form method="post" class="confirm-dialog__content" data-submit-once>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="section_update">
+        {{ confirmation_form.section_id }}
+        {{ confirmation_form.confirm }}
+        <h2 id="section-action-dialog-title">{{ dialog.title }}</h2>
+        <p id="section-action-dialog-description">{{ dialog.description }}</p>
+        {% if dialog.details %}<p>{{ dialog.details }}</p>{% endif %}
+        <div>
+          {{ confirmation_form.name.label_tag }}
+          {{ confirmation_form.name.errors }}
+          {{ confirmation_form.name }}
+        </div>
+        <div class="admin-section-cover" role="group" aria-labelledby="section-edit-cover-label">
+          <p id="section-edit-cover-label" class="admin-section-cover__label">默认封面 <small>可选</small></p>
+          {{ confirmation_form.default_cover_asset_id.errors }}
+          {% include "media/partials/picker.html" with adapter="section-cover" upload_url=section_cover_upload_url input_name="default_cover_asset_id" label="封面" picker_id="section-edit-cover" current_asset_id=confirmation_form.default_cover_asset_id.value current_preview_url=edit_cover_preview_url favicon_preview=False %}
+        </div>
+        {{ confirmation_form.non_field_errors }}
+        <div class="confirm-dialog__actions">
+          <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+          <button class="button button--primary" type="submit">保存分区</button>
+        </div>
+      </form>
+    </dialog>
+  {% elif confirmation_kind %}
     {% include "components/feedback/confirm_dialog.html" with dialog_id="section-action-dialog" dialog_open=True dialog_title=dialog.title dialog_description=dialog.description dialog_details=dialog.details dialog_return_focus_id=dialog.return_focus_id dialog_return_url=dialog.return_url action_value=dialog.action confirmation_form=confirmation_form dialog_field=dialog.field confirm_label=dialog.label %}
   {% endif %}
 {% endblock %}

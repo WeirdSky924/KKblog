@@ -1,18 +1,21 @@
 function updateNodeTargetFields(form) {
-  const type = form.querySelector("[name='node_type']")?.value;
+  const type = form.querySelector(
+    "[name='node_type'], [name$='-node_type']",
+  )?.value;
   const urlGroup = form.querySelector("[data-navigation-target='url']");
   const sectionGroup = form.querySelector("[data-navigation-target='section']");
   const urlField = urlGroup?.querySelector("input");
   const sectionField = sectionGroup?.querySelector("select");
   const usesSection = type === "SECTION";
+  const isGroup = type === "GROUP";
   if (urlGroup instanceof HTMLElement) {
-    urlGroup.hidden = usesSection;
+    urlGroup.hidden = usesSection || isGroup;
   }
   if (sectionGroup instanceof HTMLElement) {
     sectionGroup.hidden = !usesSection;
   }
   if (urlField instanceof HTMLInputElement) {
-    urlField.disabled = usesSection;
+    urlField.disabled = usesSection || isGroup;
   }
   if (sectionField instanceof HTMLSelectElement) {
     sectionField.disabled = !usesSection;
@@ -68,7 +71,9 @@ function initializeNodeForms(root = document) {
       return;
     }
     form.dataset.navigationBound = "true";
-    const type = form.querySelector("[name='node_type']");
+    const type = form.querySelector(
+      "[name='node_type'], [name$='-node_type']",
+    );
     type?.addEventListener("change", () => updateNodeTargetFields(form));
     updateNodeTargetFields(form);
   });

@@ -15,6 +15,7 @@ from apps.notifications.public import (
     consume_author_role_changed,
     consume_domain_notification,
     consume_operational_state_notification,
+    consume_opportunity_notification,
     consume_task_final_failure_notification,
 )
 from apps.operations.public import (
@@ -100,6 +101,13 @@ def _consume_operational_state_notification(envelope: EventEnvelope):
     )
 
 
+def _consume_opportunity_notification(envelope: EventEnvelope):
+    return consume_opportunity_notification(
+        envelope,
+        administrator_id_provider=active_administrator_id,
+    )
+
+
 def _consume_export_final_failure(envelope: EventEnvelope):
     if envelope.payload.get("task_name") != "apps.exchange.build_export":
         return None
@@ -149,6 +157,11 @@ def _routes(event_type: str) -> tuple[EventConsumer, ...]:
         "service.health_changed.v1",
     }:
         return (_consume_operational_state_notification,)
+    if event_type in {
+        "opportunity.source_state_changed.v1",
+        "opportunity.check_summary.v1",
+    }:
+        return (_consume_opportunity_notification,)
     if event_type in _TERMINAL_EVENTS:
         return ()
     raise UnsupportedApplicationEvent("Application event has no registered route")

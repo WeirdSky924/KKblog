@@ -1,0 +1,84 @@
+<form
+  class="opportunity-public__filter-form"
+  method="get"
+  action="{% url 'opportunities:index' %}"
+  hx-get="{% url 'opportunities:index' %}"
+  hx-target="#opportunity-workspace"
+  hx-swap="outerHTML"
+  hx-push-url="true"
+  hx-trigger="submit, opportunity-filter-change"
+  hx-sync="this:replace"
+  hx-indicator="#opportunity-filter-loading"
+  data-opportunity-filter-form
+>
+  <input type="hidden" name="view" value="{{ opportunity_view }}">
+  {% for name, value in opportunity_preserved_fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+
+  {% if opportunity_view == "jobs" %}
+    <div class="opportunity-public__search">
+      <label for="opportunity-job-q">搜索岗位</label>
+      <div>
+        <input
+          id="opportunity-job-q"
+          type="search"
+          name="job_q"
+          maxlength="100"
+          value="{{ opportunity_form.job_q.value|default:'' }}"
+          placeholder="岗位、企业、计划、地点或公开证据"
+        >
+        <button class="icon-button" type="submit" aria-label="搜索岗位" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+      </div>
+    </div>
+    <div class="opportunity-public__filter-grid">
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.cities title="城市" picker_id="public-job-cities" auto_submit=True only %}
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.statuses title="核实状态" picker_id="public-job-statuses" auto_submit=True only %}
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.companies title="企业" picker_id="public-job-companies" auto_submit=True only %}
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.recruitment_types title="招聘类型" picker_id="public-job-recruitment-types" auto_submit=True only %}
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.categories title="岗位类别" picker_id="public-job-categories" auto_submit=True only %}
+      {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.cohorts title="届别" picker_id="public-job-cohorts" auto_submit=True only %}
+    </div>
+    {% if opportunity_authenticated %}
+      <label class="opportunity-public__bookmark-filter">
+        {{ opportunity_form.bookmarked }}
+        <span>仅看我的收藏</span>
+      </label>
+    {% endif %}
+  {% else %}
+    <div class="opportunity-public__search">
+      <label for="opportunity-source-q">搜索来源</label>
+      <div>
+        <input
+          id="opportunity-source-q"
+          type="search"
+          name="source_q"
+          maxlength="100"
+          value="{{ opportunity_form.source_q.value|default:'' }}"
+          placeholder="企业或来源名称"
+        >
+        <button class="icon-button" type="submit" aria-label="搜索来源" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+      </div>
+    </div>
+    <div class="opportunity-public__filter-grid opportunity-public__filter-grid--source">
+      {% include "opportunities/partials/filter_group.html" with field=opportunity_form.source_types title="来源类型" %}
+    </div>
+  {% endif %}
+
+  <input type="hidden" name="per_page" value="{{ opportunity_form.per_page.value|default:20 }}">
+  <div class="opportunity-public__filter-actions">
+    {% if opportunity_active_filters %}
+      <a
+        href="{{ opportunity_clear_url }}"
+        hx-get="{{ opportunity_clear_url }}"
+        hx-target="#opportunity-workspace"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-sync="#opportunity-workspace:replace"
+      >清除筛选</a>
+    {% endif %}
+    <noscript><button class="button button--primary" type="submit">应用筛选</button></noscript>
+  </div>
+</form>

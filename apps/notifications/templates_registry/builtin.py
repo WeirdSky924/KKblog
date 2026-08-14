@@ -26,6 +26,12 @@ _REPORT_REASON_LABELS = {
     "IRRELEVANT": "无关内容",
     "OTHER": "其他",
 }
+_OPPORTUNITY_SOURCE_STATES = frozenset(
+    {"NEVER", "HEALTHY", "DEGRADED", "STALE", "UNSUPPORTED"}
+)
+_OPPORTUNITY_RUN_STATES = frozenset(
+    {"SUCCEEDED", "PARTIAL", "FAILED", "TRUNCATED", "CANCELLED"}
+)
 
 
 def _reject_unless(condition: bool) -> None:
@@ -74,6 +80,83 @@ def _depth(payload: Mapping[str, object]) -> None:
     value = payload["depth"]
     _reject_unless(
         not isinstance(value, bool) and isinstance(value, int) and value > 100
+    )
+
+
+def _opportunity_source_state(payload: Mapping[str, object]) -> None:
+    source_name = payload["source_name"]
+    previous = payload["previous_state"]
+    current = payload["current_state"]
+    failure_summary = payload["failure_summary"]
+    _reject_unless(
+        isinstance(source_name, str)
+        and 1 <= len(source_name) <= 120
+        and "<" not in source_name
+        and ">" not in source_name
+        and "://" not in source_name
+        and previous in _OPPORTUNITY_SOURCE_STATES
+        and current in _OPPORTUNITY_SOURCE_STATES
+        and previous != current
+        and isinstance(failure_summary, str)
+        and len(failure_summary) <= 200
+        and "<" not in failure_summary
+        and ">" not in failure_summary
+        and "://" not in failure_summary
+        and (current in {"DEGRADED", "STALE", "UNSUPPORTED"}) == bool(failure_summary)
+    )
+
+
+def _opportunity_check_summary(payload: Mapping[str, object]) -> None:
+    _reject_unless(payload["state"] in _OPPORTUNITY_RUN_STATES)
+    for field in (
+        "succeeded",
+        "failed",
+        "truncated",
+        "skipped",
+        "not_executed",
+        "created",
+        "changed",
+        "missing",
+        "job_failures",
+    ):
+        value = payload[field]
+        _reject_unless(
+            not isinstance(value, bool) and isinstance(value, int) and value >= 0
+        )
+
+
+def _opportunity_source_title(payload: Mapping[str, object]) -> str:
+    return (
+        "招聘来源已恢复"
+        if payload["current_state"] == "HEALTHY"
+        else "招聘来源检查异常"
+    )
+
+
+def _opportunity_source_message(payload: Mapping[str, object]) -> str:
+    if payload["current_state"] == "HEALTHY":
+        return f"**{payload['source_name']}** 已恢复正常检查。"
+    return (
+        f"**{payload['source_name']}** 的检查状态已变为异常。\n\n"
+        f"原因：{payload['failure_summary']}"
+    )
+
+
+def _opportunity_summary_message(payload: Mapping[str, object]) -> str:
+    return "\n".join(
+        (
+            f"任务状态：**{payload['state']}**",
+            "",
+            f"- 成功来源：{payload['succeeded']}",
+            f"- 失败来源：{payload['failed']}",
+            f"- 截断来源：{payload['truncated']}",
+            f"- 跳过来源：{payload['skipped']}",
+            f"- 未执行来源：{payload['not_executed']}",
+            f"- 新增岗位：{payload['created']}",
+            f"- 字段变化：{payload['changed']}",
+            f"- 来源列表缺失：{payload['missing']}",
+            f"- 岗位链接失败：{payload['job_failures']}",
+        )
     )
 
 
@@ -372,6 +455,52 @@ def _schema(
 
 
 _BUILTINS = (
+    (
+        _schema(
+            "opportunity.source_state_changed.v1",
+            "opportunity_source",
+            frozenset(
+                {
+                    "source_name",
+                    "previous_state",
+                    "current_state",
+                    "failure_summary",
+                }
+            ),
+            _opportunity_source_state,
+        ),
+        NotificationTemplateDefinition(
+            "opportunity.source_state_changed.v1",
+            _opportunity_source_title,
+            _opportunity_source_message,
+        ),
+    ),
+    (
+        _schema(
+            "opportunity.check_summary.v1",
+            "opportunity_check_run",
+            frozenset(
+                {
+                    "state",
+                    "succeeded",
+                    "failed",
+                    "truncated",
+                    "skipped",
+                    "not_executed",
+                    "created",
+                    "changed",
+                    "missing",
+                    "job_failures",
+                }
+            ),
+            _opportunity_check_summary,
+        ),
+        NotificationTemplateDefinition(
+            "opportunity.check_summary.v1",
+            "招聘检查结果",
+            _opportunity_summary_message,
+        ),
+    ),
     (
         _schema(
             "capacity.threshold_changed.v1",

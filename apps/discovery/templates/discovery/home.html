@@ -7,15 +7,50 @@
 
 {% block content %}
   <div class="home-page{% if site_presentation.navigation %} home-page--with-navigation{% endif %}" data-home-page>
-    <section class="home-hero" aria-labelledby="home-title">
-      <img
-        class="home-hero__image"
-        src="{% static 'media/brand/default-cover.png' %}"
-        width="1600"
-        height="900"
-        alt=""
-        fetchpriority="high"
-      >
+    <section class="home-hero" aria-labelledby="home-title" data-home-hero-media>
+      {% if site_presentation.hero_url and site_presentation.hero_is_video %}
+        <img
+          class="home-hero__image home-hero__poster"
+          src="{% static 'media/brand/default-cover.png' %}"
+          width="1600"
+          height="900"
+          alt=""
+          fetchpriority="high"
+        >
+        <video
+          class="home-hero__video"
+          src="{{ site_presentation.hero_url }}"
+          poster="{% static 'media/brand/default-cover.png' %}"
+          aria-label="首页主视觉视频"
+          data-home-hero-video
+          muted
+          autoplay
+          loop
+          playsinline
+          disablepictureinpicture
+          disableremoteplayback
+          preload="metadata"
+        ></video>
+        <button
+          class="icon-button home-hero__media-control"
+          type="button"
+          data-home-hero-control
+          aria-label="暂停首页主视觉视频"
+          title="暂停首页主视觉视频"
+        >
+          <i data-lucide="pause" data-home-hero-pause-icon></i>
+          <i data-lucide="play" data-home-hero-play-icon hidden></i>
+        </button>
+      {% else %}
+        <img
+          class="home-hero__image"
+          src="{% if site_presentation.hero_url %}{{ site_presentation.hero_url }}{% else %}{% static 'media/brand/default-cover.png' %}{% endif %}"
+          width="1600"
+          height="900"
+          alt=""
+          fetchpriority="high"
+        >
+      {% endif %}
       <div class="home-hero__content">
         <div class="home-hero__content-inner">
           <h1 id="home-title">{{ site_presentation.site_name }}</h1>
@@ -49,9 +84,31 @@
               <i data-lucide="chevron-left" aria-hidden="true"></i>
             </button>
           </header>
-          <nav aria-label="主页侧边导航">
-            {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False home_section_switching=True active_home_section_id=active_home_section_id only %}
-          </nav>
+          <button
+            class="home-navigation__page-button"
+            type="button"
+            data-home-navigation-page="up"
+            aria-label="向上查看更多导航"
+            title="向上查看更多导航"
+            aria-hidden="true"
+            disabled
+            tabindex="-1"
+          ><i data-lucide="chevron-up" aria-hidden="true"></i></button>
+          <div class="home-navigation__scroll" data-home-navigation-scroll>
+            <nav aria-label="主页侧边导航">
+              {% include "components/navigation/navigation_items.html" with items=site_presentation.navigation nested=False home_section_switching=True active_home_section_id=active_home_section_id only %}
+            </nav>
+          </div>
+          <button
+            class="home-navigation__page-button"
+            type="button"
+            data-home-navigation-page="down"
+            aria-label="向下查看更多导航"
+            title="向下查看更多导航"
+            aria-hidden="true"
+            disabled
+            tabindex="-1"
+          ><i data-lucide="chevron-down" aria-hidden="true"></i></button>
         </aside>
         <button
           class="home-navigation__reopen"

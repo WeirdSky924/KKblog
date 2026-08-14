@@ -65,6 +65,9 @@ _RULES = {
     (MediaTargetType.ARTICLE_REVISION, MediaPurpose.COVER): _BindingRule(
         1, re.compile(r"^cover$")
     ),
+    (MediaTargetType.SECTION, MediaPurpose.SECTION_COVER): _BindingRule(
+        1, re.compile(r"^default-cover$")
+    ),
     (MediaTargetType.ARTICLE_REVISION, MediaPurpose.BODY): _BindingRule(
         1000, re.compile(r"^body-[0-9A-HJKMNP-TV-Z]{26}$")
     ),
@@ -86,8 +89,8 @@ _RULES = {
     (MediaTargetType.SITE_BRAND, MediaPurpose.LOGO): _BindingRule(
         1, re.compile(r"^logo$")
     ),
-    (MediaTargetType.FRIEND_LINK, MediaPurpose.FRIEND_LOGO): _BindingRule(
-        1, re.compile(r"^logo$")
+    (MediaTargetType.SITE_BRAND, MediaPurpose.HERO): _BindingRule(
+        1, re.compile(r"^hero$")
     ),
     (MediaTargetType.IMPORT_JOB, MediaPurpose.IMPORT): _BindingRule(
         1000, re.compile(r"^source-[0-9A-HJKMNP-TV-Z]{26}$")

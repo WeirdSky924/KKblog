@@ -8,13 +8,13 @@
 | --- | --- | --- |
 | `MediaAsset.id` | ULID | 不暴露真实磁盘路径 |
 | `owner_id` | UUID FK | 上传者；站点资产可指管理员 |
-| `purpose` | enum | `AVATAR/COVER/BODY/COMMENT/EVIDENCE/LOGO/FRIEND_LOGO/IMPORT` |
+| `purpose` | enum | `AVATAR/COVER/SECTION_COVER/BODY/COMMENT/EVIDENCE/LOGO/HERO/IMPORT/ATTACHMENT`；`FRIEND_LOGO` 仅为历史资产墓碑值，不接受新上传或绑定 |
 | `storage_key` | varchar | 媒体服务生成的相对键，唯一；禁止用户路径片段 |
 | `original_name` | varchar | 清洗后仅供展示，不参与寻址 |
-| `detected_mime` | enum | 解码后真实 PNG/JPEG/GIF/WebP；Logo 另允许 ICO |
-| `size_bytes` | bigint | `1..2 MiB` 检查约束 |
+| `detected_mime` | enum | 解码后真实 PNG/JPEG/GIF/WebP；Logo 另允许 ICO；Hero 视频另允许 MP4/WebM |
+| `size_bytes` | bigint | 图片 `1..2 MiB`；附件与 Hero 视频 `1..10 MiB`，数据库按用途与真实格式约束 |
 | `sha256` | char(64) | 完整性与重复诊断，不作为公开 ID |
-| `width` / `height` | int | 解码结果，正数；ICO 可按帧处理 |
+| `width` / `height` | int | 图片/视频解码结果为正数；附件为空；ICO 可按帧处理 |
 | `state` | enum | `STAGED/ACTIVE/DELETE_PENDING/DELETED` |
 | `created_at` / `deleted_at` | time | 生命周期追踪 |
 
@@ -106,7 +106,7 @@
 
 `RuntimeError` 永久保存：错误码、trace code、分类、脱敏消息、脱敏堆栈、请求/任务来源、首次/最近发生时间、次数、关联 `TaskRun`。禁止保存请求密码、验证码、Cookie、Authorization、`.env`、正文和原始上传内容。
 
-`TaskRun` 保存：任务名、业务对象、幂等键、状态、尝试次数、计划/开始/完成时间、Celery ID、最终错误码。`task_name + idempotency_key` 唯一；三次均失败后写 RuntimeError 与管理员通知。
+`TaskRun` 保存：任务名、业务对象、幂等键、状态、尝试次数、计划/开始/完成时间、Celery ID、最终错误码。状态包含等待、运行、重试等待、成功、最终失败和受控取消；取消必须有完成时间、清空租约且不写最终失败事件。`task_name + idempotency_key` 唯一；三次均失败后写 RuntimeError 与管理员通知。
 
 ## ImportJob 与 ImportItem
 
@@ -122,8 +122,8 @@
 
 站点配置不要放入一个无约束 JSON 大桶：
 
-- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值、品牌资产引用和可空的验证码 HTML 模板；模板为空表示使用代码内默认模板，SMTP 地址与密钥仍只属于部署配置。
+- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值、Logo 与可空 Hero 资产 ID，以及可空的验证码 HTML 模板；Hero ID 必须与 `SITE_BRAND/site/hero` 单槽绑定同事务更新，模板为空表示使用代码内默认模板，SMTP 地址与密钥仍只属于部署配置。
 - `StaticPage` 保存 ABOUT/PRIVACY/TERMS 的格式、正文和发布状态。
 - `TrustedEmbedSource` 保存来源名、主机规则和启用状态，初始仅 Bilibili。
-- `FriendLink` 保存名称、URL、描述、Logo 和排序。
-- `NavigationNode` 保存三层树、节点类型、目标、排序和隐藏状态。
+- `FriendLink` 保存名称、HTTPS URL、描述和连续排序；兼容列 `logo_asset_id` 固定为空，不再是读取或写入契约。
+- `NavigationNode` 保存三层树、节点类型、目标、排序、隐藏状态和默认展开布尔值；`GROUP` 的目标字段均为空，只有存在可见子项时才进入公开导航。默认展开只允许真实父节点开启，失去最后一个子项时由 navigation service 自动复位。

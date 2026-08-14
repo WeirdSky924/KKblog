@@ -28,6 +28,7 @@ from apps.navigation.public import (
 )
 
 VALID_CONFIRMATIONS = {"edit", "hide", "show", "delete"}
+EDIT_FORM_PREFIX = "navigation_edit"
 
 
 def _meta(request: HttpRequest) -> dict[str, str]:
@@ -90,9 +91,12 @@ def _confirmation(request: HttpRequest, *, tree, rows):
                 "node_type": node.node_type,
                 "target_url": node.target_url or "",
                 "section_id": node.target_id or "",
+                "default_expanded": node.default_expanded,
                 "confirm": "navigation_edit",
             },
             section_choices=_section_choices(),
+            default_expanded_enabled=bool(node.children),
+            prefix=EDIT_FORM_PREFIX,
         )
     elif kind in {"hide", "show"}:
         form = NavigationVisibilityConfirmationForm(
@@ -235,6 +239,8 @@ def _create_error_field(error: NavigationCommandError) -> str | None:
         return "section_id"
     if "target" in error.code:
         return "target_url"
+    if "default_expanded" in error.code:
+        return "default_expanded"
     if "parent" in error.code or "depth" in error.code or "cycle" in error.code:
         return "parent_id"
     if "position" in error.code:
@@ -269,6 +275,7 @@ def _post_create(request: HttpRequest) -> HttpResponse:
             parent_id=form.cleaned_data["parent_id"],
             position=form.cleaned_data["position"],
             expected_tree_version=form.cleaned_data["expected_tree_version"],
+            default_expanded=form.cleaned_data["default_expanded"],
             **_meta(request),
         )
     except NavigationCommandError as error:
@@ -301,11 +308,18 @@ def _invalid_confirmation(request, *, kind: str, node_id: str, form, message: st
 
 
 def _post_edit(request: HttpRequest) -> HttpResponse:
+    raw_id = request.POST.get(f"{EDIT_FORM_PREFIX}-node_id", "")
+    _tree, rows = _tree_and_rows(request)
+    try:
+        default_expanded_enabled = bool(_find_row(rows, raw_id).node.children)
+    except LookupError:
+        default_expanded_enabled = False
     form = NavigationNodeEditConfirmationForm(
         request.POST,
         section_choices=_section_choices(),
+        default_expanded_enabled=default_expanded_enabled,
+        prefix=EDIT_FORM_PREFIX,
     )
-    raw_id = request.POST.get("node_id", "")
     if not form.is_valid():
         return _invalid_confirmation(
             request,
@@ -323,6 +337,7 @@ def _post_edit(request: HttpRequest) -> HttpResponse:
             node_type=form.cleaned_data["node_type"],
             target_url=form.cleaned_data["target_url"],
             target_id=form.cleaned_data["section_id"],
+            default_expanded=form.cleaned_data["default_expanded"],
             expected_tree_version=form.cleaned_data["expected_tree_version"],
             **_meta(request),
         )

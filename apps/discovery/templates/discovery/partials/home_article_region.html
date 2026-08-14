@@ -8,6 +8,20 @@
   <div class="home-articles__inner">
     <header class="home-articles__heading">
       <h2 id="home-articles-title">{{ home_article_heading|default:"最新文章" }}</h2>
+      <button
+        id="home-article-refresh"
+        class="icon-button home-articles__refresh"
+        type="button"
+        aria-label="刷新当前文章列表"
+        title="刷新文章"
+        hx-get="{{ home_article_refresh_url }}"
+        hx-target="#home-article-region"
+        hx-swap="outerHTML"
+        hx-sync="this:replace"
+        data-home-article-refresh
+      >
+        <i data-lucide="rotate-cw" aria-hidden="true"></i>
+      </button>
     </header>
     {% include "discovery/partials/article_index.html" %}
   </div>

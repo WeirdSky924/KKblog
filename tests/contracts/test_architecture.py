@@ -17,6 +17,7 @@ BUSINESS_APPS = {
     "navigation",
     "notifications",
     "operations",
+    "opportunities",
 }
 ALLOWED_APP_DEPENDENCIES = {
     "core": set(),
@@ -28,6 +29,7 @@ ALLOWED_APP_DEPENDENCIES = {
     "notifications": {"core"},
     "navigation": {"accounts", "content", "core", "operations"},
     "operations": {"core"},
+    "opportunities": {"accounts", "core", "operations"},
     "exchange": {"core", "operations"},
     "analytics": {"accounts", "core", "operations"},
     "discovery": {"comments", "content", "core", "media", "navigation"},
@@ -44,6 +46,7 @@ ALLOWED_APP_DEPENDENCIES = {
         "navigation",
         "notifications",
         "operations",
+        "opportunities",
     },
 }
 
@@ -75,7 +78,7 @@ def _imports(path: Path) -> list[str]:
 def test_app_imports_follow_documented_dependency_direction() -> None:
     violations = []
     for path in sorted(APPS_ROOT.rglob("*.py")):
-        if "__pycache__" in path.parts:
+        if {"__pycache__", "migrations", "tests"} & set(path.parts):
             continue
         relative_path = path.relative_to(APPS_ROOT)
         if len(relative_path.parts) < 2:

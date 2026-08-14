@@ -100,6 +100,10 @@
   aspect-ratio: 1;
 }
 
+.media-picker[data-media-picker="site-hero"] .media-picker__preview {
+  aspect-ratio: 16 / 9;
+}
+
 .media-picker[data-media-picker="avatar"] .media-picker__preview {
   align-self: start;
   overflow: visible;
@@ -121,6 +125,20 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.media-picker__hero-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.media-picker__hero-preview img,
+.media-picker__hero-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .media-picker[data-media-kind="attachment"] .media-picker__preview {

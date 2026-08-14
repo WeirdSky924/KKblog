@@ -16,6 +16,7 @@
         <span>{{ row.node.node_type_label }} · 第 {{ row.node.depth|add:1 }} 层 · 位置 {{ row.node.position }}</span>
       </div>
       <div class="navigation-tree__badges">
+        {% if row.node.default_expanded %}<span>默认展开</span>{% endif %}
         {% if row.node.hidden %}<span>已隐藏</span>{% endif %}
         {% if row.node.target_missing %}<span>目标失效</span>{% endif %}
       </div>

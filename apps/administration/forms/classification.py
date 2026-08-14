@@ -1,5 +1,7 @@
 from django import forms
 
+from apps.core.ids import normalize_ulid
+
 TAG_STATES = (
     ("", "全部状态"),
     ("PENDING", "待审核"),
@@ -37,7 +39,25 @@ class TagActionConfirmationForm(forms.Form):
     )
 
 
-class SectionCreateForm(forms.Form):
+class SectionCoverForm(forms.Form):
+    default_cover_asset_id = forms.CharField(
+        label="分区默认封面",
+        max_length=26,
+        required=False,
+        widget=forms.HiddenInput,
+    )
+
+    def clean_default_cover_asset_id(self):
+        value = self.cleaned_data.get("default_cover_asset_id", "")
+        if not value:
+            return None
+        try:
+            return normalize_ulid(value)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("分区默认封面不合法。") from None
+
+
+class SectionCreateForm(SectionCoverForm):
     name = forms.CharField(
         label="分区名称",
         max_length=100,
@@ -50,6 +70,15 @@ class SectionRenameConfirmationForm(forms.Form):
     name = forms.CharField(label="新分区名称", max_length=100)
     confirm = forms.ChoiceField(
         choices=(("section_rename", "确认重命名"),),
+        widget=forms.HiddenInput,
+    )
+
+
+class SectionUpdateConfirmationForm(SectionCoverForm):
+    section_id = forms.UUIDField(widget=forms.HiddenInput)
+    name = forms.CharField(label="分区名称", max_length=100)
+    confirm = forms.ChoiceField(
+        choices=(("section_update", "确认更新"),),
         widget=forms.HiddenInput,
     )
 
@@ -67,6 +96,7 @@ __all__ = [
     "SectionCreateForm",
     "SectionDeleteConfirmationForm",
     "SectionRenameConfirmationForm",
+    "SectionUpdateConfirmationForm",
     "TagActionConfirmationForm",
     "TagCreateForm",
 ]

@@ -85,6 +85,7 @@ def register_target_access(
 _PURPOSE_TARGETS: Mapping[MediaPurpose, frozenset[MediaTargetType]] = {
     MediaPurpose.AVATAR: frozenset({MediaTargetType.ACCOUNT_PROFILE}),
     MediaPurpose.COVER: frozenset({MediaTargetType.ARTICLE_REVISION}),
+    MediaPurpose.SECTION_COVER: frozenset({MediaTargetType.SECTION}),
     MediaPurpose.BODY: frozenset({MediaTargetType.ARTICLE_REVISION}),
     MediaPurpose.ATTACHMENT: frozenset({MediaTargetType.ARTICLE_REVISION}),
     MediaPurpose.COMMENT: frozenset({MediaTargetType.COMMENT}),
@@ -96,7 +97,8 @@ _PURPOSE_TARGETS: Mapping[MediaPurpose, frozenset[MediaTargetType]] = {
         }
     ),
     MediaPurpose.LOGO: frozenset({MediaTargetType.SITE_BRAND}),
-    MediaPurpose.FRIEND_LOGO: frozenset({MediaTargetType.FRIEND_LINK}),
+    MediaPurpose.HERO: frozenset({MediaTargetType.SITE_BRAND}),
+    MediaPurpose.FRIEND_LOGO: frozenset(),
     MediaPurpose.IMPORT: frozenset({MediaTargetType.IMPORT_JOB}),
 }
 

@@ -19,6 +19,7 @@ Kaj 的小房间是一个面向中文用户、支持移动端的私人博客项�
 
 - [实施总清单](docs/planning/implementation-todolist.md)
 - [阶段执行契约](docs/planning/implementation-readiness.md)
+- [后续 16 项增强规划与复核进度](docs/planning/next-16-items/README.md)
 - [架构总览](docs/architecture/README.md)
 - [页面状态矩阵](docs/prototype/page-state-matrix.md)
 - [贡献指南](CONTRIBUTING.md)

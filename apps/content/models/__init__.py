@@ -4,6 +4,7 @@ from .author_state import AuthorContentMask
 from .deletion import ArticleTombstone
 from .editing import ArticleEditGrant
 from .publication import PublicationReviewGrant
+from .publication_history import ArticlePublication
 from .restoration import ArticleRestoreGrant
 from .revision import ArticleRevision
 from .section import Section
@@ -20,6 +21,7 @@ __all__ = [
     "ArticleTombstone",
     "AuthorContentMask",
     "ArticleEditGrant",
+    "ArticlePublication",
     "AdminArticleViewReceipt",
     "ArticleRevision",
     "ArticleRestoreGrant",

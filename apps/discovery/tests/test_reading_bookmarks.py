@@ -145,6 +145,16 @@ def test_reading_bookmark_http_requires_login_validates_and_reads_back(
     anonymous_page = anonymous.get(detail_url)
     anonymous_html = anonymous_page.content.decode()
     assert anonymous_page.status_code == 200
+    assert 'id="article-mobile-action-menu"' in anonymous_html
+    assert "data-article-mobile-menu" in anonymous_html
+    assert "data-article-mobile-menu-toggle" in anonymous_html
+    assert 'aria-controls="article-mobile-action-menu"' in anonymous_html
+    assert 'aria-expanded="false"' in anonymous_html
+    assert 'data-article-action="bookmark"' in anonymous_html
+    assert 'data-article-action="copy"' in anonymous_html
+    assert 'data-article-action="reading-bookmark"' in anonymous_html
+    assert 'data-article-action="like"' in anonymous_html
+    assert "data-article-scroll-top" in anonymous_html
     assert "data-reading-bookmark-save" in anonymous_html
     assert "data-reading-bookmark-goto-login" in anonymous_html
     assert "登录后保存阅读书签" in anonymous_html
@@ -175,6 +185,8 @@ def test_reading_bookmark_http_requires_login_validates_and_reads_back(
     html = page.content.decode()
     assert "前往书签" in html
     assert f'action="{save_url}"' in html
+    assert 'id="article-mobile-action-menu"' in html
+    assert "data-article-mobile-menu-toggle" in html
     assert "data-reading-bookmark-save" in html
     assert "data-reading-bookmark-goto" in html
 

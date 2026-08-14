@@ -127,6 +127,30 @@ class CommandResult[T]:
 | `cancel_export` | 条件取消、删除未完成包、永久审计 |
 | `authorize_export_download` | 管理员、完成、未过期三重检查 |
 
+## opportunities 公开服务与查询
+
+| 服务/查询 | 责任 |
+| --- | --- |
+| `create_source` / `activate_source_and_request_check` | 唯一管理员创建停用来源草稿；启用与首次检查运行原子创建，来源首次完整检查成功前不公开 |
+| `request_source_check` / `request_full_check` | 唯一管理员请求单来源或全量检查；复用当前兼容运行，拒绝插队或并发第二个重型运行 |
+| `request_check_cancellation` | 唯一管理员请求安全取消全量运行；当前来源原子步骤结束后停止，保留已提交结果 |
+| `dispatch_pending_check_runs` | 有界补偿事务提交后首次 broker 派发失败的 `PENDING` 运行；实际执行继续由 TaskRun 幂等键裁决 |
+| `replace_source_filter_options` | 以全站规范身份和来源观测更新城市、类别、届别集合；失效值保留历史 |
+| `create_opportunity` | 唯一管理员新建待确认公开岗位，校验来源、HTTPS、allowlist 和三类多值筛选，并原子创建审核项/审计 |
+| `update_source` / `activate_source` / `disable_source` | 唯一管理员维护来源和 allowlist；启停保持岗位之前的发布事实，所有变化写审计 |
+| `update_opportunity` / `withdraw_opportunity` | 唯一管理员维护人工覆盖、核实和发布状态；下架不删除岗位历史或用户收藏 |
+| `resolve_review_item` | 唯一管理员接受客观事实、保留人工值或关闭审核项；同一开放项不可重复处理 |
+| `resolve_review_items` | 唯一管理员原子接受当前页指定审核项或全部开放审核项；并发下只处理仍开放的项目，并以单次批量审计记录范围和数量 |
+| `update_opportunity_settings` | 唯一管理员原子替换仍在公开范围内的城市、核实状态、企业、招聘类型、岗位类别和届别六组多选默认值；默认值只是公开页首次进入的普通筛选 |
+| `set_opportunity_bookmark` | 活跃登录账户幂等收藏/取消，维持 `(account, opportunity)` 唯一 |
+| `public_opportunities` | 只读启用且公开来源下在架、已确认/待确认岗位，不泄露内部检查和审核字段 |
+| `public_opportunity_sources` / `public_opportunity_filters` / `public_opportunity_summary` | 公开来源分页、全站筛选集合和摘要计数；只投影可公开事实 |
+| `bookmarked_opportunities` | 只读调用账户自己的收藏，保留已下架/已过期岗位的安全状态标记 |
+| `admin_sources` / `admin_opportunities` / `admin_review_queue` | 唯一管理员的来源、岗位与审核分页投影；普通账户不可调用，收藏不进入管理投影 |
+| `admin_check_run_sources` / `admin_check_run_source_detail` | 按来源分页的任务历史与单条快照差异详情；详情至多返回 200 条新增/更新岗位，不在历史列表全量物化 |
+
+来源抓取、TaskRun、每日调度和 90 天清理由同一 owner 提供；T22 管理页面和 T23 公开页面均已落地。展示层不得同步执行外部读取，只提交运行请求并读回持久状态；公开筛选和分页始终以服务端查询为真值。
+
 ## 返回与错误规则
 
 - 表单可修复错误：稳定业务错误码 + 字段映射，例如 `account.email_taken`。

@@ -1,0 +1,28 @@
+{% with opportunity_id=bookmark_opportunity_id selected=bookmark_selected %}
+  <span
+    id="opportunity-bookmark-control-{{ opportunity_id }}"
+    class="opportunity-bookmark-control"
+  >
+    <form
+      method="post"
+      action="{% url 'opportunities:bookmark' %}"
+      hx-post="{% url 'opportunities:bookmark' %}"
+      hx-target="closest .opportunity-bookmark-control"
+      hx-swap="outerHTML"
+      data-submit-once
+      class="opportunity-bookmark-form"
+    >
+      {% csrf_token %}
+      <input type="hidden" name="opportunity_id" value="{{ opportunity_id }}">
+      <input type="hidden" name="selected" value="{% if selected %}false{% else %}true{% endif %}">
+      <input type="hidden" name="return_query" value="{{ opportunity_current_path }}">
+      <button
+        class="icon-button{% if selected %} is-selected{% endif %}"
+        type="submit"
+        aria-label="{% if selected %}取消收藏{% else %}收藏{% endif %}"
+        title="{% if selected %}取消收藏{% else %}收藏{% endif %}"
+        aria-pressed="{% if selected %}true{% else %}false{% endif %}"
+      ><i data-lucide="bookmark"{% if selected %} fill="currentColor"{% endif %}></i></button>
+    </form>
+  </span>
+{% endwith %}

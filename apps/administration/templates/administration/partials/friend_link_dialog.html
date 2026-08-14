@@ -1,0 +1,67 @@
+<dialog
+  id="friend-link-dialog"
+  class="confirm-dialog friend-link-dialog"
+  data-confirm-dialog
+  open
+  data-auto-modal
+  data-dialog-return-focus="{{ friend_dialog.return_focus_id }}"
+  data-dialog-return-url="{{ friend_dialog.return_url }}"
+  aria-labelledby="friend-link-dialog-title"
+  aria-describedby="friend-link-dialog-description"
+>
+  <form
+    method="post"
+    class="confirm-dialog__content friend-link-dialog__form"
+    hx-post="{% url 'admin:site-settings' %}"
+    hx-target="#friend-link-manager"
+    hx-swap="outerHTML"
+    data-submit-once
+  >
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ friend_dialog.action }}">
+    {% if friend_dialog.link %}<input type="hidden" name="link_id" value="{{ friend_dialog.link.id }}">{% endif %}
+    {% for hidden in friend_dialog.form.hidden_fields %}{{ hidden }}{% endfor %}
+    <header class="friend-link-dialog__header">
+      <span>
+        <h2 id="friend-link-dialog-title">{{ friend_dialog.title }}</h2>
+        <p id="friend-link-dialog-description">{{ friend_dialog.description }}</p>
+      </span>
+      <button class="icon-button" type="button" data-dialog-cancel aria-label="关闭友情链接弹窗" title="关闭">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    {% if friend_dialog.kind == "delete" %}
+      {% if friend_dialog.form.errors %}
+        <div class="friend-link-dialog__error" role="alert" tabindex="-1" data-error-focus>
+          <p>链接状态已经变化，请刷新后重试。</p>
+          {{ friend_dialog.form.non_field_errors }}
+        </div>
+      {% endif %}
+      <p class="friend-link-dialog__delete-copy">链接“{{ friend_dialog.link.name }}”将从公开友情链接页和页脚移除。</p>
+    {% else %}
+      {% if friend_dialog.form.errors %}
+        <div class="friend-link-dialog__error" role="alert" tabindex="-1" data-error-focus>
+          <p>请检查标出的字段后重试。</p>
+          {{ friend_dialog.form.non_field_errors }}
+        </div>
+      {% endif %}
+      {% for field in friend_dialog.form.visible_fields %}
+        <div class="site-settings-field">
+          {{ field.label_tag }}
+          {{ field.errors }}
+          {{ field }}
+          {% if field.name == "position" %}<p class="form-help">0 表示第一位，数字越大越靠后。</p>{% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="confirm-dialog__actions">
+      <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+      <button class="button {% if friend_dialog.kind == 'delete' %}button--danger{% else %}button--primary{% endif %}" type="submit">
+        {% if friend_dialog.kind == "delete" %}<i data-lucide="trash-2" aria-hidden="true"></i>{% endif %}
+        <span>{{ friend_dialog.submit_label }}</span>
+      </button>
+    </div>
+  </form>
+</dialog>

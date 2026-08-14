@@ -8,6 +8,7 @@ from apps.accounts.public import is_administrator
 from apps.core.ids import normalize_ulid
 
 from ..models import Article, Section, Tag, TagAssociationHistory, TagRestoreConflict
+from .classification import section_cover_asset_ids
 
 ADMIN_ARTICLE_STATES = ("DRAFT", "SCHEDULED", "PUBLISHED", "DELETED")
 ADMIN_TAG_STATES = tuple(Tag.State.values)
@@ -85,6 +86,7 @@ class AdminTagDetail:
 class AdminSectionItem:
     id: UUID
     name: str
+    default_cover_asset_id: str | None
     affected_article_count: int
     affected_revision_count: int
     created_at: datetime
@@ -390,10 +392,13 @@ def _admin_section_queryset():
     )
 
 
-def _section_item(section: Section) -> AdminSectionItem:
+def _section_item(
+    section: Section, default_cover_asset_id: str | None
+) -> AdminSectionItem:
     return AdminSectionItem(
         id=section.id,
         name=section.name,
+        default_cover_asset_id=default_cover_asset_id,
         affected_article_count=int(section.affected_article_count),
         affected_revision_count=int(section.affected_revision_count),
         created_at=section.created_at,
@@ -405,8 +410,9 @@ def admin_section_page(*, actor_id, limit: int = 300) -> tuple[AdminSectionItem,
     _require_classification_administrator(actor_id)
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator section limit")
-    rows = _admin_section_queryset().order_by("normalized_name", "id")[:limit]
-    return tuple(_section_item(section) for section in rows)
+    rows = tuple(_admin_section_queryset().order_by("normalized_name", "id")[:limit])
+    cover_ids = section_cover_asset_ids(tuple(str(section.id) for section in rows))
+    return tuple(_section_item(section, cover_ids[str(section.id)]) for section in rows)
 
 
 def admin_section_item(*, actor_id, section_id) -> AdminSectionItem:
@@ -415,7 +421,11 @@ def admin_section_item(*, actor_id, section_id) -> AdminSectionItem:
     section = _admin_section_queryset().filter(pk=identity).first()
     if section is None:
         raise LookupError("Administrator section not found")
-    return _section_item(section)
+    identity_value = str(section.id)
+    return _section_item(
+        section,
+        section_cover_asset_ids((identity_value,))[identity_value],
+    )
 
 
 __all__ = [

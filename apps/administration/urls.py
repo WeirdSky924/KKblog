@@ -6,6 +6,7 @@ from apps.administration.views.article_moderation import (
     restore_article_case_action,
     review_article_appeal_action,
 )
+from apps.administration.views.article_preview import article_preview
 from apps.administration.views.articles import articles
 from apps.administration.views.audit import audit_log
 from apps.administration.views.comments import comments
@@ -16,6 +17,7 @@ from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
 from apps.administration.views.navigation import navigation
 from apps.administration.views.notifications import notifications
+from apps.administration.views.opportunities import opportunities
 from apps.administration.views.reports import reports
 from apps.administration.views.sections import sections
 from apps.administration.views.site_settings import site_settings
@@ -30,6 +32,11 @@ urlpatterns = [
     path("", administrator_required(index), name="index"),
     path("users/", administrator_required(users), name="users"),
     path("articles/", administrator_required(articles), name="articles"),
+    path(
+        "articles/<str:article_id>/preview/",
+        administrator_required(article_preview),
+        name="article-preview",
+    ),
     path("comments/", administrator_required(comments), name="comments"),
     path("reports/", administrator_required(reports), name="reports"),
     path("tags/", administrator_required(tags), name="tags"),
@@ -63,6 +70,11 @@ urlpatterns = [
     path("audit/", administrator_required(audit_log), name="audit"),
     path("errors/", administrator_required(runtime_errors), name="errors"),
     path("tasks/", administrator_required(task_runs), name="tasks"),
+    path(
+        "opportunities/",
+        administrator_required(opportunities),
+        name="opportunities",
+    ),
     path("exchange/", administrator_required(exchange), name="exchange"),
     path(
         "exchange/<str:job_id>/download/",

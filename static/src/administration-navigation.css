@@ -4,7 +4,8 @@
   grid-template-areas:
     "label type"
     "target parent"
-    "position submit";
+    "position submit"
+    "expanded submit";
   align-items: start;
   gap: 0.875rem 1rem;
   padding: 1rem;
@@ -48,6 +49,10 @@
 
 .navigation-manager__field--position {
   grid-area: position;
+}
+
+.navigation-manager__field--expanded {
+  grid-area: expanded;
 }
 
 .administration-workspace
@@ -335,6 +340,7 @@
       "target"
       "parent"
       "position"
+      "expanded"
       "submit";
   }
 

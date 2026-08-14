@@ -130,11 +130,29 @@
       class="article-action-dock"
       data-article-action-dock
       data-visible="false"
+      data-mobile-open="false"
       aria-label="文章快捷操作"
-      aria-hidden="true"
-      inert
     >
-      {% if bookmark_login_url %}
+      <button
+        class="button button--primary article-action-menu-toggle"
+        type="button"
+        data-article-mobile-menu-toggle
+        aria-controls="article-mobile-action-menu"
+        aria-expanded="false"
+        aria-label="展开文章快捷操作"
+        title="展开文章快捷操作"
+      >
+        <i class="article-action-menu-toggle__open" data-lucide="menu"></i>
+        <i class="article-action-menu-toggle__close" data-lucide="x"></i>
+      </button>
+      <div
+        id="article-mobile-action-menu"
+        class="article-action-dock__actions"
+        data-article-mobile-menu
+        aria-hidden="true"
+        inert
+      >
+        {% if bookmark_login_url %}
         <a
           class="button button--secondary article-action-button article-action-bookmark"
           href="{{ bookmark_login_url }}"
@@ -144,7 +162,7 @@
         >
           <i data-lucide="bookmark"></i>
         </a>
-      {% else %}
+        {% else %}
         <button
           class="button button--secondary article-action-button article-action-bookmark"
           type="button"
@@ -157,66 +175,67 @@
         >
           <i data-lucide="bookmark"></i>
         </button>
-      {% endif %}
-      {% include "discovery/partials/like_control.html" %}
-      <button
-        class="button button--secondary article-action-button"
-        type="button"
-        data-copy-link
-        data-article-action="copy"
-        data-copy-url="{{ permalink }}"
-        aria-label="复制文章永久链接"
-        title="复制文章永久链接"
-      >
-        <i data-lucide="copy"></i>
-      </button>
-      {% if reading_bookmark_login_url %}
-        <a
-          class="button button--secondary article-action-button article-action-reading-bookmark"
-          href="{{ reading_bookmark_login_url }}"
-          data-article-action="reading-bookmark"
-          data-reading-bookmark-save
-          aria-label="登录后保存阅读书签"
-          title="登录后保存阅读书签"
+        {% endif %}
+        {% include "discovery/partials/like_control.html" %}
+        <button
+          class="button button--secondary article-action-button"
+          type="button"
+          data-copy-link
+          data-article-action="copy"
+          data-copy-url="{{ permalink }}"
+          aria-label="复制文章永久链接"
+          title="复制文章永久链接"
         >
-          <i data-lucide="bookmark-check"></i>
-        </a>
-      {% else %}
-        <form
-          class="reading-bookmark-control"
-          action="{% url 'article:reading-bookmark' article.article_id %}"
-          method="post"
-          data-reading-bookmark-form
-        >
-          {% csrf_token %}
-          <input
-            type="hidden"
-            name="progress"
-            value="{{ reading_bookmark_progress_value }}"
-            data-reading-bookmark-input
-          >
-          <button
+          <i data-lucide="copy"></i>
+        </button>
+        {% if reading_bookmark_login_url %}
+          <a
             class="button button--secondary article-action-button article-action-reading-bookmark"
-            type="submit"
+            href="{{ reading_bookmark_login_url }}"
             data-article-action="reading-bookmark"
             data-reading-bookmark-save
-            data-saved="{% if reading_bookmark_progress == None %}false{% else %}true{% endif %}"
-            aria-label="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
-            title="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
+            aria-label="登录后保存阅读书签"
+            title="登录后保存阅读书签"
           >
             <i data-lucide="bookmark-check"></i>
-          </button>
-        </form>
-      {% endif %}
-      <button
-        class="button button--secondary article-action-button"
-        type="button"
-        data-article-scroll-top
-        aria-label="回到文章顶部"
-        title="回到文章顶部"
-      >
-        <i data-lucide="arrow-up"></i>
-      </button>
+          </a>
+        {% else %}
+          <form
+            class="reading-bookmark-control"
+            action="{% url 'article:reading-bookmark' article.article_id %}"
+            method="post"
+            data-reading-bookmark-form
+          >
+            {% csrf_token %}
+            <input
+              type="hidden"
+              name="progress"
+              value="{{ reading_bookmark_progress_value }}"
+              data-reading-bookmark-input
+            >
+            <button
+              class="button button--secondary article-action-button article-action-reading-bookmark"
+              type="submit"
+              data-article-action="reading-bookmark"
+              data-reading-bookmark-save
+              data-saved="{% if reading_bookmark_progress == None %}false{% else %}true{% endif %}"
+              aria-label="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
+              title="{% if reading_bookmark_progress == None %}保存当前阅读位置{% else %}更新当前阅读位置{% endif %}"
+            >
+              <i data-lucide="bookmark-check"></i>
+            </button>
+          </form>
+        {% endif %}
+        <button
+          class="button button--secondary article-action-button"
+          type="button"
+          data-article-scroll-top
+          aria-label="回到文章顶部"
+          title="回到文章顶部"
+        >
+          <i data-lucide="arrow-up"></i>
+        </button>
+      </div>
     </aside>
   </article>
   {% include "comments/partials/article_panel.html" %}

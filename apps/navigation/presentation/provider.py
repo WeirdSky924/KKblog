@@ -22,6 +22,8 @@ def database_site_presentation() -> SitePresentation:
             children = include_about(item.children)
             if item.url == about_url and not static_page_is_published("ABOUT"):
                 continue
+            if item.url is None and not children:
+                continue
             result.append(
                 item.__class__(
                     label=item.label,
@@ -29,6 +31,7 @@ def database_site_presentation() -> SitePresentation:
                     children=tuple(children),
                     key=item.key,
                     section_id=item.section_id,
+                    default_expanded=item.default_expanded and bool(children),
                 )
             )
         return result
@@ -42,6 +45,8 @@ def database_site_presentation() -> SitePresentation:
         site_name=configuration.site_name,
         site_description=configuration.site_description or None,
         logo_url=configuration.logo_url,
+        hero_url=configuration.hero_url,
+        hero_is_video=configuration.hero_is_video,
         navigation=navigation,
         copyright_text=configuration.copyright_text or None,
         privacy_url=privacy_url,

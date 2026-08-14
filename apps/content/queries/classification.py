@@ -1,6 +1,15 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from django.db import connection
+from django.db.migrations.recorder import MigrationRecorder
+
+from apps.media.public import (
+    MediaPurpose,
+    MediaTargetType,
+    target_binding_snapshots,
+)
+
 from ..models import ArticleTag, Section, Tag
 
 
@@ -8,21 +17,59 @@ from ..models import ArticleTag, Section, Tag
 class SectionItem:
     section_id: UUID
     name: str
+    default_cover_asset_id: str | None
+
+
+def section_default_cover_schema_ready() -> bool:
+    return (
+        MigrationRecorder(connection)
+        .migration_qs.filter(
+            app="media",
+            name="0005_remove_mediabinding_media_binding_target_registered_and_more",
+        )
+        .exists()
+    )
+
+
+def section_cover_asset_ids(section_ids: tuple[str, ...]) -> dict[str, str | None]:
+    snapshots = target_binding_snapshots(
+        target_type=MediaTargetType.SECTION,
+        target_ids=section_ids,
+    )
+    return {
+        section_id: next(
+            (
+                item.asset_id
+                for item in snapshots[section_id]
+                if item.purpose == MediaPurpose.SECTION_COVER
+                and item.state == "ACTIVE"
+                and item.slot == "default-cover"
+            ),
+            None,
+        )
+        for section_id in section_ids
+    }
 
 
 def section_list() -> tuple[SectionItem, ...]:
+    rows = tuple(Section.objects.order_by("normalized_name", "id").values("id", "name"))
+    cover_ids = section_cover_asset_ids(tuple(str(row["id"]) for row in rows))
     return tuple(
-        SectionItem(section.id, section.name)
-        for section in Section.objects.order_by("normalized_name", "id")
+        SectionItem(row["id"], row["name"], cover_ids[str(row["id"])]) for row in rows
     )
 
 
 def section_by_id(section_id) -> SectionItem | None:
     try:
-        section = Section.objects.get(pk=section_id)
+        row = Section.objects.values("id", "name").get(pk=section_id)
     except (Section.DoesNotExist, ValueError, TypeError):
         return None
-    return SectionItem(section.id, section.name)
+    identity = str(row["id"])
+    return SectionItem(
+        row["id"],
+        row["name"],
+        section_cover_asset_ids((identity,))[identity],
+    )
 
 
 @dataclass(frozen=True, slots=True)

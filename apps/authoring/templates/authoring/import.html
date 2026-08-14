@@ -6,16 +6,20 @@
 
 {% block content %}
   <div class="authoring-layout">
-    {% include "authoring/partials/workflow_rail.html" with current_author_step=6 %}
+    {% include "authoring/partials/workflow_rail.html" with current_author_step=2 %}
     <section class="authoring-stage author-operations" aria-labelledby="author-import-title">
       <header class="authoring-heading">
         <div>
-          <p class="authoring-folio">06 / 06</p>
+          <p class="authoring-folio">02 / 05</p>
           <h1 id="author-import-title">文章导入</h1>
         </div>
         {% if import_page %}
           <a class="button button--secondary" href="{% url 'authoring:import' %}">
             <i data-lucide="file-plus-2"></i><span>新建导入</span>
+          </a>
+        {% else %}
+          <a class="button button--secondary" href="{% url 'authoring:create' %}">
+            <i data-lucide="arrow-left"></i><span>返回创建方式</span>
           </a>
         {% endif %}
       </header>
@@ -31,7 +35,7 @@
               <p>支持单个 Markdown 或 ZIP 包；ZIP 最多 64 MiB、1000 项和 8 层目录。</p>
             </div>
           </header>
-          <form method="post" enctype="multipart/form-data" data-submit-once>
+          <form method="post" enctype="multipart/form-data" data-submit-once data-import-upload-form>
             {% csrf_token %}
             <div class="author-import-file">
               <label for="{{ import_upload_form.source.id_for_label }}">{{ import_upload_form.source.label }}</label>

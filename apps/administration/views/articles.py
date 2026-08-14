@@ -11,11 +11,11 @@ from apps.administration.forms.moderation import (
     ArticleRestoreConfirmationForm,
 )
 from apps.administration.presentation.moderation import admin_article_rows
+from apps.administration.views.article_preview import article_preview_context
 from apps.content.public import (
     ArticleNotFound,
     admin_article_item,
     admin_article_page,
-    article_for_admin,
 )
 from apps.media.public import MediaTargetType, target_binding_snapshot
 from apps.moderation.public import (
@@ -156,6 +156,16 @@ def _dialog(kind: str, target, form) -> dict[str, object]:
     }
 
 
+def _preview_return_url(request: HttpRequest) -> str:
+    params = request.GET.copy()
+    for key in ("detail", "revision", "revision_id"):
+        params.pop(key, None)
+    target = reverse("admin:articles")
+    if params:
+        target = f"{target}?{params.urlencode()}"
+    return f"{target}#article-list"
+
+
 def _render(
     request: HttpRequest,
     *,
@@ -187,20 +197,18 @@ def _render(
         page_error = str(exc)
         status = 422
 
-    detail = None
+    preview = {}
     detail_revision = request.GET.get("revision", "working")
     detail_id = request.GET.get("detail", "")
     if detail_id:
-        if detail_revision not in {"working", "published"}:
-            raise Http404
         try:
-            detail = article_for_admin(
-                actor_id=request.account_id,
+            preview = article_preview_context(
+                request,
                 article_id=detail_id,
                 revision=detail_revision,
-                trace_code=getattr(request, "trace_code", ""),
+                revision_id=request.GET.get("revision_id", ""),
             )
-        except ArticleNotFound:
+        except (ArticleNotFound, LookupError):
             raise Http404 from None
 
     selected_case = None
@@ -239,8 +247,9 @@ def _render(
                 actor_id=request.account_id,
             ),
             "filter_form": filter_form,
-            "detail": detail,
-            "detail_revision": detail_revision,
+            **preview,
+            "preview_dialog_open": bool(preview),
+            "preview_return_url": _preview_return_url(request),
             "selected_case": selected_case,
             "selected_case_article": selected_case_article,
             "case_evidence": case_evidence,

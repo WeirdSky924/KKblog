@@ -2,8 +2,126 @@ const COMPACT_NAVIGATION_QUERY = "(max-width: 63.99rem)";
 const SECTION_SNAP_TOLERANCE = 24;
 const TOUCH_SNAP_MIN_DISTANCE = 32;
 const SECTION_SNAP_DURATION = 650;
+const NAVIGATION_PAGING_TOLERANCE = 2;
 const boundHomePages = new WeakSet();
 const boundNavigationShells = new WeakSet();
+const boundNavigationBranches = new WeakSet();
+const boundNavigationScrollers = new WeakSet();
+
+export function getNavigationPagingState(
+  { clientHeight, scrollHeight, scrollTop },
+  tolerance = NAVIGATION_PAGING_TOLERANCE,
+) {
+  const boundaryTolerance = Math.max(0, tolerance);
+  return {
+    canPageDown:
+      scrollTop + clientHeight < scrollHeight - boundaryTolerance,
+    canPageUp: scrollTop > boundaryTolerance,
+  };
+}
+
+export function findNavigationPageTarget(
+  items,
+  { direction, maxScroll, viewportEnd, viewportStart },
+  tolerance = NAVIGATION_PAGING_TOLERANCE,
+) {
+  const boundaryTolerance = Math.max(0, tolerance);
+  const viewportHeight = viewportEnd - viewportStart;
+  if (
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    viewportHeight <= 0 ||
+    (direction !== "up" && direction !== "down")
+  ) {
+    return null;
+  }
+
+  let candidate;
+  if (direction === "down") {
+    candidate = items.find(
+      (item) => item.bottom > viewportEnd + boundaryTolerance,
+    );
+  } else {
+    candidate = items.findLast(
+      (item) => item.top < viewportStart - boundaryTolerance,
+    );
+  }
+  if (!candidate) {
+    return null;
+  }
+
+  let target;
+  if (direction === "down") {
+    target =
+      candidate.top > viewportStart + boundaryTolerance
+        ? candidate.top
+        : candidate.bottom - viewportHeight;
+  } else {
+    target =
+      candidate.bottom < viewportEnd - boundaryTolerance
+        ? candidate.bottom - viewportHeight
+        : candidate.top;
+  }
+  const clampedTarget = Math.min(Math.max(0, target), Math.max(0, maxScroll));
+  return Math.abs(clampedTarget - viewportStart) <= boundaryTolerance
+    ? null
+    : clampedTarget;
+}
+
+function applyBranchState(toggle, expanded) {
+  const controls = toggle.getAttribute("aria-controls");
+  const children = controls
+    ? toggle.ownerDocument.getElementById(controls)
+    : null;
+  if (!(children instanceof HTMLUListElement)) {
+    return false;
+  }
+  const label = toggle.dataset.navigationBranchLabel ?? "导航";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.title = `${expanded ? "收起" : "展开"}子项`;
+  if (toggle.classList.contains("public-navigation__branch-toggle")) {
+    toggle.setAttribute(
+      "aria-label",
+      `${expanded ? "收起" : "展开"}${label}的子项`,
+    );
+  }
+  children.hidden = !expanded;
+  return true;
+}
+
+function bindNavigationBranch(toggle) {
+  if (
+    !(toggle instanceof HTMLButtonElement) ||
+    boundNavigationBranches.has(toggle)
+  ) {
+    return;
+  }
+  if (!applyBranchState(toggle, toggle.getAttribute("aria-expanded") === "true")) {
+    return;
+  }
+  boundNavigationBranches.add(toggle);
+  toggle.addEventListener("click", () => {
+    if (
+      applyBranchState(toggle, toggle.getAttribute("aria-expanded") !== "true")
+    ) {
+      toggle.dispatchEvent(
+        new CustomEvent("navigation:layoutchange", { bubbles: true }),
+      );
+    }
+  });
+}
+
+function initializeNavigationBranches(root = document) {
+  if (
+    root instanceof HTMLButtonElement &&
+    root.matches("[data-navigation-branch-toggle]")
+  ) {
+    bindNavigationBranch(root);
+  }
+  root.querySelectorAll?.("[data-navigation-branch-toggle]").forEach((toggle) => {
+    bindNavigationBranch(toggle);
+  });
+}
 
 function documentTop(element) {
   return element.getBoundingClientRect().top + window.scrollY;
@@ -173,6 +291,93 @@ function markActiveSection(shell, sectionId) {
   });
 }
 
+function navigationItemGeometry(viewport) {
+  const viewportRect = viewport.getBoundingClientRect();
+  return Array.from(
+    viewport.querySelectorAll(
+      ".public-navigation__item > a, .public-navigation__item > .public-navigation__row, .public-navigation__item > .public-navigation__group-label",
+    ),
+  )
+    .map((item) => item.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > NAVIGATION_PAGING_TOLERANCE)
+    .map((rect) => ({
+      bottom: rect.bottom - viewportRect.top + viewport.scrollTop,
+      top: rect.top - viewportRect.top + viewport.scrollTop,
+    }));
+}
+
+function bindNavigationPaging(shell) {
+  const viewport = shell.querySelector("[data-home-navigation-scroll]");
+  const upButton = shell.querySelector('[data-home-navigation-page="up"]');
+  const downButton = shell.querySelector('[data-home-navigation-page="down"]');
+  if (
+    !(viewport instanceof HTMLElement) ||
+    !(upButton instanceof HTMLButtonElement) ||
+    !(downButton instanceof HTMLButtonElement) ||
+    boundNavigationScrollers.has(viewport)
+  ) {
+    return;
+  }
+
+  boundNavigationScrollers.add(viewport);
+  let updateFrame;
+  const setButtonState = (button, enabled, focusFallback) => {
+    if (!enabled && button.ownerDocument.activeElement === button) {
+      focusFallback?.focus({ preventScroll: true });
+    }
+    button.disabled = !enabled;
+    button.tabIndex = enabled ? 0 : -1;
+    button.setAttribute("aria-hidden", String(!enabled));
+  };
+  const updateControls = () => {
+    updateFrame = undefined;
+    const state = getNavigationPagingState(viewport);
+    setButtonState(upButton, state.canPageUp, state.canPageDown ? downButton : null);
+    setButtonState(
+      downButton,
+      state.canPageDown,
+      state.canPageUp ? upButton : null,
+    );
+  };
+  const scheduleUpdate = () => {
+    if (updateFrame !== undefined) return;
+    updateFrame = window.requestAnimationFrame(updateControls);
+  };
+  const page = (direction, button) => {
+    const target = findNavigationPageTarget(navigationItemGeometry(viewport), {
+      direction,
+      maxScroll: viewport.scrollHeight - viewport.clientHeight,
+      viewportEnd: viewport.scrollTop + viewport.clientHeight,
+      viewportStart: viewport.scrollTop,
+    });
+    if (target === null) {
+      scheduleUpdate();
+      return;
+    }
+    viewport.scrollTo({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      top: target,
+    });
+    button.focus({ preventScroll: true });
+    scheduleUpdate();
+  };
+
+  upButton.addEventListener("click", () => page("up", upButton));
+  downButton.addEventListener("click", () => page("down", downButton));
+  viewport.addEventListener("scroll", scheduleUpdate, { passive: true });
+  shell.addEventListener("navigation:layoutchange", scheduleUpdate);
+  window.addEventListener("resize", scheduleUpdate, { passive: true });
+  if ("ResizeObserver" in window) {
+    const observer = new ResizeObserver(scheduleUpdate);
+    observer.observe(viewport);
+    const navigation = viewport.querySelector("nav");
+    if (navigation instanceof HTMLElement) observer.observe(navigation);
+  }
+  scheduleUpdate();
+}
+
 function bindNavigationShell(shell) {
   if (!(shell instanceof HTMLElement) || boundNavigationShells.has(shell)) {
     return;
@@ -187,6 +392,7 @@ function bindNavigationShell(shell) {
   }
 
   boundNavigationShells.add(shell);
+  bindNavigationPaging(shell);
   const page = shell.closest("[data-home-page]");
   const articles = page?.querySelector("[data-home-articles]");
   const compactQuery = window.matchMedia(COMPACT_NAVIGATION_QUERY);
@@ -239,6 +445,7 @@ function bindNavigationShell(shell) {
 }
 
 export function initializeHomeNavigation(root = document) {
+  initializeNavigationBranches(root);
   if (root instanceof HTMLElement && root.matches("[data-home-page]")) {
     bindHomeSectionSnapping(root);
   }

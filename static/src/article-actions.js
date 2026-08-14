@@ -358,35 +358,86 @@ function bindArticleActionShell(shell) {
   }
   const dock = shell.querySelector("[data-article-action-dock]");
   const topActions = shell.querySelector("[data-article-top-actions]");
+  const mobileMenu = dock?.querySelector("[data-article-mobile-menu]");
+  const mobileMenuToggle = dock?.querySelector(
+    "[data-article-mobile-menu-toggle]",
+  );
   if (
     !(dock instanceof HTMLElement) ||
-    !(topActions instanceof HTMLElement)
+    !(topActions instanceof HTMLElement) ||
+    !(mobileMenu instanceof HTMLElement) ||
+    !(mobileMenuToggle instanceof HTMLButtonElement)
   ) {
     return;
   }
 
   shell.dataset.articleActionsBound = "true";
+  const mobileViewport = window.matchMedia("(max-width: 48rem)");
   let animationFrame = 0;
+  let cleanedUp = false;
+
+  const syncActionAccessibility = () => {
+    const dockAvailable =
+      mobileViewport.matches || dock.dataset.visible === "true";
+    const actionsAvailable = mobileViewport.matches
+      ? dock.dataset.mobileOpen === "true"
+      : dockAvailable;
+    dock.setAttribute("aria-hidden", String(!dockAvailable));
+    dock.inert = !dockAvailable;
+    mobileMenu.setAttribute("aria-hidden", String(!actionsAvailable));
+    mobileMenu.inert = !actionsAvailable;
+  };
+
+  const setMobileMenu = (open, { returnFocus = false } = {}) => {
+    const expanded = mobileViewport.matches && open;
+    dock.dataset.mobileOpen = String(expanded);
+    mobileMenuToggle.setAttribute("aria-expanded", String(expanded));
+    mobileMenuToggle.setAttribute(
+      "aria-label",
+      expanded ? "收起文章快捷操作" : "展开文章快捷操作",
+    );
+    mobileMenuToggle.title = expanded
+      ? "收起文章快捷操作"
+      : "展开文章快捷操作";
+    syncActionAccessibility();
+    if (returnFocus && mobileViewport.matches) mobileMenuToggle.focus();
+  };
+
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    window.removeEventListener("scroll", queueDockUpdate);
+    window.removeEventListener("resize", queueDockUpdate);
+    document.removeEventListener("click", closeMobileMenuFromOutside);
+    document.removeEventListener("keydown", closeMobileMenuFromKeyboard);
+    mobileViewport.removeEventListener("change", handleViewportChange);
+  };
 
   const updateDock = () => {
     animationFrame = 0;
     if (!shell.isConnected) {
-      window.removeEventListener("scroll", queueDockUpdate);
-      window.removeEventListener("resize", queueDockUpdate);
+      cleanup();
       return;
     }
     const siteHeader = document.querySelector("[data-site-header]");
+    const siteFooter = document.querySelector("[data-site-footer]");
     const headerHeight =
       siteHeader instanceof HTMLElement
         ? siteHeader.getBoundingClientRect().height
         : 0;
+    const footerOffset =
+      siteFooter instanceof HTMLElement
+        ? Math.max(0, window.innerHeight - siteFooter.getBoundingClientRect().top)
+        : 0;
+    dock.style.setProperty(
+      "--article-action-footer-offset",
+      `${footerOffset}px`,
+    );
     const visible =
       window.scrollY > 0 &&
       topActions.getBoundingClientRect().bottom <= headerHeight + DOCK_OFFSET;
-    if (dock.dataset.visible === String(visible)) return;
     dock.dataset.visible = String(visible);
-    dock.setAttribute("aria-hidden", String(!visible));
-    dock.inert = !visible;
+    syncActionAccessibility();
   };
 
   const queueDockUpdate = () => {
@@ -395,8 +446,42 @@ function bindArticleActionShell(shell) {
     }
   };
 
+  const closeMobileMenuFromOutside = (event) => {
+    if (
+      dock.dataset.mobileOpen === "true" &&
+      event.target instanceof Node &&
+      !dock.contains(event.target)
+    ) {
+      setMobileMenu(false);
+    }
+  };
+
+  const closeMobileMenuFromKeyboard = (event) => {
+    if (event.key !== "Escape" || dock.dataset.mobileOpen !== "true") return;
+    event.preventDefault();
+    setMobileMenu(false, { returnFocus: true });
+  };
+
+  const handleViewportChange = () => {
+    setMobileMenu(false);
+    queueDockUpdate();
+  };
+
   shell.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
+    if (event.target.closest("[data-article-mobile-menu-toggle]")) {
+      event.preventDefault();
+      setMobileMenu(dock.dataset.mobileOpen !== "true");
+      return;
+    }
+
+    const mobileAction = event.target.closest(
+      "[data-article-mobile-menu] a, [data-article-mobile-menu] button",
+    );
+    if (mobileViewport.matches && mobileAction) {
+      setMobileMenu(false, { returnFocus: true });
+    }
+
     const mirror = event.target.closest("[data-article-bookmark-mirror]");
     if (mirror instanceof HTMLButtonElement) {
       event.preventDefault();
@@ -448,8 +533,12 @@ function bindArticleActionShell(shell) {
 
   window.addEventListener("scroll", queueDockUpdate, { passive: true });
   window.addEventListener("resize", queueDockUpdate);
+  document.addEventListener("click", closeMobileMenuFromOutside);
+  document.addEventListener("keydown", closeMobileMenuFromKeyboard);
+  mobileViewport.addEventListener("change", handleViewportChange);
   syncBookmarkControls(shell);
   syncReadingBookmarkControls(shell);
+  setMobileMenu(false);
   updateDock();
 }
 

@@ -12,10 +12,13 @@ import {
   Bold,
   Bookmark,
   BookmarkCheck,
+  BriefcaseBusiness,
   CalendarX2,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleCheck,
   CircleCheckBig,
   CircleX,
@@ -27,6 +30,7 @@ import {
   Ellipsis,
   Eye,
   ExternalLink,
+  FileText,
   FileArchive,
   FilePlus2,
   FileUp,
@@ -62,15 +66,18 @@ import {
   Moon,
   NotebookPen,
   Paperclip,
+  Pause,
   PanelTop,
   PencilLine,
   Pencil,
   Pilcrow,
   Pin,
   PinOff,
+  Play,
   Plus,
   Quote,
   Redo2,
+  RefreshCw,
   RemoveFormatting,
   Replace,
   Reply,
@@ -82,6 +89,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Square,
   SquareCode,
   SquarePlay,
   Strikethrough,
@@ -112,13 +120,16 @@ import {
 } from "./authoring-editor.js";
 import { initializeArticleDraftClears } from "./authoring-local-draft.js";
 import { initializeAuthorOperations } from "./authoring-operations.js";
+import { initializeImportUploadForms } from "./authoring-import.js";
 import {
   initializeNavigationTrees,
   initializeNodeForms,
 } from "./administration-navigation.js";
 import { initializeAdministrationSettings } from "./administration-settings.js";
 import { initializeAdministrationOperations } from "./administration-operations.js";
+import { initializeAdministrationArticlePreviews } from "./administration-article-preview.js";
 import { initializeHomeNavigation } from "./home-navigation.js";
+import { initializeHomeHeroMedia } from "./home-hero.js";
 import { initializeArticleActions } from "./article-actions.js";
 import {
   initializeBoostedPageShell,
@@ -132,6 +143,7 @@ import {
 } from "./live-submit.js";
 import { initializePasswordReveals } from "./password-reveal.js";
 import { initializeHeaderSearch } from "./header-search.js";
+import { initializeOpportunities } from "./opportunities.js";
 import {
   MediaUploadRequestError,
   uploadMediaFile,
@@ -152,10 +164,13 @@ const availableIcons = {
   Bold,
   Bookmark,
   BookmarkCheck,
+  BriefcaseBusiness,
   CalendarX2,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleCheck,
   CircleCheckBig,
   CircleX,
@@ -167,6 +182,7 @@ const availableIcons = {
   Ellipsis,
   Eye,
   ExternalLink,
+  FileText,
   FileArchive,
   FilePlus2,
   FileUp,
@@ -202,15 +218,18 @@ const availableIcons = {
   Moon,
   NotebookPen,
   Paperclip,
+  Pause,
   PanelTop,
   PencilLine,
   Pencil,
   Pilcrow,
   Pin,
   PinOff,
+  Play,
   Plus,
   Quote,
   Redo2,
+  RefreshCw,
   RemoveFormatting,
   Replace,
   Reply,
@@ -222,6 +241,7 @@ const availableIcons = {
   Search,
   Settings,
   ShieldCheck,
+  Square,
   SquareCode,
   SquarePlay,
   Strikethrough,
@@ -449,8 +469,10 @@ function initializeConfirmDialogs(root = document) {
     }
     if (dialog.dataset.bound !== "true") {
       dialog.dataset.bound = "true";
-      dialog.querySelector("[data-dialog-cancel]")?.addEventListener("click", () => {
-        dialog.close("cancel");
+      dialog.querySelectorAll("[data-dialog-cancel]").forEach((button) => {
+        button.addEventListener("click", () => {
+          dialog.close("cancel");
+        });
       });
       dialog.addEventListener("cancel", (event) => {
         event.preventDefault();
@@ -520,6 +542,7 @@ function initializeConfirmDialogs(root = document) {
       dialog.showModal();
       const initialFocus =
         dialog.querySelector("[data-error-focus]") ||
+        dialog.querySelector("[autofocus]") ||
         dialog.querySelector("[data-dialog-cancel]");
       if (initialFocus instanceof HTMLElement) {
         window.requestAnimationFrame(() => {
@@ -563,6 +586,8 @@ function initializeMediaPickers(root = document) {
     const choose = picker.querySelector("[data-media-choose]");
     const value = picker.querySelector("[data-media-value]");
     const preview = picker.querySelector("[data-media-preview]");
+    const heroImagePreview = picker.querySelector("[data-media-image-preview]");
+    const heroVideoPreview = picker.querySelector("[data-media-video-preview]");
     const fileName = picker.querySelector("[data-media-file-name]");
     const fileSize = picker.querySelector("[data-media-file-size]");
     const empty = picker.querySelector("[data-media-empty]");
@@ -591,7 +616,8 @@ function initializeMediaPickers(root = document) {
     let previewUrl = null;
     let uploadController = null;
     const isAttachment = picker.dataset.mediaKind === "attachment";
-    const mediaLabel = isAttachment ? "附件" : "图片";
+    const isHero = picker.dataset.mediaKind === "hero";
+    const mediaLabel = isAttachment ? "附件" : isHero ? "主视觉媒体" : "图片";
     const pickerLabel =
       picker.querySelector(".media-picker__header h3")?.textContent?.trim() ||
       mediaLabel;
@@ -627,6 +653,50 @@ function initializeMediaPickers(root = document) {
           fileSize.hidden = false;
         }
         if (empty instanceof HTMLElement) empty.hidden = true;
+        return;
+      }
+      if (isHero) {
+        const selectedVideo =
+          file.type.startsWith("video/") || /\.(mp4|webm)$/i.test(file.name);
+        preview.hidden = false;
+        if (
+          !(heroImagePreview instanceof HTMLImageElement) ||
+          !(heroVideoPreview instanceof HTMLVideoElement)
+        ) {
+          return;
+        }
+        heroImagePreview.hidden = true;
+        heroImagePreview.removeAttribute("src");
+        heroImagePreview.alt = "";
+        heroVideoPreview.pause();
+        heroVideoPreview.hidden = true;
+        heroVideoPreview.removeAttribute("src");
+        heroVideoPreview.load();
+        if (empty instanceof HTMLElement) empty.hidden = false;
+        previewUrl = URL.createObjectURL(file);
+        if (selectedVideo) {
+          heroVideoPreview.onloadedmetadata = () => {
+            heroVideoPreview.hidden = false;
+            if (empty instanceof HTMLElement) empty.hidden = true;
+          };
+          heroVideoPreview.onerror = () => {
+            heroVideoPreview.hidden = true;
+            if (empty instanceof HTMLElement) empty.hidden = false;
+          };
+          heroVideoPreview.src = previewUrl;
+          heroVideoPreview.load();
+        } else {
+          heroImagePreview.onload = () => {
+            heroImagePreview.alt = "所选主视觉图片预览";
+            heroImagePreview.hidden = false;
+            if (empty instanceof HTMLElement) empty.hidden = true;
+          };
+          heroImagePreview.onerror = () => {
+            heroImagePreview.hidden = true;
+            if (empty instanceof HTMLElement) empty.hidden = false;
+          };
+          heroImagePreview.src = previewUrl;
+        }
         return;
       }
       if (!(preview instanceof HTMLImageElement)) return;
@@ -794,6 +864,19 @@ function initializeMediaPickers(root = document) {
       if (preview instanceof HTMLImageElement) {
         preview.removeAttribute("src");
         preview.alt = "";
+      }
+      if (isHero) {
+        if (heroImagePreview instanceof HTMLImageElement) {
+          heroImagePreview.removeAttribute("src");
+          heroImagePreview.alt = "";
+          heroImagePreview.hidden = true;
+        }
+        if (heroVideoPreview instanceof HTMLVideoElement) {
+          heroVideoPreview.pause();
+          heroVideoPreview.removeAttribute("src");
+          heroVideoPreview.load();
+          heroVideoPreview.hidden = true;
+        }
       }
       preview.hidden = true;
       if (fileName instanceof HTMLElement) fileName.textContent = "";
@@ -983,6 +1066,8 @@ function currentSwapRoot(root) {
   return root;
 }
 
+let pendingHomeArticleRefreshTarget = null;
+
 function focusInsertedError(root) {
   const current = currentSwapRoot(root);
   const error = current.querySelector?.("[data-error-focus]");
@@ -991,8 +1076,26 @@ function focusInsertedError(root) {
   }
 }
 
-function focusSwappedRegion(root) {
+function focusSwappedRegion(root, event) {
   const current = currentSwapRoot(root);
+  const trigger = event?.detail?.requestConfig?.elt;
+  const refreshTargetMatches =
+    typeof pendingHomeArticleRefreshTarget === "string" &&
+    current instanceof HTMLElement &&
+    current.matches(pendingHomeArticleRefreshTarget);
+  if (
+    (trigger instanceof HTMLElement &&
+      trigger.matches("[data-home-article-refresh]")) ||
+    refreshTargetMatches
+  ) {
+    pendingHomeArticleRefreshTarget = null;
+    requestAnimationFrame(() => {
+      current
+        ?.querySelector("[data-home-article-refresh]")
+        ?.focus({ preventScroll: true });
+    });
+    return;
+  }
   if (
     !(root instanceof HTMLElement) ||
     !root.matches("[data-focus-after-swap]") ||
@@ -1001,6 +1104,14 @@ function focusSwappedRegion(root) {
     return;
   }
   requestAnimationFrame(() => current?.focus({ preventScroll: true }));
+}
+
+function syncHomeArticleRefreshUrl() {
+  const control = document.querySelector("[data-home-article-refresh]");
+  if (!(control instanceof HTMLButtonElement)) {
+    return;
+  }
+  control.setAttribute("hx-get", `${window.location.pathname}${window.location.search}`);
 }
 
 function updateTagSelectionCount(form) {
@@ -1094,6 +1205,14 @@ document.addEventListener("kaj:feedback", (event) => {
   announceShellFeedback(event.detail?.message, event.detail);
 });
 
+document.addEventListener("kaj:focus", (event) => {
+  const focusId = event.detail?.id;
+  if (typeof focusId !== "string" || !focusId) return;
+  requestAnimationFrame(() => {
+    document.getElementById(focusId)?.focus({ preventScroll: true });
+  });
+});
+
 document.addEventListener("kaj:editor-preview", (event) => {
   initializeIcons(event.detail?.root ?? document);
 });
@@ -1112,6 +1231,44 @@ document.addEventListener("kaj:notification-read", (event) => {
     });
   }
   updateNotificationUnreadCount(event.detail?.unreadCount);
+});
+
+document.addEventListener("kaj:administration-attention-read", (event) => {
+  const key = event.detail?.key;
+  const count = Number(event.detail?.count);
+  const notificationUnreadCount = Number(
+    event.detail?.notificationUnreadCount,
+  );
+  if (typeof key !== "string" || !Number.isInteger(count) || count < 0) {
+    return;
+  }
+  if (
+    Number.isInteger(notificationUnreadCount) &&
+    notificationUnreadCount >= 0
+  ) {
+    updateNotificationUnreadCount(notificationUnreadCount);
+  }
+  document.querySelectorAll("[data-opportunity-run-attention]").forEach((badge) => {
+    badge.remove();
+  });
+  document.querySelectorAll("[data-opportunity-run-read-form]").forEach((form) => {
+    form.remove();
+  });
+  document
+    .querySelectorAll(`[data-admin-navigation-key="${CSS.escape(key)}"]`)
+    .forEach((link) => {
+      const badge = link.querySelector(".administration-navigation__review-count");
+      if (count === 0) {
+        badge?.remove();
+        link.classList.remove("administration-navigation__link--review");
+        return;
+      }
+      if (badge) {
+        badge.setAttribute("aria-label", `${count} 项待处理`);
+        const value = badge.querySelector("[aria-hidden='true']");
+        if (value) value.textContent = String(count);
+      }
+    });
 });
 
 document.addEventListener("submit", (event) => {
@@ -1188,12 +1345,16 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeCommentForms(root);
   initializeCommentThreads(root);
   initializeAuthorOperations(root);
+  initializeImportUploadForms(root);
   initializeNodeForms(root);
   initializeNavigationTrees(root);
+  initializeHomeHeroMedia(root);
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeAdministrationSettings(root);
   initializeAdministrationOperations(root);
+  initializeAdministrationArticlePreviews(root);
+  initializeOpportunities(root);
   initializeLiveSubmitForms(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
@@ -1205,11 +1366,14 @@ document.addEventListener("htmx:load", (event) => {
   initializeCommentThreads(root);
   initializeNodeForms(root);
   initializeNavigationTrees(root);
+  initializeHomeHeroMedia(root);
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeArticleActions(root);
   initializePasswordReveals(root);
   initializeAdministrationOperations(root);
+  initializeAdministrationArticlePreviews(root);
+  initializeOpportunities(root);
   initializeLiveSubmitForms(root);
 });
 
@@ -1240,8 +1404,19 @@ document.addEventListener("htmx:beforeCleanupElement", (event) => {
 document.addEventListener("htmx:afterSettle", (event) => {
   const root = currentSwapRoot(event.detail?.target ?? document);
   focusInsertedError(root);
-  focusSwappedRegion(root);
+  focusSwappedRegion(root, event);
   focusLoadedCommentReply(root);
+  syncHomeArticleRefreshUrl();
+});
+
+document.addEventListener("htmx:beforeRequest", (event) => {
+  const control = event.detail?.elt?.closest?.("[data-home-article-refresh]");
+  if (control instanceof HTMLButtonElement) {
+    pendingHomeArticleRefreshTarget =
+      control.getAttribute("hx-target") || "#home-article-region";
+    control.disabled = true;
+    control.setAttribute("aria-busy", "true");
+  }
 });
 
 document.addEventListener("htmx:beforeSwap", (event) => {
@@ -1257,6 +1432,20 @@ document.addEventListener("htmx:beforeSwap", (event) => {
 });
 
 document.addEventListener("htmx:afterRequest", (event) => {
+  const refreshControl = event.detail?.elt?.closest?.("[data-home-article-refresh]");
+  if (refreshControl instanceof HTMLButtonElement) {
+    refreshControl.disabled = false;
+    refreshControl.removeAttribute("aria-busy");
+    if (event.detail?.successful === false) {
+      pendingHomeArticleRefreshTarget = null;
+      requestAnimationFrame(() => refreshControl.focus({ preventScroll: true }));
+      announceShellFeedback("文章列表刷新失败，请稍后重试。", {
+        key: "home-article-refresh",
+        level: "error",
+        timeout: 5000,
+      });
+    }
+  }
   const form = event.detail?.elt?.closest?.("form[data-submit-once]");
   if (form instanceof HTMLFormElement) {
     delete form.dataset.submitting;
@@ -1270,6 +1459,20 @@ document.addEventListener("htmx:afterRequest", (event) => {
 window.addEventListener("pageshow", () => {
   restoreSubmitState();
   restoreErrorOriginFocus();
+  syncHomeArticleRefreshUrl();
+});
+
+window.addEventListener("popstate", syncHomeArticleRefreshUrl);
+
+document.querySelectorAll("[data-opportunity-feedback]").forEach((item) => {
+  const message = item.dataset.message;
+  if (message) {
+    announceShellFeedback(message, {
+      key: "opportunity-admin",
+      level: "success",
+      timeout: 4000,
+    });
+  }
 });
 
 window.Alpine = Alpine;
@@ -1292,12 +1495,16 @@ initializeEditorTagPickers();
 initializeMediaPickers();
 initializeCommentForms();
 initializeAuthorOperations();
+initializeImportUploadForms();
 initializeNodeForms();
 initializeNavigationTrees();
+initializeHomeHeroMedia();
 initializeHomeNavigation();
 initializeHeaderSearch();
 initializeAdministrationSettings();
 initializeAdministrationOperations();
+initializeAdministrationArticlePreviews();
+initializeOpportunities();
 initializeLiveSubmitSupport();
 initializeLiveSubmitForms();
 focusInsertedError(document);

@@ -112,9 +112,20 @@
 
 修订写入后不做原地更新。发布、导入更新和恢复都创建新修订并更新指针。正文格式通常由首个修订固定；Markdown 导入和历史恢复是经过服务明确批准的两种例外。
 
+## ArticlePublication
+
+| 字段 | 类型 | 规则 |
+| --- | --- | --- |
+| `id` | ULID | 不可变发布记录标识 |
+| `article_id` / `revision_id` | ULID FK | 必须指向同一文章；联合唯一，同一 revision 只记录一次 |
+| `published_at` | timestamptz | 该 revision 实际发布、导入发布或可见性重发的时间 |
+| `created_at` | timestamptz | 发布历史记录写入时间 |
+
+发布历史是 content 的持久事实，只追加、不原地更新。旧数据由 `article.published.v1` 事件回填历史版本，并以 Article 当前发布指针补齐缺少事件的最新版本；事件表不是后续查询来源。
+
 ## Section、Tag 与关联
 
-`Section`：UUID、唯一规范化名称、创建时间。删除分区会物理移除分区记录，把当前文章投影置为未知分区；不删除文章。
+`Section`：UUID、唯一规范化名称、创建与更新时间。可空默认封面只保存为 `SECTION_COVER -> SECTION/default-cover` 的 ACTIVE 媒体绑定，不在 Section 重复存 asset ID；删除分区会物理移除分区记录，把当前文章投影置为未知分区，并由 media owner 解除默认封面绑定、提交后清理无其他引用的文件；不删除文章。
 
 `Tag`：UUID、显示名、规范化名、`PENDING/ACTIVE/REJECTED/DELETED` 状态、提议作者、审核者和时间。作者新标签先 `PENDING` 且可立即显示；拒绝时从当前文章投影移除；删除的全站标签保留记录。
 
@@ -125,5 +136,5 @@
 - 作者编辑：`working_revision_id`。
 - 普通读者：`published_revision_id`，且无删除、管理员隐藏或作者禁用遮罩。
 - 定时任务：只发布 `scheduled_revision_id`，防止排期后继续编辑导致内容漂移。
-- 管理员查看：可选工作或发布修订，必须经过策略并对其他作者按日聚合通知。
+- 管理员查看：可选工作修订或 `ArticlePublication` 中任一发布修订，必须经过策略并对其他作者按日聚合通知。
 - SEO、搜索、首页：只使用满足公开策略的 `published_revision_id`。

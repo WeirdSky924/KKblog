@@ -21,6 +21,7 @@ apps/media/
 ## 统一规则
 
 - 所有图片最大 2 MiB。文章附件最大 10 MiB。静态图最长边不得超过 `8192`，总解码像素不得超过 `25 MP`；动图不得超过 `200` 帧，累计解码像素不得超过 `100 MP`。显示尺寸不预设固定分辨率，但这些解码硬上限不可绕过。
+- 首页 Hero 图片继续遵守 2 MiB 图片规则；Hero 视频最大 10 MiB、30 秒、最长边 `8192`、总像素 `25 MP`，仅接受 MP4/H.264 或 WebM/VP8、VP9、AV1。扩展名、容器签名和 MediaInfo 探测结果必须一致；探测在受 CPU、内存、文件和 5 秒超时限制的独立子进程中执行。
 - 普通图片 PNG/JPEG/GIF/WebP；Logo 仅 PNG/ICO；依据真实签名和成功解码，不信任 MIME/扩展名。
 - 文章附件仅 ZIP、7z、RAR、UTF-8 Markdown 与 UTF-8 TXT；压缩格式同时校验扩展名和文件签名，文本拒绝 NUL 与无效 UTF-8，不信任声明 MIME。
 - 去除 EXIF/相似元数据；GIF 安全重编码并保持动画。
@@ -33,18 +34,23 @@ apps/media/
 | --- | --- | --- |
 | Avatar | 普通图片 | 每用户当前一个 |
 | Article cover | 普通图片 | 每修订零或一个，空则默认封面 |
+| Section cover | 普通图片 | 每分区零或一个，仅管理员上传；空时由读取方继续回退 |
 | Article body | 普通图片 | 多个，按用户/文章归属 |
 | Article attachment | ZIP/7z/RAR/MD/TXT | 每修订零或一个，上传者需独立附件能力 |
 | Comment | 普通图片 | 仅顶层评论最多三个 |
 | Report/appeal evidence | 普通图片 | 每次提交最多三个，严格私有 |
 | Site logo | PNG/ICO | 当前一个，兼作 favicon |
-| Friend logo | 普通图片 | 每链接一个 |
+| Site Hero | 普通图片或受限 MP4/WebM | 当前一个，仅管理员上传；空时使用仓库默认图 |
+
+友情链接不再接受 Logo 上传或绑定。历史 `FRIEND_LOGO` 资产只保留为媒体生命周期可解释的墓碑值；迁移解除旧绑定后，无其他引用的资产进入既有 `DELETE_PENDING` 清理状态机。
 
 仓库提供语义分离的本地品牌资产：`1600x900` 默认文章封面与 `800x450` 失效收藏图。资产由 media/brand 入口交付；本决策不表示当前文件已经制作或入库。
 
 ## 服务边界
 
-`stage_upload`、`bind_assets`、`replace_bindings`、`authorize_asset_read`、`delete_unbound_assets`。目标领域传稳定对象和用途，media 调目标注册的 access port；双方不直接访问对方私有表/路径。
+`stage_upload`、`bind_assets`、`replace_bindings`、`authorize_asset_read`、`delete_unbound_assets`。目标领域传稳定对象和用途，media 调目标注册的 access port；双方不直接访问对方私有表/路径。分区封面使用独立 `SECTION_COVER` 用途、`SECTION` 目标和固定 `default-cover` 槽，不借用文章修订的 `COVER` 绑定。
+
+Hero 使用独立 `HERO` 用途，绑定到 `SITE_BRAND/site/hero` 单槽。视频原始字节不接受远程 URL，也不把原文件名带入 storage key；`DetectedFormat`、尺寸与时长必须来自受限探测器，浏览器声明 MIME 只作为无权限的输入提示。
 
 正文/TipTap 只保存 media ID，不保存任意服务器路径。外部链接不成为 MediaAsset；导入图片先暂存、确认文章成功后绑定。
 
@@ -72,6 +78,6 @@ apps/media/
 
 ## 验证
 
-伪造 MIME/双扩展、坏图、超 2 MiB、静态图 `8192`/`25 MP` 边界、动图 `200` 帧/`100 MP` 累计边界、EXIF、GIF 动画、ICO；路径穿越/符号链接；他人/私人资产直接 URL；绑定数量；数据库提交与文件移动/删除崩溃；低磁盘自动限制/恢复。
+伪造 MIME/双扩展、坏图、超 2 MiB、静态图 `8192`/`25 MP` 边界、动图 `200` 帧/`100 MP` 累计边界、EXIF、GIF 动画、ICO；伪 MP4/WebM、错误编码、超 10 MiB、超 30 秒、探测超时与资源限制；路径穿越/符号链接；他人/私人资产直接 URL；绑定数量；数据库提交与文件移动/删除崩溃；低磁盘自动限制/恢复。
 
 施工依据：`data/03-interaction-operations-fields.md`、`data/05-storage-lifecycle.md`、`adr/ADR-006-filesystem-media.md`、`contracts/06-tiptap-schema.md`。

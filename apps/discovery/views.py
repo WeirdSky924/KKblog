@@ -206,6 +206,7 @@ def home(request):
         "sections_managed_by_navigation": True,
         "home_article_heading": "最新文章",
         "home_article_jump_label": "查看最新文章",
+        "home_article_refresh_url": request.get_full_path(),
         "active_home_section_id": None,
     }
     return _no_store(
@@ -282,6 +283,7 @@ def section(request, section_id):
         "sections_managed_by_navigation": True,
         "home_article_heading": collection.name,
         "home_article_jump_label": f"查看{collection.name}文章",
+        "home_article_refresh_url": request.get_full_path(),
         "home_section_name": collection.name,
         "active_home_section_id": str(section_id),
     }

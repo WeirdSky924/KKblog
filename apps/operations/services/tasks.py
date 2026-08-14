@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import secrets
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
@@ -34,6 +35,10 @@ _TASK_NAME = re.compile(r"[a-z][a-z0-9_.-]{0,127}\Z")
 _SAFE_IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9:_.-]{0,254}\Z")
 _ERROR_CODE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*\Z")
 
+_CURRENT_TASK_RUN_ID: ContextVar[str | None] = ContextVar(
+    "operations_task_run_id", default=None
+)
+
 Jitter = Callable[[int], int]
 TaskService = Callable[[str], str | None]
 HeartbeatTaskService = Callable[[str, Callable[[], None]], str | None]
@@ -46,6 +51,7 @@ class StartOutcome(StrEnum):
     SUCCEEDED = "succeeded"
     ALREADY_SUCCEEDED = "already_succeeded"
     FINAL_FAILED = "final_failed"
+    CANCELLED = "cancelled"
 
 
 class TaskRetryScheduled(RuntimeError):
@@ -69,6 +75,16 @@ class RetryableTaskError(RuntimeError):
     def __init__(self, error_code: str) -> None:
         self.error_code = _validate_error_code(error_code)
         super().__init__(self.error_code)
+
+
+class TaskCancelled(RuntimeError):
+    def __init__(self, *, result_ref: str | None = None) -> None:
+        self.result_ref = _result_ref(result_ref)
+        super().__init__("operations.task_cancelled.v1")
+
+
+def current_task_run_id() -> str | None:
+    return _CURRENT_TASK_RUN_ID.get()
 
 
 @dataclass(frozen=True, slots=True)
@@ -282,6 +298,11 @@ def claim_task(
                 StartOutcome.FINAL_FAILED,
                 error_code=run.last_error_code,
             )
+        if run.status == TaskRunStatus.CANCELLED:
+            return TaskStartResult(
+                StartOutcome.CANCELLED,
+                result_ref=run.result_ref,
+            )
         if run.status == TaskRunStatus.RUNNING:
             if _release_expired_locked(run, now=now, clock=active_clock, jitter=jitter):
                 return TaskStartResult(
@@ -378,6 +399,43 @@ def complete_task(
                 "result_ref",
                 "last_error_code",
                 "heartbeat_at",
+                "lease_token",
+                "lease_expires_at",
+                "updated_at",
+            )
+        )
+    return True
+
+
+def cancel_task(
+    claim: TaskClaim,
+    *,
+    result_ref: str | None = None,
+    clock: Clock | None = None,
+) -> bool:
+    if not isinstance(claim, TaskClaim):
+        raise TypeError("claim must be a TaskClaim")
+    normalized_ref = _result_ref(result_ref)
+    now = (clock or SystemClock()).now()
+    with transaction.atomic():
+        try:
+            run = TaskRun.objects.select_for_update().get(run_id=claim.run_id)
+        except TaskRun.DoesNotExist:
+            return False
+        if run.status != TaskRunStatus.RUNNING or run.lease_token != claim.lease_token:
+            return False
+        run.status = TaskRunStatus.CANCELLED
+        run.completed_at = now
+        run.result_ref = normalized_ref
+        run.last_error_code = ""
+        run.lease_token = None
+        run.lease_expires_at = None
+        run.save(
+            update_fields=(
+                "status",
+                "completed_at",
+                "result_ref",
+                "last_error_code",
                 "lease_token",
                 "lease_expires_at",
                 "updated_at",
@@ -500,6 +558,8 @@ def execute_tracked_task(
         return start
     if start.outcome == StartOutcome.FINAL_FAILED:
         raise TaskFinalFailed(error_code=start.error_code or TASK_UNEXPECTED_ERROR)
+    if start.outcome == StartOutcome.CANCELLED:
+        return start
     if start.outcome == StartOutcome.BUSY:
         raise TaskRetryScheduled(
             countdown=max(1, start.retry_after_seconds),
@@ -510,6 +570,7 @@ def execute_tracked_task(
         raise RuntimeError("Claimed task is missing its lease")
 
     token = bind_trace_code(claim.trace_code)
+    run_token = _CURRENT_TASK_RUN_ID.set(claim.run_id)
     try:
         try:
             if heartbeat_service is None:
@@ -527,6 +588,17 @@ def execute_tracked_task(
 
                 service_result = heartbeat_service(business_object, renew_lease)
             result_ref = _result_ref(service_result)
+        except TaskCancelled as cancelled:
+            if not cancel_task(
+                claim,
+                result_ref=cancelled.result_ref,
+                clock=active_clock,
+            ):
+                raise TaskLeaseLost("task lease is no longer owned") from None
+            return TaskStartResult(
+                StartOutcome.CANCELLED,
+                result_ref=cancelled.result_ref,
+            )
         except Exception as error:
             error_code = (
                 error.error_code
@@ -555,4 +627,5 @@ def execute_tracked_task(
             result_ref=result_ref,
         )
     finally:
+        _CURRENT_TASK_RUN_ID.reset(run_token)
         reset_trace_code(token)

@@ -1,0 +1,750 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "adapter_config": {},
+      "adapter_key": "deepseek-moka-v1",
+      "allowed_hosts": [
+        "app.mokahr.com",
+        "talent.deepseek.com"
+      ],
+      "company_name": "DeepSeek",
+      "enabled": true,
+      "id": "8bd1833f-1546-4f1e-907f-68516e8a3d50",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州研发和算法全职岗位公开页;未见校招/实习筛选。",
+      "official_url": "https://talent.deepseek.com/",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "esign.zhiye.com"
+      ],
+      "company_name": "e签宝",
+      "enabled": true,
+      "id": "4ad0ad6c-bf47-45b6-8f22-1dd05ebe8aaa",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前杭州技术校招明确为 26 届。",
+      "official_url": "https://esign.zhiye.com/campus/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "esign.zhiye.com"
+      ],
+      "company_name": "e签宝",
+      "enabled": true,
+      "id": "391f8ccf-ab30-4505-82d9-9338c1633bca",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前仅见杭州产品运营实习生。",
+      "official_url": "https://esign.zhiye.com/intern/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "rokid.zhiye.com"
+      ],
+      "company_name": "Rokid",
+      "enabled": true,
+      "id": "e4f232e4-ccce-41d0-9940-a40f5d830ffe",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州全职岗位公开页。",
+      "official_url": "https://rokid.zhiye.com/jobs?LocId=%5B%7B%22id%22%3A%223301%22%2C%22label%22%3A%22%E6%9D%AD%E5%B7%9E%E5%B8%82%22%7D%5D",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "moka-v1",
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ],
+      "company_name": "中控技术",
+      "enabled": true,
+      "id": "e72a3b81-c0c0-481c-be39-6853f9d31b84",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "公开页预设研发类和 AI 类。",
+      "official_url": "https://app.mokahr.com/campus-recruitment/supcon/148189?locale=zh-CN#/jobs?zhineng%5B0%5D=63981&zhineng%5B1%5D=206063&page=1&anchorName=jobsList",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "jd-campus-v1",
+      "allowed_hosts": [
+        "campus.jd.com"
+      ],
+      "company_name": "京东",
+      "enabled": true,
+      "id": "f437336d-80d0-4471-ad2d-74455c35a8bd",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "用户确认的京东校园招聘项目入口。",
+      "official_url": "https://campus.jd.com/#/jobs?selProjects=45",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "huawei-v1",
+      "allowed_hosts": [
+        "apigw-dgg-b0.huawei.com",
+        "career.huawei.com"
+      ],
+      "company_name": "华为",
+      "enabled": true,
+      "id": "a0b9e58b-0f1f-4dc2-a972-7c90072f460c",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "应届生公开职位列表,页面也提供实习生入口。",
+      "official_url": "https://career.huawei.com/cn/campus-recruitment-job-list?recruitmentType=FRESH_GRADUATE",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": false,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "moka-v1",
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ],
+      "company_name": "吉利控股/极氪",
+      "enabled": true,
+      "id": "0250ff4c-2251-49db-ba80-f4cf810db8c5",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 100,
+      "note": "同站可选择全职、兼职与实习。",
+      "official_url": "https://app.mokahr.com/campus-recruitment/geely/78436?locale=zh-CN#/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "dahua-v1",
+      "allowed_hosts": [
+        "job.dahuatech.com"
+      ],
+      "company_name": "大华股份",
+      "enabled": true,
+      "id": "36d3da74-b560-48a4-b96e-f470cd149f60",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "校园招聘公开职位页。",
+      "official_url": "https://job.dahuatech.com/#/CampusPosition?id=11",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "dahua-v1",
+      "allowed_hosts": [
+        "job.dahuatech.com"
+      ],
+      "company_name": "大华股份",
+      "enabled": true,
+      "id": "43b3d8a4-7d03-49f8-96e3-0e73f16200df",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "实习招聘公开职位页。",
+      "official_url": "https://job.dahuatech.com/#/SelfControl?id=16",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "bytedance-campus-v1",
+      "allowed_hosts": [
+        "jobs.bytedance.com"
+      ],
+      "company_name": "字节跳动",
+      "enabled": true,
+      "id": "973785c1-ed17-4c99-9ea7-a67239fd1c8d",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 100,
+      "note": "含 2027 校招、前沿技术校招、Seed 校招及多种实习计划。",
+      "official_url": "https://jobs.bytedance.com/campus/position",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "unitree-v1",
+      "allowed_hosts": [
+        "www.unitree.com"
+      ],
+      "company_name": "宇树科技",
+      "enabled": true,
+      "id": "5a52c708-f6a3-4064-981c-39e1f9a5db21",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州技术类、研发部公开职位页;不是校招/实习入口。",
+      "official_url": "https://www.unitree.com/cn/position",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "ahxz.dbappsecurity.com.cn"
+      ],
+      "company_name": "安恒信息",
+      "enabled": true,
+      "id": "fd93ef7e-bef7-4a84-8256-bdbc64333a51",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州 AI Agent 开发工程师应届博士候选。",
+      "official_url": "https://ahxz.dbappsecurity.com.cn/campus/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "ahxz.dbappsecurity.com.cn"
+      ],
+      "company_name": "安恒信息",
+      "enabled": true,
+      "id": "56cc7b2a-a838-46cf-bbf1-1aa1ad7b1cc0",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前杭州技术实习多标为 28 届。",
+      "official_url": "https://ahxz.dbappsecurity.com.cn/intern/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "xiaomi-campus-v1",
+      "allowed_hosts": [
+        "xiaomi.jobs.f.mioffice.cn"
+      ],
+      "company_name": "小米集团",
+      "enabled": true,
+      "id": "d1f0254f-0418-4f0f-a25e-ef3fb2576400",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "公开 2027 届境外招聘与校园招聘计划。",
+      "official_url": "https://xiaomi.jobs.f.mioffice.cn/campus/?spread=J7NS6YR",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "xiaomi-intern-v1",
+      "allowed_hosts": [
+        "xiaomi.jobs.f.mioffice.cn"
+      ],
+      "company_name": "小米集团",
+      "enabled": true,
+      "id": "b1c57b49-a4c7-43f2-93c3-d2f1e6301272",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "实习招聘公开职位页。",
+      "official_url": "https://xiaomi.jobs.f.mioffice.cn/internship/?spread=6AA3R7B",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "brainco-v1",
+      "allowed_hosts": [
+        "www.brainco.cn"
+      ],
+      "company_name": "强脑科技",
+      "enabled": true,
+      "id": "7af7bf30-e518-4fdf-b810-b73e0769e37c",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "页面有全职/实习切换;本次公开首屏不在杭州。",
+      "official_url": "https://www.brainco.cn/recruit/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "campus.hundsun.com"
+      ],
+      "company_name": "恒生电子",
+      "enabled": true,
+      "id": "aa8011a1-f7cd-428a-8257-9379b84b0b0a",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州技术校招候选岗位公开页。",
+      "official_url": "https://campus.hundsun.com/campus/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "campus.hundsun.com"
+      ],
+      "company_name": "恒生电子",
+      "enabled": true,
+      "id": "a314e2b3-bbeb-459a-b9c8-6085dbcf2634",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "页面面向 2027 年 8 月及以后毕业者;当前仅校园大使岗位。",
+      "official_url": "https://campus.hundsun.com/intern/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "career.h3c.com"
+      ],
+      "company_name": "新华三集团",
+      "enabled": true,
+      "id": "086f9131-6d52-4f32-823d-5e91c998fa9b",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州已预设,当前公开列表为 0 岗。",
+      "official_url": "https://career.h3c.com/campus/jobs?LocId=%5B%7B%22id%22%3A%223301%22%2C%22label%22%3A%22%E6%9D%AD%E5%B7%9E%E5%B8%82%22%7D%5D",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "career.h3c.com"
+      ],
+      "company_name": "新华三集团",
+      "enabled": true,
+      "id": "72b89146-9dc6-4389-850e-757d1085e243",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "杭州技术实习岗位可见,公开页未写毕业届别。",
+      "official_url": "https://career.h3c.com/intern/jobs?3=%5B%7B%22id%22%3A%222%22%2C%22label%22%3A%22%E5%85%B6%E4%BB%96%E5%AE%9E%E4%B9%A0%E4%BD%93%E9%AA%8C%E7%94%9F%22%7D%5D",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "youzan.zhiye.com"
+      ],
+      "company_name": "有赞",
+      "enabled": true,
+      "id": "7e7e5833-caad-4e8d-9174-5da62eef0809",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "同站可筛社会招聘、校园招聘与实习生招聘。",
+      "official_url": "https://youzan.zhiye.com/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "hzbank-v1",
+      "allowed_hosts": [
+        "myjob.hzbank.com.cn"
+      ],
+      "company_name": "杭州银行",
+      "enabled": true,
+      "id": "4827d123-4c77-455d-8f71-bd1443904b8c",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "页面当前显示全部在招职位 0。",
+      "official_url": "https://myjob.hzbank.com.cn/hzzp-apply-web/static/index.html#/employ/school",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "hzbank-v1",
+      "allowed_hosts": [
+        "myjob.hzbank.com.cn"
+      ],
+      "company_name": "杭州银行",
+      "enabled": true,
+      "id": "dcd94b91-a818-4d59-85b3-b321be97eccb",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "页面当前显示全部在招职位 0。",
+      "official_url": "https://myjob.hzbank.com.cn/hzzp-apply-web/static/index.html#/employ/ungraduate",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "getui-v1",
+      "allowed_hosts": [
+        "job.getui.com"
+      ],
+      "company_name": "每日互动",
+      "enabled": true,
+      "id": "175b0834-afec-4d0c-bec0-b9bb10cc40d5",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "技术类公开职位入口。",
+      "official_url": "https://job.getui.com/campus/position/192?type=%E6%8A%80%E6%9C%AF%E7%B1%BB",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "getui-v1",
+      "allowed_hosts": [
+        "job.getui.com"
+      ],
+      "company_name": "每日互动",
+      "enabled": true,
+      "id": "5808e9fa-2310-4666-9e23-2cd94dbf6bcb",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "算法类公开职位入口。",
+      "official_url": "https://job.getui.com/campus/position/226?type=%E7%AE%97%E6%B3%95%E7%B1%BB",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "czbank-v1",
+      "allowed_hosts": [
+        "zp.czbank.com.cn"
+      ],
+      "company_name": "浙商银行",
+      "enabled": true,
+      "id": "32048ee9-cfcf-4453-a2c8-970a2a1e1c0d",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "页面标题可读,但本次未返回可记录的公开职位正文。",
+      "official_url": "https://zp.czbank.com.cn/zpweb/planController/gotoIndex.mvc?pageType=1",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "hikvision-v1",
+      "allowed_hosts": [
+        "campushr.hikvision.com"
+      ],
+      "company_name": "海康威视",
+      "enabled": true,
+      "id": "c3e344e3-9835-4c2c-a4cd-b03e6af0855d",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前默认公开计划为 2026 校园招聘。",
+      "official_url": "https://campushr.hikvision.com/school?schoolType=nozxf",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "moka-v1",
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ],
+      "company_name": "涂鸦智能",
+      "enabled": true,
+      "id": "24ee4ac8-26ff-4e03-ae5d-5b95c971cc43",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "同站可筛开发、测试、算法和实习;现有杭州技术岗位多为 26 届或未标届别。",
+      "official_url": "https://app.mokahr.com/campus-recruitment/tuya/147434?locale=zh-CN#/jobs?zhineng%5B0%5D=208985",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "netease-hr-v1",
+      "allowed_hosts": [
+        "hr.163.com"
+      ],
+      "company_name": "网易",
+      "enabled": true,
+      "id": "535a3f7d-9e05-41e1-9a66-a6ae60c5bac0",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "网易日常实习公开职位页。",
+      "official_url": "https://hr.163.com/job-list.html?workType=1",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "netease-game-v1",
+      "allowed_hosts": [
+        "campus.game.163.com"
+      ],
+      "company_name": "网易互娱",
+      "enabled": true,
+      "id": "d794636c-4e9a-4072-bcd2-b5dc278e3947",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "应届生与精英实习生公开职位页。",
+      "official_url": "https://campus.game.163.com/app/job/position?id=102",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "netease-leihuo-v1",
+      "allowed_hosts": [
+        "campus.163.com",
+        "leihuo.163.com",
+        "xiaozhao.leihuo.netease.com"
+      ],
+      "company_name": "网易雷火",
+      "enabled": true,
+      "id": "4e6aa270-ab57-4252-b6f8-b95fab47f6cc",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "27 届应届校招,页面支持技术、人工智能与杭州筛选。",
+      "official_url": "https://leihuo.163.com/campus/#/full?channel=iSfFmJe",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "meituan-v1",
+      "allowed_hosts": [
+        "zhaopin.meituan.com"
+      ],
+      "company_name": "美团",
+      "enabled": true,
+      "id": "2c68cb34-cefd-4237-851e-d49e386e64a2",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "公开页面提供杭州、技术类、应届生、转正实习和日常实习筛选。",
+      "official_url": "https://zhaopin.meituan.com/web/position?hiringType=4_1",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "tencent-v1",
+      "allowed_hosts": [
+        "join.qq.com"
+      ],
+      "company_name": "腾讯",
+      "enabled": true,
+      "id": "8f2d0078-619f-433a-96de-cb470fba98b4",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "含应届实习、日常实习、2026 校招与青云计划。",
+      "official_url": "https://join.qq.com/post.html?query=p_2",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": false,
+      "source_type": "COMPREHENSIVE"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "antgroup-v1",
+      "allowed_hosts": [
+        "hrcareersweb.antgroup.com",
+        "talent.antgroup.com"
+      ],
+      "company_name": "蚂蚁集团",
+      "enabled": true,
+      "id": "74a72b86-6b04-4c24-837d-d6908c12a2bd",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "2027 届校园招聘公开入口。",
+      "official_url": "https://talent.antgroup.com/campus-full-list?type=campus_graduates",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": false,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "moka-v1",
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ],
+      "company_name": "连连数字",
+      "enabled": true,
+      "id": "70323687-64fc-4d55-b7a5-73f8b91af31f",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "技术类社会招聘入口;未确认校招/实习。",
+      "official_url": "https://app.mokahr.com/social-recruitment/yintong/45487#/jobs?zhineng%5B0%5D=9627",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "SOCIAL"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "dptech.zhiye.com"
+      ],
+      "company_name": "迪普科技",
+      "enabled": true,
+      "id": "c716e0d4-0f85-4fb4-9049-66abf1e8778a",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前公开列表为 0 岗。",
+      "official_url": "https://dptech.zhiye.com/campus/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "beisen-zhiye-v1",
+      "allowed_hosts": [
+        "dptech.zhiye.com"
+      ],
+      "company_name": "迪普科技",
+      "enabled": true,
+      "id": "eae717fc-cc63-4f28-a0b7-0e491f8890be",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "27 届杭州 AI、安全、FPGA、硬件实习公开入口。",
+      "official_url": "https://dptech.zhiye.com/intern/jobs",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "INTERNSHIP"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "kujiale-v1",
+      "allowed_hosts": [
+        "ehr-headcount.qunhequnhe.com",
+        "www.kujiale.com"
+      ],
+      "company_name": "酷家乐",
+      "enabled": true,
+      "id": "0c097ee1-a733-466e-9370-eff054bed6e2",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前显示尚无任何相关职位。",
+      "official_url": "https://www.kujiale.com/pub/hr-recruit/campus/postlist?post=72628",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "kujiale-v1",
+      "allowed_hosts": [
+        "ehr-headcount.qunhequnhe.com",
+        "www.kujiale.com"
+      ],
+      "company_name": "酷家乐",
+      "enabled": true,
+      "id": "a408fa64-6586-46ad-bc75-8163fa6bdc2a",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "当前显示尚无任何相关职位。",
+      "official_url": "https://www.kujiale.com/pub/hr-recruit/campus/postlist?post=66890",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    },
+    {
+      "adapter_config": {},
+      "adapter_key": "alibaba-campus-v1",
+      "allowed_hosts": [
+        "campus-talent.alibaba.com"
+      ],
+      "company_name": "阿里巴巴集团",
+      "enabled": true,
+      "id": "06bf5061-e8c6-4a0e-80ba-d185fa8585c7",
+      "max_duration_seconds": 600,
+      "max_opportunities": 5000,
+      "max_pages": 50,
+      "note": "集团岗位页,含应届生、日常实习、研究型实习和阿里星计划。",
+      "official_url": "https://campus-talent.alibaba.com/campus/position?batchId=100000760001",
+      "request_interval_seconds": 2,
+      "respect_robots_txt": true,
+      "source_type": "CAMPUS"
+    }
+  ]
+}

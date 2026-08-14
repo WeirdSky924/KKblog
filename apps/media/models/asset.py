@@ -9,6 +9,15 @@ from .constants import DetectedFormat, MediaPurpose, MediaState
 
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+MAX_HERO_VIDEO_BYTES = 10 * 1024 * 1024
+_VIDEO_FORMATS = (DetectedFormat.MP4, DetectedFormat.WEBM)
+_HERO_FORMATS = (
+    DetectedFormat.PNG,
+    DetectedFormat.JPEG,
+    DetectedFormat.GIF,
+    DetectedFormat.WEBP,
+    *_VIDEO_FORMATS,
+)
 
 
 def validate_storage_key(value: str) -> None:
@@ -62,12 +71,34 @@ class MediaAsset(models.Model):
                         size_bytes__lte=MAX_ATTACHMENT_BYTES,
                     )
                     | Q(
-                        ~Q(purpose=MediaPurpose.ATTACHMENT),
+                        purpose=MediaPurpose.HERO,
+                        detected_mime__in=_VIDEO_FORMATS,
                         size_bytes__gte=1,
-                        size_bytes__lte=MAX_IMAGE_BYTES,
+                        size_bytes__lte=MAX_HERO_VIDEO_BYTES,
+                    )
+                    | (
+                        ~Q(purpose=MediaPurpose.ATTACHMENT)
+                        & ~Q(
+                            purpose=MediaPurpose.HERO,
+                            detected_mime__in=_VIDEO_FORMATS,
+                        )
+                        & Q(
+                            size_bytes__gte=1,
+                            size_bytes__lte=MAX_IMAGE_BYTES,
+                        )
                     )
                 ),
                 name="media_asset_size_range",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(purpose=MediaPurpose.HERO, detected_mime__in=_HERO_FORMATS)
+                    | (
+                        ~Q(purpose=MediaPurpose.HERO)
+                        & ~Q(detected_mime__in=_VIDEO_FORMATS)
+                    )
+                ),
+                name="media_asset_hero_format",
             ),
             models.CheckConstraint(
                 condition=(
@@ -128,13 +159,27 @@ class MediaAsset(models.Model):
             raise ValidationError({"deleted_at": "已删除媒体必须记录删除时间"})
         if self.state != MediaState.DELETED and self.deleted_at is not None:
             raise ValidationError({"deleted_at": "未删除媒体不能记录删除时间"})
-        if self.purpose == MediaPurpose.ATTACHMENT:
+        try:
+            purpose = MediaPurpose(self.purpose)
+            detected = DetectedFormat(self.detected_mime)
+        except (TypeError, ValueError):
+            raise ValidationError("媒体用途或格式不合法") from None
+        if purpose == MediaPurpose.ATTACHMENT:
             if self.width is not None or self.height is not None:
                 raise ValidationError("附件不能包含图片尺寸")
             if self.size_bytes > MAX_ATTACHMENT_BYTES:
                 raise ValidationError("附件不能超过 10 MiB")
         elif self.width is None or self.height is None:
             raise ValidationError("图片必须记录尺寸")
+        if detected in _VIDEO_FORMATS:
+            if purpose != MediaPurpose.HERO:
+                raise ValidationError("视频只能用于首页主视觉")
+            if self.size_bytes > MAX_HERO_VIDEO_BYTES:
+                raise ValidationError("首页视频不能超过 10 MiB")
+        elif purpose == MediaPurpose.HERO and detected not in _HERO_FORMATS:
+            raise ValidationError("首页主视觉格式不受支持")
+        elif self.size_bytes > MAX_IMAGE_BYTES and purpose != MediaPurpose.ATTACHMENT:
+            raise ValidationError("图片不能超过 2 MiB")
 
     def mark_deleted(self) -> None:
         self.state = MediaState.DELETED

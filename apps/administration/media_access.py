@@ -24,9 +24,18 @@ def register_media_access() -> None:
     )
     register_media_upload_adapter(
         MediaUploadAdapter(
-            key="friend-logo",
-            purpose=MediaPurpose.FRIEND_LOGO,
-            input_name="logo_asset_id",
+            key="site-hero",
+            purpose=MediaPurpose.HERO,
+            input_name="hero_asset_id",
+            access=_administrator_only,
+        ),
+        replace=True,
+    )
+    register_media_upload_adapter(
+        MediaUploadAdapter(
+            key="section-cover",
+            purpose=MediaPurpose.SECTION_COVER,
+            input_name="default_cover_asset_id",
             access=_administrator_only,
         ),
         replace=True,

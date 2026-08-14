@@ -1,0 +1,59 @@
+<div
+  id="opportunity-workspace"
+  class="opportunity-public__workspace"
+  data-opportunity-workspace
+  data-focus-after-swap
+  tabindex="-1"
+>
+  <nav class="opportunity-public__views" aria-label="工作机会视图">
+    <a
+      href="{{ opportunity_jobs_url }}"
+      hx-get="{{ opportunity_jobs_url }}"
+      hx-target="#opportunity-workspace"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-sync="#opportunity-workspace:replace"
+      {% if opportunity_view == "jobs" %}aria-current="page"{% endif %}
+    >岗位记录</a>
+    <a
+      href="{{ opportunity_sources_url }}"
+      hx-get="{{ opportunity_sources_url }}"
+      hx-target="#opportunity-workspace"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-sync="#opportunity-workspace:replace"
+      {% if opportunity_view == "sources" %}aria-current="page"{% endif %}
+    >官方来源</a>
+  </nav>
+
+  <details
+    class="opportunity-public__filters"
+    data-opportunity-filter-disclosure
+    {% if opportunity_form.errors %}open{% endif %}
+  >
+    <summary>
+      <span class="opportunity-public__filter-title">
+        筛选
+        <span
+          id="opportunity-filter-loading"
+          class="opportunity-public__loading htmx-indicator"
+          role="status"
+        >正在更新…</span>
+      </span>
+      <span class="opportunity-public__filter-meta">
+        {% if opportunity_active_filters %}{{ opportunity_active_filters }} 项已生效{% endif %}
+        <i data-lucide="chevron-down" aria-hidden="true"></i>
+      </span>
+    </summary>
+    {% include "opportunities/partials/filter_form.html" %}
+  </details>
+
+  {% if opportunity_form.errors %}
+    <div class="opportunity-public__error" data-error-focus tabindex="-1" role="alert">
+      <h2>筛选条件需要修改</h2>
+      <p>请检查选中的筛选值或页码后重试。</p>
+    </div>
+  {% else %}
+    {% include "opportunities/partials/results.html" %}
+  {% endif %}
+</div>

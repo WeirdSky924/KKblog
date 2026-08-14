@@ -32,10 +32,17 @@ from .classification import (
     TagItem,
     active_tag,
     section_by_id,
+    section_default_cover_schema_ready,
     section_list,
     selectable_tag_list,
     tag_reference,
     tags_for_article,
+)
+from .covers import (
+    ArticleCoverCandidate,
+    ArticleCoverSource,
+    ResolvedArticleCover,
+    resolve_article_covers,
 )
 from .discovery import (
     PublicArticleRevisionIdentity,
@@ -70,6 +77,11 @@ from .imports import (
 )
 from .preview import ArticlePreviewError, AuthorArticlePreview, preview_article_body
 from .publication import PublishedRevision, published_revision
+from .publication_history import (
+    AdminPublishedRevision,
+    admin_published_revision_history,
+    publication_history_schema_ready,
+)
 from .revisions import (
     RevisionTimelineItem,
     revision_block_changes,
@@ -82,12 +94,15 @@ __all__ = [
     "AUTHOR_ARTICLE_STATES",
     "AdminArticleItem",
     "AdminArticleTitle",
+    "AdminPublishedRevision",
     "AdminSectionItem",
     "AdminTagAssociationHistoryItem",
     "AdminTagDetail",
     "AdminTagItem",
     "AdminTagRestoreConflictItem",
     "ArticleCommentTarget",
+    "ArticleCoverCandidate",
+    "ArticleCoverSource",
     "ArticleLoginRequired",
     "ArticleNotFound",
     "ArticlePreviewError",
@@ -107,6 +122,7 @@ __all__ = [
     "VisibleArticleTag",
     "PublishedRevision",
     "RevisionTimelineItem",
+    "ResolvedArticleCover",
     "ImportConflictFacts",
     "ImportContentError",
     "ImportMappingFacts",
@@ -118,6 +134,7 @@ __all__ = [
     "admin_article_item",
     "admin_article_page",
     "admin_article_titles",
+    "admin_published_revision_history",
     "admin_pending_tag_review_count",
     "admin_section_item",
     "admin_section_page",
@@ -129,14 +146,17 @@ __all__ = [
     "article_for_admin",
     "article_for_author",
     "article_for_reader",
+    "article_published_revision_for_admin",
     "author_article_page",
     "authoring_access",
     "current_public_article_revisions",
     "public_article_cache_snapshot",
     "public_article_sitemap_items",
     "render_public_article_body",
+    "resolve_article_covers",
     "sanitized_article_plain_text",
     "section_by_id",
+    "section_default_cover_schema_ready",
     "section_list",
     "selectable_tag_list",
     "tag_reference",
@@ -147,6 +167,7 @@ __all__ = [
     "visible_articles_by_ids",
     "visible_filter_tags",
     "published_revision",
+    "publication_history_schema_ready",
     "preview_article_body",
     "revision_timeline",
     "revision_block_changes",
@@ -167,6 +188,7 @@ from .access import (
     article_for_admin,
     article_for_author,
     article_for_reader,
+    article_published_revision_for_admin,
     public_article_cache_snapshot,
     render_public_article_body,
 )

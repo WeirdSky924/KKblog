@@ -69,3 +69,36 @@ def mark_all_notifications_read(
             id__in=receipt_ids,
             read_at__isnull=True,
         ).update(read_at=now)
+
+
+def mark_target_notifications_read(
+    *, recipient_id: UUID | str, target_type: str, clock: Clock | None = None
+) -> int:
+    identity = _recipient_id(recipient_id)
+    if (
+        not isinstance(target_type, str)
+        or not target_type
+        or len(target_type) > 64
+        or not target_type.replace("_", "").isalnum()
+    ):
+        raise ValueError("Invalid notification target type")
+    now = (clock or SystemClock()).now()
+    with transaction.atomic():
+        receipt_ids = tuple(
+            NotificationReceipt.objects.select_for_update()
+            .filter(
+                recipient_id=identity,
+                read_at__isnull=True,
+                notification__target_type=target_type,
+                notification__hidden_at__isnull=True,
+                notification__deleted_at__isnull=True,
+            )
+            .order_by("id")
+            .values_list("id", flat=True)
+        )
+        if not receipt_ids:
+            return 0
+        return NotificationReceipt.objects.filter(
+            id__in=receipt_ids,
+            read_at__isnull=True,
+        ).update(read_at=now)

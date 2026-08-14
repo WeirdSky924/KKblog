@@ -3,6 +3,7 @@
 {% url 'public:search' as shell_search_url %}
 {% url 'accounts:login' as shell_login_url %}
 {% url 'accounts:register' as shell_register_url %}
+{% url 'opportunities:index' as shell_opportunities_url %}
 <header class="site-header" data-site-header>
   <div class="site-header__inner site-frame">
     <div class="site-header__top">
@@ -58,6 +59,7 @@
         {% endif %}
       </form>{% endif %}
       <div class="identity-controls">
+        {% if shell_opportunities_url %}<a class="icon-button opportunity-shortcut" href="{{ shell_opportunities_url }}" aria-label="进入工作机会" title="工作机会"><i data-lucide="briefcase-business"></i></a>{% endif %}
         {% if shell_account %}
           {% if shell_is_author %}
             <a class="icon-button author-shortcut" href="{% url 'authoring:articles' %}" aria-label="进入我的文章" title="我的文章">

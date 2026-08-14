@@ -1,26 +1,75 @@
 <ul
   class="public-navigation__list{% if nested %} public-navigation__list--nested{% endif %}"
+  {% if branch_key %}
+    id="navigation-children-{{ branch_key }}"
+    data-navigation-children
+    {% if not branch_expanded %}hidden{% endif %}
+  {% endif %}
 >
   {% for item in items %}
     <li class="public-navigation__item{% if item.children %} public-navigation__item--parent{% endif %}">
-      <a
-        href="{{ item.url }}"
-        {% if item.external %}target="_blank" rel="noopener noreferrer"{% endif %}
-        {% if home_section_switching and item.section_id %}
-          data-home-section-link
-          data-section-id="{{ item.section_id }}"
-          hx-get="{{ item.url }}"
-          hx-target="#home-article-region"
-          hx-swap="outerHTML"
-          hx-push-url="true"
-          {% if item.section_id == active_home_section_id %}aria-current="page"{% endif %}
-        {% endif %}
-      >
-        <span>{{ item.label }}</span>
-        {% if item.external %}<i data-lucide="external-link"></i>{% endif %}
-      </a>
       {% if item.children %}
-        {% include "components/navigation/navigation_items.html" with items=item.children nested=True home_section_switching=home_section_switching active_home_section_id=active_home_section_id only %}
+        {% if item.url %}
+          <div class="public-navigation__row">
+            <a
+              href="{{ item.url }}"
+              {% if item.external %}target="_blank" rel="noopener noreferrer"{% endif %}
+              {% if home_section_switching and item.section_id %}
+                data-home-section-link
+                data-section-id="{{ item.section_id }}"
+                hx-get="{{ item.url }}"
+                hx-target="#home-article-region"
+                hx-swap="outerHTML"
+                hx-push-url="true"
+                {% if item.section_id == active_home_section_id %}aria-current="page"{% endif %}
+              {% endif %}
+            >
+              <span>{{ item.label }}</span>
+              {% if item.external %}<i data-lucide="external-link"></i>{% endif %}
+            </a>
+            <button
+              class="public-navigation__branch-toggle"
+              type="button"
+              aria-expanded="{% if item.default_expanded %}true{% else %}false{% endif %}"
+              aria-controls="navigation-children-{{ item.key }}"
+              aria-label="{% if item.default_expanded %}收起{% else %}展开{% endif %}{{ item.label }}的子项"
+              title="{% if item.default_expanded %}收起{% else %}展开{% endif %}子项"
+              data-navigation-branch-toggle
+              data-navigation-branch-label="{{ item.label }}"
+            ><i data-lucide="chevron-right"></i></button>
+          </div>
+        {% else %}
+          <button
+            class="public-navigation__group-label"
+            type="button"
+            aria-expanded="{% if item.default_expanded %}true{% else %}false{% endif %}"
+            aria-controls="navigation-children-{{ item.key }}"
+            title="{% if item.default_expanded %}收起{% else %}展开{% endif %}子项"
+            data-navigation-branch-toggle
+            data-navigation-branch-label="{{ item.label }}"
+          >
+            <span>{{ item.label }}</span>
+            <i data-lucide="chevron-right"></i>
+          </button>
+        {% endif %}
+        {% include "components/navigation/navigation_items.html" with items=item.children nested=True branch_key=item.key branch_expanded=item.default_expanded home_section_switching=home_section_switching active_home_section_id=active_home_section_id only %}
+      {% else %}
+        <a
+          href="{{ item.url }}"
+          {% if item.external %}target="_blank" rel="noopener noreferrer"{% endif %}
+          {% if home_section_switching and item.section_id %}
+            data-home-section-link
+            data-section-id="{{ item.section_id }}"
+            hx-get="{{ item.url }}"
+            hx-target="#home-article-region"
+            hx-swap="outerHTML"
+            hx-push-url="true"
+            {% if item.section_id == active_home_section_id %}aria-current="page"{% endif %}
+          {% endif %}
+        >
+          <span>{{ item.label }}</span>
+          {% if item.external %}<i data-lucide="external-link"></i>{% endif %}
+        </a>
       {% endif %}
     </li>
   {% endfor %}

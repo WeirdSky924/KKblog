@@ -1,0 +1,10 @@
+<fieldset class="opportunity-public__filter-group">
+  <legend>{{ title }}</legend>
+  <div class="opportunity-public__filter-options">
+    {% for choice in field %}
+      <label>{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>
+    {% empty %}
+      <p>暂无可用选项</p>
+    {% endfor %}
+  </div>
+</fieldset>

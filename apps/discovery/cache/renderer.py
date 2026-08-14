@@ -122,7 +122,7 @@ def _page_from_payload(raw: str) -> VisibleArticlePage | None:
                 "has_next",
             },
         )
-        if page["version"] != 1 or not isinstance(page["items"], list):
+        if page["version"] != 2 or not isinstance(page["items"], list):
             raise ValueError("cached page is invalid")
         if type(page["has_previous"]) is not bool or type(page["has_next"]) is not bool:
             raise ValueError("cached page flags are invalid")
@@ -164,7 +164,7 @@ def _page_payload(page: VisibleArticlePage) -> str:
         )
     return json.dumps(
         {
-            "version": 1,
+            "version": 2,
             "items": items,
             "page_number": page.page_number,
             "page_size": page.page_size,

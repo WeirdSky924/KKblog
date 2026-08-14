@@ -30,7 +30,7 @@ Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`u
 
 | 类型 | 模块 | 责任 |
 | --- | --- | --- |
-| 领域事实 | accounts、content、media、comments、moderation、notifications、navigation、operations、exchange、analytics | 唯一模型与写服务 |
+| 领域事实 | accounts、content、media、comments、moderation、notifications、navigation、operations、exchange、analytics、opportunities | 唯一模型与写服务；opportunities 独占招聘来源、岗位、筛选选项、检查历史、审核队列和用户岗位收藏 |
 | 用户流编排 | discovery、authoring、administration | 页面/query 组合，不建立平行业务事实 |
 | 技术基础 | core、config、docker | 错误、时间、事件协议、运行入口 |
 

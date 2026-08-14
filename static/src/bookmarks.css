@@ -160,8 +160,6 @@
   z-index: 44;
   inset-block-start: 50%;
   inset-inline-end: 1rem;
-  display: grid;
-  gap: 0.5rem;
   padding: 0.5rem;
   border: 1px solid var(--line);
   border-inline-end: 4px solid var(--accent);
@@ -183,9 +181,23 @@
     visibility 0s linear;
 }
 
+.article-action-dock__actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.article-action-menu-toggle {
+  display: none;
+}
+
+.article-action-menu-toggle__close {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .article-action-dock,
-  .article-action-dock[data-visible="true"] {
+  .article-action-dock[data-visible="true"],
+  .article-action-dock__actions {
     transition: none;
   }
 }
@@ -298,8 +310,88 @@
     justify-items: start;
   }
 
-  .article-action-dock {
-    inset-inline-end: 0.5rem;
+  .article-action-dock,
+  .article-action-dock[data-visible="true"] {
+    inset: auto max(0.75rem, env(safe-area-inset-right))
+      calc(
+        max(0.75rem, env(safe-area-inset-bottom)) +
+          var(--article-action-footer-offset, 0px)
+      )
+      auto;
+    display: grid;
+    justify-items: end;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: auto;
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .article-action-menu-toggle {
+    display: grid;
+    width: 3rem;
+    min-width: 3rem;
+    height: 3rem;
+    min-height: 3rem;
+    place-items: center;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 0.375rem 1rem
+      color-mix(in srgb, var(--text-primary) 18%, transparent);
+  }
+
+  .article-action-menu-toggle svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .article-action-dock[data-mobile-open="true"]
+    .article-action-menu-toggle__open {
+    display: none;
+  }
+
+  .article-action-dock[data-mobile-open="true"]
+    .article-action-menu-toggle__close {
+    display: block;
+  }
+
+  .article-action-dock__actions {
+    position: absolute;
+    inset: auto 0 calc(100% + 0.625rem) auto;
+    grid-template-columns: repeat(2, 2.75rem);
+    padding: 0.5rem;
+    border: 1px solid var(--line);
+    border-inline-end: 3px solid var(--accent);
+    background: var(--surface-panel);
+    box-shadow: 0 0.625rem 1.5rem
+      color-mix(in srgb, var(--text-primary) 14%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0.75rem, 0.75rem) scale(0.92);
+    transform-origin: bottom right;
+    visibility: hidden;
+    transition:
+      opacity 160ms ease,
+      transform 200ms ease,
+      visibility 0s linear 200ms;
+  }
+
+  .article-action-dock[data-mobile-open="true"]
+    .article-action-dock__actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(0, 0) scale(1);
+    visibility: visible;
+    transition:
+      opacity 160ms ease,
+      transform 200ms ease,
+      visibility 0s linear;
+  }
+
+  .article-reader-main .comment-form textarea {
+    padding-inline-end: 4rem;
   }
 
   .bookmark-index__footer {

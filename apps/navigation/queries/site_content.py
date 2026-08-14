@@ -8,8 +8,9 @@ from apps.accounts.public import is_administrator
 
 from ..media_gateway import NavigationMediaError, navigation_media_gateway
 from ..models import FriendLink, SiteConfiguration, StaticPage, TrustedEmbedSource
+from ..schema import site_hero_column_available
 
-PUBLIC_SITE_CONFIGURATION_CACHE_KEY = "kaj:navigation:site-configuration:v2"
+PUBLIC_SITE_CONFIGURATION_CACHE_KEY = "kaj:navigation:site-configuration:v3"
 PUBLIC_SITE_CONFIGURATION_CACHE_SECONDS = 300
 
 
@@ -25,6 +26,9 @@ class SiteConfigurationItem:
     registration_enabled: bool
     article_body_max_bytes: int
     logo_asset_id: str | None
+    hero_asset_id: str | None
+    hero_detected_mime: str | None
+    hero_configuration_available: bool
     verification_email_template: str
     backup_destination: str
     row_version: int
@@ -32,6 +36,18 @@ class SiteConfigurationItem:
     @property
     def logo_url(self) -> str | None:
         return f"/_kaj/media/{self.logo_asset_id}" if self.logo_asset_id else None
+
+    @property
+    def hero_url(self) -> str | None:
+        if self.hero_asset_id and self.hero_detected_mime:
+            return f"/_kaj/media/{self.hero_asset_id}"
+        return None
+
+    @property
+    def hero_is_video(self) -> bool:
+        return bool(
+            self.hero_detected_mime and self.hero_detected_mime.startswith("video/")
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,13 +76,8 @@ class FriendLinkItem:
     name: str
     url: str
     description: str
-    logo_asset_id: str
     position: int
     row_version: int
-
-    @property
-    def logo_url(self) -> str:
-        return f"/_kaj/media/{self.logo_asset_id}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +97,17 @@ class AdminSiteSettings:
     trusted_sources: tuple[TrustedEmbedSourceItem, ...]
 
 
-def _configuration_item(row: SiteConfiguration) -> SiteConfigurationItem:
+def _configuration_item(
+    row: SiteConfiguration,
+    *,
+    hero_asset_id: str | None,
+    hero_configuration_available: bool,
+) -> SiteConfigurationItem:
+    hero = (
+        navigation_media_gateway().resolve_site_media(hero_asset_id)
+        if hero_asset_id
+        else None
+    )
     return SiteConfigurationItem(
         site_name=row.site_name,
         site_description=row.site_description,
@@ -94,6 +115,9 @@ def _configuration_item(row: SiteConfiguration) -> SiteConfigurationItem:
         registration_enabled=row.registration_enabled,
         article_body_max_bytes=row.article_body_max_bytes,
         logo_asset_id=row.logo_asset_id,
+        hero_asset_id=hero_asset_id,
+        hero_detected_mime=hero.detected_mime if hero else None,
+        hero_configuration_available=hero_configuration_available,
         verification_email_template=row.verification_email_template,
         backup_destination=row.backup_destination,
         row_version=row.row_version,
@@ -101,17 +125,22 @@ def _configuration_item(row: SiteConfiguration) -> SiteConfigurationItem:
 
 
 def public_site_configuration() -> SiteConfigurationItem:
+    hero_available = site_hero_column_available()
+    fields = (
+        "site_name",
+        "site_description",
+        "copyright_text",
+        "registration_enabled",
+        "article_body_max_bytes",
+        "logo_asset_id",
+        "verification_email_template",
+        "backup_destination",
+        "row_version",
+    )
     try:
         row = SiteConfiguration.objects.only(
-            "site_name",
-            "site_description",
-            "copyright_text",
-            "registration_enabled",
-            "article_body_max_bytes",
-            "logo_asset_id",
-            "verification_email_template",
-            "backup_destination",
-            "row_version",
+            *fields,
+            *(("hero_asset_id",) if hero_available else ()),
         ).get(pk=1)
     except SiteConfiguration.DoesNotExist:
         raise SiteContentQueryError("Site configuration is missing") from None
@@ -121,9 +150,14 @@ def public_site_configuration() -> SiteConfigurationItem:
         and len(cached) == 2
         and cached[0] == row.row_version
         and isinstance(cached[1], SiteConfigurationItem)
+        and cached[1].hero_configuration_available == hero_available
     ):
         return cached[1]
-    item = _configuration_item(row)
+    item = _configuration_item(
+        row,
+        hero_asset_id=row.hero_asset_id if hero_available else None,
+        hero_configuration_available=hero_available,
+    )
     cache.set(
         PUBLIC_SITE_CONFIGURATION_CACHE_KEY,
         (row.row_version, item),
@@ -212,7 +246,6 @@ def visible_friend_links() -> tuple[FriendLinkItem, ...]:
             name=row.name,
             url=row.url,
             description=row.description,
-            logo_asset_id=row.logo_asset_id,
             position=row.position,
             row_version=row.row_version,
         )

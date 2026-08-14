@@ -2,10 +2,11 @@ from apps.operations.public import AuditSchema, register_audit_schema
 
 
 def register_content_audit_schemas() -> None:
-    fields = frozenset({"name", "normalized_name", "deleted"})
+    fields = frozenset({"name", "normalized_name", "default_cover_asset_id", "deleted"})
     for action in (
         "content.section.create",
         "content.section.rename",
+        "content.section.update",
         "content.section.delete",
     ):
         register_audit_schema(AuditSchema(action, "section", fields))

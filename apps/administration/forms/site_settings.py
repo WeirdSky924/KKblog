@@ -38,6 +38,12 @@ class SiteConfigurationForm(forms.Form):
         required=False,
         widget=forms.HiddenInput,
     )
+    hero_asset_id = forms.CharField(
+        label="首页主视觉",
+        max_length=26,
+        required=False,
+        widget=forms.HiddenInput,
+    )
     backup_destination = forms.ChoiceField(
         label="备份目标",
         choices=(("local", "local（本机）"),),
@@ -107,19 +113,29 @@ class StaticPageForm(forms.Form):
 
 class FriendLinkForm(forms.Form):
     link_id = forms.CharField(widget=forms.HiddenInput, required=False)
-    name = forms.CharField(label="站点名称", max_length=80)
+    name = forms.CharField(
+        label="站点名称",
+        max_length=80,
+        widget=forms.TextInput(attrs={"autocomplete": "off", "autofocus": True}),
+    )
     url = forms.URLField(
         label="HTTPS 地址",
         max_length=255,
         assume_scheme="https",
+        widget=forms.URLInput(
+            attrs={
+                "autocomplete": "url",
+                "inputmode": "url",
+                "spellcheck": "false",
+            }
+        ),
     )
-    description = forms.CharField(label="描述", max_length=300)
-    logo_asset_id = forms.CharField(
-        label="Logo",
-        max_length=26,
-        widget=forms.HiddenInput,
+    description = forms.CharField(
+        label="描述",
+        max_length=300,
+        widget=forms.Textarea(attrs={"rows": 3}),
     )
-    position = forms.IntegerField(label="位置", min_value=0, required=False)
+    position = forms.IntegerField(label="排序位置", min_value=0)
     expected_version = forms.IntegerField(widget=forms.HiddenInput, required=False)
 
 

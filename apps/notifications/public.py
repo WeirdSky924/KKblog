@@ -3,6 +3,7 @@ from apps.notifications.consumers import (
     consume_author_role_changed,
     consume_domain_notification,
     consume_operational_state_notification,
+    consume_opportunity_notification,
     consume_task_final_failure_notification,
 )
 from apps.notifications.queries import (
@@ -10,6 +11,8 @@ from apps.notifications.queries import (
     broadcast_list,
     notification_for_recipient,
     notifications_for_recipient,
+    unread_notification_count,
+    unread_target_notification_count,
 )
 from apps.notifications.services.broadcast import (
     BROADCAST_MESSAGE_MAX_LENGTH,
@@ -23,6 +26,7 @@ from apps.notifications.services.delivery import (
     deliver_notification,
     register_notification_template,
 )
+from apps.notifications.services.read import mark_target_notifications_read
 from apps.notifications.services.visibility import (
     BroadcastStateError,
     delete_broadcast,
@@ -43,13 +47,17 @@ __all__ = [
     "deliver_notification",
     "consume_domain_notification",
     "consume_operational_state_notification",
+    "consume_opportunity_notification",
     "consume_task_final_failure_notification",
     "consume_author_role_changed",
     "consume_account_deleted",
     "notification_for_recipient",
+    "mark_target_notifications_read",
     "normalize_broadcast_message_markdown",
     "hide_broadcast",
     "notifications_for_recipient",
     "register_notification_template",
     "restore_broadcast",
+    "unread_notification_count",
+    "unread_target_notification_count",
 ]

@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "apps.moderation",
     "apps.navigation",
     "apps.notifications",
+    "apps.opportunities",
     "apps.operations",
 ]
 
@@ -75,7 +76,7 @@ ACCOUNT_VERIFICATION_EMAIL_CONFIGURATION_PROVIDER = (
 DIRECT_REGISTRATION_ENABLED = False
 ACCOUNT_SESSION_COOKIE_NAME = "kaj_session"
 TRUSTED_PROXY_CIDRS = ()
-NETWORK_PUBLIC_NAMESPACES = ("public", "article")
+NETWORK_PUBLIC_NAMESPACES = ("public", "article", "opportunities")
 NETWORK_POLICY_EXEMPT_VIEW_NAMES = ("operations:live", "operations:ready")
 
 OUTBOX_BATCH_SIZE = 100
@@ -142,6 +143,19 @@ CELERY_BEAT_SCHEDULE = {
     "operations-expire-backups": {
         "task": "apps.operations.dispatch_expired_backups",
         "schedule": crontab(minute=30, hour=19),
+    },
+    "opportunities-daily-check": {
+        "task": "apps.opportunities.schedule_daily_check",
+        # CELERY_TIMEZONE is UTC; 10:00 UTC is 18:00 Shanghai.
+        "schedule": crontab(minute=0, hour=10),
+    },
+    "opportunities-dispatch-pending": {
+        "task": "apps.opportunities.dispatch_pending_check_runs",
+        "schedule": 60.0,
+    },
+    "opportunities-cleanup-history": {
+        "task": "apps.opportunities.cleanup_check_history",
+        "schedule": crontab(minute=30, hour=10),
     },
     "analytics-expire-umami-data": {
         "task": "apps.analytics.expire_umami_data",

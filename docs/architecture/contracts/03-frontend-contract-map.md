@@ -18,8 +18,10 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `article:reading-bookmark` | JSON action | `save_reading_bookmark` | 右侧阅读书签按钮 | 登录要求、正文相对进度 `0..1`、同账户同文章原位更新 |
 | `public:profile` | `discovery/public_profile.html` | `visible_articles_by_author` | 文章列表 | 空主页、不同调用者可见性 |
 | `public:about` | `navigation/static_page.html` | `published_static_page` | 无 | 无内容 404/隐藏入口 |
-| `public:friend-links` | `navigation/friend_links.html` | `visible_friend_links` | 无 | 安全新标签、缺图 |
+| `public:friend-links` | `navigation/friend_links.html` | `visible_friend_links` | 无 | 名称/描述、安全新标签、无 Logo 依赖 |
 | `public:guestbook` | `comments/thread_page.html` | `guestbook_thread` | 评论列表/表单 | 开关、访客、登录、举报 |
+| `opportunities:index` | `opportunities/index.html` | `public_opportunities`, `public_opportunity_sources`, `public_opportunity_filters`, `public_opportunity_summary` | `opportunity-workspace` | 岗位/来源双视图、同组 OR/组间 AND、搜索提交、即时复选/每页、历史/焦点/滚动恢复、公开证据、空态 |
+| `opportunities:bookmark` | `opportunities/partials/bookmark_button.html` | `set_opportunity_bookmark` | 稳定收藏控件 | 未登录安全回跳、登录幂等持久化、实心图标、通用反馈、仅看收藏取消后刷新 |
 | `public:not-found` | `errors/404.html` | 安全错误映射 | 无 | 不泄露对象存在 |
 
 文章首屏的静态正文可缓存，浏览量、收藏、点赞、阅读书签和评论由独立查询组装。阅读书签保存正文内归一化进度，避免视口变化后绝对像素失效；分享按钮只复制当前永久链接，不调用第三方平台。
@@ -43,13 +45,13 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | URL name | 页面 | 所有者/服务 | 关键状态/弹窗 |
 | --- | --- | --- | --- |
 | `authoring:articles` | 我的文章 | content queries | 已发布、草稿、定时、冷静期、空态 |
-| `authoring:create` | 格式选择 | create_article | Markdown/富文本一经选择普通流程不可改 |
+| `authoring:create` | 创建方式选择 | create_article/exchange import | Markdown/富文本/导入三选一；空白文章格式一经选择普通流程不可改 |
 | `authoring:edit` | 编辑器+预览 | save_revision/media | 本地自动保存、云保存、磁盘限制、冲突、剪贴板图片上传/撤销/失败 |
 | `authoring:review` | 全文终稿审查 | prepare/publish/schedule | 返回编辑、立即/定时、退出存草稿 |
 | `authoring:versions` | 历史时间线 | revision queries/restore | 版本元数据、恢复预览、创建新修订 |
 | `authoring:comments-buffer` | 缓冲卡片 | buffered_comments/delete | 10 分钟倒计时、删除确认 |
 | `authoring:comments-article` | 按文章评论 | comment queries/delete | 树、占位、关闭评论区 |
-| `authoring:import` | 上传/预览/结果 | exchange import | 逐篇选择、分区/标签映射、部分成功 |
+| `authoring:import` | 创建入口的上传/预览/结果 | exchange import | 兼容旧 URL；逐篇选择、分区/标签映射、部分成功，单篇成功进入编辑 |
 
 编辑器桌面并列编辑/实时预览；手机使用“编辑/预览”分段切换。TipTap 和 Markdown 使用不同输入组件，但共同调用安全预览、媒体选择、版本令牌和发布审查组件。
 
@@ -77,20 +79,21 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | --- | --- | --- | --- |
 | `admin:users` | 用户/作者管理 | accounts | 搜索、状态、授予/撤销、禁用/启用、删除 |
 | `admin:ip-blocks` | IP 管理 | accounts | 掩码列表、详情全值、备注、解除 |
-| `admin:articles` | 全文章管理 | content/moderation | 查看通知、隐藏/恢复、删除/恢复、申诉 |
+| `admin:articles` | 全文章管理 | content/moderation | 居中只读预览弹窗、工作版本/发布历史切换、查看通知、隐藏/恢复、删除/恢复、申诉 |
 | `admin:comments` | 评论卡片/tabs | comments | 缓冲、按文章、直接删除理由 |
 | `admin:reports` | 举报/申诉审核 | moderation | 初审、证据、举报人隐私、终局复审 |
 | `admin:tags` | 标签审核/历史 | content | 通过、拒绝、删除、恢复关联冲突 |
-| `admin:sections` | 分区 | content | 唯一名称、删除转未知分区 |
+| `admin:sections` | 分区 | content/media | 唯一名称、可空默认封面 picker、编辑弹窗、删除转未知分区并释放封面 |
 | `admin:invites` | 邀请码 | accounts | 1..1000 生成、一次显示原码、筛选/撤销/使用者 |
 | `admin:notifications` | 群发 | notifications | 全体用户、读回、隐藏/恢复/删除 |
 | `admin:navigation` | 三层拖拽树 | navigation | 站内页/分区/外链统一排版；父级切换自动建议位置；插入后移、删除补位 |
-| `admin:site-settings` | 分组设置 | navigation/core/media | 品牌、注册、Logo、正文限制、可信来源、法律页 |
+| `admin:site-settings` | 分组设置 | navigation/core/media | 品牌、注册、Logo、Hero 图片/视频、正文限制、可信来源、法律页 |
 | `admin:exchange` | 导出任务 | exchange | 单全局任务、取消、下载、三天到期 |
 | `admin:audit` | 审计检索 | operations | 关键字、类型、目标、时间、前后值 |
 | `admin:errors` | 错误检索 | operations | 错误码、trace、脱敏详情 |
 | `admin:tasks` | 任务记录 | operations | 运行/成功/最终失败，无手动重试 |
 | `admin:analytics` | Umami | analytics | 同源认证入口、不可公网直达 |
+| `admin:opportunities` | 工作机会五标签 | opportunities | 审核队列支持接受当前页与确认后接受全部待审核；来源/岗位 dialog；任务历史按来源分页并以 dialog 按需展示新增/更新岗位；检查仅创建持久任务，不同步抓取 |
 
 不建立空洞的管理仪表盘首页。个人菜单中的“管理”直接进入上次/默认的首个功能入口，移动端管理侧栏变为可滚动模块导航，所有写动作仍使用一致确认弹窗。
 

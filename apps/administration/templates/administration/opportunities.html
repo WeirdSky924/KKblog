@@ -1,0 +1,284 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}工作机会 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="opportunity-admin" aria-labelledby="opportunity-admin-title">
+    <header class="opportunity-admin__header">
+      <div>
+        <p>管理 · 工作机会</p>
+        <h1 id="opportunity-admin-title">工作机会</h1>
+      </div>
+      {% if active_tab == "sources" %}
+        <a id="source-create-trigger" class="button button--primary" href="?{{ list_query }}&amp;dialog=source-create" data-dialog-trigger aria-controls="opportunity-admin-dialog"><i data-lucide="plus"></i><span>新建来源</span></a>
+      {% elif active_tab == "jobs" %}
+        <a id="job-create-trigger" class="button button--primary" href="?{{ list_query }}&amp;dialog=job-create" data-dialog-trigger aria-controls="opportunity-admin-dialog"><i data-lucide="plus"></i><span>新建岗位</span></a>
+      {% elif active_tab == "runs" %}
+        <form method="post" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="check_all">
+          <button class="button button--primary" type="submit"><i data-lucide="refresh-cw"></i><span>检查全部来源</span></button>
+        </form>
+      {% endif %}
+    </header>
+
+    <nav class="opportunity-admin__tabs" aria-label="工作机会管理">
+      <a href="?tab=reviews"{% if active_tab == "reviews" %} aria-current="page"{% endif %}>审核队列{% if opportunity_admin_review_count %}<span>{{ opportunity_admin_review_count }}</span>{% endif %}</a>
+      <a href="?tab=jobs"{% if active_tab == "jobs" %} aria-current="page"{% endif %}>岗位</a>
+      <a href="?tab=sources"{% if active_tab == "sources" %} aria-current="page"{% endif %}>来源</a>
+      <a href="?tab=runs"{% if active_tab == "runs" %} aria-current="page"{% endif %}>任务历史{% if opportunity_admin_failure_count %}<span data-opportunity-run-attention>{{ opportunity_admin_failure_count }}</span>{% endif %}</a>
+      <a href="?tab=settings"{% if active_tab == "settings" %} aria-current="page"{% endif %}>设置</a>
+    </nav>
+
+    {% if page_error %}<p class="opportunity-admin__error" role="alert">{{ page_error }}</p>{% endif %}
+    {% if job_filter_form.errors or source_filter_form.errors or page_form.errors %}
+      <div class="opportunity-admin__error" role="alert">
+        {{ job_filter_form.errors }}{{ source_filter_form.errors }}{{ page_form.errors }}
+      </div>
+    {% endif %}
+    {% if saved %}<div data-opportunity-feedback data-message="{% if saved == 'source' %}来源已保存{% elif saved == 'job' %}岗位已保存{% elif saved == 'review' %}审核项已处理{% elif saved == 'review-page' %}当前页已接受 {{ saved_count }} 项审核{% elif saved == 'review-all' %}已接受全部 {{ saved_count }} 项待审核{% elif saved == 'settings' %}默认筛选已保存{% elif saved == 'check-cancelled' %}检查任务已取消{% elif saved == 'check-cancel-requested' %}已提交安全取消请求{% else %}检查请求已提交{% endif %}"></div>{% endif %}
+
+    {% if active_tab == "reviews" %}
+      <div class="opportunity-admin__section-heading">
+        <h2>审核队列</h2>
+        <div class="opportunity-admin__review-actions">
+          <span class="opportunity-admin__review-count">{{ review_page.total|default:0 }} 项</span>
+          {% if review_page.items %}
+            <form method="post" data-submit-once>
+              {% csrf_token %}
+              <input type="hidden" name="action" value="review_resolve_batch">
+              <input type="hidden" name="scope" value="PAGE">
+              <input type="hidden" name="page" value="{{ review_page.page }}">
+              <input type="hidden" name="per_page" value="{{ review_page.page_size }}">
+              {% for row in review_page.items %}<input type="hidden" name="review_id" value="{{ row.review_id }}">{% endfor %}
+              <button class="button button--primary opportunity-admin__review-button" type="submit"><i data-lucide="circle-check-big"></i><span>接受当前页</span></button>
+            </form>
+            <a
+              id="opportunity-review-all-trigger"
+              class="button button--secondary opportunity-admin__review-button"
+              href="?tab=reviews&amp;page={{ review_page.page }}&amp;per_page={{ review_page.page_size }}&amp;confirm=review-all"
+              data-dialog-trigger
+              aria-controls="opportunity-review-all-dialog"
+            ><i data-lucide="list-checks"></i><span>接受全部待审核</span></a>
+          {% endif %}
+        </div>
+      </div>
+      {% if review_page.items %}
+        <div class="opportunity-admin__table-wrap">
+          <table><thead><tr><th>企业 / 岗位</th><th>类型</th><th>差异</th><th>进入时间</th><th>处理</th></tr></thead>
+            <tbody>{% for row in review_page.items %}<tr data-state="review">
+              <td><strong>{{ row.company_name }}</strong><small>{{ row.title }}</small></td>
+              <td>{% if row.kind == "NEW" %}新岗位{% elif row.kind == "FIELD_CHANGE" %}字段变化{% else %}来源列表缺失{% endif %}</td>
+              <td><code>{{ row.field_changes }}</code></td><td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+              <td><form method="post" class="opportunity-admin__row-actions" data-submit-once>{% csrf_token %}<input type="hidden" name="action" value="review_resolve"><input type="hidden" name="review_id" value="{{ row.review_id }}"><label><span class="sr-only">处理结果</span><select name="decision"><option value="ACCEPTED">接受并确认</option><option value="KEPT_MANUAL">保留人工值</option><option value="RESOLVED">标记已处理</option></select></label><button class="icon-button" type="submit" title="处理审核" aria-label="处理 {{ row.title }} 的审核"><i data-lucide="check"></i></button></form></td>
+            </tr>{% endfor %}</tbody>
+          </table>
+        </div>
+      {% else %}<p class="opportunity-admin__empty">当前没有待处理审核项。</p>{% endif %}
+      {% include "administration/partials/opportunity_pagination.html" with page_data=review_page pagination_query=pagination_query pagination_label="审核队列分页" %}
+      {% if review_all_confirm %}
+        {% include "components/feedback/confirm_dialog.html" with dialog_id="opportunity-review-all-dialog" dialog_open=True dialog_title="确认接受全部待审核项？" dialog_description=review_all_description dialog_details="新岗位会被标记为已确认；并发期间已经处理的项目会自动跳过。" action_value="review_resolve_batch" confirmation_form=review_batch_all_form confirm_label="接受全部待审核" dialog_return_focus_id="opportunity-review-all-trigger" dialog_return_url=review_all_return_url csrf_token=csrf_token only %}
+      {% endif %}
+    {% elif active_tab == "jobs" %}
+      <form method="get" class="opportunity-admin__filters">
+        <input type="hidden" name="tab" value="jobs">
+        <input type="hidden" name="per_page" value="{{ job_filter_form.per_page.value|default:20 }}">
+        <label>{{ job_filter_form.q.label }}{{ job_filter_form.q }}</label>
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.verification_status title="核实状态" picker_id="admin-job-verification-status" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.publication_state title="上下架" picker_id="admin-job-publication-state" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.source_id title="官方来源" picker_id="admin-job-source" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.recruitment_type title="招聘类型" picker_id="admin-job-recruitment-type" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.origin title="创建来源" picker_id="admin-job-origin" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.category_ids title="岗位类别" picker_id="admin-job-categories" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.city_ids title="城市" picker_id="admin-job-cities" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.cohort_ids title="届别" picker_id="admin-job-cohorts" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=job_filter_form.list_missing title="来源列表状态" picker_id="admin-job-list-missing" only %}
+        <button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+      </form>
+      <div class="opportunity-admin__section-heading"><h2>岗位</h2><span>{{ job_page.total|default:0 }} 条</span></div>
+      {% if job_page.items %}<div class="opportunity-admin__table-wrap"><table><thead><tr><th>企业 / 岗位</th><th>招聘信息</th><th>筛选项</th><th>状态</th><th>最近核实</th><th>操作</th></tr></thead><tbody>
+        {% for row in job_page.items %}<tr data-state="{{ row.verification_status|lower }}"><td><strong>{{ row.company_name }}</strong><a href="{{ row.target_url }}" target="_blank" rel="noopener noreferrer">{{ row.title }}<i data-lucide="external-link"></i></a></td><td>{{ row.plan }}<small>{{ row.location_text }}</small></td><td><small>{{ row.categories|join:"、" }}</small><small>{{ row.cities|join:"、" }} · {{ row.cohorts|join:"、" }}</small></td><td><strong>{% if row.verification_status == "CONFIRMED" %}已确认{% elif row.verification_status == "PENDING" %}待确认{% else %}已过期{% endif %}</strong><small>{% if row.publication_state == "PUBLISHED" %}在架{% else %}已下架{% endif %}{% if row.list_missing %} · 列表缺失{% endif %}</small></td><td>{% if row.last_success_at %}{{ row.last_success_at|date:"Y-m-d H:i" }}{% else %}尚未核实{% endif %}</td><td><a id="job-edit-{{ row.opportunity_id }}" class="icon-button" href="?{{ list_query }}&amp;dialog=job-edit&amp;opportunity_id={{ row.opportunity_id }}" data-dialog-trigger aria-controls="opportunity-admin-dialog" title="编辑岗位" aria-label="编辑 {{ row.title }}"><i data-lucide="pencil"></i></a></td></tr>{% endfor %}
+      </tbody></table></div>{% else %}<p class="opportunity-admin__empty">当前条件下没有岗位。</p>{% endif %}
+      {% include "administration/partials/opportunity_pagination.html" with page_data=job_page pagination_query=pagination_query pagination_label="岗位分页" %}
+    {% elif active_tab == "sources" %}
+      <form method="get" class="opportunity-admin__filters"><input type="hidden" name="tab" value="sources">{% for field in source_filter_form.visible_fields %}<label>{{ field.label }}{{ field }}</label>{% endfor %}<button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button></form>
+      <div class="opportunity-admin__section-heading"><h2>官方来源</h2><span>{{ source_page.total|default:0 }} 个</span></div>
+      {% if source_page.items %}<div class="opportunity-admin__table-wrap"><table><thead><tr><th>企业 / 入口</th><th>类型 / 适配器</th><th>公开状态</th><th>检查状态</th><th>岗位</th><th>操作</th></tr></thead><tbody>
+        {% for row in source_page.items %}<tr data-state="{{ row.check_state|lower }}"><td><strong>{{ row.company_name }}</strong><a href="{{ row.official_url }}" target="_blank" rel="noopener noreferrer">官方入口<i data-lucide="external-link"></i></a></td><td>{{ row.source_type }}<small>{{ row.adapter_key }}</small></td><td>{% if row.enabled %}已启用{% else %}已停用{% endif %}<small>{% if row.publicly_visible %}公开可见{% else %}尚未公开{% endif %}</small></td><td><strong>{{ row.check_state }}</strong><small>{% if row.last_checked_at %}{{ row.last_checked_at|date:"Y-m-d H:i" }}{% else %}尚未检查{% endif %}</small>{% if row.last_error_code %}<code>{{ row.last_error_code }}</code>{% endif %}</td><td>{{ row.opportunity_count }}</td><td><div class="opportunity-admin__row-actions"><a id="source-edit-{{ row.source_id }}" class="icon-button" href="?{{ list_query }}&amp;dialog=source-edit&amp;source_id={{ row.source_id }}" data-dialog-trigger aria-controls="opportunity-admin-dialog" title="编辑来源" aria-label="编辑 {{ row.company_name }}"><i data-lucide="pencil"></i></a><form method="post" data-submit-once>{% csrf_token %}<input type="hidden" name="source_id" value="{{ row.source_id }}"><button class="icon-button" type="submit" name="action" value="source_check" title="立即检查" aria-label="立即检查 {{ row.company_name }}"><i data-lucide="refresh-cw"></i></button><button class="icon-button" type="submit" name="action" value="{% if row.enabled %}source_disable{% else %}source_enable{% endif %}" title="{% if row.enabled %}停用{% else %}启用{% endif %}" aria-label="{% if row.enabled %}停用{% else %}启用{% endif %} {{ row.company_name }}"><i data-lucide="{% if row.enabled %}pause{% else %}play{% endif %}"></i></button></form></div></td></tr>{% endfor %}
+      </tbody></table></div>{% else %}<p class="opportunity-admin__empty">尚未登记官方招聘来源。</p>{% endif %}
+      {% include "administration/partials/opportunity_pagination.html" with page_data=source_page pagination_query=pagination_query pagination_label="来源分页" %}
+    {% elif active_tab == "runs" %}
+      {% if opportunity_admin_failure_count %}
+        <form
+          method="post"
+          hx-post="{% url 'admin:opportunities' %}?tab=runs"
+          hx-trigger="load"
+          hx-swap="none"
+          data-opportunity-run-read-form
+          hidden
+        >
+          {% csrf_token %}
+          <input type="hidden" name="action" value="mark_runs_read">
+        </form>
+      {% endif %}
+      <div class="opportunity-admin__section-heading"><h2>检查任务历史</h2><span>{{ run_page.total|default:0 }} 个来源任务</span></div>
+      {% if run_page.items %}
+        <div class="opportunity-admin__table-wrap">
+          <table>
+            <thead><tr><th>来源</th><th>运行</th><th>状态</th><th>岗位变化</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+              {% for row in run_page.items %}
+                <tr data-state="{{ row.state|lower }}">
+                  <td>
+                    <strong>{{ row.company_name }}</strong>
+                    <small>{{ row.source_type_label }} · <a href="{{ row.official_url }}" target="_blank" rel="noopener noreferrer">官方入口<i data-lucide="external-link"></i></a></small>
+                  </td>
+                  <td><code>{{ row.run_id }}</code><small>{{ row.trigger_label }} · {{ row.run_kind_label }}</small></td>
+                  <td><strong>{{ row.state_label }}</strong>{% if row.failed_opportunity_checks %}<small>{{ row.failed_opportunity_checks }} 个岗位核实失败</small>{% endif %}</td>
+                  <td>
+                    <div class="opportunity-admin__change-counts" aria-label="岗位变化汇总">
+                      <span><b>{{ row.created_opportunities }}</b>新增</span>
+                      <span><b>{{ row.changed_opportunities }}</b>更新</span>
+                      <span><b>{{ row.missing_opportunities }}</b>缺失</span>
+                    </div>
+                  </td>
+                  <td>{% if row.started_at %}{{ row.started_at|date:"Y-m-d H:i" }}{% elif row.completed_at %}未开始{% else %}等待开始{% endif %}{% if row.completed_at %}<small>结束 {{ row.completed_at|date:"Y-m-d H:i" }}</small>{% endif %}</td>
+                  <td>
+                    <div class="opportunity-admin__row-actions">
+                      <a
+                        id="run-detail-{{ row.source_run_id }}"
+                        class="icon-button"
+                        href="?{{ list_query }}&amp;dialog=run-detail&amp;source_run_id={{ row.source_run_id }}"
+                        data-dialog-trigger
+                        aria-controls="opportunity-run-detail-dialog"
+                        title="查看任务详情"
+                        aria-label="查看 {{ row.company_name }} 的任务详情"
+                      ><i data-lucide="list-tree"></i></a>
+                      {% if row.can_cancel %}
+                        <form method="post" data-submit-once>
+                          {% csrf_token %}<input type="hidden" name="action" value="cancel_run"><input type="hidden" name="run_id" value="{{ row.run_id }}">
+                          <button class="icon-button" type="submit" title="安全取消" aria-label="安全取消 {{ row.company_name }} 的检查任务"><i data-lucide="square"></i></button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}<p class="opportunity-admin__empty">尚无检查任务。</p>{% endif %}
+      {% include "administration/partials/opportunity_pagination.html" with page_data=run_page pagination_query=pagination_query pagination_label="任务历史分页" %}
+    {% else %}
+      <div class="opportunity-admin__section-heading"><h2>公开页默认筛选</h2></div>
+      <form method="post" class="opportunity-admin__settings" data-submit-once>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="settings_update">
+        {{ settings_form.non_field_errors }}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_city_ids title="城市" picker_id="admin-default-cities" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_verification_statuses title="核实状态" picker_id="admin-default-statuses" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_source_ids title="企业" picker_id="admin-default-companies" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_recruitment_types title="招聘类型" picker_id="admin-default-recruitment-types" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_category_ids title="岗位类别" picker_id="admin-default-categories" only %}
+        {% include "components/forms/opportunity_filter_picker.html" with field=settings_form.default_cohort_ids title="届别" picker_id="admin-default-cohorts" only %}
+        <p>默认值只在无筛选参数首次进入岗位页时应用，访客可以直接取消或改选。</p>
+        <button class="button button--primary" type="submit"><i data-lucide="save"></i><span>保存设置</span></button>
+      </form>
+    {% endif %}
+
+    {% if dialog_kind and dialog_kind != "run-detail" %}
+      <dialog id="opportunity-admin-dialog" class="opportunity-admin-dialog" open data-auto-modal data-confirm-dialog data-dialog-return-url="{{ dialog_return_url }}"{% if dialog_return_focus_id %} data-dialog-return-focus="{{ dialog_return_focus_id }}"{% endif %} aria-labelledby="opportunity-admin-dialog-title">
+        <form method="post" class="opportunity-admin-dialog__content" data-submit-once>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="{% if dialog_kind == 'source-create' %}source_create{% elif dialog_kind == 'source-edit' %}source_edit{% elif dialog_kind == 'job-create' %}job_create{% else %}job_edit{% endif %}">
+          <input type="hidden" name="dialog_kind" value="{{ dialog_kind }}">
+          {% for field in dialog_form.hidden_fields %}{{ field }}{% endfor %}
+          <header class="opportunity-admin-dialog__header">
+            <h2 id="opportunity-admin-dialog-title">{% if dialog_kind == 'source-create' %}新建来源草稿{% elif dialog_kind == 'source-edit' %}编辑来源{% elif dialog_kind == 'job-create' %}新建岗位{% else %}编辑岗位{% endif %}</h2>
+            <button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button>
+          </header>
+          <div class="opportunity-admin-dialog__body">
+            {{ dialog_form.non_field_errors }}
+            <div class="opportunity-admin-dialog__fields">
+              {% for field in dialog_form.visible_fields %}
+                {% if field.name == "category_ids" %}
+                  <div class="opportunity-admin-dialog__field opportunity-admin-dialog__field--picker">
+                    {% include "components/forms/opportunity_filter_picker.html" with field=field title=field.label picker_id="job-editor-categories" picker_variant="editor" only %}
+                  </div>
+                {% elif field.name == "city_ids" %}
+                  <div class="opportunity-admin-dialog__field opportunity-admin-dialog__field--picker">
+                    {% include "components/forms/opportunity_filter_picker.html" with field=field title=field.label picker_id="job-editor-cities" picker_variant="editor" only %}
+                  </div>
+                {% elif field.name == "cohort_ids" %}
+                  <div class="opportunity-admin-dialog__field opportunity-admin-dialog__field--picker">
+                    {% include "components/forms/opportunity_filter_picker.html" with field=field title=field.label picker_id="job-editor-cohorts" picker_variant="editor" only %}
+                  </div>
+                {% elif field.field.widget.input_type == "checkbox" %}
+                  <div class="opportunity-admin-dialog__field opportunity-admin-dialog__field--switch">
+                    {{ field.errors }}
+                    {% include "components/forms/switch.html" with field=field only %}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                  </div>
+                {% else %}
+                  <label>{{ field.label }}{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</label>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <div class="opportunity-admin-dialog__actions">
+              <button class="button button--secondary" type="button" data-dialog-cancel>取消</button>
+              <button class="button button--primary" type="submit"><i data-lucide="save"></i><span>保存</span></button>
+            </div>
+          </div>
+        </form>
+      </dialog>
+    {% elif dialog_kind == "run-detail" %}
+      <dialog
+        id="opportunity-run-detail-dialog"
+        class="opportunity-admin-dialog opportunity-admin-run-dialog"
+        data-auto-modal
+        data-confirm-dialog
+        data-dialog-return-focus="run-detail-{{ run_detail.item.source_run_id }}"
+        data-dialog-return-url="{{ run_detail_return_url }}"
+        aria-labelledby="opportunity-run-detail-title"
+      >
+        <div class="opportunity-admin-dialog__content opportunity-admin-dialog__content--detail">
+          <header class="opportunity-admin-dialog__header">
+            <div>
+              <p>{{ run_detail.item.company_name }}</p>
+              <h2 id="opportunity-run-detail-title">任务获取明细</h2>
+            </div>
+            <button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button>
+          </header>
+          <div class="opportunity-admin-dialog__body">
+            <dl class="opportunity-admin-run-dialog__summary">
+              <div><dt>招聘来源</dt><dd><a href="{{ run_detail.item.official_url }}" target="_blank" rel="noopener noreferrer">{{ run_detail.item.source_type_label }}<i data-lucide="external-link"></i></a></dd></div>
+              <div><dt>任务状态</dt><dd>{{ run_detail.item.state_label }}</dd></div>
+              <div><dt>新增岗位</dt><dd>{{ run_detail.item.created_opportunities }}</dd></div>
+              <div><dt>更新岗位</dt><dd>{{ run_detail.item.changed_opportunities }}</dd></div>
+            </dl>
+            <section class="opportunity-admin-run-dialog__changes" aria-labelledby="opportunity-run-change-title">
+              <header><h3 id="opportunity-run-change-title">岗位明细</h3><span>{{ run_detail.change_total }} 条</span></header>
+              {% if run_detail.changes %}
+                <ul>
+                  {% for change in run_detail.changes %}
+                    <li data-kind="{{ change.kind|lower }}">
+                      <span>{{ change.kind_label }}</span>
+                      <div>
+                        <a href="{{ change.target_url }}" target="_blank" rel="noopener noreferrer">{{ change.title }}<i data-lucide="external-link"></i></a>
+                        <small>{{ change.recruitment_type_label }}{% if change.location_text %} · {{ change.location_text }}{% endif %}</small>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% if run_detail.changes_truncated %}<p>明细较多，本窗口显示前 200 条。</p>{% endif %}
+              {% else %}<p>{{ run_detail.detail_note }}</p>{% endif %}
+            </section>
+          </div>
+          <footer class="opportunity-admin-dialog__footer">
+            <span>{% if run_detail.snapshot_observed_at %}采集于 {{ run_detail.snapshot_observed_at|date:"Y-m-d H:i" }}{% else %}暂无采集快照{% endif %}</span>
+            <form method="dialog"><button class="button button--secondary" type="submit" value="cancel">关闭</button></form>
+          </footer>
+        </div>
+      </dialog>
+    {% endif %}
+  </section>
+{% endblock %}

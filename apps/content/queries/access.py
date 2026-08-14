@@ -36,6 +36,8 @@ from ..rendering_policy import (
     content_rendering_version,
 )
 from .classification import TagItem
+from .covers import ArticleCoverCandidate, resolve_article_covers
+from .publication_history import admin_published_revision_exists
 
 
 class ArticleNotFound(LookupError):
@@ -361,6 +363,15 @@ def _reader_media_bindings(
     readable_cover_asset_id = (
         revision.cover_asset_id if revision.cover_asset_id in active_cover_ids else None
     )
+    readable_cover_asset_id = resolve_article_covers(
+        (
+            ArticleCoverCandidate(
+                revision.id,
+                readable_cover_asset_id,
+                revision.section_id,
+            ),
+        )
+    )[revision.id].asset_id
     active_attachment_ids = {
         item.asset_id
         for item in bindings
@@ -446,32 +457,55 @@ def article_for_author(
     )
 
 
-def article_for_admin(
+def _article_revision_for_admin(
     *,
     actor_id,
     article_id: str,
-    revision: str,
     trace_code: str,
+    revision: str | None = None,
+    revision_id: str | None = None,
     clock: Clock | None = None,
 ) -> ArticleView:
     identity = _article_id(article_id)
     actor = _actor_id(actor_id, required=True)
-    if not is_administrator(actor) or revision not in {"working", "published"}:
+    if not is_administrator(actor):
         raise ArticleNotFound
+    if (revision is None) == (revision_id is None):
+        raise ArticleNotFound
+    if revision is not None and revision not in {"working", "published"}:
+        raise ArticleNotFound
+    if revision_id is not None:
+        try:
+            revision_id = normalize_ulid(revision_id)
+        except (TypeError, ValueError):
+            raise ArticleNotFound from None
     active_clock = clock or SystemClock()
     with transaction.atomic():
         try:
             article = Article.objects.select_for_update().get(pk=identity)
         except Article.DoesNotExist:
             raise ArticleNotFound from None
-        revision_id = (
-            article.working_revision_id
-            if revision == "working"
-            else article.published_revision_id
-        )
-        if revision_id is None:
+        selected_revision_id = revision_id
+        if revision is not None:
+            selected_revision_id = (
+                article.working_revision_id
+                if revision == "working"
+                else article.published_revision_id
+            )
+        elif not admin_published_revision_exists(
+            article=article,
+            revision_id=revision_id or "",
+        ):
             raise ArticleNotFound
-        selected = ArticleRevision.objects.get(pk=revision_id, article=article)
+        if selected_revision_id is None:
+            raise ArticleNotFound
+        try:
+            selected = ArticleRevision.objects.get(
+                pk=selected_revision_id,
+                article=article,
+            )
+        except ArticleRevision.DoesNotExist:
+            raise ArticleNotFound from None
         if actor != article.author_id:
             day = shanghai_business_date(active_clock.now())
             _, created = AdminArticleViewReceipt.objects.get_or_create(
@@ -507,4 +541,38 @@ def article_for_admin(
         rendered_body_html=rendered_body_html,
         readable_cover_asset_id=readable_cover_asset_id,
         readable_attachment_asset_id=readable_attachment_asset_id,
+    )
+
+
+def article_for_admin(
+    *,
+    actor_id,
+    article_id: str,
+    revision: str,
+    trace_code: str,
+    clock: Clock | None = None,
+) -> ArticleView:
+    return _article_revision_for_admin(
+        actor_id=actor_id,
+        article_id=article_id,
+        revision=revision,
+        trace_code=trace_code,
+        clock=clock,
+    )
+
+
+def article_published_revision_for_admin(
+    *,
+    actor_id,
+    article_id: str,
+    revision_id: str,
+    trace_code: str,
+    clock: Clock | None = None,
+) -> ArticleView:
+    return _article_revision_for_admin(
+        actor_id=actor_id,
+        article_id=article_id,
+        revision_id=revision_id,
+        trace_code=trace_code,
+        clock=clock,
     )

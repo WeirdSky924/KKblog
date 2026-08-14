@@ -10,7 +10,7 @@
     <section id="author-editor-workspace" class="authoring-stage authoring-stage--editor" aria-labelledby="author-editor-title">
       <header class="authoring-heading authoring-heading--editor">
         <div>
-          <p class="authoring-folio">02 / 06</p>
+          <p class="authoring-folio">02 / 05</p>
           <h1 id="author-editor-title">{% if editor_mode == "create" %}新建文章{% else %}编辑文章{% endif %}</h1>
         </div>
         <div class="author-editor-status">
@@ -344,16 +344,16 @@
             <a class="button button--secondary" href="{% url 'authoring:versions' article_id=editor_article_id %}">
               <i data-lucide="history"></i><span>版本</span>
             </a>
-            <button
-              class="button author-editor-review"
-              type="submit"
-              name="save_intent"
-              value="review"
-              {% if editor_frozen %}disabled{% endif %}
-            >
-              <i data-lucide="send"></i><span>终稿审查</span>
-            </button>
           {% endif %}
+          <button
+            class="button author-editor-review"
+            type="submit"
+            name="save_intent"
+            value="review"
+            {% if editor_frozen %}disabled{% endif %}
+          >
+            <i data-lucide="send"></i><span>终稿审查</span>
+          </button>
           <button class="button button--primary" type="submit" {% if editor_frozen %}disabled{% endif %}>
             <i data-lucide="save"></i>
             <span>{% if editor_mode == "create" %}创建草稿{% else %}保存草稿{% endif %}</span>

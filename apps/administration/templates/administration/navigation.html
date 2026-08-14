@@ -7,7 +7,7 @@
     <header class="admin-queue__header">
       <p>管理 · 公开站点结构</p>
       <h1 id="admin-navigation-title">主页侧边导航</h1>
-      <p>站内页、文章分区和安全外链共用这棵侧边导航树；选择“文章分区”节点即可将已有分区排入任意层级，顶部栏不显示这些节点。</p>
+      <p>站内页、文章分区、安全外链和无链接的“仅分组”节点共用这棵侧边导航树；选择“文章分区”可排入已有分区，选择“仅分组”只建立层级，顶部栏不显示这些节点。</p>
       {% if saved == "created" %}<p role="status">导航节点已创建。</p>{% endif %}
       {% if saved == "edited" %}<p role="status">导航节点已更新。</p>{% endif %}
       {% if saved == "hidden" %}<p role="status">导航子树已从主页侧边栏隐藏。</p>{% endif %}
@@ -28,6 +28,7 @@
         <div class="navigation-manager__field navigation-manager__field--target" data-navigation-target="section">{{ create_form.section_id.label_tag }}{{ create_form.section_id.errors }}{{ create_form.section_id }}{% if create_form.target_url.help_text %}<p class="form-help navigation-manager__target-spacer" aria-hidden="true">{{ create_form.target_url.help_text }}</p>{% endif %}</div>
         <div class="navigation-manager__field navigation-manager__field--parent">{{ create_form.parent_id.label_tag }}{{ create_form.parent_id.errors }}{{ create_form.parent_id }}</div>
         <div class="navigation-manager__field navigation-manager__field--position">{{ create_form.position.label_tag }}{{ create_form.position.errors }}{{ create_form.position }}{% if create_form.position.help_text %}<p class="form-help">{{ create_form.position.help_text }}</p>{% endif %}</div>
+        <div class="navigation-manager__field navigation-manager__field--expanded">{{ create_form.default_expanded.errors }}{% include "components/forms/switch.html" with field=create_form.default_expanded only %}{% if create_form.default_expanded.help_text %}<p class="form-help">{{ create_form.default_expanded.help_text }}</p>{% endif %}</div>
         {{ create_form.non_field_errors }}
         <button class="button button--primary navigation-manager__submit" type="submit">新增导航节点</button>
       </form>

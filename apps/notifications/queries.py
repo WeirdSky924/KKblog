@@ -267,6 +267,27 @@ def unread_notification_count(*, recipient_id: UUID | str) -> int:
     return _visible_receipts(identity).filter(read_at__isnull=True).count()
 
 
+def unread_target_notification_count(
+    *, recipient_id: UUID | str, target_type: str
+) -> int:
+    identity = _recipient_id(recipient_id)
+    if (
+        not isinstance(target_type, str)
+        or not target_type
+        or len(target_type) > 64
+        or not target_type.replace("_", "").isalnum()
+    ):
+        raise ValueError("Invalid notification target type")
+    return (
+        _visible_receipts(identity)
+        .filter(
+            read_at__isnull=True,
+            notification__target_type=target_type,
+        )
+        .count()
+    )
+
+
 def notification_popover(
     *, recipient_id: UUID | str, limit: int = 5
 ) -> NotificationPopover:

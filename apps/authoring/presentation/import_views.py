@@ -1,4 +1,4 @@
-from django.http import Http404, HttpResponseNotAllowed
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -9,6 +9,7 @@ from apps.authoring.operation_forms import (
 )
 from apps.authoring.presenters import import_workspace_page
 from apps.content.public import section_list, selectable_tag_list
+from apps.core.http import is_htmx_fragment_request
 from apps.exchange.public import (
     ImportConfirmationError,
     ImportDecisionError,
@@ -93,6 +94,21 @@ def _render_import(request, *, status=200, template="authoring/import.html", **c
     return private_response(render(request, template, context, status=status))
 
 
+def _completed_single_article_response(request, context):
+    page = context["import_page"]
+    if not page.terminal or len(page.items) != 1:
+        return None
+    article_id = page.items[0].result_article_id
+    if not article_id:
+        return None
+    edit_url = reverse("authoring:edit", args=(article_id,))
+    if is_htmx_fragment_request(request):
+        response = HttpResponse(status=204)
+        response.headers["HX-Redirect"] = edit_url
+        return private_response(response)
+    return private_response(redirect(edit_url))
+
+
 def import_workspace(request):
     actor_id, response = author_id_or_response(request)
     if response is not None:
@@ -135,12 +151,15 @@ def import_job(request, job_id: str):
         return response
     if denied := _method(request, ("GET",)):
         return denied
+    context = _context(actor_id=actor_id, job_id=job_id)
+    if response := _completed_single_article_response(request, context):
+        return response
     return _render_import(
         request,
         import_upload_form=ImportUploadForm(),
         import_updated=request.GET.get("updated") == "1",
         import_confirmed=request.GET.get("confirmed") == "1",
-        **_context(actor_id=actor_id, job_id=job_id),
+        **context,
     )
 
 
@@ -274,8 +293,11 @@ def import_job_status(request, job_id: str):
         return response
     if denied := _method(request, ("GET",)):
         return denied
+    context = _context(actor_id=actor_id, job_id=job_id)
+    if response := _completed_single_article_response(request, context):
+        return response
     return _render_import(
         request,
         template="authoring/partials/import_job_panel.html",
-        **_context(actor_id=actor_id, job_id=job_id),
+        **context,
     )

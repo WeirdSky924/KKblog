@@ -1,0 +1,607 @@
+.opportunity-admin {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.opportunity-admin__header,
+.opportunity-admin__section-heading,
+.opportunity-admin-dialog header,
+.opportunity-admin-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.opportunity-admin__header p,
+.opportunity-admin__header h1,
+.opportunity-admin__section-heading h2 {
+  margin: 0;
+}
+
+.opportunity-admin__header p {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.opportunity-admin__tabs {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  border-block: 1px solid var(--line);
+}
+
+.opportunity-admin__tabs a {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 1rem;
+  border-inline-end: 1px solid var(--line);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.opportunity-admin__tabs a[aria-current="page"] {
+  box-shadow: inset 0 -3px 0 var(--accent);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.opportunity-admin__tabs span {
+  min-width: 1.5rem;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.opportunity-admin__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.opportunity-admin__filters label,
+.opportunity-admin-dialog__fields > label,
+.opportunity-admin__settings label {
+  display: grid;
+  min-width: 0;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.opportunity-admin__filters select[multiple] {
+  min-height: 5.25rem;
+}
+
+.opportunity-admin__section-heading {
+  padding-block-end: 0.625rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.opportunity-admin__review-count {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-admin__review-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.opportunity-admin__review-actions form {
+  display: contents;
+}
+
+.opportunity-admin__review-button {
+  border-width: 1px;
+  font-weight: 700;
+}
+
+.opportunity-admin__review-button > span {
+  color: inherit;
+}
+
+.opportunity-admin__review-actions .button--primary {
+  box-shadow: 0 0.25rem 0.75rem
+    color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent-contrast);
+}
+
+.opportunity-admin__review-actions .button--primary:hover {
+  color: var(--accent-contrast);
+}
+
+.opportunity-admin__review-actions .button--secondary {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-panel));
+  color: var(--accent);
+}
+
+.opportunity-admin__review-actions .button--secondary:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
+}
+
+.opportunity-admin__table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.opportunity-admin table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.opportunity-admin th,
+.opportunity-admin td {
+  padding: 0.75rem;
+  border-block-end: 1px solid var(--line);
+  text-align: start;
+  vertical-align: middle;
+}
+
+.opportunity-admin th {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.opportunity-admin tr[data-state="review"] td:first-child,
+.opportunity-admin tr[data-state="pending"] td:first-child,
+.opportunity-admin tr[data-state="degraded"] td:first-child,
+.opportunity-admin tr[data-state="failed"] td:first-child,
+.opportunity-admin tr[data-state="partial"] td:first-child,
+.opportunity-admin tr[data-state="truncated"] td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.opportunity-admin td strong,
+.opportunity-admin td small,
+.opportunity-admin td a:not(.icon-button) {
+  display: block;
+}
+
+.opportunity-admin td small,
+.opportunity-admin td code {
+  margin-block-start: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.opportunity-admin td a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+}
+
+.opportunity-admin td a:not(.icon-button) svg {
+  display: inline;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-inline-start: 0.25rem;
+}
+
+.opportunity-admin td small a {
+  display: inline;
+}
+
+.opportunity-admin__change-counts {
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.opportunity-admin__change-counts span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.opportunity-admin__change-counts b {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-admin__row-actions {
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+.opportunity-admin__row-actions form {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.opportunity-admin__row-actions select {
+  min-height: 2.75rem;
+  max-width: 9rem;
+}
+
+.opportunity-admin__empty,
+.opportunity-admin__error {
+  margin: 0;
+  padding: 1rem;
+  border-inline-start: 3px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.opportunity-admin__error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.opportunity-admin__settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(12rem, 1fr));
+  align-items: end;
+  gap: 1rem;
+  max-width: 64rem;
+}
+
+.opportunity-admin__settings p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.opportunity-admin__pagination {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.opportunity-admin__pagination > span {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-admin-dialog {
+  width: min(52rem, calc(100dvw - 2rem));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-block-start: 3px solid var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 24%);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+}
+
+.opportunity-admin-dialog::backdrop {
+  background: rgb(0 0 0 / 58%);
+}
+
+.opportunity-admin-dialog__content {
+  display: grid;
+  max-height: calc(100dvh - 2rem);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.opportunity-admin-dialog__header {
+  position: relative;
+  z-index: 1;
+  min-height: 4.5rem;
+  padding: 0.875rem 1.25rem;
+  border-block-end: 1px solid var(--line);
+  background: var(--surface-panel);
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 6%);
+}
+
+.opportunity-admin-dialog h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.opportunity-admin-dialog__header .icon-button {
+  flex: 0 0 2.75rem;
+}
+
+.opportunity-admin-dialog__header .icon-button:hover,
+.opportunity-admin-dialog__header .icon-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.opportunity-admin-dialog__body {
+  display: grid;
+  min-height: 0;
+  gap: 1rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.opportunity-admin-dialog__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+
+.opportunity-admin-dialog__fields > label:has(textarea),
+.opportunity-admin-dialog__fields > label:has(select[multiple]) {
+  grid-column: 1 / -1;
+}
+
+.opportunity-admin-dialog__fields small {
+  color: var(--text-secondary);
+}
+
+.opportunity-admin-dialog__field--switch {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.25rem;
+  padding-block: 0.375rem;
+  border-block: 1px solid var(--line);
+}
+
+.opportunity-admin-dialog__field--switch .switch-control {
+  margin: 0;
+}
+
+.opportunity-admin-dialog__field--picker {
+  min-width: 0;
+}
+
+.opportunity-admin-dialog__actions {
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.opportunity-admin-dialog__content--detail {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.opportunity-admin-dialog__header p {
+  margin: 0 0 0.2rem;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.opportunity-admin-dialog__footer {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-block-start: 1px solid var(--line);
+  background: var(--surface-panel);
+}
+
+.opportunity-admin-dialog__footer > span {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.opportunity-admin-run-dialog__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--line);
+}
+
+.opportunity-admin-run-dialog__summary > div {
+  min-width: 0;
+  padding: 0.875rem;
+  border-inline-end: 1px solid var(--line);
+}
+
+.opportunity-admin-run-dialog__summary > div:last-child {
+  border-inline-end: 0;
+}
+
+.opportunity-admin-run-dialog__summary dt {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.opportunity-admin-run-dialog__summary dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-admin-run-dialog__summary a,
+.opportunity-admin-run-dialog__changes a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+}
+
+.opportunity-admin-run-dialog__summary svg,
+.opportunity-admin-run-dialog__changes svg {
+  display: inline;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-inline-start: 0.25rem;
+}
+
+.opportunity-admin-run-dialog__changes {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.opportunity-admin-run-dialog__changes > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block-end: 0.625rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.opportunity-admin-run-dialog__changes h3,
+.opportunity-admin-run-dialog__changes p {
+  margin: 0;
+}
+
+.opportunity-admin-run-dialog__changes > header span,
+.opportunity-admin-run-dialog__changes > p {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.opportunity-admin-run-dialog__changes ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.opportunity-admin-run-dialog__changes li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.875rem;
+  padding: 0.75rem 0;
+  border-block-end: 1px solid var(--line);
+}
+
+.opportunity-admin-run-dialog__changes li > span {
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.opportunity-admin-run-dialog__changes li[data-kind="created"] > span {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--line));
+  color: var(--success);
+}
+
+.opportunity-admin-run-dialog__changes li > div {
+  min-width: 0;
+}
+
+.opportunity-admin-run-dialog__changes li small {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 48rem) {
+  .opportunity-admin__header,
+  .opportunity-admin__section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .opportunity-admin__header .button,
+  .opportunity-admin__header form,
+  .opportunity-admin__header form .button {
+    width: 100%;
+  }
+
+  .opportunity-admin__review-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .opportunity-admin__table-wrap {
+    overflow: visible;
+  }
+
+  .opportunity-admin table,
+  .opportunity-admin tbody,
+  .opportunity-admin tr,
+  .opportunity-admin td {
+    display: block;
+    width: 100%;
+  }
+
+  .opportunity-admin thead {
+    display: none;
+  }
+
+  .opportunity-admin tr {
+    padding: 0.75rem 0;
+    border-block-end: 1px solid var(--line);
+  }
+
+  .opportunity-admin td {
+    padding: 0.35rem 0.75rem;
+    border: 0;
+  }
+
+  .opportunity-admin__row-actions {
+    justify-content: flex-start;
+  }
+
+  .opportunity-admin-dialog__fields,
+  .opportunity-admin__settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .opportunity-admin-dialog {
+    width: calc(100dvw - 1rem);
+  }
+
+  .opportunity-admin-dialog__content {
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .opportunity-admin-dialog__header,
+  .opportunity-admin-dialog__body,
+  .opportunity-admin-dialog__footer {
+    padding-inline: 1rem;
+  }
+
+  .opportunity-admin-dialog__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .opportunity-admin-dialog__actions .button {
+    width: 100%;
+  }
+
+  .opportunity-admin-run-dialog__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opportunity-admin-run-dialog__summary > div:nth-child(2) {
+    border-inline-end: 0;
+  }
+
+  .opportunity-admin-run-dialog__summary > div:nth-child(-n + 2) {
+    border-block-end: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opportunity-admin * {
+    scroll-behavior: auto;
+  }
+}

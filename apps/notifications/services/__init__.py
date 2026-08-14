@@ -5,7 +5,11 @@ from .delivery import (
     deliver_notification,
     register_notification_template,
 )
-from .read import mark_all_notifications_read, mark_notification_read
+from .read import (
+    mark_all_notifications_read,
+    mark_notification_read,
+    mark_target_notifications_read,
+)
 from .visibility import (
     BroadcastStateError,
     delete_broadcast,
@@ -25,5 +29,6 @@ __all__ = [
     "register_notification_template",
     "mark_all_notifications_read",
     "mark_notification_read",
+    "mark_target_notifications_read",
     "restore_broadcast",
 ]

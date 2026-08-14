@@ -13,10 +13,11 @@
 | `ip_block` | 未解除的规范化 IP 部分唯一 |
 | `article` | 作者不可空；三个修订指针必须属于同一文章；软删除时间成对出现 |
 | `article_revision` | `(article_id, sequence)` 唯一；标题非空；格式与正文列匹配 |
+| `content_article_publication` | `(article_id, revision_id)` 唯一；复合外键保证 revision 属于同一文章；文章删除级联清理 |
 | `revision_tag` / `article_tag` | `(revision/article, tag)` 唯一 |
 | `tag` | 未删除的规范化名称唯一 |
-| `media_asset` | `storage_key` 唯一；`0 < size_bytes <= 2097152` |
-| `media_binding` | `(asset_id, target_type, target_id, slot)` 唯一 |
+| `media_asset` | `storage_key` 唯一；图片 `0 < size_bytes <= 2 MiB`，附件及 Hero 视频 `<= 10 MiB`；视频格式只能属于 `HERO`，Hero 只允许普通图片或 MP4/WebM |
+| `media_binding` | `(target_type, target_id, slot)` 与 `(asset_id, target_type, target_id)` 分别唯一；目标类型受注册白名单约束 |
 | `discussion_thread` | `(target_type, target_id)` 唯一 |
 | `comment` | parent 与 child 属于同一 thread；`depth >= 0`；可见时间不早于创建时间 |
 | `report` | `(reporter_id, target_comment_id)` 唯一 |
@@ -25,7 +26,15 @@
 | `discovery_reading_bookmark` | `(account_id, article_id)` 唯一；`0 <= progress <= 1` |
 | `task_run` | `(task_name, idempotency_key)` 唯一 |
 | `export_job` | `state IN (RUNNING, CANCEL_REQUESTED)` 全局部分唯一 |
-| `navigation_node` | 深度 `0..2`；父子不能形成环由延迟触发器或服务加锁校验 |
+| `navigation_node` | 深度 `0..2`；`GROUP` 目标均为空、`SECTION` 仅有目标 ID、链接节点仅有 URL；`default_expanded` 非空且默认 false；叶节点不得开启及父子不能成环由服务加锁校验 |
+| `opportunity_source` | 规范官方 URL 唯一；来源/检查状态枚举；公开必须已启用；同域请求间隔至少 2 秒；页数、岗位数、时长和行版本均为正数 |
+| `opportunity_filter_option` / `opportunity_source_filter_option` | 全站 `(kind, normalized_label)` 唯一；每来源每选项唯一；最近发现时间不早于首次发现时间 |
+| `opportunity` / `opportunity_filter_assignment` | 岗位以来源和“规范 URL + 规范采集标题”的固定身份摘要唯一，同一列表 URL 可承载多个独立岗位；招聘/核实/发布/来源枚举；每岗位、选项、赋值来源唯一；来源停用快照与下架状态形状一致 |
+| `opportunity_check` / `opportunity_review_item` | 检查目标、完成时间、HTTP 状态和到期时间形状受约束；每岗位每审核类型至多一个开放项 |
+| `opportunity_check_run` / `opportunity_check_run_source` | 全站同时至多一个等待/运行/待取消任务；运行完成时间与终态匹配；每运行来源和位置唯一 |
+| `opportunity_collection_snapshot` / `opportunity_state_transition` | 完整与截断不能同时为真、到期晚于观察；岗位状态转换前后不同且只能使用固定核实状态 |
+| `opportunity_bookmark` / `opportunity_settings` | `(account_id, opportunity_id)` 唯一；设置表只允许主键 `1` 且行版本为正数 |
+| `opportunity_default_filter_selection` | 每个设置、筛选种类与选项/来源/枚举值唯一；城市/类别/届别只能引用筛选选项，企业只能引用来源，状态/招聘类型只能保存非空枚举值 |
 
 “恰好一个管理员”“每篇最多十标签”“父评论同线程”“修订指针同文章”在普通 `CHECK` 难以完整表达时，使用以下优先级：原生唯一/外键约束、延迟约束触发器、加锁的领域服务、数据库回归测试。不要只在表单层校验。
 
@@ -38,12 +47,14 @@
 | 新建修订 | 锁 Article 行，校验 `row_version`，分配 sequence，切换 working 指针 |
 | 发布/定时发布 | 锁 Article；确认目标修订、权限、分区和遮罩，再原子切指针 |
 | 标签增删 | 锁 Article；服务检查最多十个，再同步修订快照与当前投影 |
+| 分区封面更新 | 锁 Section；名称、可空 asset ID 与 `SECTION/default-cover` 单槽绑定同事务替换，文件清理只在提交后执行 |
 | 评论回复 | 锁 parent 或 thread；计算 depth 并原子增加根评论 reply_count |
 | 评论缓冲公开 | 条件更新 `BUFFERED -> VISIBLE`，重复运行影响行数为零 |
 | 评论置顶 | 锁 thread；`thread_id`/`comment_id` 各自唯一；置顶另一条时原子替换 |
 | 文章点赞 | `(account_id, article_id)` 唯一；重复写入幂等 |
 | 举报裁决 | 锁 Report；只允许从当前状态走一条合法边 |
 | 单全局导出 | 先插入 `RUNNING`，并让 `RUNNING/CANCEL_REQUESTED` 共用部分唯一约束作为最终并发裁决 |
+| 导航编辑/移动/删除 | 锁全树与树版本；默认展开只允许父节点，原父节点失去最后子项时同事务复位并推进节点版本 |
 | 软删除到期清理 | `skip_locked` 小批量领取；每个文章独立事务与幂等文件清理 |
 
 默认使用 PostgreSQL `READ COMMITTED` 加显式行锁，不为“看起来更安全”全局升到 SERIALIZABLE。只有已证明的跨行写偏差再局部采用更高隔离级别。
@@ -62,6 +73,7 @@
 | 作者文章列表 | `(author_id, updated_at desc)`，包含状态 |
 | 定时发布 | `(scheduled_for, id)` where state scheduled and not deleted |
 | 软删除清理 | `(purge_after, id)` where `purge_after is not null` |
+| 管理发布历史 | `(article_id, published_at)`，列表再以 revision sequence 和记录 ID 稳定排序 |
 | 标题模糊搜索 | 发布修订标题 `gin(title gin_trgm_ops)`；结果再按可见策略过滤 |
 | 分区文章 | `(section_id, published_at desc)` 当前发布投影 |
 | 标签筛选 | `article_tag(tag_id, article_id)` 与文章发布时间索引 |
@@ -76,6 +88,11 @@
 | 审计检索 | `(created_at desc)`、`(action, created_at)`、`(target_type,target_id)` |
 | 运行错误 | `(last_seen_at desc)`、`(error_code,last_seen_at)` |
 | 任务监控 | `(state, scheduled_at)`、唯一幂等键 |
+| 公开岗位 | `(publication_state, verification_status, source_id)`，再按来源规范企业名、标题和稳定 ID 排序 |
+| 后台岗位 | `(source_id, origin, updated_at)`；审核队列 `(state, kind, created_at)` |
+| 公开招聘来源 | `(enabled, publicly_visible, normalized_company_name)`；检查摘要 `(check_state, last_checked_at)` |
+| 岗位筛选与收藏 | `(option_id, opportunity_id)`；账户收藏 `(account_id, created_at desc, opportunity_id)` |
+| 检查历史 | 来源/目标类型/开始时间、岗位/开始时间及到期清理索引 |
 
 分页使用稳定二级键。文章传统页码可以 OFFSET；评论无限滚动、通知和日志使用 keyset cursor，避免数据增长后重复/漏项。
 

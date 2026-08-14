@@ -15,6 +15,8 @@ task(payload_id, idempotency_key)
 
 建议退避为 1 分钟、5 分钟、30 分钟并加随机抖动；第三次失败后终止。产品不提供网页手动重试按钮。修复 BUG 后通过新业务动作或运维命令生成新的幂等键，不复用失败执行伪装成成功。
 
+主动安全取消是独立终态：领域运行写 `CANCELLED` 后抛出受控 `TaskCancelled`，通用 TaskRun 同步写 `cancelled`、清租约并保留结果引用，不进入重试或 `task.final_failed.v1`。
+
 ## 任务目录
 
 | 任务 | 调度/触发 | 幂等键 | 并发控制 | 成功条件 |
@@ -33,6 +35,10 @@ task(payload_id, idempotency_key)
 | `check_service_health` | 每分钟 | `health:{service}:{window}` | 指纹聚合 | 状态/持续故障记录更新 |
 | `send_outbox_events` | 高频轮询 | `outbox:{event}:{consumer}` | skip locked + consumer 去重 | 每个消费者确认 |
 | `expire_umami_data` | 每日 | `umami-retention:{date}` | 单例 | 一个月前数据删除完成 |
+| `schedule_daily_check` | 上海时间每日 18:00 | `opportunity-schedule:{utc-date}` | 活动运行数据库唯一 | 创建或复用一次全量检查 |
+| `dispatch_pending_check_runs` | 每分钟 | `opportunity-dispatch:{utc-minute}` | 有界扫描 + 运行/TaskRun 双重幂等 | 所有选中 `PENDING` 运行已派发 |
+| `run_check` | 手动/定时运行创建后 | `opportunity-run:{run-id}` | 全站活动运行唯一 + TaskRun 租约 | 来源串行完成、部分完成或安全取消 |
+| `cleanup_check_history` | 上海时间每日 18:30 | `opportunity-cleanup:{utc-date}` | 每日单例 + 小批量删除 | 到期检查/快照已按上限清理 |
 | `aggregate_notifications` | 事件触发/周期补偿 | 业务 dedupe key | DB 唯一键 | 通知/receipt 存在 |
 
 ## 定时发布判定

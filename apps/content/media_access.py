@@ -1,4 +1,8 @@
-from apps.accounts.public import is_active_account, is_active_author
+from apps.accounts.public import (
+    is_active_account,
+    is_active_author,
+    is_administrator,
+)
 from apps.media.public import (
     MediaTargetType,
     TargetAccessDecision,
@@ -6,7 +10,7 @@ from apps.media.public import (
     register_target_access,
 )
 
-from .models import ArticleRevision
+from .models import ArticleRevision, Section
 from .policies import author_is_content_masked
 
 
@@ -50,9 +54,28 @@ def article_revision_media_access(
     )
 
 
+def section_media_access(request: TargetAccessRequest) -> TargetAccessDecision:
+    try:
+        section = Section.objects.only("id").get(pk=request.target_id)
+    except (Section.DoesNotExist, TypeError, ValueError):
+        return TargetAccessDecision(False, False, False, False)
+    return TargetAccessDecision(
+        exists=True,
+        can_bind=is_administrator(request.actor_id),
+        can_read=True,
+        public_immutable=True,
+        binding_scope=str(section.id),
+    )
+
+
 def register_media_access() -> None:
     register_target_access(
         MediaTargetType.ARTICLE_REVISION,
         article_revision_media_access,
+        replace=True,
+    )
+    register_target_access(
+        MediaTargetType.SECTION,
+        section_media_access,
         replace=True,
     )

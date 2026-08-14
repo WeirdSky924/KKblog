@@ -23,6 +23,7 @@ class SiteConfiguration(models.Model):
         default=SITE_MAX_ARTICLE_BODY_BYTES
     )
     logo_asset_id = models.CharField(max_length=26, null=True, blank=True)
+    hero_asset_id = models.CharField(max_length=26, null=True, blank=True)
     verification_email_template = models.TextField(blank=True, default="")
     backup_destination = models.CharField(max_length=16, default="local")
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
@@ -97,7 +98,8 @@ class FriendLink(models.Model):
     name = models.CharField(max_length=80)
     url = models.CharField(max_length=255)
     description = models.CharField(max_length=300)
-    logo_asset_id = models.CharField(max_length=26)
+    # Deprecated compatibility column. New friend links never store media IDs.
+    logo_asset_id = models.CharField(max_length=26, blank=True, default="")
     position = models.PositiveIntegerField()
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)

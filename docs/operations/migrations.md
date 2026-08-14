@@ -1,14 +1,14 @@
 # Migration 验证与兼容记录
 
-本页记录 P12 `QA-001` 及后续能力变更对当前 53 条 Django migration 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
+本页记录 P12 `QA-001` 及后续能力变更对当前 migration graph 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
 
 当前源码可作为部署候选，但没有生产域名、管理员邮箱、Resend 身份或密钥，也没有生产数据库的规模与锁窗口读回。P12 未连接或迁移生产数据库，未创建生产迁移前备份，未执行生产部署或服务重启。
 
 ## 当前结构与目标结构
 
-- 当前代码的 11 个 migration leaf 已由发布门禁完整应用到隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。相对上一正式版本，本次新增评论置顶、阅读书签和文章点赞三张独立表，不回填既有数据。
-- 目标结构就是仓库当前 models 与 migration graph；本次增加账户附件能力、修订附件引用，并扩展媒体用途、大小与可空尺寸约束，不回填既有数据。
-- 空库读回覆盖 53 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
+- 当前代码的 migration leaf 已由发布门禁完整应用到隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。相对上一正式版本，本次新增评论置顶、阅读书签、文章点赞与文章发布历史表；前三者不回填既有数据，发布历史从既有发布事件和当前发布指针定向回填。
+- 目标结构就是仓库当前 models 与 migration graph；本次增加账户附件能力、修订附件引用、分区默认封面绑定与可空站点 Hero 引用，并扩展媒体用途、目标、大小与可空尺寸约束，不回填既有分区、站点或媒体数据。
+- 空库读回覆盖 58 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
 - 生产表量级未知。任何锁时长、索引耗时和备份体积必须在获授权部署前从生产只读统计重新估算。
 
 ## expand/migrate/contract
@@ -55,6 +55,7 @@
 | `content.0013_articlerevision_tiptap_schema_version` | revision 增加 TipTap schema 版本与正文形状约束 | M/C1 | B/R1 |
 | `content.0014_allow_rejected_tag_name_reproposal` | 临时允许驳回标签名称再次提议 | M/C1 | B/R1 |
 | `content.0015_merge_duplicate_tag_identities` | 归并同名标签及其修订/文章关联、删除恢复历史、审计和通知目标，并改为规范名全局唯一 | M+D/C2 | B/R2 |
+| `content.0016_article_publication_history` | 新增不可变发布历史表、同文章复合外键、唯一约束与查询索引；从发布事件回填历史版本，并以当前发布指针补齐最新版本 | N+I+D/C1 | B/R2 |
 | `core.0001_outbox_foundation` | Outbox 表、租约/就绪索引与状态约束 | N/C0 | B/R1 |
 | `discovery.0001_article_view_counter` | 浏览计数与 article 级联外键 | N/C0 | B/R1 |
 | `discovery.0002_bookmark` | 私有收藏与 account 级联外键 | N/C0 | B/R1 |
@@ -66,6 +67,8 @@
 | `media.0002_owner_cleanup_lifecycle` | asset owner 删除语义改为 SET NULL | M/C1 | B/R1 |
 | `media.0003_owner_lifecycle_constraint` | owner 生命周期配对约束 | M/C1 | B/R1 |
 | `media.0004_remove_mediaasset_media_asset_size_range_and_more` | 增加附件用途与格式，放宽附件大小并允许其尺寸为空，替换两条约束 | M+D/C1 | B/R2 |
+| `media.0005_remove_mediabinding_media_binding_target_registered_and_more` | 增加 `SECTION_COVER` 用途与 `SECTION` 目标，并替换绑定目标白名单约束 | M+D/C1 | B/R2 |
+| `media.0006_remove_mediaasset_media_asset_size_range_and_more` | 增加 `HERO` 与 MP4/WebM，视频上限 10 MiB，并增加 Hero 格式/用途约束 | M+D/C1 | B/R2 |
 | `moderation.0001_initial` | 举报、删除身份与基础约束/队列索引 | N/C0 | B/R1 |
 | `moderation.0002_reportrecoverysnapshot` | 举报恢复快照 | N/C0 | B/R1 |
 | `moderation.0003_reportappeal` | 一次申诉与状态形状约束 | N/C0 | B/R1 |
@@ -73,6 +76,10 @@
 | `navigation.0001_initial` | 三层导航树、版本、排序唯一与默认树 | N+D/C1 | B/R2 |
 | `navigation.0002_site_content` | 站点设置、静态页、友链、可信来源与默认值 | N+D/C1 | B/R2 |
 | `navigation.0003_verification_email_template` | 站点设置增加可空验证码邮件模板 | M/C0 | B/R1 |
+| `navigation.0004_navigation_group_nodes` | 节点类型增加仅分组，并替换目标形状约束；不回填数据 | M/C1 | B/R2 |
+| `navigation.0005_navigation_default_expanded` | 导航节点增加非空、应用默认关闭的默认展开布尔字段；既有行初始化为 false | M/C0 | B/R1 |
+| `navigation.0006_site_hero_media` | 站点单例增加可空 Hero 媒体 ID；不回填既有站点 | M/C0 | B/R1 |
+| `navigation.0007_retire_friend_link_logos` | 解除历史友链 Logo 绑定，将无其他引用资产标记待清理，并清空旧兼容列；migration 不删除文件 | M+D/C2 | B/R2 |
 | `notifications.0001_notification_foundation` | 通知/receipt、dedupe 与未读索引 | N/C0 | B/R1 |
 | `operations.0001_task_run` | TaskRun、幂等、租约和重试索引 | N/C0 | B/R1 |
 | `operations.0002_audit_entry` | 永久审计表与检索索引 | N/C0 | B/R1 |
@@ -80,6 +87,11 @@
 | `operations.0004_operationalalert_operationalalertemailwindow_and_more` | 运维告警与邮件窗口 | N/C0 | B/R1 |
 | `operations.0005_capacitysnapshot_servicehealthsnapshot_and_more` | 容量/健康快照、约束与活动告警索引 | N/C0 | B/R1 |
 | `operations.0006_backuprecord` | 备份记录、单运行租约、周唯一与到期索引 | N/C0 | B/R1 |
+| `operations.0007_task_run_cancelled` | TaskRun 增加受控取消终态，并替换尝试/租约/完成形状约束 | M/C0 | B/R1 |
+| `opportunities.0001_initial` | 招聘来源、岗位、筛选、检查、审核、收藏和默认筛选基础事实 | N+D/C1 | B/R2 |
+| `opportunities.0002_opportunity_check_runtime` | 检查运行/来源明细、结构化快照、岗位状态转换与运行约束 | N+D/C1 | B/R2 |
+| `opportunities.0003_opportunity_composite_identity` | 分批回填规范采集标题与固定身份摘要，移除来源+URL 唯一约束，改为来源+身份摘要唯一以允许同列表多个岗位 | M+D/C2 | B/R2 |
+| `opportunities.0004_opportunity_default_filters` | 新增规范化公开页默认筛选选择表，把旧单城市/单届别与既有默认核实状态转换为六组多选配置；保留旧列供滚动升级兼容 | N+D/C1 | B/R2 |
 
 ## 执行门禁
 
@@ -90,3 +102,15 @@
 5. 读回 leaf、关键约束/索引、live/ready 和关键请求后才关闭维护页。
 
 `media.0004` 应先于新应用开放附件入口。迁移后的旧应用仍可读取既有图片数据，但一旦写入首条 `ATTACHMENT` 资产，数据库就不得反向恢复旧尺寸与用途约束；应用回滚时数据库保持向前，并临时关闭附件入口。
+
+`navigation.0004` 应先于新应用开放“仅分组”写入。旧应用会忽略新增类型，但一旦写入首条 `GROUP` 节点，旧目标形状约束无法重新应用；应用回滚时数据库保持向前，并在管理入口临时禁用该类型。
+
+`navigation.0005` 应先于新应用读取或写入默认展开字段。它只增加非空布尔列并把既有行初始化为 false，旧应用会忽略该列；应用回滚时数据库保持向前。反向迁移会丢失已配置的展开事实，因此不作为自动回滚手段。
+
+`media.0005` 应先于新应用开放分区默认封面入口。它不回填旧数据；一旦写入首条 `SECTION_COVER` 资产或 `SECTION` 绑定，不得反向恢复旧媒体目标白名单。应用回滚时数据库保持向前，并临时关闭分区封面上传与编辑入口。
+
+`media.0006` 应先于新应用开放 Hero 上传入口。迁移不回填既有媒体；一旦写入首条 `HERO` 或视频资产，不得恢复旧 2 MiB 全图片约束。应用回滚时数据库保持向前，并临时关闭 Hero 上传与配置入口，既有图片读取不受影响。
+
+`navigation.0006` 应与读写 `hero_asset_id` 的新应用同窗口上线，且必须在开放站点 Hero 保存前完成。新列可空且不回填，旧站点仍显示仓库默认图；应用回滚时数据库保持向前并暂停 Hero 配置写入，不自动反向删列。
+
+`navigation.0007` 先由兼容应用停止友链 Logo 新写入和公开读取，再解除历史 `friend_link` Binding、把无其他引用的资产标为 `DELETE_PENDING` 并清空兼容列。迁移事务不访问媒体文件；提交后由既有媒体清理任务删除文件。反向 migration 不恢复绑定、资产状态或旧引用，数据库保持向前；执行前后需统计友链、旧绑定、待删资产与清理失败任务。

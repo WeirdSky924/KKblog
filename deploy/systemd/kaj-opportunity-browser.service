@@ -1,0 +1,38 @@
+[Unit]
+Description=Kaj production opportunity browser sandbox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=blog-browser
+Group=blog-browser
+SupplementaryGroups=10001
+WorkingDirectory=/home/code/personal-blog
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/code/personal-blog/apps/opportunities/checks/browser_service.py --socket /run/kaj-opportunity-browser/browser.sock --socket-gid 10001 --peer-uid 10001 --node /usr/local/bin/node --chrome /opt/google/chrome/chrome --runner /home/code/personal-blog/apps/opportunities/checks/browser_runner.cjs --workdir /home/code/personal-blog --home /var/lib/blog-browser
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+KillMode=mixed
+RuntimeDirectory=kaj-opportunity-browser
+RuntimeDirectoryMode=0755
+UMask=0007
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+MemoryHigh=512M
+MemoryMax=768M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

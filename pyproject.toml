@@ -11,6 +11,7 @@ dependencies = [
     "nh3>=0.3,<0.4",
     "pillow>=11.3,<13",
     "psycopg[binary]>=3.2,<4",
+    "pymediainfo>=7,<8",
     "python-ulid>=4,<5",
     "pyyaml>=6,<7",
     "redis>=6.4,<8",

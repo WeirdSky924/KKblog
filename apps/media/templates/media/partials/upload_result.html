@@ -9,7 +9,7 @@
     <p class="field-error">{{ upload_error }}</p>
     {% if original_name %}<p class="media-upload-result__name">未上传：{{ original_name }}</p>{% endif %}
   {% else %}
-    <p>{% if is_attachment %}附件已通过校验，可以继续保存。{% else %}图片已安全处理，可以继续保存。{% endif %}</p>
+    <p>{% if is_attachment %}附件已通过校验，可以继续保存。{% elif is_video %}视频已通过格式、尺寸和时长校验，可以继续保存。{% elif is_hero %}主视觉图片已安全处理，可以继续保存。{% else %}图片已安全处理，可以继续保存。{% endif %}</p>
     <input type="hidden" name="{{ input_name|default:'avatar_asset_id' }}" value="{{ asset.id }}">
   {% endif %}
 </div>

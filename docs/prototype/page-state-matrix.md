@@ -53,13 +53,13 @@
 | URL name | owner | 入口身份 | 必测状态 | 原型基线 |
 | --- | --- | --- | --- | --- |
 | `authoring:articles` | authoring | 作者 | S0,S1,S2,S4,S5；发布/草稿/定时/冷静期 | authorlist |
-| `authoring:create` | authoring | 作者 | S0,S1,S3,S4,S5,S6；格式一经选择不可改 | editor |
+| `authoring:create` | authoring | 作者 | S0,S1,S3,S4,S5,S6；Markdown/富文本/导入三选一，空白格式一经选择不可改 | editor |
 | `authoring:edit` | authoring | 作者 | S0,S1,S3,S4,S5,S6,S7；本地/云保存/磁盘/冲突 | editor |
 | `authoring:review` | authoring | 作者 | S0,S1,S3,S4,S5,S6,S7；返回/立即/定时 | editor |
 | `authoring:versions` | authoring | 作者 | S0,S1,S2,S4,S5,S6；预览/恢复新修订 | editor |
 | `authoring:comments-buffer` | authoring | 作者 | S0,S1,S2,S4,S5,S6,S7；10 分钟倒计时 | authorops |
 | `authoring:comments-article` | authoring | 作者 | S0,S1,S2,S3,S4,S5,S6；树/占位/关闭 | authorops |
-| `authoring:import` | authoring | 作者/管理员作为作者 | S0,S1,S2,S3,S4,S5,S6,S7；预览/部分成功 | authorops/exchange |
+| `authoring:import` | authoring | 作者/管理员作为作者 | S0,S1,S2,S3,S4,S5,S6,S7；创建入口、预览/部分成功、单篇进入编辑 | authorops/exchange |
 
 `authoring:create/edit` 的 S7 同时覆盖剪贴板图片上传：单图/多图顺序、原光标位置替换、上传中保存与离页保护、Markdown/TipTap 撤销、失败清理、图片库刷新，以及普通文本粘贴不被拦截。临时 `kaj-upload:` 引用不得进入本地稿或提交内容。
 

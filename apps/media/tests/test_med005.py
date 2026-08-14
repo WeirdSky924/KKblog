@@ -11,6 +11,8 @@ from django.urls import reverse
 from PIL import Image
 
 from apps.media.models import MediaAsset, MediaPurpose
+from apps.media.public import MediaUploadError, stage_upload
+from apps.media.storage import FilesystemMediaStorage
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -62,18 +64,39 @@ def test_upload_adapters_enforce_consumer_permissions_and_purpose(
     assert not avatar_asset.bindings.exists()
     assert avatar.headers["Cache-Control"] == "no-store"
 
-    denied_logo = _upload(client, "site-logo", _image_bytes(), "logo.png")
-    denied_friend = _upload(client, "friend-logo", _image_bytes(), "friend.png")
-    assert denied_logo.status_code == denied_friend.status_code == 404
+    assert _upload(client, "site-logo", _image_bytes(), "logo.png").status_code == 404
+    assert (
+        _upload(client, "friend-logo", _image_bytes(), "friend.png").status_code == 404
+    )
     client.cookies.clear()
     _authenticate(client, administrator)
     logo = _upload(client, "site-logo", _image_bytes(), "logo.png")
     wrong_logo_format = _upload(client, "site-logo", _image_bytes("GIF"), "logo.gif")
-    friend = _upload(client, "friend-logo", _image_bytes("GIF"), "friend.gif")
-    assert logo.status_code == friend.status_code == 201
+    retired_friend = _upload(client, "friend-logo", _image_bytes("GIF"), "friend.gif")
+    assert logo.status_code == 201
+    assert retired_friend.status_code == 404
     assert wrong_logo_format.status_code == 422
     assert logo.context["asset"].purpose == MediaPurpose.LOGO
-    assert friend.context["asset"].purpose == MediaPurpose.FRIEND_LOGO
+
+
+def test_retired_friend_logo_purpose_cannot_be_staged(
+    isolated_media_root: Path,
+) -> None:
+    administrator = _account("retired-friend-logo", administrator=True)
+
+    with pytest.raises(MediaUploadError) as rejected:
+        stage_upload(
+            owner_id=administrator.id,
+            purpose=MediaPurpose.FRIEND_LOGO,
+            original_name="friend.png",
+            declared_content_type="image/png",
+            chunks=(_image_bytes(),),
+            storage=FilesystemMediaStorage(isolated_media_root),
+            capacity_check=lambda: None,
+        )
+
+    assert rejected.value.code == "media.purpose_retired.v1"
+    assert not MediaAsset.objects.filter(purpose=MediaPurpose.FRIEND_LOGO).exists()
 
 
 def test_picker_upload_returns_safe_retryable_partial_and_keeps_name(

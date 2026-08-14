@@ -8,6 +8,7 @@ from apps.administration.forms.classification import (
     SectionCreateForm,
     SectionDeleteConfirmationForm,
     SectionRenameConfirmationForm,
+    SectionUpdateConfirmationForm,
 )
 from apps.content.public import (
     SectionCommandError,
@@ -16,7 +17,10 @@ from apps.content.public import (
     create_section,
     delete_section,
     rename_section,
+    section_default_cover_schema_ready,
+    update_section,
 )
+from apps.core.ids import normalize_ulid
 
 
 def _meta(request: HttpRequest) -> dict[str, str]:
@@ -40,10 +44,19 @@ def _confirmation(request: HttpRequest):
     kind = request.GET.get("confirm_action", "")
     if not kind:
         return "", None, None
-    if kind not in {"rename", "delete"}:
+    if kind not in {"edit", "rename", "delete"}:
         raise Http404
     section = _section(request, request.GET.get("section_id", ""))
-    if kind == "rename":
+    if kind == "edit":
+        form = SectionUpdateConfirmationForm(
+            initial={
+                "section_id": section.id,
+                "name": section.name,
+                "default_cover_asset_id": section.default_cover_asset_id,
+                "confirm": "section_update",
+            }
+        )
+    elif kind == "rename":
         form = SectionRenameConfirmationForm(
             initial={
                 "section_id": section.id,
@@ -68,6 +81,18 @@ def _dialog(kind: str, section, form) -> dict[str, object]:
         "return_focus_id": f"section-{kind}-{section.id}",
         "return_url": f"{reverse('admin:sections')}#section-list",
     }
+    if kind == "edit":
+        return base | {
+            "title": "编辑文章分区",
+            "description": f"更新“{section.name}”的名称和默认封面。",
+            "details": (
+                f"当前关联 {section.affected_article_count} 篇文章、"
+                f"{section.affected_revision_count} 个修订；关联关系不会改变。"
+            ),
+            "action": "section_update",
+            "label": "保存分区",
+            "field": None,
+        }
     if kind == "rename":
         return base | {
             "title": "确认重命名这个分区？",
@@ -131,6 +156,18 @@ def _render(
             "saved": request.GET.get("saved", ""),
             "affected_articles": request.GET.get("articles", ""),
             "affected_revisions": request.GET.get("revisions", ""),
+            "section_cover_upload_url": reverse(
+                "media:upload", kwargs={"adapter": "section-cover"}
+            ),
+            "create_cover_preview_url": _cover_preview_url(
+                (create_form or SectionCreateForm())["default_cover_asset_id"].value()
+            ),
+            "edit_cover_preview_url": _cover_preview_url(
+                confirmation_form["default_cover_asset_id"].value()
+                if confirmation_kind == "edit" and confirmation_form is not None
+                else None
+            ),
+            "section_cover_schema_ready": section_default_cover_schema_ready(),
         },
         status=status,
     )
@@ -146,12 +183,60 @@ def _post_create(request: HttpRequest) -> HttpResponse:
         create_section(
             actor_id=request.account_id,
             name=form.cleaned_data["name"],
+            default_cover_asset_id=form.cleaned_data["default_cover_asset_id"],
             **_meta(request),
         )
     except SectionCommandError as error:
-        form.add_error("name", error.safe_message)
+        field = "default_cover_asset_id" if error.code.startswith("media.") else "name"
+        form.add_error(field, error.safe_message)
         return _render(request, status=422, create_form=form)
     return redirect(f"{reverse('admin:sections')}?saved=created#section-list")
+
+
+def _cover_preview_url(asset_id) -> str:
+    if not asset_id:
+        return ""
+    try:
+        identity = normalize_ulid(asset_id)
+    except (TypeError, ValueError):
+        return ""
+    return reverse("media:direct-delivery", kwargs={"asset_id": identity})
+
+
+def _post_update(request: HttpRequest) -> HttpResponse:
+    form = SectionUpdateConfirmationForm(request.POST)
+    raw_id = request.POST.get("section_id", "")
+    try:
+        section = _section(request, raw_id)
+    except Http404:
+        return _render(request, status=422, page_error="分区已不存在。")
+    if not form.is_valid():
+        return _render(
+            request,
+            status=422,
+            confirmation_kind="edit",
+            confirmation_section=section,
+            confirmation_form=form,
+        )
+    try:
+        update_section(
+            actor_id=request.account_id,
+            section_id=section.id,
+            name=form.cleaned_data["name"],
+            default_cover_asset_id=form.cleaned_data["default_cover_asset_id"],
+            **_meta(request),
+        )
+    except SectionCommandError as error:
+        field = "default_cover_asset_id" if error.code.startswith("media.") else "name"
+        form.add_error(field, error.safe_message)
+        return _render(
+            request,
+            status=422,
+            confirmation_kind="edit",
+            confirmation_section=section,
+            confirmation_form=form,
+        )
+    return redirect(f"{reverse('admin:sections')}?saved=updated#section-list")
 
 
 def _post_rename(request: HttpRequest) -> HttpResponse:
@@ -218,12 +303,20 @@ def _post_delete(request: HttpRequest) -> HttpResponse:
 def sections(request: HttpRequest) -> HttpResponse:
     if not is_administrator(getattr(request, "account_id", None)):
         raise PermissionDenied
+    if not section_default_cover_schema_ready():
+        return _render(
+            request,
+            status=503,
+            page_error="分区默认封面迁移尚未完成，分区管理暂时只读。",
+        )
     if request.method == "POST":
         action = request.POST.get("action", "")
         if action == "section_create":
             return _post_create(request)
         if action == "section_rename":
             return _post_rename(request)
+        if action == "section_update":
+            return _post_update(request)
         if action == "section_delete":
             return _post_delete(request)
         return _render(request, status=422, page_error="分区管理操作无效。")

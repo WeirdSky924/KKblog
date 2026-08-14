@@ -42,6 +42,9 @@ class ArticleBodyProjection:
     block_start_lines: tuple[int, ...]
 
 
+MARKDOWN_SUMMARY_MAX_BYTES = 4 * 1024
+
+
 _BLOCK_TAGS = frozenset(
     {
         "blockquote",
@@ -245,6 +248,13 @@ def sanitized_article_readable_markdown(html: str) -> str:
     return parser.markdown()
 
 
+def _markdown_summary_source(source: str) -> str:
+    encoded = source.encode("utf-8")
+    if len(encoded) <= MARKDOWN_SUMMARY_MAX_BYTES:
+        return source
+    return encoded[:MARKDOWN_SUMMARY_MAX_BYTES].decode("utf-8", errors="ignore")
+
+
 def normalize_article_tiptap_body(
     body: dict[str, Any],
     *,
@@ -319,8 +329,13 @@ def render_article_body(
         if normalized_format == ContentFormat.MARKDOWN:
             if not isinstance(body, str):
                 raise RenderingError("Markdown source must be text")
+            render_source = (
+                _markdown_summary_source(body)
+                if normalized_mode is ArticleRenderingMode.SUMMARY
+                else body
+            )
             rendered = render_markdown(
-                body,
+                render_source,
                 embed_policy=policy,
                 allowed_media_ids=allowed_media_ids,
             )
