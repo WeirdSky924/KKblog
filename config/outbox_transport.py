@@ -41,6 +41,18 @@ _ARTICLE_MODERATION_EVENTS = frozenset(
         "article.moderation_finalized.v1",
     }
 )
+_LEARNING_NOTIFICATION_EVENTS = frozenset(
+    {
+        "learning.review_approved.v1",
+        "learning.review_rejected.v1",
+        "learning.review_failed.v1",
+        "learning.generation_completed.v1",
+        "learning.generation_partial.v1",
+        "learning.generation_failed.v1",
+        "learning.appeal_approved.v1",
+        "learning.appeal_rejected.v1",
+    }
+)
 _DOMAIN_NOTIFICATION_EVENTS = (
     frozenset(
         {
@@ -60,6 +72,7 @@ _DOMAIN_NOTIFICATION_EVENTS = (
         }
     )
     | _ARTICLE_MODERATION_EVENTS
+    | _LEARNING_NOTIFICATION_EVENTS
 )
 _DISCOVERY_EVENTS = (
     frozenset(
@@ -160,6 +173,7 @@ def _routes(event_type: str) -> tuple[EventConsumer, ...]:
     if event_type in {
         "opportunity.source_state_changed.v1",
         "opportunity.check_summary.v1",
+        "opportunity.check_stalled.v1",
     }:
         return (_consume_opportunity_notification,)
     if event_type in _TERMINAL_EVENTS:

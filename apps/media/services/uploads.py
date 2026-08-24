@@ -14,12 +14,13 @@ from apps.media.models import (
     MAX_ATTACHMENT_BYTES,
     MAX_HERO_VIDEO_BYTES,
     MAX_IMAGE_BYTES,
+    MAX_KNOWLEDGE_DOCUMENT_BYTES,
     DetectedFormat,
     MediaAsset,
     MediaPurpose,
     MediaState,
 )
-from apps.media.storage import MediaStorage, StorageLimitExceeded
+from apps.media.storage import MediaStorage, StorageEmptyFile, StorageLimitExceeded
 from apps.media.video import (
     VideoProbeResult,
     is_hero_video_name,
@@ -90,6 +91,44 @@ def _detect_attachment(stream, original_name: str) -> tuple[DetectedFormat, str]
     )
 
 
+def _detect_knowledge_document(
+    stream, original_name: str
+) -> tuple[DetectedFormat, str]:
+    if not isinstance(original_name, str) or any(
+        separator in original_name for separator in ("/", "\\")
+    ):
+        raise MediaUploadError(
+            "media.invalid_knowledge_document.v1",
+            "知识文档文件名不合法。",
+        )
+    name = _display_name(original_name, fallback="knowledge.md")
+    extension = PurePath(name).suffix.casefold().lstrip(".")
+    if extension != "md":
+        raise MediaUploadError(
+            "media.format_not_allowed.v1",
+            "知识文档仅支持 MD 格式。",
+        )
+    content = stream.read()
+    if b"\x00" in content:
+        raise MediaUploadError(
+            "media.invalid_knowledge_document.v1",
+            "知识文档必须是有效的 UTF-8 文本。",
+        )
+    try:
+        decoded = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise MediaUploadError(
+            "media.invalid_knowledge_document.v1",
+            "知识文档必须使用 UTF-8 编码。",
+        ) from None
+    if not decoded.removeprefix("\ufeff").strip():
+        raise MediaUploadError(
+            "media.empty_knowledge_document.v1",
+            "知识文档不能为空。",
+        )
+    return DetectedFormat.MARKDOWN, extension
+
+
 def _storage_key(
     *,
     owner_id: UUID,
@@ -110,6 +149,8 @@ def _storage_key(
         return f"site/hero/{asset_id}.{extension}"
     if purpose == MediaPurpose.AVATAR:
         return f"users/{owner_id}/avatar/{asset_id}.{extension}"
+    if purpose == MediaPurpose.KNOWLEDGE_DOCUMENT:
+        return f"users/{owner_id}/knowledge-documents/{asset_id}.{extension}"
     if purpose == MediaPurpose.COMMENT and target_id == "site":
         return f"users/{owner_id}/guestbook/comments/{asset_id}.{extension}"
     if target_id is None or not _SAFE_TARGET.fullmatch(target_id.upper()):
@@ -158,24 +199,46 @@ def stage_upload(
     )
     if normalized_purpose == MediaPurpose.ATTACHMENT:
         max_bytes = MAX_ATTACHMENT_BYTES
+    elif normalized_purpose == MediaPurpose.KNOWLEDGE_DOCUMENT:
+        max_bytes = MAX_KNOWLEDGE_DOCUMENT_BYTES
     elif hero_video:
         max_bytes = MAX_HERO_VIDEO_BYTES
     else:
         max_bytes = MAX_IMAGE_BYTES
     try:
         raw = storage.stage(chunks, max_bytes=max_bytes)
+    except StorageEmptyFile:
+        if normalized_purpose == MediaPurpose.KNOWLEDGE_DOCUMENT:
+            raise MediaUploadError(
+                "media.empty_knowledge_document.v1",
+                "知识文档不能为空。",
+            ) from None
+        raise
     except StorageLimitExceeded:
         raise MediaUploadError(
             "media.file_too_large.v1",
             "附件不能超过 10 MiB。"
             if normalized_purpose == MediaPurpose.ATTACHMENT
             else (
-                "首页视频不能超过 10 MiB。"
-                if hero_video
-                else "单张图片不能超过 2 MiB。"
+                "知识文档不能超过 2 MiB。"
+                if normalized_purpose == MediaPurpose.KNOWLEDGE_DOCUMENT
+                else (
+                    "首页视频不能超过 10 MiB。"
+                    if hero_video
+                    else "单张图片不能超过 2 MiB。"
+                )
             ),
         ) from None
-    if normalized_purpose == MediaPurpose.ATTACHMENT:
+    if normalized_purpose == MediaPurpose.KNOWLEDGE_DOCUMENT:
+        try:
+            with storage.open_staged(raw) as stream:
+                detected, extension = _detect_knowledge_document(stream, original_name)
+        except Exception:
+            storage.discard(raw)
+            raise
+        staged = raw
+        width = height = None
+    elif normalized_purpose == MediaPurpose.ATTACHMENT:
         try:
             with storage.open_staged(raw) as stream:
                 detected, extension = _detect_attachment(stream, original_name)
@@ -253,7 +316,11 @@ def stage_upload(
                     original_name,
                     fallback="attachment"
                     if normalized_purpose == MediaPurpose.ATTACHMENT
-                    else "media",
+                    else (
+                        "knowledge.md"
+                        if normalized_purpose == MediaPurpose.KNOWLEDGE_DOCUMENT
+                        else "media"
+                    ),
                 ),
                 detected_mime=detected,
                 size_bytes=staged.size_bytes,

@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import SafeHttpResult, SafeRequestError
 
 _API = "https://xiaozhao.leihuo.netease.com/api"
@@ -110,6 +115,7 @@ def _job(row: object, *, recruitment_type: str, plan: str):
         category_labels=(category.strip(),) if category.strip() else (),
         city_labels=(location.strip(),) if location != "未公开" else (),
         cohort_labels=cohorts,
+        published_at=published_at_from_mapping(row),
     )
 
 

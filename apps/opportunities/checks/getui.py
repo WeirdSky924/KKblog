@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import SafeHttpResult, SafeRequestError
 
 _API = "https://job.getui.com/data/recruit/school/2021/job/list"
@@ -95,6 +100,7 @@ def _job(row: object, *, category: str) -> tuple[str, CollectedOpportunity]:
         category_labels=(category,),
         city_labels=cities,
         cohort_labels=_cohorts(title, row.get("content"), row.get("require")),
+        published_at=published_at_from_mapping(row),
     )
 
 

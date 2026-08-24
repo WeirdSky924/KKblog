@@ -19,6 +19,38 @@ const HIRE_PLATFORM_BROWSER_HOSTS = new Set([
   "lf3-static.bytednsdoc.com",
 ]);
 
+const PUBLICATION_KEYS = [
+  "published_at",
+  "publishedAt",
+  "publishedTime",
+  "publishedDate",
+  "publish_time",
+  "publishTime",
+  "publishDate",
+  "releaseTime",
+  "releaseDate",
+  "releasedAt",
+  "jobPublishTime",
+  "jobPublishDate",
+  "positionPublishTime",
+  "positionPublishDate",
+  "postingDate",
+  "postDate",
+  "onlineTime",
+  "createTime",
+  "createdAt",
+  "createDate",
+];
+
+function publicationValue(row) {
+  for (const key of PUBLICATION_KEYS) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
 function hireContract(sourceHost, sourcePath) {
   return {
     sourceHost,
@@ -117,6 +149,7 @@ async function collectHikvision(request) {
           category_labels: labels([row.postAdSn, row.postStdSn]),
           city_labels: cities,
           cohort_labels: cohortLabels(row.batchName),
+          published_at: publicationValue(row),
         });
         if (opportunities.length >= request.max_opportunities) break;
       }
@@ -166,6 +199,7 @@ function hireRow(request, row, websitePath, recruitmentType) {
     category_labels: labels([row.job_function?.name, row.job_category?.name]),
     city_labels: cities,
     cohort_labels: cohortLabels(subject, title),
+    published_at: publicationValue(row),
   };
 }
 
@@ -327,6 +361,7 @@ function alibabaRow(request, row, plan) {
     category_labels: labels([category]),
     city_labels: cities,
     cohort_labels: cohortLabels(effectivePlan),
+    published_at: publicationValue(row),
   };
 }
 

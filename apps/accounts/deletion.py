@@ -1,8 +1,27 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from uuid import UUID
 
 from apps.core.ids import is_ulid, normalize_ulid
+
+AccountDeletionCleanup = Callable[[UUID], object]
+_account_deletion_cleanup: AccountDeletionCleanup | None = None
+
+
+def configure_account_deletion_cleanup(provider: AccountDeletionCleanup) -> None:
+    if not callable(provider):
+        raise TypeError("account deletion cleanup provider must be callable")
+    global _account_deletion_cleanup
+    _account_deletion_cleanup = provider
+
+
+def run_account_deletion_cleanup(account_id: UUID) -> object | None:
+    if not isinstance(account_id, UUID):
+        raise ValueError("Invalid account deletion cleanup ID")
+    if _account_deletion_cleanup is None:
+        return None
+    return _account_deletion_cleanup(account_id)
 
 
 class AuthorArticleDecision(StrEnum):
@@ -50,3 +69,12 @@ class AccountDeletionDisposition:
         object.__setattr__(self, "account_id", account_id)
         object.__setattr__(self, "decision", decision)
         object.__setattr__(self, "disposition_id", normalize_ulid(self.disposition_id))
+
+
+__all__ = [
+    "AccountDeletionDisposition",
+    "AccountDeletionCleanup",
+    "AuthorArticleDecision",
+    "configure_account_deletion_cleanup",
+    "run_account_deletion_cleanup",
+]

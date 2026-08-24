@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -469,6 +470,102 @@ def _exchange_export_author_content(envelope: EventEnvelope) -> _Delivery:
     )
 
 
+def _learning_review(envelope: EventEnvelope) -> _Delivery:
+    payload = _base(
+        envelope,
+        event_type=envelope.event_type,
+        aggregate_type="knowledge_document",
+        fields=frozenset({"recipient_id"}),
+    )
+    document_id = _uuid(envelope.aggregate_id)
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload={},
+        dedupe_key=f"{envelope.event_type}:{document_id}",
+        target_id=str(document_id),
+    )
+
+
+def _learning_generation(envelope: EventEnvelope) -> _Delivery:
+    fields = frozenset({"recipient_id"})
+    if envelope.event_type == "learning.generation_failed.v1":
+        if set(envelope.payload) == {"recipient_id", "error_code"}:
+            fields = frozenset({"recipient_id", "error_code"})
+        elif set(envelope.payload) != {"recipient_id"}:
+            raise NotificationRejected("Invalid learning generation failure payload")
+    payload = _base(
+        envelope,
+        event_type=envelope.event_type,
+        aggregate_type="question_bank_series",
+        fields=fields,
+    )
+    series_id = _uuid(envelope.aggregate_id)
+    delivery_payload = {}
+    if (
+        envelope.event_type == "learning.generation_failed.v1"
+        and "error_code" in payload
+    ):
+        error_code = payload["error_code"]
+        _reject_unless(
+            isinstance(error_code, str)
+            and len(error_code) <= 96
+            and re.fullmatch(
+                r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*",
+                error_code,
+            )
+            is not None
+        )
+        delivery_payload = {"error_code": error_code}
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload=delivery_payload,
+        dedupe_key=f"{envelope.event_type}:{series_id}",
+        target_id=str(series_id),
+    )
+
+
+def _learning_appeal(envelope: EventEnvelope) -> _Delivery:
+    payload = _base(
+        envelope,
+        event_type=envelope.event_type,
+        aggregate_type="learning_appeal",
+        fields=frozenset({"recipient_id"}),
+    )
+    appeal_id = _uuid(envelope.aggregate_id)
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload={},
+        dedupe_key=f"{envelope.event_type}:{appeal_id}",
+        target_id=str(appeal_id),
+    )
+
+
+def _learning_administration(envelope: EventEnvelope) -> _Delivery:
+    aggregate_type = envelope.aggregate_type
+    if aggregate_type == "knowledge_document":
+        expected_type = "knowledge_document"
+    elif aggregate_type == "question_bank":
+        expected_type = "question_bank"
+    else:
+        raise NotificationRejected("Unsupported learning administration target")
+    payload = _base(
+        envelope,
+        event_type=envelope.event_type,
+        aggregate_type=expected_type,
+        fields=frozenset({"recipient_id", "action"}),
+    )
+    action = payload["action"]
+    _reject_unless(action in {"HIDE", "RESTORE", "DELETE"})
+    return _delivery(
+        envelope,
+        recipients=(_uuid(payload["recipient_id"]),),
+        payload={"action": action},
+    )
+
+
 _BUILDERS: dict[str, Callable[[EventEnvelope], _Delivery | None]] = {
     "tag.reviewed.v1": _tag_reviewed,
     "tag.restore_conflict.v1": _tag_restore_conflict,
@@ -486,6 +583,16 @@ _BUILDERS: dict[str, Callable[[EventEnvelope], _Delivery | None]] = {
     "exchange.import_title_warning.v1": _exchange_import_title_warning,
     "exchange.export_completed.v1": _exchange_export_completed,
     "exchange.export_author_content.v1": _exchange_export_author_content,
+    "learning.review_approved.v1": _learning_review,
+    "learning.review_rejected.v1": _learning_review,
+    "learning.review_failed.v1": _learning_review,
+    "learning.generation_completed.v1": _learning_generation,
+    "learning.generation_partial.v1": _learning_generation,
+    "learning.generation_failed.v1": _learning_generation,
+    "learning.appeal_approved.v1": _learning_appeal,
+    "learning.appeal_rejected.v1": _learning_appeal,
+    "learning.document_administration_changed.v1": _learning_administration,
+    "learning.question_bank_administration_changed.v1": _learning_administration,
 }
 
 

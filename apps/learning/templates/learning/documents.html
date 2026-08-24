@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}我的知识文档 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}learning-shell{% endblock %}
+{% block main_class %}learning-main{% endblock %}
+
+{% block content %}
+  <section class="learning-page" aria-labelledby="knowledge-documents-title">
+    <header class="learning-heading">
+      <div>
+        <p class="learning-folio">知识文档</p>
+        <h1 id="knowledge-documents-title">我的知识文档</h1>
+        <p>上传 Markdown 后自动进入安全与知识有效性审核。</p>
+      </div>
+    </header>
+    {% include "learning/partials/learning_hub_nav.html" with active="documents" only %}
+    {% include "learning/partials/documents_workspace.html" %}
+  </section>
+{% endblock %}

@@ -8,7 +8,13 @@ from .errors import (
     search_runtime_errors,
 )
 from .monitoring import current_monitoring_status
-from .tasks import TASK_RUN_STATUSES, TaskRunItem, task_run_records
+from .tasks import (
+    TASK_RUN_STATUSES,
+    TaskRunItem,
+    TaskRunMetadata,
+    TaskRunMetadataProvider,
+    task_run_records,
+)
 
 __all__ = [
     "AuditDetail",
@@ -19,6 +25,8 @@ __all__ = [
     "RuntimeErrorOccurrenceItem",
     "TASK_RUN_STATUSES",
     "TaskRunItem",
+    "TaskRunMetadata",
+    "TaskRunMetadataProvider",
     "audit_detail",
     "backup_records",
     "current_monitoring_status",

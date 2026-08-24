@@ -10,6 +10,10 @@ x-app-environment: &app-environment
   KAJ_UMAMI_DATABASE_URL: ${KAJ_UMAMI_DATABASE_URL:-}
   KAJ_UMAMI_WEBSITE_ID: ${KAJ_UMAMI_WEBSITE_ID:-}
 
+x-agent-secret-environment-file: &agent-secret-environment-file
+  - path: ${KAJ_AGENT_ENV_FILE:-.env.agent}
+    required: false
+
 x-app-service: &app-service
   image: ${KAJ_WEB_IMAGE:-kaj-blog-web:local}
   restart: unless-stopped
@@ -22,6 +26,7 @@ x-app-service: &app-service
   tmpfs:
     - /tmp:size=64m,mode=1777
   environment: *app-environment
+  env_file: *agent-secret-environment-file
   volumes:
     - type: bind
       source: ./var/media

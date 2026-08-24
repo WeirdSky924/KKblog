@@ -1,0 +1,18 @@
+<nav class="learning-hub-nav" aria-label="学习中心">
+  <a class="learning-hub-nav__item{% if active == 'quiz' %} is-active{% endif %}" href="{% url 'learning:quiz-index' %}"{% if active == 'quiz' %} aria-current="page"{% endif %}>
+    <i data-lucide="brain-circuit" aria-hidden="true"></i>
+    <span><strong>答题</strong><small>开始新的练习</small></span>
+  </a>
+  <a class="learning-hub-nav__item{% if active == 'wrong' %} is-active{% endif %}" href="{% url 'learning:wrong-book' %}"{% if active == 'wrong' %} aria-current="page"{% endif %}>
+    <i data-lucide="list-checks" aria-hidden="true"></i>
+    <span><strong>错题本</strong><small>复习需要巩固的题目</small></span>
+  </a>
+  <a class="learning-hub-nav__item{% if active == 'records' %} is-active{% endif %}" href="{% url 'learning:records' %}"{% if active == 'records' %} aria-current="page"{% endif %}>
+    <i data-lucide="history" aria-hidden="true"></i>
+    <span><strong>答题记录</strong><small>查看每次练习结果</small></span>
+  </a>
+  <a class="learning-hub-nav__item{% if active == 'documents' %} is-active{% endif %}" href="{% url 'learning:documents' %}"{% if active == 'documents' %} aria-current="page"{% endif %}>
+    <i data-lucide="file-text" aria-hidden="true"></i>
+    <span><strong>知识文档</strong><small>整理并生成学习资料</small></span>
+  </a>
+</nav>

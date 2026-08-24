@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from zoneinfo import ZoneInfo
 
@@ -84,6 +84,15 @@ def _candidate(
         raise CollectionRejected("opportunities.adapter_host_denied.v1")
     if item.recruitment_type not in Opportunity.RecruitmentType.values:
         raise CollectionRejected("opportunities.adapter_result_invalid.v1")
+    published_at = item.published_at
+    if published_at is not None:
+        if not isinstance(published_at, datetime) or not timezone.is_aware(
+            published_at
+        ):
+            raise CollectionRejected("opportunities.adapter_result_invalid.v1")
+        published_at = published_at.astimezone(UTC)
+        if not 2000 <= published_at.year <= 2100:
+            raise CollectionRejected("opportunities.adapter_result_invalid.v1")
     return CollectedOpportunity(
         title=title,
         target_url=target_url,
@@ -93,6 +102,7 @@ def _candidate(
         category_labels=_labels(item.category_labels, field="categories"),
         city_labels=_labels(item.city_labels, field="cities"),
         cohort_labels=_labels(item.cohort_labels, field="cohorts"),
+        published_at=published_at,
     )
 
 
@@ -136,6 +146,7 @@ def _filter_candidate_cohorts(
         category_labels=item.category_labels,
         city_labels=item.city_labels,
         cohort_labels=tuple(f"{year}届" for year in sorted(observed_years)),
+        published_at=item.published_at,
     )
 
 
@@ -307,6 +318,7 @@ def _apply_candidate(source, candidate, options, observed_at):
             publication_state=Opportunity.PublicationState.PUBLISHED,
             origin=Opportunity.Origin.CRAWLER,
             last_collected_at=observed_at,
+            published_at=candidate.published_at,
         )
         _replace_collected_assignments(row, options)
         OpportunityReviewItem.objects.create(
@@ -334,6 +346,12 @@ def _apply_candidate(source, candidate, options, observed_at):
             changes.append(field)
             if not overridden:
                 setattr(row, field, value)
+    if (
+        candidate.published_at is not None
+        and row.published_at != candidate.published_at
+    ):
+        changes.append("published_at")
+        row.published_at = candidate.published_at
     row.last_collected_at = observed_at
     row.list_missing = False
     row.list_missing_count = 0
@@ -345,6 +363,7 @@ def _apply_candidate(source, candidate, options, observed_at):
             "plan",
             "location_text",
             "public_evidence",
+            "published_at",
             "last_collected_at",
             "list_missing",
             "list_missing_count",
@@ -391,6 +410,9 @@ def record_collection_snapshot(
                 "categories": item.category_labels,
                 "cities": item.city_labels,
                 "cohorts": item.cohort_labels,
+                "published_at": (
+                    item.published_at.isoformat() if item.published_at else None
+                ),
             }
         )
         for item in result.opportunities

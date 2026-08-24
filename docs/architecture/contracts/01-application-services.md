@@ -151,6 +151,39 @@ class CommandResult[T]:
 
 来源抓取、TaskRun、每日调度和 90 天清理由同一 owner 提供；T22 管理页面和 T23 公开页面均已落地。展示层不得同步执行外部读取，只提交运行请求并读回持久状态；公开筛选和分页始终以服务端查询为真值。
 
+## agents 公开服务
+
+| 服务 | 关键输入 | 结果 | 典型错误 |
+| --- | --- | --- | --- |
+| `manage_agent_endpoint` | admin, endpoint fields, expected version | endpoint safe snapshot | 参数范围/交叉冲突、秘密别名非法、并发 409 |
+| `manage_agent_profile` | admin, stable key, endpoint, schema key, expected version | profile | endpoint/Prompt 不可用、用途冲突 |
+| `save_agent_prompt_revision` | admin, profile, Markdown, expected version | immutable revision + current pointer | 未知变量、内容超限、并发 409 |
+| `check_agent_endpoint` | admin, endpoint, idempotency key | async check reference | 频控、禁用、网络策略拒绝 |
+| `resolve_agent_snapshot` | stable profile key | immutable runtime snapshot | profile/endpoint/Prompt 未启用 |
+| `invoke_structured` | snapshot, caller ref, idempotency key, bounded blocks, schema key | validated JSON + invocation ref | token/并发不足、SSRF、超时、响应过大、schema 非法 |
+| `restore_default_token_limits` | admin, expected versions | site/endpoint limits | 范围、endpoint > site、并发 409 |
+| `reset_token_usage` | admin, scope, reason, idempotency key | adjustment + remaining summary | 活跃预留保护、并发 409 |
+
+只有 `resolve_agent_snapshot` 与 `invoke_structured` 面向业务 owner；管理命令仅供 administration 编排。返回 DTO 不含秘密、完整 Prompt、业务正文或模型原始响应。
+
+## learning 公开服务
+
+| 服务 | 关键输入 | 结果 | 典型错误 |
+| --- | --- | --- | --- |
+| `submit_knowledge_document` | owner, staged asset, statement version/accepted, idempotency key | document + review run | 无附件能力、格式/大小、声明过期、账户内重复、配额 |
+| `retry_document_review` | owner/admin-approved appeal, document version | new review run | 状态非法、权限撤销、并发运行 |
+| `delete/restore_knowledge_document` | owner, document, expected version | deletion/restored state | 非本人、过期、管理员锁/申诉竞态 |
+| `submit/withdraw/review_learning_appeal` | actor, target, Markdown reason/decision, row version | appeal state | 非法目标、已有 pending、并发 409 |
+| `generate_question_bank` | owner, approved document, title/description, type switches | generation run | 非本人、无附件能力、至少一题型、配额/并发 |
+| `revise_question_bank` | owner/admin, series/bank, full revision, reason, version | new immutable revision | admin 锁、schema、并发 409 |
+| `set_question_bank_visibility` | owner/admin, target state, version | visibility state | owner 解除 admin 锁、状态非法 |
+| `delete/restore_question_bank` | owner/admin, bank, version | deletion/restored state | 冷静期/管理员锁/申诉竞态 |
+| `create/save/submit_quiz_attempt` | actor, bank revision/config or attempt version/answers | attempt/result | 未登录、配置过期、非本人、并发 409 |
+| `set_wrong_question_mastery` | actor, wrong item, state, version | wrong item | 非本人、非法状态 |
+| `delete/restore_quiz_records` | actor, explicit attempt IDs, versions | per-item result | 非本人、数量/状态冲突 |
+
+公开 queries 为 `public_question_bank_page/detail`；本人 queries 为文档、访问历史、答题、错题和记录；管理员 queries 为安全配置、运行、申诉与显式选择列表。HTML 与 API transport 必须复用公开 filter DTO/projection；API gate、CORS 与限流在进入公开 query 前执行。
+
 ## 返回与错误规则
 
 - 表单可修复错误：稳定业务错误码 + 字段映射，例如 `account.email_taken`。

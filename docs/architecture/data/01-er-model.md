@@ -184,6 +184,65 @@ erDiagram
     }
 ```
 
+## AGENT、知识题库与学习记录
+
+`AgentEndpoint`、`AgentProfile`、`AgentPromptRevision`、`AgentInvocation` 与 token ledger/reservation/adjustment/reset operation 属于 agents；`KnowledgeDocument`、审核/生成运行、题库、答题和错题属于 learning。下图使用数据库逻辑名，具体字段在对应 migration Todo 固化。
+
+```mermaid
+erDiagram
+    AGENT_ENDPOINT ||--o{ AGENT_PROFILE : serves
+    AGENT_PROFILE ||--|{ AGENT_PROMPT_REVISION : versions
+    AGENT_PROFILE ||--o{ AGENT_INVOCATION : runs
+    AGENT_ENDPOINT ||--o{ TOKEN_RESERVATION : reserves
+    ACCOUNT ||--o{ KNOWLEDGE_DOCUMENT : owns
+    KNOWLEDGE_DOCUMENT ||--o{ KNOWLEDGE_REVIEW_RUN : reviewed_by
+    KNOWLEDGE_DOCUMENT ||--o{ QUESTION_BANK_SERIES : generates
+    QUESTION_BANK_SERIES ||--|{ QUESTION_BANK : contains
+    QUESTION_BANK ||--|{ QUESTION_BANK_REVISION : versions
+    QUESTION_BANK_REVISION ||--|{ QUESTION : contains
+    ACCOUNT ||--o{ QUIZ_ATTEMPT : owns
+    QUESTION_BANK_REVISION ||--o{ QUIZ_ATTEMPT : fixes
+    QUIZ_ATTEMPT ||--|{ QUIZ_RESPONSE : contains
+    ACCOUNT ||--o{ WRONG_QUESTION : owns
+
+    AGENT_ENDPOINT {
+      uuid id PK
+      string protocol
+      string secret_alias
+      string api_key_ciphertext
+      int row_version
+    }
+    AGENT_INVOCATION {
+      uuid id PK
+      string idempotency_key
+      string state
+      string api_key_ciphertext_snapshot
+      string safe_error_code
+    }
+    KNOWLEDGE_DOCUMENT {
+      uuid id PK
+      uuid owner_id FK
+      string content_sha256
+      string state
+      datetime purge_after
+    }
+    QUESTION_BANK_REVISION {
+      uuid id PK
+      uuid bank_id FK
+      int sequence
+      int question_count
+    }
+    QUIZ_ATTEMPT {
+      uuid id PK
+      uuid account_id FK
+      uuid revision_id FK
+      string state
+      int row_version
+    }
+```
+
+Endpoint/Prompt/invocation 不引用 learning 私有 ID 以外的安全 caller ref；knowledge review/generation 只保存 invocation/TaskRun 稳定引用。题库标签由 learning 独占，不与 content `TAG` 建外键。QuizResponse/WrongQuestion 保存解释历史所需的题面、选项、答案/参考答案与解析安全快照，允许题库最终清理后外键置空。
+
 ## 聚合写入边界
 
 | 聚合 | 唯一写入口 | 同事务内允许写入 |
@@ -195,5 +254,9 @@ erDiagram
 | ModerationCase | `moderation.services` | Report/Appeal 或 ArticleCase/Appeal、裁决 outbox |
 | Notification | `notifications.services` | Notification、Receipt |
 | Import/Export | `exchange.services` | Job、Item/Selection、TaskRun 引用 |
+| AgentConfiguration/Invocation | `agents.services` | Endpoint、Profile、Prompt revision、Invocation、token ledger/reservation/adjustment/reset operation、审计/outbox |
+| KnowledgeDocument | `learning.services` | Document、review run、appeal/access、媒体绑定意图、outbox |
+| QuestionBank | `learning.services` | Series、Bank、immutable revision、Question、learning tag/coverage、generation run、outbox |
+| QuizLearning | `learning.services` | Attempt、Response、WrongQuestion、记录删除状态 |
 
 跨聚合副作用通过事务 outbox 事件完成。事务提交前不直接发送邮件、不入 Celery、不删除文件，防止数据库回滚后外部副作用已经发生。

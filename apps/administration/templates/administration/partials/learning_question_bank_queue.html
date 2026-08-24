@@ -1,0 +1,24 @@
+<section id="learning-question-bank-queue" class="learning-admin__section" aria-labelledby="learning-bank-list-title">
+  <header>
+    <div><h2 id="learning-bank-list-title">题库队列</h2><span>{{ bank_page.total_items }} 项</span></div>
+    <p>只处理当前明确勾选的卷。</p>
+  </header>
+  <form method="get" class="learning-admin__batch-form">
+    <input type="hidden" name="batch_type" value="QUESTION_BANK">
+    {% for bank in bank_page.items %}
+      <div class="learning-admin__row">
+        <label class="learning-admin__row-select" for="learning-bank-select-{{ bank.bank_id }}"><input id="learning-bank-select-{{ bank.bank_id }}" type="checkbox" name="selected" value="{{ bank.bank_id }}:{{ bank.row_version }}"><span class="visually-hidden">选择 {{ bank.title }}</span></label>
+        <span class="learning-admin__row-main"><strong>{{ bank.title }} · 第 {{ bank.volume_number }} 卷</strong><small>{{ bank.owner_display_name }} · {% if bank.series_state == "GENERATION_PENDING" %}等待生成{% elif bank.series_state == "GENERATING" %}生成中{% elif bank.series_state == "PUBLISHED" %}已完成{% elif bank.series_state == "GENERATION_FAILED" %}生成失败{% else %}{{ bank.series_state }}{% endif %} · {% if bank.visibility == "PUBLISHED" %}公开{% elif bank.visibility == "OWNER_HIDDEN" %}作者隐藏{% elif bank.visibility == "ADMIN_HIDDEN" %}管理员隐藏{% elif bank.visibility == "DELETE_PENDING" %}待删除（冷静期）{% elif bank.visibility == "CONFIGURING" %}配置中{% else %}{{ bank.visibility }}{% endif %}</small>{% if bank.visibility == "DELETE_PENDING" and bank.purge_after %}<small>预计 {{ bank.purge_after|date:"Y-m-d H:i" }} 后由清理任务完成删除</small>{% endif %}</span>
+        <span class="learning-admin__row-meta">{{ bank.question_count }} 题 · v{{ bank.row_version }}</span>
+      </div>
+    {% empty %}<p class="learning-admin__empty">当前没有匹配题库。</p>{% endfor %}
+    <div class="learning-admin__batch-actions"><button class="button button--secondary" type="submit" name="batch_action" value="HIDE">隐藏所选</button><button class="button button--secondary" type="submit" name="batch_action" value="RESTORE">恢复所选</button><button class="button button--danger" type="submit" name="batch_action" value="DELETE">进入删除流程</button></div>
+  </form>
+  {% if bank_page.total_pages > 1 %}
+    <nav class="knowledge-pagination" aria-label="题库分页">
+      {% if bank_page.has_previous %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ bank_page.page_number|add:"-1" }}" hx-get="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ bank_page.page_number|add:"-1" }}" hx-target="#learning-question-bank-queue" hx-swap="outerHTML" hx-push-url="true">上一页</a>{% endif %}
+      <span>第 {{ bank_page.page_number }} / {{ bank_page.total_pages }} 页</span>
+      {% if bank_page.has_next %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ bank_page.page_number|add:"1" }}" hx-get="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ bank_page.page_number|add:"1" }}" hx-target="#learning-question-bank-queue" hx-swap="outerHTML" hx-push-url="true">下一页</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>

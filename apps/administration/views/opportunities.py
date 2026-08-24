@@ -626,11 +626,16 @@ def _post(request):
         "source_disable",
         "source_enable",
         "source_check",
+        "retry_source_check",
         "check_all",
         "cancel_run",
     }:
         form = CheckActionForm(request.POST)
-        tab = "runs" if action in {"check_all", "cancel_run"} else "sources"
+        tab = (
+            "runs"
+            if action in {"retry_source_check", "check_all", "cancel_run"}
+            else "sources"
+        )
         if not form.is_valid():
             return _render(
                 request, status=422, active_tab=tab, page_error="检查请求不完整。"
@@ -651,7 +656,7 @@ def _post(request):
                     dispatcher=dispatch_check_run,
                     **meta,
                 )
-            elif action == "source_check":
+            elif action in {"source_check", "retry_source_check"}:
                 request_source_check(
                     source_id=form.cleaned_data["source_id"],
                     dispatcher=dispatch_check_run,

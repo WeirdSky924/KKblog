@@ -18,6 +18,7 @@
           comments/
           evidence/
         imports/<job-id>/
+        knowledge/<document-id>/
       site/
         brand/
         friend-links/
@@ -34,6 +35,7 @@
 2. 流式写入同一文件系统的 staging 临时文件，图片限制 2 MiB、文章附件限制 10 MiB，并计算 SHA-256。
 3. 图片解码真实格式、检查像素维度、去 EXIF/元数据；GIF 逐帧安全重编码并保留动画。
 4. 校验用途允许格式：普通图片 PNG/JPEG/GIF/WebP；Logo PNG/ICO；文章附件 ZIP/7z/RAR/UTF-8 MD/TXT，并按压缩签名或文本编码复核内容。
+   知识文档是独立 `KNOWLEDGE_DOCUMENT` purpose，只允许 UTF-8 `.md`、拒绝 NUL，硬上限 2 MiB；不得借用文章附件槽。
 5. 数据库事务创建 `MediaAsset(STAGED)` 与业务绑定意图。
 6. 事务提交后原子移动到最终 `storage_key`，再标记 `ACTIVE`。
 7. 移动失败写运行错误并安排幂等补偿；STAGED 资产不可被页面引用。
@@ -65,14 +67,22 @@
 | `cache:article:{id}:{revision}` | 公开文章静态渲染 | 版本化键 + 主动失效 |
 | `cache:list:{query-hash}:{generation}` | 公开列表片段 | 短 TTL + generation 失效 |
 | `alert-dedupe:{fingerprint}` | 同一持续故障邮件限频 | 1 小时 |
+| `api-rate:minute:{window}:{ip-hmac}` | 匿名题库 API 分钟计数 | 分钟窗口后过期 |
+| `api-rate:day:{date}:{ip-hmac}` | 匿名题库 API 上海自然日计数 | 下一次上海 00:00 |
+| `cache:question-bank:{id}:{revision}` | 公开题库 projection/ETag | 版本化键 + 主动失效 |
+| `cache:question-bank-list:{query-hash}:{generation}` | 公开题库列表 | 短 TTL + generation 失效 |
 
 邮箱/IP 在 Redis 键中使用服务端 HMAC，不写明文。Redis 丢失只会使验证码、冷却和缓存提前失效，不得造成永久权限提升或业务数据丢失。
+
+匿名题库 API 限流是明确例外：Redis 计数不可用时 API 在进入 query 前 fail closed 为 `503/rate_limiter_unavailable`，不能回退内存/数据库或放行；站内 HTML 仍正常。AGENT token 和业务配额始终以 PostgreSQL ledger/reservation 为事实，不存 Redis。
 
 ## 缓存边界
 
 只缓存公开文章正文的已清洗渲染结果和公开列表的静态字段。以下数据不进入页面缓存：评论、浏览量、收藏状态、通知、账户菜单、管理员遮罩、作者禁用状态。
 
 页面组装顺序是：先用服务端策略确认当前已发布修订仍公开，再取对应 revision 缓存；动态区域单独查询/HTMX 获取。发布、重发、可见性变化、标签/分区变化、隐藏、删除、恢复和作者禁用/启用都会增加相关 generation 或删除明确键。
+
+题库 HTML/API 复用同一公开 projection 缓存身份；修订、owner/admin 隐藏、删除/恢复、API 开关或 CORS/限流策略变化按影响失效。知识原文、Prompt、调用内容、个人答题、错题和记录禁止进入公开缓存。
 
 ## 生命周期表
 
@@ -91,6 +101,11 @@
 | Umami | 分析查询 | 到期 | 一个月清理 |
 | 招聘来源/岗位/筛选身份 | 启用、公开或下架 | 来源停用、岗位下架/过期、筛选观测失效均可恢复 | 业务历史保留；普通管理动作不物理删除，岗位收藏不随下架删除 |
 | 招聘检查历史 | 运行及后台诊断 | 完成后只读 | `expires_at` 后由 T21 小批量清理；审核、审计和当前安全摘要继续保留 |
+| 知识文档 | STAGED/审核/APPROVED | 用户删除 7 天可恢复；驳回/终败材料 30 天 | 到期解除 media 绑定并留无正文 tombstone；不影响题库 |
+| AGENT 调用材料 | 运行中/终态诊断 | 终败详情 30 天 | 到期仅留状态、计量、安全码和关联 ID；永不保存正文/完整 Prompt/原始输出 |
+| 题库 | 生成/发布/隐藏 | 用户删除 7 天可恢复 | 到期清理题库本体；答题/错题自包含快照保留 |
+| 答题记录 | 草稿/完成 | 用户删除 7 天可恢复 | 到期删除记录，不反向重算或删除 WrongQuestion |
+| 错题本 | TO_REVIEW/MASTERED | 无自动删除 | 账户彻底删除时清理；题库已删后只读且不可练习 |
 
 ## 磁盘保护
 

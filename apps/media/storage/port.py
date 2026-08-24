@@ -17,6 +17,10 @@ class StorageLimitExceeded(ValueError):
     pass
 
 
+class StorageEmptyFile(ValueError):
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class StagedMedia:
     token: str
@@ -32,6 +36,8 @@ class MediaStorage(Protocol):
     def stage(self, chunks: Iterable[bytes], *, max_bytes: int) -> StagedMedia: ...
 
     def open_staged(self, staged: StagedMedia): ...
+
+    def open_read(self, storage_key: str): ...
 
     def commit(self, staged: StagedMedia, storage_key: str) -> None: ...
 

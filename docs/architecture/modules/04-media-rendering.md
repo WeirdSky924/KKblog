@@ -24,6 +24,7 @@ apps/media/
 - 首页 Hero 图片继续遵守 2 MiB 图片规则；Hero 视频最大 10 MiB、30 秒、最长边 `8192`、总像素 `25 MP`，仅接受 MP4/H.264 或 WebM/VP8、VP9、AV1。扩展名、容器签名和 MediaInfo 探测结果必须一致；探测在受 CPU、内存、文件和 5 秒超时限制的独立子进程中执行。
 - 普通图片 PNG/JPEG/GIF/WebP；Logo 仅 PNG/ICO；依据真实签名和成功解码，不信任 MIME/扩展名。
 - 文章附件仅 ZIP、7z、RAR、UTF-8 Markdown 与 UTF-8 TXT；压缩格式同时校验扩展名和文件签名，文本拒绝 NUL 与无效 UTF-8，不信任声明 MIME。
+- 知识文档使用独立 `KNOWLEDGE_DOCUMENT` purpose，仅接受扩展名和探测内容均为 UTF-8 Markdown 的 `.md`，拒绝 NUL，硬上限 2 MiB；不能作为文章附件绑定。
 - 去除 EXIF/相似元数据；GIF 安全重编码并保持动画。
 - storage key 由服务生成，路径不得含邮箱、昵称、原文件目录或用户 `../`。
 - Asset 先 STAGED，绑定与原子移动成功后 ACTIVE；私有/未绑定资产不可直接访问。
@@ -41,6 +42,7 @@ apps/media/
 | Report/appeal evidence | 普通图片 | 每次提交最多三个，严格私有 |
 | Site logo | PNG/ICO | 当前一个，兼作 favicon |
 | Site Hero | 普通图片或受限 MP4/WebM | 当前一个，仅管理员上传；空时使用仓库默认图 |
+| Knowledge document | UTF-8 Markdown | 每个 learning document 一个；上传者须当前具有附件能力，原文私有 |
 
 友情链接不再接受 Logo 上传或绑定。历史 `FRIEND_LOGO` 资产只保留为媒体生命周期可解释的墓碑值；迁移解除旧绑定后，无其他引用的资产进入既有 `DELETE_PENDING` 清理状态机。
 
@@ -48,7 +50,7 @@ apps/media/
 
 ## 服务边界
 
-`stage_upload`、`bind_assets`、`replace_bindings`、`authorize_asset_read`、`delete_unbound_assets`。目标领域传稳定对象和用途，media 调目标注册的 access port；双方不直接访问对方私有表/路径。分区封面使用独立 `SECTION_COVER` 用途、`SECTION` 目标和固定 `default-cover` 槽，不借用文章修订的 `COVER` 绑定。
+`stage_upload`、`bind_assets`、`replace_bindings`、`authorize_asset_read`、`stream_authorized_text`、`delete_unbound_assets`。目标领域传稳定对象和用途，media 调目标注册的 access port；双方不直接访问对方私有表/路径。知识文档 access port 由 learning 注册，media 不读取其私有表；流式读取只返回已授权 UTF-8 文本和安全元数据，不复制正文到日志。分区封面使用独立 `SECTION_COVER` 用途、`SECTION` 目标和固定 `default-cover` 槽，不借用文章修订的 `COVER` 绑定。
 
 Hero 使用独立 `HERO` 用途，绑定到 `SITE_BRAND/site/hero` 单槽。视频原始字节不接受远程 URL，也不把原文件名带入 storage key；`DetectedFormat`、尺寸与时长必须来自受限探测器，浏览器声明 MIME 只作为无权限的输入提示。
 

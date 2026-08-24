@@ -26,6 +26,8 @@
 | H 管理/导航 | 每个命令权限与审计、树三层、设置 schema | 所有管理页/弹窗、移动端可操作 | 重复提交、错误/空/禁用状态 |
 | I 通知运维 | receipt、dedupe、outbox、TaskRun、脱敏 | 五条浮层、全读、群发读回、日志搜索 | outbox 重复、告警一小时去重 |
 | J 交换维护 | 安全解包、逐项幂等、导出全局唯一、保留期 | 导入选择/结果、导出取消/下载、Umami 权限 | zip bomb、备份失败、应用回滚模拟 |
+| L AGENT 运行时 | Endpoint/Prompt 不可变、Provider 契约、SSRF、双层 token ledger/reservation | 管理配置、Markdown Prompt、连接检查、reset 确认 | DNS rebinding、慢/大/坏响应、秘密脱敏、租约回收 |
+| M 知识学习 | 文档状态/去重/配额、题库不可变修订、API projection、判分/快照 | 上传/申诉/生成/公开筛选/API 设置/答题/错题/记录 | Prompt injection、模型终败、限流 fail closed、清理/匿名化 |
 
 ## 高风险权限场景
 
@@ -39,6 +41,9 @@
 6. 禁用作者后发布文章消失、定时转草稿；启用后仅前者自动恢复。
 7. 被 IP 封禁的已登录用户只能作为访客浏览大众内容。
 8. 举报结果与通知不泄露举报人身份。
+9. 无附件能力账户不能上传/审核/生成，但仍可登录答题；管理员不能代替他人生成题库。
+10. 知识原文仅 owner/管理员可见，管理员成功读取可追溯；公开 HTML/API 永不泄露原文或 Prompt。
+11. API 关闭时任意详情 ID 与列表在对象查询前返回同一 `404/api_disabled`；Redis 限流故障在 query 前 fail closed。
 
 ## 数据与并发场景
 
@@ -50,6 +55,9 @@
 - 导出完成与取消竞态只能得到 Completed 或 Cancelled 一个终态。
 - 数据库提交后文件删除失败，页面不可再访问文件，重试后清理成功。
 - Outbox 重复投递不重复通知、审计或清理。
+- 两个模型 Worker 领取同一 review/generation run，只产生一次 invocation、一次额度预留和一个业务终态。
+- token reset 与活跃 reservation 并发时不释放在途额度；可信/缺失 usage 重复结算均对账一致。
+- 题库修订/隐藏/删除与答题提交并发时，attempt 继续使用固定 revision/快照且新公开读取及时失效。
 
 ## 页面视觉状态
 

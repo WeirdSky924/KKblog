@@ -1,0 +1,32 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}题库队列 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="learning-admin" aria-labelledby="learning-bank-queue-title">
+    <header class="learning-admin__header">
+      <div><p>智能与题库</p><h1 id="learning-bank-queue-title">题库队列</h1><p>独立管理题库的运行状态、公开状态和删除流程。</p></div>
+      {% if saved == "batch" %}<p class="learning-admin__notice" role="status">批量处置已完成：共 {{ request.GET.total|default:"0" }} 项，成功 {{ request.GET.succeeded|default:"0" }} 项，失败 {{ request.GET.failed|default:"0" }} 项。{% if request.GET.error %}失败原因：{{ request.GET.error }}{% endif %} 删除操作会先进入 7 天冷静期。</p>{% endif %}
+    </header>
+    <form method="get" class="learning-admin__filters" hx-get="{% url 'admin:question-bank-queue' %}" hx-target="#learning-question-bank-queue" hx-swap="outerHTML" hx-push-url="true">
+      <div>{{ filter_form.q.label_tag }}{{ filter_form.q }}{{ filter_form.q.errors }}</div>
+      <div>{{ filter_form.state.label_tag }}{{ filter_form.state }}{{ filter_form.state.errors }}</div>
+      <div>{{ filter_form.visibility.label_tag }}{{ filter_form.visibility }}{{ filter_form.visibility.errors }}</div>
+      <button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+    </form>
+    {% if page_error %}<p class="learning-admin__error" role="alert">{{ page_error }}</p>{% endif %}
+    {% include "administration/partials/learning_question_bank_queue.html" %}
+    <p class="learning-admin__queue-note"><a href="{% url 'admin:question-banks' %}">返回题库与运行设置</a>。题库删除先从公开列表移除，冷静期结束后由学习清理任务彻底删除题库数据。</p>
+  </section>
+
+  {% if batch_preview %}
+    <dialog id="learning-bank-batch-dialog" class="confirm-dialog learning-admin__dialog learning-admin__batch-dialog" data-confirm-dialog data-auto-modal aria-labelledby="learning-bank-batch-title">
+      <div class="confirm-dialog__content learning-admin__batch-dialog-content">
+        <header class="learning-admin__batch-dialog-header"><div><p>明确勾选 · {% if batch_preview.action == "DELETE" %}进入删除流程{% elif batch_preview.action == "HIDE" %}隐藏{% else %}恢复{% endif %}</p><h2 id="learning-bank-batch-title">确认处置 {{ batch_preview.total }} 卷？</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <div class="learning-admin__batch-summary" aria-label="批量处置摘要"><div><span>已勾选</span><strong>{{ batch_preview.total }}</strong><small>卷题库</small></div><div><span>可执行</span><strong>{{ batch_preview.executable }}</strong><small>卷题库</small></div></div>
+        <p class="learning-admin__batch-dialog-note">删除只会把题库立即移出公开范围并进入 7 天冷静期；冷静期结束后由清理任务彻底移除题库数据，期间仍可恢复。</p>
+        <form method="post" class="learning-admin__batch-dialog-form"><input type="hidden" name="action" value="learning_batch_execute">{% csrf_token %}{{ batch_form.target_type.as_hidden }}{{ batch_form.action.as_hidden }}{% for target in batch_preview.items %}<input type="hidden" name="targets" value="{{ target.target_id }}:{{ target.row_version }}">{% endfor %}<div class="learning-admin__batch-field">{{ batch_form.reason_code.label_tag }}{{ batch_form.reason_code }}{{ batch_form.reason_code.errors }}</div><label class="learning-admin__batch-confirm" for="{{ batch_form.confirm.id_for_label }}">{{ batch_form.confirm }}<span>我确认按以上对象执行本次批量处置。</span></label>{{ batch_form.confirm.errors }}{{ batch_form.non_field_errors }}<div class="learning-admin__dialog-actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button {% if batch_preview.action == "DELETE" %}button--danger{% else %}button--primary{% endif %}" type="submit">确认{% if batch_preview.action == "DELETE" %}进入删除流程{% else %}执行{% endif %}</button></div></form>
+      </div>
+    </dialog>
+  {% endif %}
+{% endblock %}

@@ -245,6 +245,12 @@ def _target_url(target_type: str, target_id: str) -> str | None:
         return reverse("public:tag", kwargs={"tag_id": target_id})
     if target_type == "account_role":
         return reverse("accounts:settings")
+    if target_type in {"knowledge_document", "learning_appeal"}:
+        return reverse("learning:documents")
+    if target_type == "question_bank":
+        return reverse("question_banks:detail", kwargs={"bank_id": target_id})
+    if target_type == "question_bank_series":
+        return reverse("learning:documents")
     return None
 
 

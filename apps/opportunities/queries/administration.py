@@ -4,7 +4,8 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 
 from apps.accounts.public import is_administrator
 
@@ -338,7 +339,8 @@ def _admin_check_run_source_item(row) -> AdminCheckRunSourceItem:
         row.safe_error_code,
         row.started_at,
         row.completed_at,
-        row.run.state in cancellable_states and row.position == 1,
+        row.run.state in cancellable_states
+        and row.id == row.cancel_anchor_source_run_id,
     )
 
 
@@ -567,9 +569,34 @@ def admin_check_runs(*, actor_id, page=1, page_size=20) -> AdminPage:
     )
 
 
+def _admin_check_run_source_rows():
+    running_source_run = (
+        OpportunityCheckRunSource.objects.filter(
+            run_id=OuterRef("run_id"),
+            state=OpportunityCheckRunSource.State.RUNNING,
+        )
+        .order_by("position", "id")
+        .values("id")[:1]
+    )
+    pending_source_run = (
+        OpportunityCheckRunSource.objects.filter(
+            run_id=OuterRef("run_id"),
+            state=OpportunityCheckRunSource.State.PENDING,
+        )
+        .order_by("position", "id")
+        .values("id")[:1]
+    )
+    return OpportunityCheckRunSource.objects.select_related("run", "source").annotate(
+        cancel_anchor_source_run_id=Coalesce(
+            Subquery(running_source_run),
+            Subquery(pending_source_run),
+        )
+    )
+
+
 def admin_check_run_sources(*, actor_id, page=1, page_size=20) -> AdminPage:
     _administrator(actor_id)
-    rows = OpportunityCheckRunSource.objects.select_related("run", "source").order_by(
+    rows = _admin_check_run_source_rows().order_by(
         "-run__created_at", "-run_id", "position", "id"
     )
     return _page(
@@ -592,11 +619,7 @@ def admin_check_run_source_detail(
         return None
     if identity < 1:
         return None
-    row = (
-        OpportunityCheckRunSource.objects.select_related("run", "source")
-        .filter(pk=identity)
-        .first()
-    )
+    row = _admin_check_run_source_rows().filter(pk=identity).first()
     if row is None:
         return None
     item = _admin_check_run_source_item(row)

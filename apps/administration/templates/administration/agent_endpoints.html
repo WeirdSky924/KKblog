@@ -1,0 +1,169 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}Endpoint 与用量 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="agent-admin" aria-labelledby="agent-endpoints-title">
+    <header class="agent-admin__header">
+      <div>
+        <p>智能与题库</p>
+        <h1 id="agent-endpoints-title">Endpoint 与用量</h1>
+        <p>维护模型连接与运行保护，连接检查使用一次最小结构化请求。</p>
+      </div>
+      {% if not schema_unavailable %}
+        <a id="endpoint-create" class="button button--primary" href="?dialog=endpoint-create" data-dialog-trigger aria-controls="agent-endpoint-dialog">
+          <i data-lucide="plus" aria-hidden="true"></i><span>新增 Endpoint</span>
+        </a>
+      {% endif %}
+    </header>
+
+    {% if schema_unavailable %}
+      <div class="agent-admin__empty" role="status">
+        <h2>AGENT 数据迁移尚未完成</h2>
+        <p>当前页面保持只读不可用；完成最新 agents migration 后即可配置。</p>
+      </div>
+    {% else %}
+      {% if saved %}
+        <p class="agent-admin__notice" role="status">
+          {% if saved == "endpoint-created" %}Endpoint 已创建。{% elif saved == "endpoint-updated" %}Endpoint 已更新。{% elif saved == "site-limit" %}全站每日上限已更新。{% elif saved == "check-requested" %}连接检查已进入任务队列。{% elif saved == "usage-reset" %}今日用量已重置，活跃预留保持不变。{% elif saved == "defaults-restored" %}全站与 Endpoint 默认上限已恢复。{% endif %}
+        </p>
+      {% endif %}
+      {% if page_error %}<p class="agent-admin__error" role="alert">{{ page_error }}</p>{% endif %}
+      {% if not agent_secret_count %}
+        <p class="agent-admin__warning" role="status">服务器密钥别名尚未加载；如使用自定义 API Key，可直接在 Endpoint 中安全保存。密钥不会回显。</p>
+      {% endif %}
+
+      <section class="agent-policy" aria-labelledby="agent-policy-title">
+        <header>
+          <div>
+            <p>{{ token_policy.usage_date|date:"Y-m-d" }}</p>
+            <h2 id="agent-policy-title">全站模型用量</h2>
+          </div>
+          <div class="agent-policy__actions">
+            <a id="token-reset-site" class="button button--secondary" href="?dialog=token-reset-site" data-dialog-trigger aria-controls="agent-confirm-dialog">重置今日已用量</a>
+            <a id="restore-agent-defaults" class="button button--secondary" href="?dialog=restore-defaults" data-dialog-trigger aria-controls="agent-confirm-dialog">恢复默认上限</a>
+          </div>
+        </header>
+        <div class="agent-usage" aria-label="全站 token 用量">
+          <div><span>已结算</span><strong>{{ token_policy.site_effective_tokens }}</strong></div>
+          <div><span>活跃预留</span><strong>{{ token_policy.site_reserved_tokens }}</strong></div>
+          <div><span>每日上限</span><strong>{{ token_policy.site_daily_token_limit }}</strong></div>
+          <progress value="{{ token_policy.site_effective_tokens|add:token_policy.site_reserved_tokens }}" max="{{ token_policy.site_daily_token_limit }}">全站用量</progress>
+        </div>
+        <form method="post" class="agent-policy__form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="site_limit_update">
+          {{ site_form.non_field_errors }}
+          <div>{{ site_form.daily_token_limit.label_tag }}{{ site_form.daily_token_limit.errors }}{{ site_form.daily_token_limit }}{% if site_form.daily_token_limit.help_text %}<small class="agent-form__hint">{{ site_form.daily_token_limit.help_text }}</small>{% endif %}</div>
+          {{ site_form.expected_version }}
+          <button class="button button--primary" type="submit">保存全站上限</button>
+        </form>
+      </section>
+
+      <section id="endpoint-list" class="agent-list" aria-labelledby="endpoint-list-title">
+        <header><h2 id="endpoint-list-title">Endpoint</h2><span>{{ endpoint_items|length }} 项</span></header>
+        {% if endpoint_items %}
+          <div class="agent-list__items">
+            {% for endpoint in endpoint_items %}
+              <article class="agent-item{% if endpoint.enabled %} agent-item--enabled{% endif %}">
+                <header>
+                  <div>
+                    <span class="agent-item__state">{% if endpoint.enabled %}已启用{% else %}已停用{% endif %}</span>
+                    <h3>{{ endpoint.display_name }}</h3>
+                    <p>{{ endpoint.protocol }} · {{ endpoint.model_name }}</p>
+                  </div>
+                  <div class="agent-item__actions">
+                    <a id="endpoint-edit-{{ endpoint.endpoint_id }}" class="button button--secondary" href="?dialog=endpoint-edit&amp;endpoint_id={{ endpoint.endpoint_id }}" data-dialog-trigger aria-controls="agent-endpoint-dialog"><i data-lucide="pencil" aria-hidden="true"></i><span>编辑</span></a>
+                    <a id="endpoint-check-{{ endpoint.endpoint_id }}" class="button button--secondary" href="?dialog=endpoint-check&amp;endpoint_id={{ endpoint.endpoint_id }}" data-dialog-trigger aria-controls="agent-confirm-dialog"><i data-lucide="activity" aria-hidden="true"></i><span>检查</span></a>
+                  </div>
+                </header>
+                <dl class="agent-item__facts">
+                  <div><dt>Base URL</dt><dd>{{ endpoint.base_url }}</dd></div>
+                  <div><dt>认证</dt><dd>{% if endpoint.secret_alias %}服务器别名 {{ endpoint.secret_alias }}{% elif endpoint.custom_api_key_present %}自定义 API Key{% else %}无需认证{% endif %}</dd></div>
+                  <div><dt>上下文 / 输出</dt><dd>{{ endpoint.context_window_tokens }} / {{ endpoint.max_output_tokens }}</dd></div>
+                  <div><dt>推理配置</dt><dd>{% if endpoint.reasoning_effort %}{{ endpoint.reasoning_effort }}{% elif endpoint.thinking_budget_tokens %}思考 {{ endpoint.thinking_budget_tokens }} token{% else %}上游默认{% endif %}</dd></div>
+                  <div><dt>单业务 / 并发</dt><dd>{{ endpoint.per_run_token_limit }} / {{ endpoint.concurrency_limit }}</dd></div>
+                  <div><dt>超时</dt><dd>{{ endpoint.request_timeout_seconds }} 秒</dd></div>
+                  <div><dt>每日上限</dt><dd>{{ endpoint.daily_token_limit }}</dd></div>
+                </dl>
+                <div class="agent-usage agent-usage--compact">
+                  <div><span>今日结算</span><strong>{{ endpoint.today_effective_tokens }}</strong></div>
+                  <div><span>活跃预留</span><strong>{{ endpoint.today_reserved_tokens }}</strong></div>
+                  <progress value="{{ endpoint.today_effective_tokens|add:endpoint.today_reserved_tokens }}" max="{{ endpoint.daily_token_limit }}">Endpoint 用量</progress>
+                  <a id="token-reset-{{ endpoint.endpoint_id }}" href="?dialog=token-reset-endpoint&amp;endpoint_id={{ endpoint.endpoint_id }}" data-dialog-trigger aria-controls="agent-confirm-dialog">重置这个 Endpoint 的今日用量</a>
+                </div>
+                <div class="agent-check-result">
+                  <strong>最近检查</strong>
+                  {% if endpoint.latest_check %}
+                    <span>{{ endpoint.latest_check.requested_at|date:"Y-m-d H:i:s" }} · {% if endpoint.latest_check.state == "PENDING" %}等待中{% elif endpoint.latest_check.state == "RUNNING" %}检查中{% elif endpoint.latest_check.state == "SUCCEEDED" %}连接成功{% else %}检查失败{% endif %}</span>
+                    {% if endpoint.latest_check.capability_state == "SCHEMA_SUPPORTED" %}<small>严格 schema 已支持：{{ endpoint.latest_check.schema_key }} · {{ endpoint.latest_check.capability_strategy }}{% if endpoint.latest_check.capability_adapter_version %} · adapter {{ endpoint.latest_check.capability_adapter_version }}{% endif %}</small>{% elif endpoint.latest_check.capability_state == "CONNECTIVITY_ONLY" %}<small>仅完成网络与基础 JSON 检查{% if endpoint.latest_check.capability_adapter_version %} · adapter {{ endpoint.latest_check.capability_adapter_version }}{% endif %}</small>{% endif %}
+                    {% if endpoint.latest_check.safe_error_code %}<span class="agent-check-result__message">{{ endpoint.latest_check.safe_error_message }}</span><code>{{ endpoint.latest_check.safe_error_code }}</code>{% endif %}
+                  {% else %}<span>尚未检查</span>{% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="agent-admin__empty"><h3>尚未配置 Endpoint</h3><p>新增后再创建 AGENT 并保存 Prompt。</p></div>
+        {% endif %}
+      </section>
+    {% endif %}
+  </section>
+
+  {% if dialog_kind == "endpoint-create" or dialog_kind == "endpoint-edit" %}
+    <dialog id="agent-endpoint-dialog" class="confirm-dialog agent-dialog" data-confirm-dialog data-auto-modal data-dialog-return-focus="{% if dialog_kind == 'endpoint-edit' %}endpoint-edit-{{ dialog_endpoint.endpoint_id }}{% else %}endpoint-create{% endif %}" data-dialog-return-url="{% url 'admin:agent-endpoints' %}#endpoint-list" aria-labelledby="agent-endpoint-dialog-title">
+      <div class="confirm-dialog__content agent-dialog__content">
+        <header class="agent-dialog__header"><div><p>Endpoint</p><h2 id="agent-endpoint-dialog-title">{% if dialog_kind == "endpoint-edit" %}编辑 {{ dialog_endpoint.display_name }}{% else %}新增 Endpoint{% endif %}</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x" aria-hidden="true"></i></button></header>
+        <form method="post" class="agent-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="{% if dialog_kind == 'endpoint-edit' %}endpoint_update{% else %}endpoint_create{% endif %}">
+          {{ dialog_form.non_field_errors }}{{ dialog_form.endpoint_id }}{{ dialog_form.expected_version }}
+          <div class="agent-form__grid agent-form__grid--connection">
+            <div>{{ dialog_form.display_name.label_tag }}{{ dialog_form.display_name.errors }}{{ dialog_form.display_name }}<small class="agent-form__hint">{{ dialog_form.display_name.help_text }}</small></div>
+            <div>{{ dialog_form.protocol.label_tag }}{{ dialog_form.protocol.errors }}{{ dialog_form.protocol }}<small class="agent-form__hint">{{ dialog_form.protocol.help_text }}</small></div>
+            <div>{{ dialog_form.model_name.label_tag }}{{ dialog_form.model_name.errors }}{{ dialog_form.model_name }}<small class="agent-form__hint">{{ dialog_form.model_name.help_text }}</small></div>
+            <div>{{ dialog_form.authentication_mode.label_tag }}{{ dialog_form.authentication_mode.errors }}{{ dialog_form.authentication_mode }}<small class="agent-form__hint">{{ dialog_form.authentication_mode.help_text }}</small></div>
+            <div>{{ dialog_form.secret_alias.label_tag }}{{ dialog_form.secret_alias.errors }}{{ dialog_form.secret_alias }}<small class="agent-form__hint">{{ dialog_form.secret_alias.help_text }}</small></div>
+            <div>{{ dialog_form.api_key.label_tag }}{{ dialog_form.api_key.errors }}{{ dialog_form.api_key }}{% if dialog_endpoint and dialog_endpoint.custom_api_key_present %}<small class="agent-form__hint">已配置自定义 API Key；留空保持不变。</small>{% elif dialog_form.api_key.help_text %}<small class="agent-form__hint">{{ dialog_form.api_key.help_text }}</small>{% endif %}</div>
+            <div class="agent-form__api-key-clear">
+              <label class="switch-control" for="{{ dialog_form.clear_api_key.id_for_label }}">{{ dialog_form.clear_api_key }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span>{{ dialog_form.clear_api_key.label }}</span></label>
+              {{ dialog_form.clear_api_key.errors }}<small class="agent-form__hint">{{ dialog_form.clear_api_key.help_text }}</small>
+            </div>
+            <div class="agent-form__wide">{{ dialog_form.base_url.label_tag }}{{ dialog_form.base_url.errors }}{{ dialog_form.base_url }}<small class="agent-form__hint">{{ dialog_form.base_url.help_text }}</small></div>
+          </div>
+          <details class="agent-form__advanced"{% if dialog_form.context_window_tokens.errors or dialog_form.max_output_tokens.errors or dialog_form.reasoning_effort.errors or dialog_form.thinking_budget_tokens.errors or dialog_form.per_run_token_limit.errors or dialog_form.request_timeout_seconds.errors or dialog_form.concurrency_limit.errors or dialog_form.endpoint_daily_token_limit.errors or dialog_form.input_price_per_million_tokens.errors or dialog_form.output_price_per_million_tokens.errors %} open{% endif %}>
+            <summary><span>运行保护与成本估算</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <div class="agent-form__grid">
+              <div>{{ dialog_form.context_window_tokens.label_tag }}{{ dialog_form.context_window_tokens.errors }}{{ dialog_form.context_window_tokens }}<small class="agent-form__hint">{{ dialog_form.context_window_tokens.help_text }}</small></div>
+              <div>{{ dialog_form.max_output_tokens.label_tag }}{{ dialog_form.max_output_tokens.errors }}{{ dialog_form.max_output_tokens }}<small class="agent-form__hint">{{ dialog_form.max_output_tokens.help_text }}</small></div>
+              <div>{{ dialog_form.reasoning_effort.label_tag }}{{ dialog_form.reasoning_effort.errors }}{{ dialog_form.reasoning_effort }}<small class="agent-form__hint">{{ dialog_form.reasoning_effort.help_text }}</small></div>
+              <div>{{ dialog_form.thinking_budget_tokens.label_tag }}{{ dialog_form.thinking_budget_tokens.errors }}{{ dialog_form.thinking_budget_tokens }}<small class="agent-form__hint">{{ dialog_form.thinking_budget_tokens.help_text }}</small></div>
+              <div>{{ dialog_form.per_run_token_limit.label_tag }}{{ dialog_form.per_run_token_limit.errors }}{{ dialog_form.per_run_token_limit }}<small class="agent-form__hint">{{ dialog_form.per_run_token_limit.help_text }}</small></div>
+              <div>{{ dialog_form.request_timeout_seconds.label_tag }}{{ dialog_form.request_timeout_seconds.errors }}{{ dialog_form.request_timeout_seconds }}<small class="agent-form__hint">{{ dialog_form.request_timeout_seconds.help_text }}</small></div>
+              <div>{{ dialog_form.concurrency_limit.label_tag }}{{ dialog_form.concurrency_limit.errors }}{{ dialog_form.concurrency_limit }}<small class="agent-form__hint">{{ dialog_form.concurrency_limit.help_text }}</small></div>
+              <div>{{ dialog_form.endpoint_daily_token_limit.label_tag }}{{ dialog_form.endpoint_daily_token_limit.errors }}{{ dialog_form.endpoint_daily_token_limit }}<small class="agent-form__hint">{{ dialog_form.endpoint_daily_token_limit.help_text }}</small></div>
+              <div>{{ dialog_form.input_price_per_million_tokens.label_tag }}{{ dialog_form.input_price_per_million_tokens.errors }}{{ dialog_form.input_price_per_million_tokens }}<small class="agent-form__hint">{{ dialog_form.input_price_per_million_tokens.help_text }}</small></div>
+              <div>{{ dialog_form.output_price_per_million_tokens.label_tag }}{{ dialog_form.output_price_per_million_tokens.errors }}{{ dialog_form.output_price_per_million_tokens }}<small class="agent-form__hint">{{ dialog_form.output_price_per_million_tokens.help_text }}</small></div>
+            </div>
+          </details>
+          <label class="switch-control" for="{{ dialog_form.enabled.id_for_label }}">{{ dialog_form.enabled }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span>{{ dialog_form.enabled.label }}</span></label><small class="agent-form__hint">{{ dialog_form.enabled.help_text }}</small>
+          <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit">保存 Endpoint</button></div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+
+  {% if dialog_kind == "endpoint-check" or dialog_kind == "token-reset-site" or dialog_kind == "token-reset-endpoint" or dialog_kind == "token-reset" or dialog_kind == "restore-defaults" %}
+    <dialog id="agent-confirm-dialog" class="confirm-dialog agent-dialog agent-dialog--compact" data-confirm-dialog data-auto-modal data-dialog-return-focus="{% if dialog_endpoint and dialog_kind == 'endpoint-check' %}endpoint-check-{{ dialog_endpoint.endpoint_id }}{% elif dialog_endpoint %}token-reset-{{ dialog_endpoint.endpoint_id }}{% else %}agent-endpoints-title{% endif %}" data-dialog-return-url="{% url 'admin:agent-endpoints' %}#endpoint-list" aria-labelledby="agent-confirm-title">
+      <div class="confirm-dialog__content agent-dialog__content">
+        <header class="agent-dialog__header"><div><p>确认操作</p><h2 id="agent-confirm-title">{% if dialog_kind == "endpoint-check" %}检查 {{ dialog_endpoint.display_name }}{% elif dialog_kind == "restore-defaults" %}恢复默认 token 上限{% else %}重置今日 token 已用量{% endif %}</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x" aria-hidden="true"></i></button></header>
+        {% if dialog_kind == "endpoint-check" %}<p>不选择 AGENT 时只验证 LangChain 连接和基础响应；选择 AGENT 时还会验证真实 schema。两种检查都可能产生 Provider 费用，但不会修改 Endpoint 参数。</p>{% elif dialog_kind == "restore-defaults" %}<p>全站上限恢复为 5,000,000，每个 Endpoint 恢复为 2,000,000；只影响后续任务，活跃运行不受影响。</p>{% else %}<p>重置通过不可变 adjustment 对账，不删除历史 ledger，也不会释放正在运行的预留。</p>{% endif %}
+        <form method="post" class="agent-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="{% if dialog_kind == 'endpoint-check' %}endpoint_check{% elif dialog_kind == 'restore-defaults' %}restore_defaults{% else %}token_reset{% endif %}">
+          {{ dialog_form.non_field_errors }}{% for hidden in dialog_form.hidden_fields %}{{ hidden }}{% endfor %}
+          {% if dialog_kind == "endpoint-check" %}<div>{{ dialog_form.profile_key.label_tag }}{{ dialog_form.profile_key.errors }}{{ dialog_form.profile_key }}{% if dialog_form.profile_key.help_text %}<small class="agent-form__hint">{{ dialog_form.profile_key.help_text }}</small>{% endif %}</div>{% endif %}
+          {% if dialog_form.reason %}<div>{{ dialog_form.reason.label_tag }}{{ dialog_form.reason.errors }}{{ dialog_form.reason }}</div>{% endif %}
+          <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button {% if dialog_kind == 'endpoint-check' %}button--primary{% else %}button--danger{% endif %}" type="submit">确认执行</button></div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+{% endblock %}

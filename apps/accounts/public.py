@@ -3,6 +3,7 @@ from uuid import UUID
 from apps.accounts.deletion import (
     AccountDeletionDisposition,
     AuthorArticleDecision,
+    configure_account_deletion_cleanup,
 )
 from apps.accounts.email_templates import (
     DEFAULT_VERIFICATION_EMAIL_TEMPLATE,
@@ -113,6 +114,20 @@ def is_active_account(account_id: UUID | str | None) -> bool:
     return Account.objects.filter(pk=account_id, status=Account.Status.ACTIVE).exists()
 
 
+def lock_active_account(account_id: UUID | str | None) -> bool:
+    if account_id is None:
+        return False
+    return (
+        Account.objects.select_for_update()
+        .filter(
+            pk=account_id,
+            status=Account.Status.ACTIVE,
+        )
+        .first()
+        is not None
+    )
+
+
 def active_administrator_id() -> UUID | None:
     return (
         RoleAssignment.objects.filter(
@@ -141,6 +156,7 @@ __all__ = [
     "can_upload_attachments",
     "active_administrator_id",
     "AccountDeletionDisposition",
+    "configure_account_deletion_cleanup",
     "AccountLifecycleError",
     "AttachmentCapabilityState",
     "AuthorPreferenceError",
@@ -169,6 +185,7 @@ __all__ = [
     "is_administrator",
     "is_active_author",
     "is_active_account",
+    "lock_active_account",
     "public_account_identities",
     "public_account_identity",
     "search_public_author_page",

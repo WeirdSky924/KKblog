@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from .adapters import AdapterResult, CollectedOpportunity
+from .adapters import AdapterResult, CollectedOpportunity, parse_published_at
 from .browser import BrowserCollector
 from .http import SafeRequestError
 
@@ -48,7 +48,7 @@ def _labels(value: object) -> tuple[str, ...]:
 def _candidate(value: object) -> CollectedOpportunity:
     if not isinstance(value, dict):
         raise SafeRequestError("opportunities.adapter_response_invalid.v1")
-    expected = {
+    required = {
         "title",
         "target_url",
         "recruitment_type",
@@ -58,7 +58,7 @@ def _candidate(value: object) -> CollectedOpportunity:
         "city_labels",
         "cohort_labels",
     }
-    if set(value) != expected:
+    if not required.issubset(value) or set(value) - (required | {"published_at"}):
         raise SafeRequestError("opportunities.adapter_response_invalid.v1")
     return CollectedOpportunity(
         title=_text(value["title"], maximum=200),
@@ -69,6 +69,7 @@ def _candidate(value: object) -> CollectedOpportunity:
         category_labels=_labels(value["category_labels"]),
         city_labels=_labels(value["city_labels"]),
         cohort_labels=_labels(value["cohort_labels"]),
+        published_at=parse_published_at(value.get("published_at")),
     )
 
 

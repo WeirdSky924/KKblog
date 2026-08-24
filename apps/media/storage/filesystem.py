@@ -12,6 +12,7 @@ from apps.media.models.asset import validate_storage_key
 from .port import (
     StagedMedia,
     StorageBoundaryError,
+    StorageEmptyFile,
     StorageLimitExceeded,
     StorageWriteError,
 )
@@ -93,7 +94,7 @@ class FilesystemMediaStorage:
                     digest.update(chunk)
                     stream.write(chunk)
                 if total < 1:
-                    raise ValueError("媒体文件不能为空")
+                    raise StorageEmptyFile("媒体文件不能为空")
                 stream.flush()
                 os.fsync(stream.fileno())
         except Exception:
@@ -107,6 +108,14 @@ class FilesystemMediaStorage:
             descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
         except FileNotFoundError:
             raise FileNotFoundError("暂存媒体不存在") from None
+        return os.fdopen(descriptor, "rb")
+
+    def open_read(self, storage_key: str):
+        path = self._path(storage_key)
+        try:
+            descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        except FileNotFoundError:
+            raise FileNotFoundError("媒体文件不存在") from None
         return os.fdopen(descriptor, "rb")
 
     def commit(self, staged: StagedMedia, storage_key: str) -> None:

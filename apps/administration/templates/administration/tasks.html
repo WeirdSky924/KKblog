@@ -132,7 +132,7 @@
       {% if task_rows %}
         <div class="admin-operations__table-wrap" tabindex="0" aria-label="后台任务记录">
           <table class="admin-operations__task-table">
-            <thead><tr><th>任务</th><th>状态</th><th>尝试</th><th>时间</th><th>诊断</th></tr></thead>
+            <thead><tr><th>任务</th><th>状态</th><th>尝试</th><th>时间</th><th>计量</th><th>诊断</th></tr></thead>
             <tbody>
               {% for row in task_rows %}
                 <tr id="task-{{ row.run_id }}">
@@ -146,7 +146,9 @@
                   <td>
                     <span>计划 {{ row.scheduled_at|date:"Y-m-d H:i:s" }}</span>
                     {% if row.completed_at %}<small>结束 {{ row.completed_at|date:"Y-m-d H:i:s" }}</small>{% endif %}
+                    {% if row.duration_seconds is not None %}<small>耗时 {{ row.duration_seconds }} 秒</small>{% endif %}
                   </td>
+                  <td><span>预留 {% if row.token_requested is not None %}{{ row.token_requested }}{% else %}—{% endif %}</span><small>结算 {% if row.token_settled is not None %}{{ row.token_settled }}{% else %}—{% endif %}</small>{% if row.invocation_total_tokens is not None %}<small>调用 {{ row.invocation_total_tokens }}</small>{% endif %}</td>
                   <td><code>{{ row.trace_code }}</code>{% if row.last_error_code %}<small>{{ row.last_error_code }}</small>{% endif %}</td>
                 </tr>
               {% endfor %}

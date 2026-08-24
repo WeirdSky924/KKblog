@@ -9,6 +9,7 @@ from .constants import DetectedFormat, MediaPurpose, MediaState
 
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+MAX_KNOWLEDGE_DOCUMENT_BYTES = 2 * 1024 * 1024
 MAX_HERO_VIDEO_BYTES = 10 * 1024 * 1024
 _VIDEO_FORMATS = (DetectedFormat.MP4, DetectedFormat.WEBM)
 _HERO_FORMATS = (
@@ -17,6 +18,10 @@ _HERO_FORMATS = (
     DetectedFormat.GIF,
     DetectedFormat.WEBP,
     *_VIDEO_FORMATS,
+)
+_DIMENSIONLESS_PURPOSES = (
+    MediaPurpose.ATTACHMENT,
+    MediaPurpose.KNOWLEDGE_DOCUMENT,
 )
 
 
@@ -43,7 +48,7 @@ class MediaAsset(models.Model):
         related_name="media_assets",
         editable=False,
     )
-    purpose = models.CharField(max_length=16, choices=MediaPurpose.choices)
+    purpose = models.CharField(max_length=32, choices=MediaPurpose.choices)
     storage_key = models.CharField(max_length=255, unique=True, editable=False)
     original_name = models.CharField(max_length=255)
     detected_mime = models.CharField(max_length=32, choices=DetectedFormat.choices)
@@ -71,13 +76,18 @@ class MediaAsset(models.Model):
                         size_bytes__lte=MAX_ATTACHMENT_BYTES,
                     )
                     | Q(
+                        purpose=MediaPurpose.KNOWLEDGE_DOCUMENT,
+                        size_bytes__gte=1,
+                        size_bytes__lte=MAX_KNOWLEDGE_DOCUMENT_BYTES,
+                    )
+                    | Q(
                         purpose=MediaPurpose.HERO,
                         detected_mime__in=_VIDEO_FORMATS,
                         size_bytes__gte=1,
                         size_bytes__lte=MAX_HERO_VIDEO_BYTES,
                     )
                     | (
-                        ~Q(purpose=MediaPurpose.ATTACHMENT)
+                        ~Q(purpose__in=_DIMENSIONLESS_PURPOSES)
                         & ~Q(
                             purpose=MediaPurpose.HERO,
                             detected_mime__in=_VIDEO_FORMATS,
@@ -103,12 +113,22 @@ class MediaAsset(models.Model):
             models.CheckConstraint(
                 condition=(
                     Q(
-                        purpose=MediaPurpose.ATTACHMENT,
+                        purpose=MediaPurpose.KNOWLEDGE_DOCUMENT,
+                        detected_mime=DetectedFormat.MARKDOWN,
+                    )
+                    | ~Q(purpose=MediaPurpose.KNOWLEDGE_DOCUMENT)
+                ),
+                name="media_asset_knowledge_format",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        purpose__in=_DIMENSIONLESS_PURPOSES,
                         width__isnull=True,
                         height__isnull=True,
                     )
                     | Q(
-                        ~Q(purpose=MediaPurpose.ATTACHMENT),
+                        ~Q(purpose__in=_DIMENSIONLESS_PURPOSES),
                         width__gte=1,
                         height__gte=1,
                     )
@@ -164,7 +184,14 @@ class MediaAsset(models.Model):
             detected = DetectedFormat(self.detected_mime)
         except (TypeError, ValueError):
             raise ValidationError("媒体用途或格式不合法") from None
-        if purpose == MediaPurpose.ATTACHMENT:
+        if purpose == MediaPurpose.KNOWLEDGE_DOCUMENT:
+            if self.width is not None or self.height is not None:
+                raise ValidationError("知识文档不能包含图片尺寸")
+            if detected != DetectedFormat.MARKDOWN:
+                raise ValidationError("知识文档必须是 Markdown")
+            if self.size_bytes > MAX_KNOWLEDGE_DOCUMENT_BYTES:
+                raise ValidationError("知识文档不能超过 2 MiB")
+        elif purpose == MediaPurpose.ATTACHMENT:
             if self.width is not None or self.height is not None:
                 raise ValidationError("附件不能包含图片尺寸")
             if self.size_bytes > MAX_ATTACHMENT_BYTES:
@@ -178,7 +205,7 @@ class MediaAsset(models.Model):
                 raise ValidationError("首页视频不能超过 10 MiB")
         elif purpose == MediaPurpose.HERO and detected not in _HERO_FORMATS:
             raise ValidationError("首页主视觉格式不受支持")
-        elif self.size_bytes > MAX_IMAGE_BYTES and purpose != MediaPurpose.ATTACHMENT:
+        elif self.size_bytes > MAX_IMAGE_BYTES:
             raise ValidationError("图片不能超过 2 MiB")
 
     def mark_deleted(self) -> None:

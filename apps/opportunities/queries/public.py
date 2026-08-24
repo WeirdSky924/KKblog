@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core.paginator import Paginator
-from django.db.models import Case, Count, IntegerField, Prefetch, Q, When
+from django.db.models import Case, Count, F, IntegerField, Prefetch, Q, When
 
 from ..defaults import project_default_filters
 from ..models import (
@@ -36,7 +36,7 @@ class PublicOpportunityItem:
     categories: tuple[str, ...]
     cities: tuple[str, ...]
     cohorts: tuple[str, ...]
-    last_verified_at: datetime | None
+    published_at: datetime | None
     availability_label: str
     bookmarked: bool = False
 
@@ -173,7 +173,7 @@ def _item(row: Opportunity, bookmarks: frozenset[UUID]) -> PublicOpportunityItem
             OpportunityFilterKind.COHORT,
             overridden=row.cohort_overridden,
         ),
-        last_verified_at=row.last_success_at,
+        published_at=row.published_at,
         availability_label=_availability(row),
         bookmarked=row.id in bookmarks,
     )
@@ -310,10 +310,22 @@ def public_opportunities(
         rows = rows.filter(source_id__in=source_ids)
     if recruitment_types:
         rows = rows.filter(recruitment_type__in=recruitment_types)
+    publication_order = F("published_at").desc(nulls_last=True)
     ordering = (
-        ("-search_rank", "source__normalized_company_name", "title", "id")
+        (
+            "-search_rank",
+            publication_order,
+            "source__normalized_company_name",
+            "title",
+            "id",
+        )
         if term
-        else ("source__normalized_company_name", "title", "id")
+        else (
+            publication_order,
+            "source__normalized_company_name",
+            "title",
+            "id",
+        )
     )
     result, window = _page(
         rows.distinct().order_by(*ordering), page=page, page_size=page_size

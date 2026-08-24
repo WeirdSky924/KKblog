@@ -8,7 +8,7 @@
 
 本架构服务于可长期维护的私人博客。它把认证、私密内容、不可变版本、评论审核、数据交换和异步任务放在可独立测试的稳定领域内；Django 页面层只承担 HTTP、表单、模板和局部交互编排。
 
-首版是同源 Web 应用，不提供公共 API、移动 App API、第三方登录、RSS 或社交平台直发。所有功能完成后才统一部署；Git 提交、推送、部署、迁移和服务重启仍只在用户当前明确唤起时执行。
+产品主体仍是同源 Web 应用，不提供移动 App API、第三方登录、RSS 或社交平台直发。唯一外部接口例外是默认关闭的匿名题库只读 API；它使用独立 `/api/v1/question-banks` transport、精确 CORS 白名单和 fail-closed 限流，不把内部 HTMX 端点升级为公共合同。所有功能完成后才统一部署；Git 提交、推送、部署、迁移和服务重启仍只在用户当前明确唤起时执行。
 
 ## 运行时
 
@@ -20,6 +20,7 @@ Browser
        -> Redis            可丢失验证码、限流、冷却、公开缓存
        -> media filesystem 受控图片与导出包
        -> Outbox           提交后跨领域副作用
+       -> Provider Gateway 受限调用管理员配置的模型 Endpoint
     -> Celery worker/beat  幂等应用服务和数据库到期扫描
     -> Umami               仅经管理员入口访问
 ```
@@ -30,7 +31,7 @@ Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`u
 
 | 类型 | 模块 | 责任 |
 | --- | --- | --- |
-| 领域事实 | accounts、content、media、comments、moderation、notifications、navigation、operations、exchange、analytics、opportunities | 唯一模型与写服务；opportunities 独占招聘来源、岗位、筛选选项、检查历史、审核队列和用户岗位收藏 |
+| 领域事实 | accounts、content、media、comments、moderation、notifications、navigation、operations、exchange、analytics、opportunities、`apps/agents`、`apps/learning` | 唯一模型与写服务；agents 独占 Endpoint/Prompt/调用与 token ledger，learning 独占知识文档、题库、答题和个人学习数据 |
 | 用户流编排 | discovery、authoring、administration | 页面/query 组合，不建立平行业务事实 |
 | 技术基础 | core、config、docker | 错误、时间、事件协议、运行入口 |
 
@@ -53,7 +54,7 @@ Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`u
 | --- | --- | --- |
 | 总纲 | `01-system-directory.md` 到 `04-operations-testing.md` | 系统边界、视觉和运维原则 |
 | 学习 | `05-architecture-study-guide.md` | 如何按架构师方式阅读和练习 |
-| 模块 | `modules/` | 十个交付模块的职责摘要 |
+| 模块 | `modules/` | 各交付模块的职责摘要，包括招聘、AGENT 运行时与知识学习 |
 | 数据 | `data/` | 聚合、字段、约束、索引、存储和生命周期 |
 | 流程 | `flows/` | 账户、文章、评论、导入导出状态与时序 |
 | 契约 | `contracts/` | 服务、权限、页面、事件、错误和任务接口 |

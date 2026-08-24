@@ -1,6 +1,8 @@
 # ADR-003：服务端渲染与局部增强
 
-状态：Accepted
+状态：Superseded
+
+由 [ADR-007](./ADR-007-server-rendered-with-question-bank-api.md) 取代；原决策保留为历史上下文。
 
 ## Context
 

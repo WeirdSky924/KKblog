@@ -1,0 +1,25 @@
+<form
+  class="opportunity-admin__filters quiz-filter-form"
+  method="get"
+  action="{% url 'learning:quiz-index' %}"
+>
+  {% if selected_configuration %}<input type="hidden" name="bank_id" value="{{ selected_configuration.bank_id }}"><input type="hidden" name="source" value="{{ quiz_source }}">{% endif %}
+  <div class="opportunity-public__search">
+    <label for="quiz-bank-q">搜索题库</label>
+    <div>
+      <input id="quiz-bank-q" type="search" name="q" maxlength="100" value="{{ quiz_filter_form.q.value|default:'' }}" placeholder="题库标题、简介或作者">
+      <button class="icon-button" type="submit" aria-label="搜索题库" title="搜索"><i data-lucide="search"></i></button>
+    </div>
+  </div>
+  {% include "components/forms/opportunity_filter_picker.html" with field=quiz_filter_form.tags title="标签" picker_id="quiz-bank-tags" only %}
+  {% include "components/forms/opportunity_filter_picker.html" with field=quiz_filter_form.question_types title="题型" picker_id="quiz-bank-question-types" only %}
+  <label>{{ quiz_filter_form.author.label }}{{ quiz_filter_form.author }}</label>
+  <label>{{ quiz_filter_form.sort.label }}{{ quiz_filter_form.sort }}</label>
+  <label>{{ quiz_filter_form.min_questions.label }}{{ quiz_filter_form.min_questions }}</label>
+  <label>{{ quiz_filter_form.max_questions.label }}{{ quiz_filter_form.max_questions }}</label>
+  <label>{{ quiz_filter_form.published_from.label }}{{ quiz_filter_form.published_from }}</label>
+  <label>{{ quiz_filter_form.published_to.label }}{{ quiz_filter_form.published_to }}</label>
+  {{ quiz_filter_form.page }}{{ quiz_filter_form.page_size }}
+  <button class="button button--secondary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+  {% if quiz_active_filters %}<a class="quiz-filter-clear" href="{{ quiz_clear_url }}">清除筛选</a>{% endif %}
+</form>

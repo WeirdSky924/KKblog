@@ -4,7 +4,12 @@ import json
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://join.qq.com/api/v1/position/searchPosition"
@@ -86,6 +91,7 @@ def _job(row: object) -> CollectedOpportunity:
         ),
         city_labels=cities,
         cohort_labels=(),
+        published_at=published_at_from_mapping(row),
     )
 
 

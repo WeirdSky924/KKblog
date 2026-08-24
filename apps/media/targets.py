@@ -88,6 +88,7 @@ _PURPOSE_TARGETS: Mapping[MediaPurpose, frozenset[MediaTargetType]] = {
     MediaPurpose.SECTION_COVER: frozenset({MediaTargetType.SECTION}),
     MediaPurpose.BODY: frozenset({MediaTargetType.ARTICLE_REVISION}),
     MediaPurpose.ATTACHMENT: frozenset({MediaTargetType.ARTICLE_REVISION}),
+    MediaPurpose.KNOWLEDGE_DOCUMENT: frozenset({MediaTargetType.LEARNING_DOCUMENT}),
     MediaPurpose.COMMENT: frozenset({MediaTargetType.COMMENT}),
     MediaPurpose.EVIDENCE: frozenset(
         {

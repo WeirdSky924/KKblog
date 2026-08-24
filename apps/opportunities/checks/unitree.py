@@ -5,7 +5,12 @@ from collections.abc import Mapping
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _SOURCE_URL = "https://www.unitree.com/cn/position"
@@ -128,6 +133,7 @@ def _positions(response: SafeHttpResult) -> tuple[CollectedOpportunity, ...]:
                 category_labels=categories,
                 city_labels=cities,
                 cohort_labels=cohorts,
+                published_at=published_at_from_mapping(row),
             )
         )
     return tuple(result)

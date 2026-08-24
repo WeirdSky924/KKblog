@@ -12,12 +12,13 @@ from .services.check_runs import (
     dispatch_pending_check_runs,
     request_scheduled_full_check,
 )
+from .services.recovery import RUN_CHECK_TASK_NAME, recover_expired_check_runs
 from .services.run_execution import execute_check_run
 
-RUN_CHECK_TASK_NAME = "apps.opportunities.run_check"
 SCHEDULE_CHECK_TASK_NAME = "apps.opportunities.schedule_daily_check"
 CLEANUP_CHECK_TASK_NAME = "apps.opportunities.cleanup_check_history"
 DISPATCH_PENDING_CHECKS_TASK_NAME = "apps.opportunities.dispatch_pending_check_runs"
+RECOVER_CHECK_LEASES_TASK_NAME = "apps.opportunities.recover_check_leases"
 
 
 def dispatch_check_run(run_id: str) -> None:
@@ -41,6 +42,7 @@ def _schedule_service(business_object: str) -> str:
         raise ValueError("Invalid opportunity schedule business object")
     window = business_object[len(prefix) :]
     datetime.strptime(window, "%Y-%m-%d").replace(tzinfo=UTC)
+    recover_expired_check_runs(dispatcher=dispatch_check_run)
     result = request_scheduled_full_check(dispatcher=dispatch_check_run)
     return f"opportunity-run:{result.run_id}"
 
@@ -65,6 +67,19 @@ def _dispatch_pending_service(business_object: str) -> str:
     datetime.strptime(window, "%Y-%m-%dT%H:%M").replace(tzinfo=UTC)
     count = dispatch_pending_check_runs(dispatcher=dispatch_check_run)
     return f"opportunity-dispatch:{count}"
+
+
+def _recover_check_leases_service(business_object: str) -> str:
+    prefix = "opportunity-recovery:"
+    if not isinstance(business_object, str) or not business_object.startswith(prefix):
+        raise ValueError("Invalid opportunity recovery business object")
+    window = business_object[len(prefix) :]
+    datetime.strptime(window, "%Y-%m-%dT%H:%M").replace(tzinfo=UTC)
+    result = recover_expired_check_runs(dispatcher=dispatch_check_run)
+    return (
+        f"opportunity-recovery:{result.recovered}:"
+        f"{result.redispatched}:{result.stalled}"
+    )
 
 
 def _request_uuid(celery_task) -> str:
@@ -165,10 +180,31 @@ def dispatch_pending_check_runs_task(self) -> dict[str, str]:
     return _response(result)
 
 
+@shared_task(
+    bind=True,
+    ignore_result=False,
+    max_retries=None,
+    name=RECOVER_CHECK_LEASES_TASK_NAME,
+)
+def recover_check_leases_task(self) -> dict[str, str]:
+    _request_uuid(self)
+    window = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M")
+    business_object = f"opportunity-recovery:{window}"
+    result = execute_celery_entry(
+        self,
+        task_name=RECOVER_CHECK_LEASES_TASK_NAME,
+        business_object=business_object,
+        idempotency_key=business_object,
+        service=_recover_check_leases_service,
+    )
+    return _response(result)
+
+
 __all__ = [
     "cleanup_check_history_task",
     "dispatch_check_run",
     "dispatch_pending_check_runs_task",
+    "recover_check_leases_task",
     "run_check_task",
     "schedule_daily_check_task",
 ]

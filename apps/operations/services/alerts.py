@@ -46,6 +46,8 @@ _OPERATIONAL_TASK_NAMES = frozenset(
         "apps.analytics.expire_umami_data",
         "apps.operations.weekly_backup",
         "apps.operations.expire_backups",
+        "apps.opportunities.schedule_daily_check",
+        "apps.opportunities.recover_check_leases",
     }
 )
 

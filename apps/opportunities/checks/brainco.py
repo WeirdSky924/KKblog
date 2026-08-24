@@ -6,7 +6,12 @@ from collections.abc import Mapping
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _SOURCE_URL = "https://www.brainco.cn/recruit/jobs"
@@ -150,6 +155,7 @@ def _job(row: object) -> CollectedOpportunity:
             row.get("duties"),
             row.get("claim"),
         ),
+        published_at=published_at_from_mapping(row),
     )
 
 

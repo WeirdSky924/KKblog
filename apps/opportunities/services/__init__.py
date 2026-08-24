@@ -27,6 +27,7 @@ from .opportunities import (
     create_opportunity,
     withdraw_opportunity,
 )
+from .recovery import CheckLeaseRecoveryResult, recover_expired_check_runs
 from .sources import (
     FilterOptionResult,
     SourceDraft,
@@ -40,6 +41,7 @@ from .sources import (
 __all__ = [
     "CheckRunCancellationResult",
     "CheckRunRequestResult",
+    "CheckLeaseRecoveryResult",
     "FilterOptionResult",
     "OpportunityCommandError",
     "OpportunityAdministrationDraft",
@@ -61,6 +63,7 @@ __all__ = [
     "request_full_check",
     "request_scheduled_full_check",
     "request_source_check",
+    "recover_expired_check_runs",
     "resolve_review_item",
     "resolve_review_items",
     "set_opportunity_bookmark",

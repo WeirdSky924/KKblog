@@ -44,6 +44,14 @@ payload 由每个版本的 schema 校验，不放正文、密码、验证码、�
 | `task.final_failed.v1` | operations | 管理员站内+邮件告警 |
 | `capacity.threshold_changed.v1` | operations | 站内告警/解除运行门禁 |
 | `service.health_changed.v1` | operations | 管理员站内健康告警/恢复状态；邮件仅故障 |
+| `opportunity.check_stalled.v1` | opportunities | 管理员站内告警：招聘检查租约过期或来源执行超时 |
+| `knowledge.review_completed.v1` | learning | notifications 按 APPROVED/REJECTED 终态幂等通知 owner |
+| `knowledge.review_failed.v1` | learning | notifications 通知 owner；operations 最终失败规则通知管理员 |
+| `question_bank.generation_completed.v1` | learning | notifications 按 FULL/PARTIAL 及覆盖计数通知 owner，公开缓存失效 |
+| `question_bank.generation_failed.v1` | learning | notifications 通知 owner；operations 最终失败规则通知管理员 |
+| `learning.appeal_decided.v1` | learning | notifications 通知 appellant；批准后的重新审核由新业务动作派发 |
+| `question_bank.visibility_changed.v1` | learning | notifications 在管理员处置时通知 owner；HTML/API 缓存同步失效 |
+| `learning.account_purge_requested.v1` | learning account-deletion consumer | learning 有界清理本人数据并匿名化他人历史快照 |
 
 需要“立即一致”的动作不能等待事件：禁用账户撤销会话、发布指针更新、管理员隐藏查询遮罩、删除占位、唯一约束都在原事务完成。事件负责可重试的跨域投影与通知。
 
@@ -66,6 +74,8 @@ Outbox 长期不是业务审计。成功消息可按运维保留策略归档/清
 | Capacity | 503 | 暂停创建，既有内容可读 | `operations.creation_paused` |
 | External | 502/任务失败 | 进行中失败或稍后再试 | `mail.delivery_failed` |
 | Unexpected | 500 | 通用提示 + trace code | `internal.unexpected` |
+
+AGENT/learning 追加稳定码：`agents.endpoint_rejected`、`agents.quota_exhausted`、`agents.response_invalid`、`learning.document_duplicate`、`learning.review_conflict`、`learning.bank_not_public`、`learning.quiz_conflict`、`api_disabled`、`rate_limited`、`rate_limiter_unavailable`。Provider 异常、内部 URL、模型名和原始响应只能映射为安全码，不进入用户文案。
 
 业务错误是稳定类，不用异常消息作为 UI 文案。错误码和中文文案分离，为未来本地化预留。普通用户不看到 endpoint、SQL、堆栈、模型名或内部枚举。
 
@@ -99,6 +109,8 @@ Outbox 长期不是业务审计。成功消息可按运维保留策略归档/清
 | 邀请码 | invite ID、状态、有效期、尾号；不记原码 |
 | 设置/导航 | 允许的配置前后值；秘密设置根本不进网页模型 |
 | 备份/导出 | Job ID、范围、状态、归档大小；不记公开下载 URL |
+| AGENT 配置/用量 | endpoint/profile/revision/invocation ID、安全参数、token 数与 adjustment；不记密钥、Prompt、输入/输出 |
+| 知识/题库 | document/bank/revision/run/appeal ID、状态、原因码、覆盖计数；不记原文、题目/答案、申诉正文或路径 |
 
 审计动作与业务写入同事务。审计失败意味着管理员命令失败；只读页面访问不审计，但管理员查看他人内容按通知事件单独追踪。
 

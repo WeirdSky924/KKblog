@@ -27,6 +27,7 @@ from .rendering import (
 )
 from .services import (
     AssetReadAuthorization,
+    AuthorizedTextRead,
     BindingInput,
     CleanupOutcome,
     ExportMediaDescriptor,
@@ -36,6 +37,7 @@ from .services import (
     MediaCleanupResult,
     MediaCleanupRetryable,
     MediaExportError,
+    MediaTextReadError,
     MediaUploadError,
     OwnedMediaDeleteError,
     ReleaseTargetAssetsResult,
@@ -56,10 +58,13 @@ from .services import (
     release_target_assets,
     replace_bindings,
     stage_upload,
+    stream_authorized_text,
+    stream_owned_text_upload,
     target_binding_snapshot,
     target_binding_snapshots,
     validate_import_image,
 )
+from .storage import MediaStorage
 from .targets import (
     TargetAccessDecision,
     TargetAccessOperation,
@@ -70,6 +75,7 @@ from .upload_adapters import MediaUploadAdapter, register_media_upload_adapter
 
 __all__ = [
     "AssetReadAuthorization",
+    "AuthorizedTextRead",
     "ArticleBodyMediaItem",
     "BindingInput",
     "CURRENT_TIPTAP_SCHEMA_VERSION",
@@ -77,6 +83,8 @@ __all__ = [
     "ExportMediaDescriptor",
     "MediaAccessError",
     "MediaBindingError",
+    "MediaTextReadError",
+    "MediaStorage",
     "MediaCleanupResult",
     "MediaCleanupRetryable",
     "OwnedMediaDeleteError",
@@ -123,6 +131,8 @@ __all__ = [
     "render_author_html",
     "render_tiptap",
     "stage_upload",
+    "stream_authorized_text",
+    "stream_owned_text_upload",
     "target_binding_snapshot",
     "target_binding_snapshots",
     "validate_import_image",

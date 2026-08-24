@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}答题 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}quiz-shell{% endblock %}
+{% block main_class %}quiz-main{% endblock %}
+
+{% block content %}
+  <section class="quiz-page" aria-labelledby="quiz-title">
+    <header class="quiz-heading quiz-heading--hub">
+      <div><p class="learning-folio">学习中心 / 答题</p><h1 id="quiz-title">答题中心</h1><p>选择一套题库，配置练习方式后开始一次可恢复的答题会话。</p></div>
+      <div class="quiz-heading__signal" aria-label="{{ bank_page.total_items }} 套公开题库"><strong>{{ bank_page.total_items }}</strong><span><i data-lucide="layers-3" aria-hidden="true"></i><small>套公开题库</small></span></div>
+    </header>
+    {% include "learning/partials/learning_hub_nav.html" with active="quiz" only %}
+    {% if page_error %}<p class="quiz-notice quiz-notice--error" role="alert">{{ page_error }}</p>{% endif %}
+    {% include "learning/partials/quiz_workspace.html" %}
+  </section>
+{% endblock %}

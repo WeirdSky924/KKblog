@@ -1,0 +1,428 @@
+.learning-admin {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.learning-admin__header,
+.learning-admin__section > header,
+.learning-admin__quota > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-block-end: 1px solid var(--line);
+  padding-block-end: 1rem;
+}
+
+.learning-admin__header h1,
+.learning-admin__header p,
+.learning-admin__section h2,
+.learning-admin__section header p,
+.learning-admin__quota h2,
+.learning-admin__quota header p {
+  margin: 0;
+}
+
+.learning-admin__header > div,
+.learning-admin__section > header > div,
+.learning-admin__quota > header > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.learning-admin__header > div > p:first-child,
+.learning-admin__quota > header p {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.learning-admin__notice,
+.learning-admin__error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-inline-start: 3px solid var(--accent);
+  background: var(--surface-panel);
+}
+
+.learning-admin__error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.learning-admin__filters,
+.learning-admin__quota-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.learning-admin__filters {
+  align-items: end;
+}
+
+.learning-admin__quota-form {
+  align-items: start;
+}
+
+.learning-admin__filters > div,
+.learning-admin__quota-form > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.learning-admin__hint {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.learning-admin__switch-field {
+  align-self: start;
+  align-content: start;
+}
+
+.learning-admin__switch-field .switch-control {
+  min-height: 2.75rem;
+}
+
+.learning-admin input:not([type="checkbox"]),
+.learning-admin select,
+.learning-admin textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+}
+
+.learning-admin textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.learning-admin__section,
+.learning-admin__quota {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-panel);
+}
+
+.learning-admin__section > header > div,
+.learning-admin__quota > header > div {
+  align-items: baseline;
+  grid-template-columns: auto auto;
+}
+
+.learning-admin__section > header span,
+.learning-admin__section > header p,
+.learning-admin__quota > header > span {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.learning-admin__quota-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.learning-admin__queue-note {
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.learning-admin__batch-form {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.learning-admin__row,
+.learning-admin__appeal-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-block-end: 1px solid var(--line);
+}
+
+.learning-admin__row-select {
+  display: inline-flex;
+  width: 1.25rem;
+  min-height: 1.5rem;
+  flex: 0 0 1.25rem;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.learning-admin__row-select input[type="checkbox"],
+.learning-admin__confirm-checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.learning-admin__row-main {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0.2rem;
+}
+
+.learning-admin__row-main strong,
+.learning-admin__row-main small,
+.learning-admin__row-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learning-admin__row-main small,
+.learning-admin__row-meta,
+.learning-admin__appeal-row small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.learning-admin__row-meta {
+  display: inline-flex;
+  flex: 0 1 15rem;
+  min-width: 0;
+  align-items: center;
+  justify-content: end;
+  gap: 0.5rem;
+  text-align: end;
+}
+
+.learning-admin__row-meta-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learning-admin__row-meta a {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.learning-admin__batch-actions,
+.learning-admin__dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
+  padding-block-start: 0.75rem;
+}
+
+.learning-admin__appeal-row > div {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0.2rem;
+}
+
+.learning-admin__appeal-row > a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.learning-admin__empty {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.learning-admin__dialog {
+  width: min(42rem, calc(100vw - 2rem));
+  max-height: min(44rem, calc(100dvh - 2rem));
+  overflow: auto;
+}
+
+.learning-admin__dialog .confirm-dialog__content {
+  min-width: 0;
+}
+
+.learning-admin__batch-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.learning-admin__batch-dialog-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.learning-admin__batch-dialog-header {
+  position: sticky;
+  inset-block-start: -1.5rem;
+  z-index: 2;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: -1.5rem 0;
+  padding-block: 1.5rem 0.75rem;
+  border-block-end: 1px solid var(--line);
+  background: var(--surface-panel);
+}
+
+.learning-admin__batch-dialog-header > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.learning-admin__batch-dialog-header p,
+.learning-admin__batch-dialog-header h2 {
+  margin: 0;
+}
+
+.learning-admin__batch-dialog-header p {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.learning-admin__batch-dialog-header .icon-button {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
+.learning-admin__batch-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-block: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.learning-admin__batch-summary > div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+}
+
+.learning-admin__batch-summary > div + div {
+  border-inline-start: 1px solid var(--line);
+}
+
+.learning-admin__batch-summary span,
+.learning-admin__batch-summary small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.learning-admin__batch-summary strong {
+  color: var(--accent);
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.learning-admin__batch-dialog-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.learning-admin__batch-dialog-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.learning-admin__batch-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.learning-admin__batch-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-height: 2.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.learning-admin__batch-confirm:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.learning-admin__source {
+  max-height: 26rem;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--line);
+}
+
+.learning-admin__access-list {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
+@media (max-width: 48rem) {
+  .learning-admin__filters,
+  .learning-admin__quota-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .learning-admin__header,
+  .learning-admin__section > header,
+  .learning-admin__quota > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .learning-admin__row {
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .learning-admin__row-meta {
+    flex-basis: 100%;
+    padding-inline-start: 1.5rem;
+    text-align: start;
+  }
+}
+
+@media (max-width: 30rem) {
+  .learning-admin__section,
+  .learning-admin__quota {
+    padding: 0.75rem;
+  }
+
+  .learning-admin__batch-actions .button,
+  .learning-admin__filters .button {
+    width: 100%;
+  }
+
+  .learning-admin__batch-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .learning-admin__batch-summary > div + div {
+    border-block-start: 1px solid var(--line);
+    border-inline-start: 0;
+  }
+}

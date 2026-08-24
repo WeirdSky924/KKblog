@@ -20,6 +20,8 @@ personal-blog/
     operations/           # 审计、错误日志、磁盘、备份、部署状态
     exchange/             # ZIP 导出、Markdown 导入、归档清理
     analytics/            # Umami 管理入口与数据清理
+    agents/               # `apps/agents`：Endpoint、Provider、AGENT、Prompt、调用与 token ledger
+    learning/             # `apps/learning`：知识文档、题库、公开查询/API、答题、错题和记录
   templates/              # 基础布局、共享片段；领域模板留在对应 app/templates/
   static/                 # Tailwind 输入、非用户上传资源
   tests/                  # 跨模块/端到端测试；模块内测试贴近实现
@@ -63,6 +65,8 @@ presentation (templates/views/htmx)
 - `navigation` 拥有导航树与静态公开结构；`discovery` 只读取已发布视图。
 - `authoring` 与 `administration` 是入口/编排层，不成为第二套业务实现；它们委托各领域服务。
 - `operations` 可记录所有领域审计事件，但不得反向承载业务策略。
+- `agents` 只拥有模型运行事实，不认识知识文档或题库；`learning` 只能经 `apps.agents.public` 提交有界结构化调用。
+- `learning` 复用 accounts 附件能力、media 文件与 sanitizer、operations TaskRun/Audit 和通用 Outbox；不得建立第二套权限、文件、任务、通知或审计中心。
 
 允许的高层依赖方向：
 
@@ -70,12 +74,17 @@ presentation (templates/views/htmx)
 authoring --------> accounts / content / media / comments / exchange
 administration ---> accounts / content / comments / exchange / moderation / notifications / navigation / operations
 discovery --------> content / comments / media / navigation public queries
+administration ---> agents / learning public services and queries
+learning ---------> accounts / agents / media / operations public
+agents -----------> accounts / operations public
 content ----------> accounts public / media public / operations public
 navigation -------> accounts public / content public / operations public
 media/comments/moderation -------------> operations public
 domain app -------> core protocols
 domain event -----> outbox -----> other domain consumer
 ```
+
+禁止反向边：`agents -X-> learning`，accounts/media/notifications/operations 也不得导入 learning 私有模型。learning 的通知由通用 Outbox 消费者生成，后台任务只重入 learning/agents 的公共 service。
 
 领域 app 之间出现同步循环时，先判断哪一方才是事实所有者；必须协作时通过窄 service port 或提交后事件，不建立共享万能 service。
 

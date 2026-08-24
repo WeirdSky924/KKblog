@@ -8,7 +8,12 @@ from apps.operations.queries.audit import audit_detail, search_audit
 from apps.operations.queries.backups import backup_records
 from apps.operations.queries.errors import error_detail, search_runtime_errors
 from apps.operations.queries.monitoring import current_monitoring_status
-from apps.operations.queries.tasks import TASK_RUN_STATUSES, task_run_records
+from apps.operations.queries.tasks import (
+    TASK_RUN_STATUSES,
+    TaskRunMetadata,
+    TaskRunMetadataProvider,
+    task_run_records,
+)
 from apps.operations.services.alerts import (
     is_operational_task,
     send_pending_operational_alert_emails,
@@ -45,7 +50,9 @@ from apps.operations.services.tasks import (
     TaskLeaseLost,
     TaskRetryScheduled,
     current_task_run_id,
+    due_task_run_business_objects,
     execute_tracked_task,
+    recover_expired_task_leases,
 )
 
 
@@ -72,6 +79,8 @@ __all__ = [
     "TaskCancelled",
     "TaskRetryScheduled",
     "TASK_RUN_STATUSES",
+    "TaskRunMetadata",
+    "TaskRunMetadataProvider",
     "capture_runtime_error",
     "consume_backup_task_final_failure",
     "consume_task_final_failure_alert",
@@ -86,10 +95,12 @@ __all__ = [
     "execute_celery_entry",
     "execute_tracked_task",
     "current_task_run_id",
+    "due_task_run_business_objects",
     "expire_backup",
     "mark_backup_task_final_failed",
     "record_audit_entry",
     "record_rich_text_render_metric",
+    "recover_expired_task_leases",
     "register_audit_schema",
     "search_audit",
     "search_runtime_errors",

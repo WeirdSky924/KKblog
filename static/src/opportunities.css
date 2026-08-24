@@ -390,6 +390,19 @@
   font-size: 0.875rem;
 }
 
+.opportunity-job__published-at {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-job__published-at .lucide {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: 0 0 auto;
+}
+
 .opportunity-public__table-wrap {
   min-width: 0;
   overflow-x: auto;

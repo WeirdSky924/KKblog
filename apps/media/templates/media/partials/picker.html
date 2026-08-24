@@ -5,9 +5,9 @@
   data-media-upload-url="{% if upload_url %}{{ upload_url }}{% else %}{% url 'media:upload' adapter=adapter %}{% endif %}"
   data-media-input-name="{{ input_name }}"
   data-media-favicon="{% if favicon_preview %}true{% else %}false{% endif %}"
-  data-media-kind="{% if adapter == 'article-attachment' %}attachment{% elif adapter == 'site-hero' %}hero{% else %}image{% endif %}"
+  data-media-kind="{% if adapter == 'article-attachment' %}attachment{% elif adapter == 'knowledge-document' %}document{% elif adapter == 'site-hero' %}hero{% else %}image{% endif %}"
   data-media-state="{% if current_asset_id %}ready{% else %}empty{% endif %}"
-  {% if adapter == "article-attachment" %}
+  {% if adapter == "article-attachment" or adapter == "knowledge-document" %}
     data-media-current-name="{{ current_asset_name|default:'' }}"
     data-media-current-size="{{ current_asset_size|default:'' }}"
     data-media-current-mime="{{ current_asset_mime|default:'' }}"
@@ -15,7 +15,7 @@
 >
   <div class="media-picker__header">
     <div>
-      <p class="media-picker__kicker">{% if adapter == "article-attachment" %}附件{% else %}媒体{% endif %} · {{ label }}</p>
+      <p class="media-picker__kicker">{% if adapter == "article-attachment" %}附件{% elif adapter == "knowledge-document" %}文档{% else %}媒体{% endif %} · {{ label }}</p>
       <h3>{{ label }}</h3>
     </div>
     <ol class="media-picker__track" aria-label="上传状态">
@@ -27,9 +27,9 @@
 
   <div class="media-picker__body">
     <div class="media-picker__preview" data-media-preview-frame>
-      {% if adapter == "article-attachment" %}
+      {% if adapter == "article-attachment" or adapter == "knowledge-document" %}
         <div class="media-picker__file" data-media-preview {% if not current_asset_id %}hidden{% endif %}>
-          <i data-lucide="file-archive"></i>
+          <i data-lucide="{% if adapter == 'knowledge-document' %}file-text{% else %}file-archive{% endif %}"></i>
           <span data-media-file-name>{{ current_asset_name|default:"已选择附件" }}</span>
           <small data-media-file-size {% if not current_asset_size %}hidden{% endif %}>{% if current_asset_size %}{{ current_asset_size|filesizeformat }}{% endif %}</small>
         </div>
@@ -67,7 +67,7 @@
           <span>{% if current_asset_id %}图片已选择{% else %}尚未选择{{ label }}{% endif %}</span>
         </div>
       {% endif %}
-      {% if adapter == "avatar" or adapter == "article-cover" or adapter == "section-cover" or adapter == "site-hero" or adapter == "article-attachment" %}
+      {% if adapter == "avatar" or adapter == "article-cover" or adapter == "section-cover" or adapter == "site-hero" or adapter == "article-attachment" or adapter == "knowledge-document" %}
         <button
           class="icon-button media-picker__preview-remove"
           type="button"
@@ -93,6 +93,8 @@
           aria-hidden="true"
           {% if adapter == "article-attachment" %}
             accept=".zip,.7z,.rar,.md,.txt,application/zip,application/x-7z-compressed,application/vnd.rar,text/markdown,text/plain"
+          {% elif adapter == "knowledge-document" %}
+            accept=".md,text/markdown,text/plain"
           {% elif adapter == "site-logo" %}
             accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon"
           {% elif adapter == "site-hero" %}
@@ -102,8 +104,8 @@
           {% endif %}
         >
         <button class="button button--secondary" type="button" data-media-choose>
-          <i data-lucide="{% if adapter == 'article-attachment' or adapter == 'site-hero' %}file-up{% else %}image-up{% endif %}"></i>
-          {% if adapter == "article-attachment" %}选择附件{% else %}选择或拖放{{ label }}{% endif %}
+          <i data-lucide="{% if adapter == 'article-attachment' or adapter == 'knowledge-document' or adapter == 'site-hero' %}file-up{% else %}image-up{% endif %}"></i>
+          {% if adapter == "article-attachment" %}选择附件{% elif adapter == "knowledge-document" %}选择 Markdown{% else %}选择或拖放{{ label }}{% endif %}
         </button>
       </div>
 
@@ -140,7 +142,7 @@
           <i data-lucide="rotate-cw"></i>
           重试
         </button>
-        {% if adapter != "avatar" and adapter != "article-cover" and adapter != "section-cover" and adapter != "site-hero" and adapter != "article-body" and adapter != "article-attachment" %}
+        {% if adapter != "avatar" and adapter != "article-cover" and adapter != "section-cover" and adapter != "site-hero" and adapter != "article-body" and adapter != "article-attachment" and adapter != "knowledge-document" %}
           <button
             class="icon-button"
             type="button"

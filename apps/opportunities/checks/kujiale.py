@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://ehr-headcount.qunhequnhe.com/api/v1/moka/job/search"
@@ -120,6 +125,7 @@ def _job(row: object) -> CollectedOpportunity:
         category_labels=categories,
         city_labels=cities,
         cohort_labels=_cohorts(title, row.get("description")),
+        published_at=published_at_from_mapping(row),
     )
 
 

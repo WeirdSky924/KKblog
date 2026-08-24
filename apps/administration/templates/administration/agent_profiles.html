@@ -1,0 +1,130 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}AGENT 与 Prompt · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="agent-admin" aria-labelledby="agent-profiles-title">
+    <header class="agent-admin__header">
+      <div>
+        <p>智能与题库</p>
+        <h1 id="agent-profiles-title">AGENT 与 Prompt</h1>
+        <p>把稳定业务用途绑定到 Endpoint，并维护不可变 Markdown Prompt 修订。配置只影响后续新任务，启用前必须通过对应 schema 检查。</p>
+      </div>
+      {% if not schema_unavailable %}
+        <a id="profile-create" class="button button--primary" href="?dialog=profile-create" data-dialog-trigger aria-controls="agent-profile-dialog"><i data-lucide="plus" aria-hidden="true"></i><span>新增 AGENT</span></a>
+      {% endif %}
+    </header>
+
+    {% if schema_unavailable %}
+      <div class="agent-admin__empty" role="status"><h2>AGENT 数据迁移尚未完成</h2><p>完成 `agents.0001` 与 `agents.0002` 后即可配置。</p></div>
+    {% else %}
+      {% if saved %}<p class="agent-admin__notice" role="status">{% if saved == "profile-created" %}AGENT 已创建。{% elif saved == "profile-updated" %}AGENT 已更新。{% elif saved == "prompt-saved" %}Prompt 新修订已保存并设为当前版本。{% elif saved == "prompt-switched" %}当前 Prompt 版本已切换。{% endif %}</p>{% endif %}
+      {% if page_error %}<p class="agent-admin__error" role="alert">{{ page_error }}</p>{% endif %}
+
+      <section id="profile-list" class="agent-list" aria-labelledby="profile-list-title">
+        <header><h2 id="profile-list-title">AGENT</h2><span>{{ profile_items|length }} 项</span></header>
+        {% if profile_items %}
+          <div class="agent-list__items">
+            {% for profile in profile_items %}
+              <article class="agent-item{% if profile.enabled %} agent-item--enabled{% endif %}">
+                <header>
+                  <div>
+                    <span class="agent-item__state">{% if profile.enabled %}已启用{% else %}已停用{% endif %}</span>
+                    <h3>{{ profile.display_name }}</h3>
+                    <p>{{ profile.key }}</p>
+                  </div>
+                  <div class="agent-item__actions">
+                    <a id="profile-edit-{{ profile.profile_id }}" class="button button--secondary" href="?dialog=profile-edit&amp;profile_id={{ profile.profile_id }}" data-dialog-trigger aria-controls="agent-profile-dialog"><i data-lucide="pencil" aria-hidden="true"></i><span>编辑</span></a>
+                    <a id="prompt-edit-{{ profile.profile_id }}" class="button button--secondary" href="?dialog=prompt-edit&amp;profile_id={{ profile.profile_id }}" data-dialog-trigger aria-controls="agent-prompt-dialog"><i data-lucide="file-pen-line" aria-hidden="true"></i><span>Prompt</span></a>
+                  </div>
+                </header>
+                <dl class="agent-item__facts">
+                  <div><dt>用途</dt><dd>{% if profile.purpose == "KNOWLEDGE_REVIEW" %}知识文档审核{% else %}题库生成{% endif %}</dd></div>
+                  <div><dt>Endpoint</dt><dd>{{ profile.endpoint_name }}</dd></div>
+                  <div><dt>输出 schema</dt><dd>{{ profile.schema_key }}</dd></div>
+                  <div><dt>当前 Prompt</dt><dd>{% if profile.current_prompt_sequence %}v{{ profile.current_prompt_sequence }}{% else %}尚未保存{% endif %}</dd></div>
+                </dl>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="agent-admin__empty"><h3>尚未配置 AGENT</h3><p>先创建 Endpoint，再建立业务用途与 Prompt。</p></div>
+        {% endif %}
+      </section>
+    {% endif %}
+  </section>
+
+  {% if dialog_kind == "profile-create" or dialog_kind == "profile-edit" %}
+    <dialog id="agent-profile-dialog" class="confirm-dialog agent-dialog" data-confirm-dialog data-auto-modal data-dialog-return-focus="{% if dialog_kind == 'profile-edit' %}profile-edit-{{ dialog_profile.profile_id }}{% else %}profile-create{% endif %}" data-dialog-return-url="{% url 'admin:agent-profiles' %}#profile-list" aria-labelledby="agent-profile-dialog-title">
+      <div class="confirm-dialog__content agent-dialog__content">
+        <header class="agent-dialog__header"><div><p>AGENT</p><h2 id="agent-profile-dialog-title">{% if dialog_kind == "profile-edit" %}编辑 {{ dialog_profile.display_name }}{% else %}新增 AGENT{% endif %}</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x" aria-hidden="true"></i></button></header>
+        <form method="post" class="agent-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="{% if dialog_kind == 'profile-edit' %}profile_update{% else %}profile_create{% endif %}">
+          {{ dialog_form.non_field_errors }}{{ dialog_form.profile_id }}{{ dialog_form.expected_version }}
+          <div class="agent-form__grid">
+            <div>{{ dialog_form.key.label_tag }}{{ dialog_form.key.errors }}{{ dialog_form.key }}<small class="agent-form__hint">{{ dialog_form.key.help_text }}</small></div>
+            <div>{{ dialog_form.display_name.label_tag }}{{ dialog_form.display_name.errors }}{{ dialog_form.display_name }}<small class="agent-form__hint">{{ dialog_form.display_name.help_text }}</small></div>
+            <div>{{ dialog_form.purpose.label_tag }}{{ dialog_form.purpose.errors }}{{ dialog_form.purpose }}<small class="agent-form__hint">{{ dialog_form.purpose.help_text }}</small></div>
+            <div>{{ dialog_form.endpoint_id.label_tag }}{{ dialog_form.endpoint_id.errors }}{{ dialog_form.endpoint_id }}<small class="agent-form__hint">{{ dialog_form.endpoint_id.help_text }}</small></div>
+            <div class="agent-form__wide">{{ dialog_form.schema_key.label_tag }}{{ dialog_form.schema_key.errors }}{{ dialog_form.schema_key }}<small class="agent-form__hint">{{ dialog_form.schema_key.help_text }}</small></div>
+          </div>
+          <label class="switch-control" for="{{ dialog_form.enabled.id_for_label }}">{{ dialog_form.enabled }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span>{{ dialog_form.enabled.label }}</span></label><small class="agent-form__hint">{{ dialog_form.enabled.help_text }}</small>
+          <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit">保存 AGENT</button></div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+
+  {% if dialog_kind == "prompt-edit" %}
+    <dialog id="agent-prompt-dialog" class="confirm-dialog agent-dialog agent-dialog--prompt" data-confirm-dialog data-auto-modal data-dialog-return-focus="prompt-edit-{{ dialog_profile.profile_id }}" data-dialog-return-url="{% url 'admin:agent-profiles' %}#profile-list" aria-labelledby="agent-prompt-dialog-title">
+      <div class="confirm-dialog__content agent-dialog__content">
+        <header class="agent-dialog__header">
+          <div><p>{{ dialog_profile.key }}</p><h2 id="agent-prompt-dialog-title">{{ dialog_profile.display_name }} 的 Prompt</h2></div>
+          <button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x" aria-hidden="true"></i></button>
+        </header>
+        <div class="agent-prompt-layout">
+          <form method="post" class="agent-form agent-prompt-editor" data-submit-once>
+            {% csrf_token %}{{ dialog_form.profile_id }}{{ dialog_form.expected_version }}
+            {{ dialog_form.non_field_errors }}
+            <div>{{ dialog_form.markdown_source.label_tag }}{{ dialog_form.markdown_source.errors }}{{ dialog_form.markdown_source }}<small class="agent-form__hint">{{ dialog_form.markdown_source.help_text }}</small></div>
+            <div class="agent-dialog__actions">
+              <button class="button button--secondary" type="submit" name="action" value="prompt_preview"><i data-lucide="eye" aria-hidden="true"></i><span>安全预览</span></button>
+              <button class="button button--primary" type="submit" name="action" value="prompt_save"><i data-lucide="save" aria-hidden="true"></i><span>保存新版本</span></button>
+            </div>
+          </form>
+          <section class="agent-prompt-preview" aria-labelledby="agent-prompt-preview-title">
+            <header><h3 id="agent-prompt-preview-title">Markdown 预览</h3><span>仅显示已净化内容</span></header>
+            {% if prompt_preview_html %}<div class="article-prose">{{ prompt_preview_html|safe }}</div>{% else %}<p>点击“安全预览”查看当前输入。</p>{% endif %}
+          </section>
+        </div>
+        <section class="agent-prompt-history" aria-labelledby="agent-prompt-history-title">
+          <header><h3 id="agent-prompt-history-title">修订历史</h3><span>{{ prompt_detail.revisions|length }} 个版本</span></header>
+          {% if prompt_detail.revisions %}
+            <ol>
+              {% for revision in prompt_detail.revisions %}
+                <li>
+                  <div><strong>v{{ revision.sequence }}</strong><time datetime="{{ revision.created_at|date:'c' }}">{{ revision.created_at|date:"Y-m-d H:i:s" }}</time></div>
+                  {% if revision.is_current %}<span class="agent-item__state">当前版本</span>{% else %}<a id="prompt-switch-{{ revision.revision_id }}" href="?dialog=prompt-switch&amp;profile_id={{ dialog_profile.profile_id }}&amp;revision_id={{ revision.revision_id }}" data-dialog-trigger aria-controls="agent-prompt-switch-dialog">切换到此版本</a>{% endif %}
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}<p>尚未保存 Prompt。</p>{% endif %}
+        </section>
+        <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
+      </div>
+    </dialog>
+  {% endif %}
+
+  {% if dialog_kind == "prompt-switch" %}
+    <dialog id="agent-prompt-switch-dialog" class="confirm-dialog agent-dialog agent-dialog--compact" data-confirm-dialog data-auto-modal data-dialog-return-focus="prompt-edit-{{ dialog_profile.profile_id }}" data-dialog-return-url="{% url 'admin:agent-profiles' %}?dialog=prompt-edit&amp;profile_id={{ dialog_profile.profile_id }}" aria-labelledby="agent-prompt-switch-title">
+      <div class="confirm-dialog__content agent-dialog__content">
+        <header class="agent-dialog__header"><div><p>Prompt 历史</p><h2 id="agent-prompt-switch-title">切换当前 Prompt 版本</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x" aria-hidden="true"></i></button></header>
+        <p>后续新运行会使用所选历史修订；已经创建的 Invocation 快照不会改变。</p>
+        <form method="post" class="agent-form" data-submit-once>
+          {% csrf_token %}<input type="hidden" name="action" value="prompt_switch">{% for hidden in dialog_form.hidden_fields %}{{ hidden }}{% endfor %}{{ dialog_form.non_field_errors }}
+          <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit">确认切换</button></div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+{% endblock %}

@@ -13,6 +13,7 @@ class MediaPurpose(models.TextChoices):
     FRIEND_LOGO = "FRIEND_LOGO", "友情链接标志"
     IMPORT = "IMPORT", "导入源图片"
     ATTACHMENT = "ATTACHMENT", "文章附件"
+    KNOWLEDGE_DOCUMENT = "KNOWLEDGE_DOCUMENT", "知识文档"
 
 
 class DetectedFormat(models.TextChoices):
@@ -48,3 +49,4 @@ class MediaTargetType(models.TextChoices):
     SITE_BRAND = "site_brand", "站点品牌"
     FRIEND_LINK = "friend_link", "友情链接"
     IMPORT_JOB = "import_job", "导入任务"
+    LEARNING_DOCUMENT = "learning_document", "知识文档"

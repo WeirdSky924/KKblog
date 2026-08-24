@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://campus.game.163.com/api/campuspc"
@@ -108,6 +113,7 @@ def _job(row: object, *, project_name: str) -> CollectedOpportunity:
             row.get("positionDescription"),
             row.get("positionRequirement"),
         ),
+        published_at=published_at_from_mapping(row),
     )
 
 

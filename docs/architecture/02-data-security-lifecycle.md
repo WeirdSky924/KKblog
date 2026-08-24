@@ -9,6 +9,7 @@
 | Redis | 验证码、冷却、限流、公开渲染缓存、短期聚合键 | 可随重启丢失 |
 | `var/backups` | 每周数据库与媒体备份 | 30 天、本地、不加密 |
 | Umami 数据库 | 全站分析 | 一个月后清理 |
+| Provider Endpoint | 只传受限知识输入并接收有界结构化输出 | 不作为持久事实；诊断材料按 learning/agents 保留期清理 |
 
 ## 主聚合
 
@@ -23,6 +24,8 @@
 - `Notification`、`NotificationReceipt`：群发、事件通知、已读和聚合。
 - `AuditEntry`、`RuntimeError`、`TaskRun`：永久可追溯运维记录。
 - `ImportJob`、`ExportJob`、`BackupRecord`：异步数据交换和运行维护。
+- `AgentEndpoint`、`AgentProfile`、`AgentPromptRevision`、`AgentInvocation`、token ledger/reservation/adjustment：模型配置、不可变 Prompt、调用与费用保护事实。
+- `KnowledgeDocument`、review/generation run、`QuestionBankSeries/Revision`、`QuizAttempt/Response`、`WrongQuestion`：知识、题库与本人学习事实。
 
 ## 生命周期规则
 
@@ -31,6 +34,7 @@
 - 作者草稿默认仅作者可见；唯一管理员有只读例外，查看他人草稿/未发布修订时每篇每天至多一条作者通知。管理员不能编辑或发布。
 - 媒体上传验证签名并去 EXIF；正文解除引用或评论删除时立即清理，删除任务必须幂等。
 - 账号删除移除私有资料、文章和媒体；评论保留删除占位；举报与审计记录保留并显示管理员所需身份信息。
+- 知识文档用户删除 7 天可恢复，驳回/终败材料 30 天后去正文；删除源文档不影响题库，删除题库不删除本人历史快照，账户彻底删除时匿名化他人历史中的作者。
 
 ## 服务端权限矩阵
 
@@ -44,6 +48,9 @@
 | 评论/举报 | 已登录可用 | 已登录可用 | 全部管理 |
 | 草稿查看 | 禁止 | 仅自己的 | 可查看，通知作者 |
 | 管理设置/导出 | 禁止 | 禁止 | 唯一管理员 |
+| 知识文档上传/生成 | 禁止 | 仅本人且当前有附件能力 | 不能代他人；本人同一规则 |
+| 公开题库/答题 | 公开读取；答题需登录 | 登录后仅本人记录 | 仅本人记录，不代看 |
+| Endpoint/Prompt/API/配额设置 | 禁止 | 禁止 | 唯一管理员；密钥仍不可见 |
 
 所有矩阵判断必须通过策略对象和服务端服务执行。直接 URL、HTMX 片段和 Celery 任务使用同一策略。
 
@@ -54,5 +61,9 @@
 - 图片最大 2 MiB，并执行 `DEC-005` 静态/动图解码上限；外部嵌入只有管理员配置的 Bilibili 初始来源。
 - 邮箱和 IP 限流以 Redis 实现；永久 IP 封禁保存在 PostgreSQL。
 - Cookie 使用安全、HttpOnly、SameSite 策略；生产 HTTPS 后强制 Secure。
+- Endpoint URL 逐跳执行 scheme/host/port、DNS、重定向和响应上限检查；公网只允许 HTTPS，内网仅服务器 allowlist，云元数据与凭据 URL始终拒绝。
+- Provider 密钥只来自专用 `.env` 别名，不进入数据库、页面、审计、事件或错误；文档按不可信资料隔离，禁止工具调用并对输出执行字节/JSON/schema/领域四层校验。
+- 每次首次外呼前由 PostgreSQL 原子预留全站与 Endpoint token；业务配额、并发租约和 reset adjustment 同样不依赖 Redis。额度不足零外呼。
+- 匿名题库 API 默认关闭；精确 CORS 白名单与 Redis 双层 IP 限流只影响 API。限流存储故障时 query 前 fail closed，公开 HTML 继续可用。
 
 完整字段、索引与保留规则以 `data/` 为准；完整管理员例外和对象状态权限以 `contracts/02-authorization-matrix.md` 为准。

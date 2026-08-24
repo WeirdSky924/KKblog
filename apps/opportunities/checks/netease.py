@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://hr.163.com/api/hr163/position"
@@ -100,6 +105,7 @@ def _job(row: object, *, recruitment_type: str, plan: str):
             row.get("requirement"),
             row.get("description"),
         ),
+        published_at=published_at_from_mapping(row),
     )
 
 

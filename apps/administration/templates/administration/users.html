@@ -97,6 +97,7 @@
                     {% if row.account.is_author %}
                       {% if row.account.attachment_upload_enabled %}
                         <a id="account-attachment-{{ row.account.account_id }}" href="?confirm_action=attachment&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="circle-x"></i><span>关闭附件</span></a>
+                        <a href="{% url 'admin:question-banks' %}?account_id={{ row.account.account_id }}"><i data-lucide="sliders-horizontal"></i><span>配额覆盖</span></a>
                       {% else %}
                         <a id="account-attachment-{{ row.account.account_id }}" href="?confirm_action=attachment&amp;account_id={{ row.account.account_id }}&amp;enabled=1#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="paperclip"></i><span>授权附件</span></a>
                       {% endif %}

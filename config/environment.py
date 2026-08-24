@@ -56,6 +56,12 @@ class DevelopmentMailpitEndpoint:
     port: int
 
 
+@dataclass(frozen=True, slots=True)
+class AgentProviderEnvironment:
+    secrets: dict[str, str] = field(repr=False)
+    internal_allowlist: tuple[str, ...]
+
+
 def _missing(name: str) -> ConfigurationError:
     return ConfigurationError(f"Missing required production configuration: {name}")
 
@@ -171,6 +177,76 @@ def _boolean(values: Mapping[str, str], name: str) -> bool:
     if value not in {"true", "false"}:
         raise _invalid(name)
     return value == "true"
+
+
+def load_agent_provider_environment(
+    values: Mapping[str, str],
+) -> AgentProviderEnvironment:
+    registry_name = "KAJ_AGENT_SECRET_REGISTRY"
+    prefix = "KAJ_AGENT_SECRET_"
+    alias_pattern = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
+    secrets: dict[str, str] = {}
+    for name, value in values.items():
+        if not name.startswith(prefix):
+            continue
+        alias = name.removeprefix(prefix)
+        if (
+            not alias_pattern.fullmatch(alias)
+            or not isinstance(value, str)
+            or not 12 <= len(value) <= 8192
+            or any(ord(character) < 33 or ord(character) > 126 for character in value)
+        ):
+            raise _invalid(registry_name)
+        secrets[alias] = value
+    if len(secrets) > 64:
+        raise _invalid(registry_name)
+
+    allowlist_name = "KAJ_AGENT_INTERNAL_ENDPOINT_ALLOWLIST"
+    raw = values.get(allowlist_name, "").strip()
+    if not raw:
+        return AgentProviderEnvironment(secrets=secrets, internal_allowlist=())
+    items = [item.strip() for item in raw.split(",")]
+    if not 1 <= len(items) <= 32 or any(not item for item in items):
+        raise _invalid(allowlist_name)
+    allowlist = []
+    for item in items:
+        try:
+            parsed = urlsplit(f"//{item}")
+            port = parsed.port
+        except ValueError:
+            raise _invalid(allowlist_name) from None
+        if (
+            not parsed.hostname
+            or port is None
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+            or "*" in parsed.hostname
+        ):
+            raise _invalid(allowlist_name)
+        try:
+            host = parsed.hostname.encode("idna").decode("ascii").casefold()
+        except UnicodeError:
+            raise _invalid(allowlist_name) from None
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            display_host = host
+        else:
+            display_host = (
+                f"[{address.compressed}]"
+                if address.version == 6
+                else address.compressed
+            )
+        normalized = f"{display_host}:{port}"
+        if normalized not in allowlist:
+            allowlist.append(normalized)
+    return AgentProviderEnvironment(
+        secrets=secrets,
+        internal_allowlist=tuple(allowlist),
+    )
 
 
 def _smtp_environment(values: Mapping[str, str]) -> SmtpEnvironment:

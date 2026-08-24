@@ -153,6 +153,14 @@
                         title="查看任务详情"
                         aria-label="查看 {{ row.company_name }} 的任务详情"
                       ><i data-lucide="list-tree"></i></a>
+                      {% if row.state == "FAILED" %}
+                        <form method="post" data-submit-once>
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="retry_source_check">
+                          <input type="hidden" name="source_id" value="{{ row.source_id }}">
+                          <button class="icon-button" type="submit" title="重新检查" aria-label="重新检查 {{ row.company_name }}"><i data-lucide="refresh-cw"></i></button>
+                        </form>
+                      {% endif %}
                       {% if row.can_cancel %}
                         <form method="post" data-submit-once>
                           {% csrf_token %}<input type="hidden" name="action" value="cancel_run"><input type="hidden" name="run_id" value="{{ row.run_id }}">

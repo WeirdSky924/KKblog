@@ -1,9 +1,31 @@
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
 from apps.operations.models import TaskRun, TaskRunStatus
 
 TASK_RUN_STATUSES = tuple(TaskRunStatus.values)
+
+TaskRunMetadataProvider = Callable[[tuple[str, ...]], Mapping[str, "TaskRunMetadata"]]
+
+
+@dataclass(frozen=True, slots=True)
+class TaskRunMetadata:
+    token_requested: int | None = None
+    token_settled: int | None = None
+    token_status: str | None = None
+    invocation_total_tokens: int | None = None
+
+
+def _metadata_for(
+    metadata: Mapping[str, TaskRunMetadata], run_id: str
+) -> TaskRunMetadata:
+    value = metadata.get(run_id)
+    if value is None:
+        return TaskRunMetadata()
+    if not isinstance(value, TaskRunMetadata):
+        raise TypeError("metadata_provider returned an invalid task-run value")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +43,11 @@ class TaskRunItem:
     heartbeat_at: datetime | None
     lease_expires_at: datetime | None
     last_error_code: str
+    duration_seconds: int | None
+    token_requested: int | None
+    token_settled: int | None
+    token_status: str | None
+    invocation_total_tokens: int | None
 
 
 def task_run_records(
@@ -28,6 +55,7 @@ def task_run_records(
     status: str = "",
     is_admin: bool,
     limit: int = 200,
+    metadata_provider: TaskRunMetadataProvider | None = None,
 ) -> tuple[TaskRunItem, ...]:
     if not is_admin:
         raise PermissionError("Task-run access denied")
@@ -38,6 +66,15 @@ def task_run_records(
     rows = TaskRun.objects.all()
     if status:
         rows = rows.filter(status=status)
+    task_rows = tuple(rows.order_by("-scheduled_at", "run_id")[:limit])
+    run_ids = tuple(row.run_id for row in task_rows)
+    if metadata_provider is not None and not callable(metadata_provider):
+        raise TypeError("metadata_provider must be callable")
+    metadata = (
+        metadata_provider(tuple(run_ids)) if metadata_provider is not None else {}
+    )
+    if not isinstance(metadata, Mapping):
+        raise TypeError("metadata_provider must return a mapping")
     return tuple(
         TaskRunItem(
             run_id=row.run_id,
@@ -53,9 +90,26 @@ def task_run_records(
             heartbeat_at=row.heartbeat_at,
             lease_expires_at=row.lease_expires_at,
             last_error_code=row.last_error_code,
+            duration_seconds=(
+                max(0, int((row.completed_at - row.started_at).total_seconds()))
+                if row.started_at is not None and row.completed_at is not None
+                else None
+            ),
+            token_requested=(
+                agent_metadata := _metadata_for(metadata, row.run_id)
+            ).token_requested,
+            token_settled=agent_metadata.token_settled,
+            token_status=agent_metadata.token_status,
+            invocation_total_tokens=agent_metadata.invocation_total_tokens,
         )
-        for row in rows.order_by("-scheduled_at", "run_id")[:limit]
+        for row in task_rows
     )
 
 
-__all__ = ["TASK_RUN_STATUSES", "TaskRunItem", "task_run_records"]
+__all__ = [
+    "TASK_RUN_STATUSES",
+    "TaskRunItem",
+    "TaskRunMetadata",
+    "TaskRunMetadataProvider",
+    "task_run_records",
+]

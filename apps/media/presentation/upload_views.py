@@ -11,7 +11,10 @@ from apps.media.models import MediaPurpose
 from apps.media.services.uploads import stage_upload
 from apps.media.storage import FilesystemMediaStorage
 from apps.media.upload_adapters import default_media_upload_adapters
-from apps.operations.public import require_image_creation_capacity
+from apps.operations.public import (
+    require_image_creation_capacity,
+    require_text_creation_capacity,
+)
 
 
 def _render_upload(
@@ -22,12 +25,19 @@ def _render_upload(
     target_id: str | None = None,
 ) -> HttpResponse:
     is_attachment = purpose == MediaPurpose.ATTACHMENT
+    is_knowledge_document = purpose == MediaPurpose.KNOWLEDGE_DOCUMENT
     is_hero = purpose == MediaPurpose.HERO
     select_message = (
         "请选择一个附件后重试。"
         if is_attachment
         else (
-            "请选择一张图片或一个视频后重试。" if is_hero else "请选择一张图片后重试。"
+            "请选择一个 Markdown 知识文档后重试。"
+            if is_knowledge_document
+            else (
+                "请选择一张图片或一个视频后重试。"
+                if is_hero
+                else "请选择一张图片后重试。"
+            )
         )
     )
     if request.method != "POST":
@@ -37,6 +47,7 @@ def _render_upload(
             {
                 "upload_error": select_message,
                 "is_attachment": is_attachment,
+                "is_knowledge_document": is_knowledge_document,
                 "is_hero": is_hero,
             },
             status=405,
@@ -51,6 +62,7 @@ def _render_upload(
             {
                 "upload_error": select_message,
                 "is_attachment": is_attachment,
+                "is_knowledge_document": is_knowledge_document,
                 "is_hero": is_hero,
             },
             status=422,
@@ -67,7 +79,10 @@ def _render_upload(
             storage=FilesystemMediaStorage(settings.MEDIA_ROOT),
             target_id=target_id,
             capacity_check=partial(
-                require_image_creation_capacity, settings.MEDIA_ROOT
+                require_text_creation_capacity
+                if is_knowledge_document
+                else require_image_creation_capacity,
+                settings.MEDIA_ROOT,
             ),
         )
     except MediaUploadError as exc:
@@ -79,6 +94,7 @@ def _render_upload(
                 "original_name": uploaded.name,
                 "input_name": input_name,
                 "is_attachment": is_attachment,
+                "is_knowledge_document": is_knowledge_document,
                 "is_hero": is_hero,
             },
             status=422,
@@ -91,6 +107,7 @@ def _render_upload(
                 "asset": asset,
                 "input_name": input_name,
                 "is_attachment": is_attachment,
+                "is_knowledge_document": is_knowledge_document,
                 "is_hero": is_hero,
                 "is_video": asset.detected_mime.startswith("video/"),
             },

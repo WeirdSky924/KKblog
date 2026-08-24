@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://job.dahuatech.com/talent-pool/api/bs-info/list-position-by-search"
@@ -103,6 +108,7 @@ def _job(
         category_labels=categories,
         city_labels=cities,
         cohort_labels=_cohorts(title, row.get("require"), row.get("requirements")),
+        published_at=published_at_from_mapping(row),
     )
 
 

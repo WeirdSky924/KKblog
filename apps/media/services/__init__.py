@@ -1,4 +1,12 @@
-from .access import AssetReadAuthorization, MediaAccessError, authorize_asset_read
+from .access import (
+    AssetReadAuthorization,
+    AuthorizedTextRead,
+    MediaAccessError,
+    MediaTextReadError,
+    authorize_asset_read,
+    stream_authorized_text,
+    stream_owned_text_upload,
+)
 from .bindings import (
     BindingInput,
     MediaBindingError,
@@ -39,10 +47,12 @@ from .uploads import MediaUploadError, stage_upload
 
 __all__ = [
     "AssetReadAuthorization",
+    "AuthorizedTextRead",
     "BindingInput",
     "CleanupOutcome",
     "MediaAccessError",
     "MediaBindingError",
+    "MediaTextReadError",
     "MediaCleanupResult",
     "MediaCleanupRetryable",
     "OwnedMediaDeleteError",
@@ -71,4 +81,6 @@ __all__ = [
     "export_revision_media",
     "read_export_media",
     "stage_upload",
+    "stream_authorized_text",
+    "stream_owned_text_upload",
 ]

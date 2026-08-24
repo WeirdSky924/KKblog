@@ -46,6 +46,7 @@ from .queries import (
     public_opportunity_summary,
 )
 from .services import (
+    CheckLeaseRecoveryResult,
     CheckRunCancellationResult,
     CheckRunRequestResult,
     FilterOptionResult,
@@ -63,6 +64,7 @@ from .services import (
     create_source,
     disable_source,
     mark_source_initial_success,
+    recover_expired_check_runs,
     replace_source_filter_options,
     request_check_cancellation,
     request_full_check,
@@ -105,6 +107,7 @@ __all__ = [
     "AdminSourceDetail",
     "AdminSourceItem",
     "CheckRunCancellationResult",
+    "CheckLeaseRecoveryResult",
     "CheckRunRequestResult",
     "FilterOptionResult",
     "OPPORTUNITY_ORIGIN_CHOICES",
@@ -159,6 +162,7 @@ __all__ = [
     "public_opportunity_sources",
     "public_opportunity_summary",
     "replace_source_filter_options",
+    "recover_expired_check_runs",
     "request_check_cancellation",
     "request_full_check",
     "request_scheduled_full_check",

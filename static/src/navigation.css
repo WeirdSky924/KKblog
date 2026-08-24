@@ -300,14 +300,17 @@
 }
 
 .opportunity-shortcut,
+.quiz-shortcut,
 .author-shortcut {
-  border-color: var(--line);
+  border: 1px solid var(--line);
   background: var(--surface-panel);
   text-decoration: none;
 }
 
 .opportunity-shortcut:hover,
 .opportunity-shortcut:focus-visible,
+.quiz-shortcut:hover,
+.quiz-shortcut:focus-visible,
 .author-shortcut:hover,
 .author-shortcut:focus-visible {
   border-color: var(--accent);

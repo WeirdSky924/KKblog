@@ -5,6 +5,7 @@ from django.views.decorators.http import require_GET
 
 from apps.accounts.public import is_administrator
 from apps.administration.forms.operations import TaskRunFilterForm
+from apps.agents.public import task_run_metadata
 from apps.operations.public import current_monitoring_status, task_run_records
 
 
@@ -16,7 +17,11 @@ def task_runs(request: HttpRequest) -> HttpResponse:
     status = 200
     if form.is_valid():
         selected_status = form.cleaned_data["status"]
-        rows = task_run_records(status=selected_status, is_admin=True)
+        rows = task_run_records(
+            status=selected_status,
+            is_admin=True,
+            metadata_provider=task_run_metadata,
+        )
     else:
         selected_status = ""
         rows = ()

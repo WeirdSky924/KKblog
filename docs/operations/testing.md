@@ -21,6 +21,14 @@
 
 Labs 默认同步是本机非生产测试环境更新，不等于生产发布。它不授权服务/容器重启、镜像构建或替换、migration、数据修复、真实邮件、备份、Git 写操作或生产变更；这些动作需要各自规则要求的明确授权。热重载或 smoke 失败时停止并报告，不自动重启服务、重建容器、修改共享数据或回退用户工作。
 
+## AGENT Provider 密钥
+
+AGENT 连接按 LangChain 的最小模型配置运行：Provider、模型名、可选 Base URL 和 API Key。API Key 可以使用服务器别名或管理员在表单中直接录入；自定义值在服务端加密保存且不回显。应用级 token 配额、并发和超时仍由 Endpoint 的高级运行保护负责。
+
+Compose Web、Worker 和 Beat 会从服务器专用的 `.env.agent`（或 `KAJ_AGENT_ENV_FILE` 指定文件）读取 `KAJ_AGENT_SECRET_<ALIAS>` 与可选的 `KAJ_AGENT_INTERNAL_ENDPOINT_ALLOWLIST`。该文件必须在服务器上维护、权限为 `root:root 0600`，不得提交或通过网页编辑。没有该文件时应用可以启动，但云端 Endpoint 的连接检查会明确报告“服务器没有加载所选密钥”。
+
+Labs 宿主机服务使用独立的受保护 Provider 环境文件；当前 Labs 服务脚本尚未加载该文件，配置真实模型前必须先让运维入口将同名变量安全传入 Web/Worker，再执行一次受控服务重载。测试和代码检查不得调用真实 Provider。
+
 ## 按改动风险控制验证
 
 | 改动范围 | 默认验证上限 |

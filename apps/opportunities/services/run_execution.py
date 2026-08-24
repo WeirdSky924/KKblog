@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from time import monotonic as system_monotonic
 
-from django.db import transaction
+from django.db import close_old_connections, connections, transaction
 
 from apps.core.events import enqueue_event
 from apps.core.time.clock import Clock, SystemClock
@@ -13,6 +14,9 @@ from ..checks import DomainRateLimiter
 from ..events import CHECK_SUMMARY
 from ..models import OpportunityCheckRun, OpportunityCheckRunSource
 from .runner import ClientFactory, _default_client_factory, run_source_check
+
+logger = logging.getLogger(__name__)
+SOURCE_INTERRUPTED = "opportunities.source_interrupted.v1"
 
 
 def _finish_run(run_id: str, *, clock: Clock) -> OpportunityCheckRun:
@@ -148,8 +152,26 @@ def _release_source_item(item_id: int) -> None:
         item = OpportunityCheckRunSource.objects.select_for_update().get(pk=item_id)
         item.state = OpportunityCheckRunSource.State.PENDING
         item.started_at = None
-        item.save(update_fields=("state", "started_at"))
+        item.safe_error_code = SOURCE_INTERRUPTED
+        item.save(update_fields=("state", "started_at", "safe_error_code"))
         OpportunityCheckRun.objects.filter(pk=item.run_id).update(current_source=None)
+
+
+def _release_source_item_safely(item_id: int) -> None:
+    close_old_connections()
+    try:
+        _release_source_item(item_id)
+        return
+    except Exception:
+        connections.close_all()
+    try:
+        _release_source_item(item_id)
+    except Exception:
+        connections.close_all()
+        logger.error(
+            "Opportunity source item recovery failed item_id=%s",
+            item_id,
+        )
 
 
 def _complete_source_item(item_id: int, result, *, clock: Clock) -> None:
@@ -229,7 +251,7 @@ def execute_check_run(
                 monotonic=monotonic,
             )
         except Exception:
-            _release_source_item(item_id)
+            _release_source_item_safely(item_id)
             raise
         _complete_source_item(item_id, result, clock=active_clock)
     completed = _finish_run(run_id, clock=active_clock)

@@ -3,6 +3,7 @@ from .port import (
     MediaStorage,
     StagedMedia,
     StorageBoundaryError,
+    StorageEmptyFile,
     StorageLimitExceeded,
     StorageWriteError,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "MediaStorage",
     "StagedMedia",
     "StorageBoundaryError",
+    "StorageEmptyFile",
     "StorageLimitExceeded",
     "StorageWriteError",
 ]

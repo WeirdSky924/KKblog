@@ -10,7 +10,7 @@ from enum import StrEnum
 from math import ceil
 from uuid import UUID
 
-from django.db import transaction
+from django.db import DatabaseError, close_old_connections, connections, transaction
 
 from apps.core.events.outbox import enqueue_event
 from apps.core.ids import new_ulid, new_uuid
@@ -42,6 +42,7 @@ _CURRENT_TASK_RUN_ID: ContextVar[str | None] = ContextVar(
 Jitter = Callable[[int], int]
 TaskService = Callable[[str], str | None]
 HeartbeatTaskService = Callable[[str, Callable[[], None]], str | None]
+TaskLeaseRecoveryHook = Callable[[TaskRun, bool], None]
 
 
 class StartOutcome(StrEnum):
@@ -450,6 +451,7 @@ def fail_task(
     error_code: str,
     clock: Clock | None = None,
     jitter: Jitter | None = None,
+    force_final: bool = False,
 ) -> TaskFailureResult:
     if not isinstance(claim, TaskClaim):
         raise TypeError("claim must be a TaskClaim")
@@ -461,7 +463,7 @@ def fail_task(
         if run.status != TaskRunStatus.RUNNING or run.lease_token != claim.lease_token:
             return TaskFailureResult(StartOutcome.BUSY)
         run.heartbeat_at = now
-        if run.attempt >= MAX_ATTEMPTS:
+        if force_final or run.attempt >= MAX_ATTEMPTS:
             _final_failure_locked(
                 run,
                 error_code=error_code,
@@ -498,6 +500,8 @@ def recover_expired_task_leases(
     batch_size: int = 100,
     clock: Clock | None = None,
     jitter: Jitter | None = None,
+    on_recovered: TaskLeaseRecoveryHook | None = None,
+    task_names: tuple[str, ...] | None = None,
 ) -> int:
     if (
         isinstance(batch_size, bool)
@@ -507,23 +511,124 @@ def recover_expired_task_leases(
         raise ValueError("Invalid batch_size")
     active_clock = clock or SystemClock()
     now = active_clock.now()
-    with transaction.atomic():
-        runs = list(
-            TaskRun.objects.select_for_update(skip_locked=True)
-            .filter(
+    if on_recovered is not None and not callable(on_recovered):
+        raise TypeError("on_recovered must be callable")
+    if task_names is None:
+        stable_task_names = None
+    elif not isinstance(task_names, tuple) or not task_names:
+        raise ValueError("Invalid task_names")
+    else:
+        stable_task_names = tuple(_validate_task_name(value) for value in task_names)
+    run_ids: tuple[str, ...] | None = None
+    for attempt in range(2):
+        close_old_connections()
+        try:
+            rows = TaskRun.objects.filter(
                 status=TaskRunStatus.RUNNING,
                 lease_expires_at__lte=now,
             )
-            .order_by("lease_expires_at", "run_id")[:batch_size]
-        )
-        for run in runs:
-            _release_expired_locked(
-                run,
-                now=now,
-                clock=active_clock,
-                jitter=jitter,
+            if stable_task_names is not None:
+                rows = rows.filter(task_name__in=stable_task_names)
+            run_ids = tuple(
+                rows.order_by("lease_expires_at", "run_id").values_list(
+                    "run_id", flat=True
+                )[:batch_size]
             )
-    return len(runs)
+            break
+        except DatabaseError:
+            connections.close_all()
+            if attempt == 1:
+                raise
+    assert run_ids is not None
+
+    recovered = 0
+    for run_id in run_ids:
+        # Keep the task and its domain recovery callback in one transaction. If
+        # PostgreSQL drops the connection while the callback is running, the
+        # whole row is rolled back and retried on a fresh connection. This is
+        # what prevents a released TaskRun from leaving a RUNNING domain run.
+        for attempt in range(2):
+            close_old_connections()
+            try:
+                with transaction.atomic():
+                    run = (
+                        TaskRun.objects.select_for_update()
+                        .filter(
+                            run_id=run_id,
+                            status=TaskRunStatus.RUNNING,
+                            lease_expires_at__lte=now,
+                        )
+                        .first()
+                    )
+                    if run is None:
+                        break
+                    final_failed = _release_expired_locked(
+                        run,
+                        now=now,
+                        clock=active_clock,
+                        jitter=jitter,
+                    )
+                    if on_recovered is not None:
+                        on_recovered(run, final_failed)
+                recovered += 1
+                break
+            except DatabaseError:
+                connections.close_all()
+                if attempt == 1:
+                    raise
+        else:  # pragma: no cover - the loop either breaks or raises
+            continue
+    return recovered
+
+
+def due_task_run_business_objects(
+    *, task_name: str, now, batch_size: int = 100
+) -> tuple[str, ...]:
+    stable_task_name = _validate_task_name(task_name)
+    if (
+        isinstance(batch_size, bool)
+        or not isinstance(batch_size, int)
+        or not 1 <= batch_size <= 1_000
+    ):
+        raise ValueError("Invalid batch_size")
+    return tuple(
+        TaskRun.objects.filter(
+            task_name=stable_task_name,
+            status__in=(TaskRunStatus.PENDING, TaskRunStatus.RETRY_WAIT),
+            available_at__lte=now,
+        )
+        .order_by("available_at", "run_id")
+        .values_list("business_object", flat=True)[:batch_size]
+    )
+
+
+def _fail_task_with_fresh_connection(
+    claim: TaskClaim,
+    *,
+    error_code: str,
+    clock: Clock,
+    jitter: Jitter | None,
+    force_final: bool = False,
+) -> TaskFailureResult:
+    close_old_connections()
+    try:
+        return fail_task(
+            claim,
+            error_code=error_code,
+            clock=clock,
+            jitter=jitter,
+            force_final=force_final,
+        )
+    except DatabaseError:
+        connections.close_all()
+        close_old_connections()
+        return fail_task(
+            claim,
+            error_code=error_code,
+            clock=clock,
+            jitter=jitter,
+            force_final=force_final,
+        )
 
 
 def execute_tracked_task(
@@ -600,17 +705,22 @@ def execute_tracked_task(
                 result_ref=cancelled.result_ref,
             )
         except Exception as error:
+            force_final = isinstance(error, TaskFinalFailed)
             error_code = (
                 error.error_code
-                if isinstance(error, RetryableTaskError)
+                if isinstance(error, (RetryableTaskError, TaskFinalFailed))
                 else TASK_UNEXPECTED_ERROR
             )
-            failed = fail_task(
-                claim,
-                error_code=error_code,
-                clock=active_clock,
-                jitter=jitter,
-            )
+            try:
+                failed = _fail_task_with_fresh_connection(
+                    claim,
+                    error_code=error_code,
+                    clock=active_clock,
+                    jitter=jitter,
+                    force_final=force_final,
+                )
+            except DatabaseError as recovery_error:
+                raise error from recovery_error
             if failed.outcome == StartOutcome.FINAL_FAILED:
                 raise TaskFinalFailed(error_code=error_code) from None
             if failed.outcome == StartOutcome.RETRY_SCHEDULED:

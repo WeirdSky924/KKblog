@@ -1,6 +1,7 @@
 import Alpine from "alpinejs";
 import "htmx.org";
 import {
+  Activity,
   ArrowDownToLine,
   ArrowLeft,
   ArrowLeftToLine,
@@ -13,6 +14,7 @@ import {
   Bookmark,
   BookmarkCheck,
   BriefcaseBusiness,
+  CalendarDays,
   CalendarX2,
   Check,
   ChevronDown,
@@ -30,12 +32,14 @@ import {
   Ellipsis,
   Eye,
   ExternalLink,
+  FilePenLine,
   FileText,
   FileArchive,
   FilePlus2,
   FileUp,
   Flag,
   GitCompareArrows,
+  GraduationCap,
   GripVertical,
   Heading1,
   Heading2,
@@ -88,7 +92,10 @@ import {
   Send,
   Search,
   Settings,
+  Settings2,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Square,
   SquareCode,
   SquarePlay,
@@ -144,6 +151,8 @@ import {
 import { initializePasswordReveals } from "./password-reveal.js";
 import { initializeHeaderSearch } from "./header-search.js";
 import { initializeOpportunities } from "./opportunities.js";
+import { initializeQuiz } from "./quiz.js";
+import { initializeRecords } from "./records.js";
 import {
   MediaUploadRequestError,
   uploadMediaFile,
@@ -153,6 +162,7 @@ import { initializeEditorTagPickers } from "./editor-tag-picker.js";
 import { editorUploadTrackerFor } from "./editor-upload-state.js";
 
 const availableIcons = {
+  Activity,
   ArrowDownToLine,
   ArrowLeft,
   ArrowLeftToLine,
@@ -165,6 +175,7 @@ const availableIcons = {
   Bookmark,
   BookmarkCheck,
   BriefcaseBusiness,
+  CalendarDays,
   CalendarX2,
   Check,
   ChevronDown,
@@ -182,12 +193,14 @@ const availableIcons = {
   Ellipsis,
   Eye,
   ExternalLink,
+  FilePenLine,
   FileText,
   FileArchive,
   FilePlus2,
   FileUp,
   Flag,
   GitCompareArrows,
+  GraduationCap,
   GripVertical,
   Heading1,
   Heading2,
@@ -240,7 +253,10 @@ const availableIcons = {
   Send,
   Search,
   Settings,
+  Settings2,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Square,
   SquareCode,
   SquarePlay,
@@ -503,8 +519,12 @@ function initializeConfirmDialogs(root = document) {
       });
       dialog.addEventListener("close", () => {
         const returnFocusId = dialog.dataset.dialogReturnFocus || "";
+        const learningBatchTrigger = dialog.id?.includes("learning-")
+          ? document.querySelector("button[name='batch_action']")
+          : null;
         const trigger =
           (returnFocusId && document.getElementById(returnFocusId)) ||
+          learningBatchTrigger ||
           (dialog.id
             ? document.querySelector(
                 `[data-dialog-trigger][aria-controls="${dialog.id}"]`,
@@ -616,8 +636,16 @@ function initializeMediaPickers(root = document) {
     let previewUrl = null;
     let uploadController = null;
     const isAttachment = picker.dataset.mediaKind === "attachment";
+    const isDocument = picker.dataset.mediaKind === "document";
+    const isFile = isAttachment || isDocument;
     const isHero = picker.dataset.mediaKind === "hero";
-    const mediaLabel = isAttachment ? "附件" : isHero ? "主视觉媒体" : "图片";
+    const mediaLabel = isAttachment
+      ? "附件"
+      : isDocument
+        ? "知识文档"
+        : isHero
+          ? "主视觉媒体"
+          : "图片";
     const pickerLabel =
       picker.querySelector(".media-picker__header h3")?.textContent?.trim() ||
       mediaLabel;
@@ -645,7 +673,7 @@ function initializeMediaPickers(root = document) {
 
     const showSelectedPreview = (file) => {
       clearPreviewUrl();
-      if (isAttachment) {
+      if (isFile) {
         preview.hidden = false;
         if (fileName instanceof HTMLElement) fileName.textContent = file.name;
         if (fileSize instanceof HTMLElement) {
@@ -779,7 +807,7 @@ function initializeMediaPickers(root = document) {
         );
         result.replaceChildren();
         value.value = assetId;
-        if (isAttachment) {
+        if (isFile) {
           picker.dataset.mediaCurrentName = activeFile.name;
           picker.dataset.mediaCurrentSize = String(activeFile.size);
           picker.dataset.mediaCurrentMime = activeFile.type;
@@ -850,7 +878,7 @@ function initializeMediaPickers(root = document) {
       selectedFile = null;
       input.value = "";
       value.value = "";
-      if (isAttachment) {
+      if (isFile) {
         delete picker.dataset.mediaCurrentName;
         delete picker.dataset.mediaCurrentSize;
         delete picker.dataset.mediaCurrentMime;
@@ -1355,6 +1383,8 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeAdministrationOperations(root);
   initializeAdministrationArticlePreviews(root);
   initializeOpportunities(root);
+  initializeQuiz(root);
+  initializeRecords(root);
   initializeLiveSubmitForms(root);
   focusInsertedError(root);
   focusSwappedRegion(root);
@@ -1374,6 +1404,8 @@ document.addEventListener("htmx:load", (event) => {
   initializeAdministrationOperations(root);
   initializeAdministrationArticlePreviews(root);
   initializeOpportunities(root);
+  initializeQuiz(root);
+  initializeRecords(root);
   initializeLiveSubmitForms(root);
 });
 
@@ -1505,6 +1537,8 @@ initializeAdministrationSettings();
 initializeAdministrationOperations();
 initializeAdministrationArticlePreviews();
 initializeOpportunities();
+initializeQuiz();
+initializeRecords();
 initializeLiveSubmitSupport();
 initializeLiveSubmitForms();
 focusInsertedError(document);

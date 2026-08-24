@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import parse_qs, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import (
     MAX_ADAPTER_RESPONSE_BYTES,
     MAX_LARGE_ADAPTER_RESPONSE_BYTES,
@@ -130,6 +135,7 @@ def _job(row: object) -> CollectedOpportunity:
             row.get("workContent"),
             row.get("qualification"),
         ),
+        published_at=published_at_from_mapping(row),
     )
 
 

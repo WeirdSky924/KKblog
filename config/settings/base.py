@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 
 from celery.schedules import crontab
 
+from config.environment import load_agent_provider_environment
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+AGENT_PROVIDER_ENVIRONMENT = load_agent_provider_environment(os.environ)
 
 INSTALLED_APPS = [
     "django.contrib.postgres",
@@ -10,6 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.administration",
+    "apps.agents",
     "apps.analytics",
     "apps.authoring",
     "apps.comments",
@@ -17,6 +22,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.discovery",
     "apps.exchange",
+    "apps.learning",
     "apps.media",
     "apps.moderation",
     "apps.navigation",
@@ -131,6 +137,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.media.dispatch_staged_media",
         "schedule": 3_600.0,
     },
+    "learning-cleanup-expired": {
+        "task": "apps.learning.cleanup_expired_learning",
+        "schedule": 3_600.0,
+    },
     "exchange-expire-exports": {
         "task": "apps.exchange.dispatch_expired_exports",
         "schedule": 3_600.0,
@@ -151,6 +161,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "opportunities-dispatch-pending": {
         "task": "apps.opportunities.dispatch_pending_check_runs",
+        "schedule": 60.0,
+    },
+    "opportunities-recover-check-leases": {
+        "task": "apps.opportunities.recover_check_leases",
         "schedule": 60.0,
     },
     "opportunities-cleanup-history": {

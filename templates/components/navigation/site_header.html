@@ -61,6 +61,7 @@
       <div class="identity-controls">
         {% if shell_opportunities_url %}<a class="icon-button opportunity-shortcut" href="{{ shell_opportunities_url }}" aria-label="进入工作机会" title="工作机会"><i data-lucide="briefcase-business"></i></a>{% endif %}
         {% if shell_account %}
+          <a class="icon-button quiz-shortcut" href="{% url 'learning:quiz-index' %}" aria-label="进入答题" title="答题"><i data-lucide="graduation-cap"></i></a>
           {% if shell_is_author %}
             <a class="icon-button author-shortcut" href="{% url 'authoring:articles' %}" aria-label="进入我的文章" title="我的文章">
               <i data-lucide="notebook-pen"></i>

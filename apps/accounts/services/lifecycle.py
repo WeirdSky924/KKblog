@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.accounts.deletion import (
     AccountDeletionDisposition,
     AuthorArticleDecision,
+    run_account_deletion_cleanup,
 )
 from apps.accounts.events import (
     ACCOUNT_DELETED,
@@ -343,6 +344,10 @@ def delete_account(
                 "article_count": article_count,
             },
         )
+        # Domain owners register their cleanup port during app initialization.
+        # Accounts keeps the deletion transaction authoritative without importing
+        # another domain's private models or services.
+        run_account_deletion_cleanup(target.id)
         release_owner_assets(owner_id=target.id)
         target.delete()
         return deletion

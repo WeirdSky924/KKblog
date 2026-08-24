@@ -11,6 +11,9 @@
 @import "./status-pages.css";
 @import "./accounts.css";
 @import "./accounts-auth.css";
+@import "./learning.css";
+@import "./question-banks.css";
+@import "./quiz.css";
 @import "./media.css";
 @import "./comments.css";
 @import "./moderation.css";
@@ -18,6 +21,8 @@
 @import "./administration-friend-links.css";
 @import "./administration-article-preview.css";
 @import "./administration-navigation.css";
+@import "./agents-admin.css";
+@import "./learning-admin.css";
 @import "./administration-operations.css";
 @import "./administration-opportunities.css";
 @import "./opportunities.css";

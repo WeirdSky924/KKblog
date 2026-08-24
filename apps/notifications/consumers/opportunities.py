@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Callable
 from uuid import UUID
 
@@ -106,6 +107,38 @@ def _summary_delivery(envelope: EventEnvelope, recipients: tuple[UUID, ...]) -> 
     )
 
 
+def _stalled_delivery(envelope: EventEnvelope, recipients: tuple[UUID, ...]) -> None:
+    if envelope.aggregate_type != "opportunity_check_run":
+        raise NotificationRejected("Invalid opportunity stalled-check notification")
+    payload = envelope.payload
+    required = {
+        "run_id",
+        "source_name",
+        "source_position",
+        "reason",
+        "attempt",
+        "final_failed",
+        "max_duration_seconds",
+    }
+    if set(payload) != required or payload["run_id"] != envelope.aggregate_id:
+        raise NotificationRejected("Invalid opportunity stalled-check notification")
+    source_name = payload["source_name"]
+    if not isinstance(source_name, str):
+        raise NotificationRejected("Invalid opportunity stalled-check notification")
+    source_fingerprint = hashlib.sha256(source_name.encode("utf-8")).hexdigest()[:16]
+    deliver_notification(
+        template_key=envelope.event_type,
+        recipient_ids=recipients,
+        target_id=envelope.aggregate_id,
+        payload=dict(payload),
+        dedupe_key=(
+            "opportunity-check-stalled:"
+            f"{payload['run_id']}:{payload['source_position']}"
+            f":{payload['reason']}:{payload['attempt']}:{source_fingerprint}"
+        ),
+    )
+
+
 def _handle(
     envelope: EventEnvelope, *, administrator_id_provider: AdministratorIdProvider
 ) -> None:
@@ -117,6 +150,9 @@ def _handle(
         return
     if envelope.event_type == "opportunity.check_summary.v1":
         _summary_delivery(envelope, recipients)
+        return
+    if envelope.event_type == "opportunity.check_stalled.v1":
+        _stalled_delivery(envelope, recipients)
         return
     raise NotificationRejected("Invalid opportunity notification event")
 

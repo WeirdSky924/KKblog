@@ -74,6 +74,9 @@ _RULES = {
     (MediaTargetType.ARTICLE_REVISION, MediaPurpose.ATTACHMENT): _BindingRule(
         1, re.compile(r"^attachment$")
     ),
+    (MediaTargetType.LEARNING_DOCUMENT, MediaPurpose.KNOWLEDGE_DOCUMENT): _BindingRule(
+        1, re.compile(r"^source$")
+    ),
     (MediaTargetType.COMMENT, MediaPurpose.COMMENT): _BindingRule(
         3, re.compile(r"^image-[1-3]$")
     ),

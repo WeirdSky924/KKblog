@@ -32,6 +32,7 @@ _OPPORTUNITY_SOURCE_STATES = frozenset(
 _OPPORTUNITY_RUN_STATES = frozenset(
     {"SUCCEEDED", "PARTIAL", "FAILED", "TRUNCATED", "CANCELLED"}
 )
+_OPPORTUNITY_STALL_REASONS = frozenset({"LEASE_EXPIRED", "SOURCE_TIMEOUT"})
 
 
 def _reject_unless(condition: bool) -> None:
@@ -125,6 +126,41 @@ def _opportunity_check_summary(payload: Mapping[str, object]) -> None:
         )
 
 
+def _opportunity_check_stalled(payload: Mapping[str, object]) -> None:
+    run_id = payload["run_id"]
+    source_name = payload["source_name"]
+    source_position = payload["source_position"]
+    attempt = payload["attempt"]
+    max_duration = payload["max_duration_seconds"]
+    _reject_unless(
+        isinstance(run_id, str)
+        and is_ulid(run_id)
+        and isinstance(source_name, str)
+        and 1 <= len(source_name) <= 120
+        and "<" not in source_name
+        and ">" not in source_name
+        and "://" not in source_name
+        and not isinstance(source_position, bool)
+        and isinstance(source_position, int)
+        and 1 <= source_position <= 5_000
+        and payload["reason"] in _OPPORTUNITY_STALL_REASONS
+        and not isinstance(attempt, bool)
+        and isinstance(attempt, int)
+        and 0 <= attempt <= 3
+        and type(payload["final_failed"]) is bool
+        and not isinstance(max_duration, bool)
+        and isinstance(max_duration, int)
+        and 0 <= max_duration <= 600
+        and (
+            payload["reason"] != "LEASE_EXPIRED" or (attempt >= 1 and max_duration == 0)
+        )
+        and (
+            payload["reason"] != "SOURCE_TIMEOUT"
+            or (attempt == 0 and not payload["final_failed"] and max_duration >= 1)
+        )
+    )
+
+
 def _opportunity_source_title(payload: Mapping[str, object]) -> str:
     return (
         "招聘来源已恢复"
@@ -160,6 +196,31 @@ def _opportunity_summary_message(payload: Mapping[str, object]) -> str:
     )
 
 
+def _opportunity_stalled_title(payload: Mapping[str, object]) -> str:
+    return (
+        "招聘检查租约已过期"
+        if payload["reason"] == "LEASE_EXPIRED"
+        else "招聘来源执行超时"
+    )
+
+
+def _opportunity_stalled_message(payload: Mapping[str, object]) -> str:
+    if payload["reason"] == "LEASE_EXPIRED":
+        attempt = (
+            f"第 {payload['attempt']} 次尝试" if payload["attempt"] else "当前尝试"
+        )
+        action = "已终止本次检查" if payload["final_failed"] else "将自动重试"
+        return (
+            f"招聘检查 **{payload['run_id']}** 的第 {payload['source_position']} 个来源"
+            f"（**{payload['source_name']}**）{attempt}租约已过期，{action}。"
+        )
+    return (
+        f"招聘检查 **{payload['run_id']}** 的第 {payload['source_position']} 个来源"
+        f"（**{payload['source_name']}**）已超过配置的"
+        f" {payload['max_duration_seconds']} 秒执行时限，系统已记录告警。"
+    )
+
+
 def _safe_reason(value: object, *, nullable: bool = False) -> bool:
     if nullable and value is None:
         return True
@@ -172,6 +233,39 @@ def _safe_reason(value: object, *, nullable: bool = False) -> bool:
         and "://" not in value
         and all(character.isprintable() or character in "\n\t" for character in value)
     )
+
+
+def _generation_failed(payload: Mapping[str, object]) -> None:
+    if not payload:
+        return
+    error_code = payload.get("error_code")
+    _reject_unless(
+        isinstance(error_code, str) and _ERROR_CODE.fullmatch(error_code) is not None
+    )
+
+
+_GENERATION_FAILURE_MESSAGES = {
+    "agents.response_semantics_invalid.v1": (
+        "模型返回内容未通过题库规则校验；本次失败调用未计入 token 额度。"
+    ),
+    "agents.response_schema_invalid.v1": (
+        "模型返回内容未通过题库结构校验；本次失败调用未计入 token 额度。"
+    ),
+    "learning.question_schema_invalid.v1": (
+        "生成内容未通过题库发布校验；本次失败调用未计入 token 额度。"
+    ),
+    "agents.quota_exhausted.v1": "模型额度不足，未继续调用。",
+}
+
+
+def _generation_failed_message(payload: Mapping[str, object]) -> str:
+    error_code = payload.get("error_code")
+    if isinstance(error_code, str):
+        return _GENERATION_FAILURE_MESSAGES.get(
+            error_code,
+            f"题库生成未完成（{error_code}）；本次失败调用未计入 token 额度。",
+        )
+    return "题库生成出现系统错误，可稍后重试。"
 
 
 def _broadcast(payload: Mapping[str, object]) -> None:
@@ -443,12 +537,15 @@ def _schema(
     validator: PayloadValidator,
     *,
     markdown_fields: frozenset[str] = frozenset(),
+    required_fields: frozenset[str] | None = None,
 ) -> NotificationTemplateSchema:
     return NotificationTemplateSchema(
         key=key,
         target_type=target_type,
         allowed_payload_fields=fields,
-        required_payload_fields=fields,
+        required_payload_fields=(
+            fields if required_fields is None else required_fields
+        ),
         markdown_payload_fields=markdown_fields,
         payload_validator=validator,
     )
@@ -499,6 +596,29 @@ _BUILTINS = (
             "opportunity.check_summary.v1",
             "招聘检查结果",
             _opportunity_summary_message,
+        ),
+    ),
+    (
+        _schema(
+            "opportunity.check_stalled.v1",
+            "opportunity_check_run",
+            frozenset(
+                {
+                    "run_id",
+                    "source_name",
+                    "source_position",
+                    "reason",
+                    "attempt",
+                    "final_failed",
+                    "max_duration_seconds",
+                }
+            ),
+            _opportunity_check_stalled,
+        ),
+        NotificationTemplateDefinition(
+            "opportunity.check_stalled.v1",
+            _opportunity_stalled_title,
+            _opportunity_stalled_message,
         ),
     ),
     (
@@ -749,6 +869,145 @@ _BUILTINS = (
         ),
         NotificationTemplateDefinition(
             "article.moderation_finalized.v1", "文章申诉终局", _article_final_message
+        ),
+    ),
+    (
+        _schema(
+            "learning.appeal_approved.v1",
+            "learning_appeal",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.appeal_approved.v1",
+            "知识文档申诉已批准",
+            lambda payload: "知识文档申诉已批准，文档已重新进入审核。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.appeal_rejected.v1",
+            "learning_appeal",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.appeal_rejected.v1",
+            "知识文档申诉未通过",
+            lambda payload: "知识文档申诉未通过，请查看处理结果。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.document_administration_changed.v1",
+            "knowledge_document",
+            frozenset({"action"}),
+            _choice("action", frozenset({"HIDE", "RESTORE", "DELETE"})),
+        ),
+        NotificationTemplateDefinition(
+            "learning.document_administration_changed.v1",
+            "知识文档管理状态已更新",
+            lambda payload: {
+                "HIDE": "知识文档已被管理员暂时隐藏。",
+                "RESTORE": "知识文档已被管理员恢复。",
+                "DELETE": "知识文档已进入管理员删除冷静期。",
+            }[payload["action"]],
+        ),
+    ),
+    (
+        _schema(
+            "learning.question_bank_administration_changed.v1",
+            "question_bank",
+            frozenset({"action"}),
+            _choice("action", frozenset({"HIDE", "RESTORE", "DELETE"})),
+        ),
+        NotificationTemplateDefinition(
+            "learning.question_bank_administration_changed.v1",
+            "题库管理状态已更新",
+            lambda payload: {
+                "HIDE": "题库已被管理员暂时隐藏。",
+                "RESTORE": "题库已被管理员恢复。",
+                "DELETE": "题库已进入管理员删除冷静期。",
+            }[payload["action"]],
+        ),
+    ),
+    (
+        _schema(
+            "learning.review_approved.v1",
+            "knowledge_document",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.review_approved.v1",
+            "知识文档审核通过",
+            lambda payload: "知识文档已通过审核，可以用于生成题库。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.review_rejected.v1",
+            "knowledge_document",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.review_rejected.v1",
+            "知识文档未通过审核",
+            lambda payload: "知识文档未通过审核，请查看安全原因后处理。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.review_failed.v1",
+            "knowledge_document",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.review_failed.v1",
+            "知识文档审核失败",
+            lambda payload: "知识文档审核出现系统错误，可稍后重试。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.generation_completed.v1",
+            "question_bank_series",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.generation_completed.v1",
+            "题库生成完成",
+            lambda payload: "题库已完整生成并公开。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.generation_partial.v1",
+            "question_bank_series",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "learning.generation_partial.v1",
+            "题库已按容量生成",
+            lambda payload: "题库已生成并公开，部分知识点因单卷容量限制未覆盖。",
+        ),
+    ),
+    (
+        _schema(
+            "learning.generation_failed.v1",
+            "question_bank_series",
+            frozenset({"error_code"}),
+            _generation_failed,
+            required_fields=frozenset(),
+        ),
+        NotificationTemplateDefinition(
+            "learning.generation_failed.v1",
+            "题库生成失败",
+            _generation_failed_message,
         ),
     ),
     (

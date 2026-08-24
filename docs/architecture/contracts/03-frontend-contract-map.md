@@ -22,6 +22,10 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:guestbook` | `comments/thread_page.html` | `guestbook_thread` | 评论列表/表单 | 开关、访客、登录、举报 |
 | `opportunities:index` | `opportunities/index.html` | `public_opportunities`, `public_opportunity_sources`, `public_opportunity_filters`, `public_opportunity_summary` | `opportunity-workspace` | 岗位/来源双视图、同组 OR/组间 AND、搜索提交、即时复选/每页、历史/焦点/滚动恢复、公开证据、空态 |
 | `opportunities:bookmark` | `opportunities/partials/bookmark_button.html` | `set_opportunity_bookmark` | 稳定收藏控件 | 未登录安全回跳、登录幂等持久化、实心图标、通用反馈、仅看收藏取消后刷新 |
+| `question-banks:index` | `learning/question_bank_index.html` | `public_question_bank_page` | 列表/搜索/筛选/分页 | 最新/最多答题/题量排序、组内 OR/组间 AND、访客与登录一致、空结果 |
+| `question-banks:detail` | `learning/question_bank_detail.html` | `public_question_bank_detail` | 无 | 隐藏/删除 404、题面/答案/解析安全投影、登录答题入口 |
+| `api-v1:question-bank-list` | JSON envelope | API gate + limiter + `public_question_bank_page` | 无 | 默认 404/api_disabled、429、503、CORS、分页/ETag、无对象查询泄露 |
+| `api-v1:question-bank-detail` | JSON envelope | API gate + limiter + `public_question_bank_detail` | 无 | 开关关闭一致 404、开启 not_found、完整安全题库 projection |
 | `public:not-found` | `errors/404.html` | 安全错误映射 | 无 | 不泄露对象存在 |
 
 文章首屏的静态正文可缓存，浏览量、收藏、点赞、阅读书签和评论由独立查询组装。阅读书签保存正文内归一化进度，避免视口变化后绝对像素失效；分享按钮只复制当前永久链接，不调用第三方平台。
@@ -37,6 +41,13 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `accounts:sessions` | 设备会话表 | revoke session(s) | 当前会话、退出其他、退出所有二次确认 |
 | `accounts:bookmarks` | 私人收藏 | bookmark_page | 可用文章作者 ID/公开主页、失效专属图、用户手动删除 |
 | `notifications:list` | 全量通知 | notifications_for/mark read | 未读、单条展开、一键全读、空态 |
+| `learning:documents` | 我的知识文档 | owner document queries/submit | 权限入口、逐次声明、上传、待审/审核中/终态、删除/恢复 |
+| `learning:document-detail` | 文档状态与访问历史 | owner document detail/appeal/retry | 原文仅本人、访问历史隐藏管理员身份、申诉 Markdown、异步局部读回 |
+| `learning:bank-generate` | 题库生成配置/结果 | generate_question_bank | 标题/简介、题型 Switch、完整/部分覆盖、失败重试 |
+| `learning:quiz-start` | 答题配置 | create_quiz_attempt | 题型多选、题量、随机题目/选项、软计时 |
+| `learning:quiz-attempt` | 作答与结果 | save/submit_quiz_attempt | 自动保存、跨设备、版本冲突、简答自评、超时后继续 |
+| `learning:wrong-book` | 错题本 | wrong questions/set mastery | 题库分组、TO_REVIEW/MASTERED、错题练习 |
+| `learning:records` | 答题记录 | records/delete/export | 详情、复选删除/清空、CSV、防公式注入、删除冷静期 |
 
 全局 Header：左上 Logo/主题切换；头像左侧通知控件；未登录显示登录/注册，登录后显示圆形头像、昵称/账号和个人菜单。搜索默认查文章，可切换作者；登录用户输入时显示最多五条即时建议，未登录不请求也不渲染建议层。管理员配置的公共导航只显示在首页可收起的左侧浮层，不进入 Header；分区节点和其他导航节点使用同一排序结果。点击分区节点只替换主页文章区域，标题、列表、分页 URL 和节点选中态同步更新；直接访问或刷新分区 URL 仍返回完整主页结构。通知 hover 浮层固定五条；点击条目打开完整浮层，不跳页；“查看全部”跳通知页。
 
@@ -94,12 +105,19 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `admin:tasks` | 任务记录 | operations | 运行/成功/最终失败，无手动重试 |
 | `admin:analytics` | Umami | analytics | 同源认证入口、不可公网直达 |
 | `admin:opportunities` | 工作机会五标签 | opportunities | 审核队列支持接受当前页与确认后接受全部待审核；来源/岗位 dialog；任务历史按来源分页并以 dialog 按需展示新增/更新岗位；检查仅创建持久任务，不同步抓取 |
+| `admin:agent-endpoints` | 智能与题库/Endpoint | agents | 运行参数、模型匹配的 reasoning effort/旧版 thinking budget、秘密别名、启停、连接检查、双层 token 上限/用量与 reset |
+| `admin:agent-profiles` | AGENT/Prompt | agents | profile 绑定、Markdown Prompt 修订/预览、当前版本切换、并发 409 |
+| `admin:learning-documents` | 知识文档与申诉 | learning | 有界分页、逐条原文访问、显式勾选批量处置、申诉逐条决定 |
+| `admin:question-banks` | 题库与运行设置 | learning | 配额、生成上限、API 开关与账户覆盖；队列通过独立入口管理 |
+| `admin:question-bank-queue` | 题库队列 | learning | HTMX 局部筛选、生成/可见性状态、隐藏/恢复/删除、显式勾选批量、冷静期读回 |
+| `admin:question-bank-api` | 题库 API 设置 | learning | 默认关闭、分钟/每日限流、精确 HTTPS Origin 白名单、用量摘要 |
 
 不建立空洞的管理仪表盘首页。个人菜单中的“管理”直接进入上次/默认的首个功能入口，移动端管理侧栏变为可滚动模块导航，所有写动作仍使用一致确认弹窗。
 
 ## HTMX 响应规范
 
 - 成功局部更新返回领域 partial，并通过响应事件触发 toast、badge 或焦点恢复。
+- 管理文档与题库队列的筛选只替换对应列表 partial，并用 `hx-push-url` 保留可分享的筛选参数；无 HTMX 时保留完整页面回退。
 - 表单校验失败返回同一表单 partial，HTTP 422，错误紧邻字段，保留输入。
 - 并发冲突返回 409 的冲突 partial；不得被全局错误 toast 吞掉。
 - 权限过期返回完整登录提醒/重定向约定；HTMX 请求使用 `HX-Redirect` 到同源登录并带安全 next。

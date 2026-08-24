@@ -5,7 +5,12 @@ import re
 from collections.abc import Mapping
 from urllib.parse import urlencode, urlsplit
 
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _API = "https://myjob.hzbank.com.cn/hzzp-apply/employInfo/queryEmployInfosList"
@@ -119,6 +124,7 @@ def _job(
             row.get("jobDesc"),
             row.get("jobRequire"),
         ),
+        published_at=published_at_from_mapping(row),
     )
 
 

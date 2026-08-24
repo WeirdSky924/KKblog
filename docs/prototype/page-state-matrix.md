@@ -47,6 +47,15 @@
 | `accounts:sessions` | accounts | 用户/作者/管理员 | S0,S1,S2,S3,S4,S5,S6；指定退出/全退出 | account |
 | `accounts:bookmarks` | discovery | 用户/作者/管理员 | S0,S1,S2,S4,S5；失效文章占位 | personalsettings |
 | `notifications:list` | notifications | 用户/作者/管理员本人 | S0,S1,S2,S4,S5,S6；单条/全部已读 | account |
+| `question-banks:index` | learning | 全部 | S0,S1,S2,S3,S4；搜索/筛选/四种排序/分页 | 新增 learning |
+| `question-banks:detail` | learning | 全部 | S0,S1,S4,S5；隐藏/删除 404、题面/答案/解析、答题登录返回 | 新增 learning |
+| `learning:documents` | learning | 有附件能力作者本人 | S0,S1,S2,S3,S4,S5,S6,S7；逐次声明、上传、审核终态、删除恢复 | 新增 learning |
+| `learning:document-detail` | learning | owner/管理员受控例外 | S0,S1,S2,S3,S4,S5,S6,S7；原文、访问历史、申诉/重审 | 新增 learning |
+| `learning:bank-generate` | learning | 有附件能力 owner | S0,S1,S2,S3,S4,S5,S6,S7；题型 Switch、完整/部分/失败 | 新增 learning |
+| `learning:quiz-start` | learning | 登录用户 | S0,S1,S2,S3,S4,S5,S6；题型/题量/随机/计时 | 新增 learning |
+| `learning:quiz-attempt` | learning | 登录本人 | S0,S1,S3,S4,S5,S6,S7；自动保存、跨设备、软超时、提交 | 新增 learning |
+| `learning:wrong-book` | learning | 登录本人 | S0,S1,S2,S3,S4,S5,S6；掌握切换/错题练习 | 新增 learning |
+| `learning:records` | learning | 登录本人 | S0,S1,S2,S3,S4,S5,S6,S7；详情/复选删除/清空/CSV | 新增 learning |
 
 ## 作者工作台
 
@@ -83,6 +92,11 @@
 | `admin:errors` | administration | 管理员 | S0,S1,S2,S3,S4,S5；trace/脱敏/未找到 | operations |
 | `admin:tasks` | administration | 管理员 | S0,S1,S2,S4,S5,S7；运行/成功/终败/无手动重试 | operations |
 | `admin:analytics` | administration | 管理员 | S0,S1,S4,S5；同源代理/不可直连 | operations |
+| `admin:agent-endpoints` | administration/agents | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；参数/启停/检查/token reset/秘密不回显 | 新增 learning-admin |
+| `admin:agent-profiles` | administration/agents | 管理员 | S0,S1,S2,S3,S4,S5,S6；Prompt Markdown/历史/切换/409 | 新增 learning-admin |
+| `admin:learning-documents` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；分页/逐条原文/申诉/显式批量 | 新增 learning-admin |
+| `admin:question-banks` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；配额/运行/处置/显式批量 | 新增 learning-admin |
+| `admin:question-bank-api` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6；开关/限流/CORS/用量 | 新增 learning-admin |
 
 ## 原型收口
 

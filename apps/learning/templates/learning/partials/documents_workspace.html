@@ -1,0 +1,267 @@
+<div
+  id="knowledge-workspace"
+  class="knowledge-workspace"
+  {% if knowledge_has_active_generation and not dialog_kind %}
+    hx-get="{% url 'learning:documents' %}?page={{ knowledge_page.page_number }}"
+    hx-trigger="every 8s"
+    hx-target="#knowledge-workspace"
+    hx-swap="outerHTML settle:120ms"
+  {% endif %}
+>
+  {% if saved_message %}<p class="account-status" role="status">{{ saved_message }}</p>{% endif %}
+
+  {% if knowledge_can_upload %}
+    <section class="knowledge-upload" aria-labelledby="knowledge-upload-title">
+      <div class="knowledge-section-heading">
+        <div>
+          <p class="learning-folio">新文档</p>
+          <h2 id="knowledge-upload-title">上传 Markdown</h2>
+        </div>
+        <span>最大 2 MiB</span>
+      </div>
+      <form
+        method="post"
+        class="knowledge-upload-form"
+        data-submit-once
+        hx-post="{% url 'learning:documents' %}"
+        hx-target="#knowledge-workspace"
+        hx-swap="outerHTML"
+      >
+        {% csrf_token %}<input type="hidden" name="action" value="submit">
+        {{ upload_form.statement_version }}{{ upload_form.idempotency_key }}
+        {{ upload_form.non_field_errors }}
+        {% include "media/partials/picker.html" with adapter="knowledge-document" upload_url=knowledge_upload_url input_name="source_asset_id" label="知识文档" picker_id="knowledge-document-upload" current_asset_id=upload_form.source_asset_id.value current_asset_name="" current_asset_size="" current_asset_mime="text/markdown" favicon_preview=False %}
+        {{ upload_form.source_asset_id.errors }}
+        <div class="knowledge-statement">
+          {% include "components/forms/switch.html" with field=upload_form.accepted only %}
+          {{ upload_form.accepted.errors }}
+        </div>
+        <button class="button button--primary" type="submit">
+          <i data-lucide="send"></i><span>提交审核</span>
+        </button>
+      </form>
+    </section>
+  {% endif %}
+
+  <section class="knowledge-library" aria-labelledby="knowledge-library-title">
+    <div class="knowledge-section-heading">
+      <div>
+        <p class="learning-folio">文档库</p>
+        <h2 id="knowledge-library-title">审核与使用状态</h2>
+      </div>
+      <span>{{ knowledge_page.total_items }} 份</span>
+    </div>
+    {% if knowledge_page.items %}
+      <div class="knowledge-list">
+        {% for item in knowledge_page.items %}
+          <article class="knowledge-item" id="knowledge-{{ item.document_id }}">
+            <header class="knowledge-item__header">
+              <div>
+                <span class="knowledge-state knowledge-state--{{ item.state|lower }}">
+                  {% if item.state == "REVIEW_PENDING" %}等待审核{% elif item.state == "REVIEWING" %}审核中{% elif item.state == "APPROVED" %}已通过{% elif item.state == "REJECTED" %}未通过{% elif item.state == "REVIEW_FAILED" %}审核失败{% elif item.state == "DELETE_PENDING" %}待删除{% elif item.state == "CONTENT_PURGED" %}内容已清理{% else %}{{ item.state }}{% endif %}
+                </span>
+                <h3>{{ item.title|default:item.original_name|default:"知识文档" }}</h3>
+                {% if item.original_name %}<p>{{ item.original_name }}</p>{% endif %}
+              </div>
+              <time datetime="{{ item.updated_at|date:'c' }}">{{ item.updated_at|date:"Y-m-d H:i" }}</time>
+            </header>
+            <div class="knowledge-item__body">
+              {% if item.summary %}<p class="knowledge-item__summary">{{ item.summary }}</p>{% endif %}
+              {% if item.safe_status_summary %}<p class="knowledge-item__status-note">{{ item.safe_status_summary }}</p>{% endif %}
+            </div>
+            <dl class="knowledge-item__facts">
+              <div><dt>字符</dt><dd>{{ item.character_count|default:"—" }}</dd></div>
+              <div><dt>题库记录</dt><dd>{{ item.question_bank_series_count }}</dd></div>
+            </dl>
+            <div class="knowledge-actions">
+              {% if item.state != "CONTENT_PURGED" and item.state != "DELETE_PENDING" %}
+                <a id="knowledge-view-{{ item.document_id }}" class="button button--secondary" href="?dialog=document&amp;document_id={{ item.document_id }}" data-dialog-trigger aria-controls="knowledge-detail-dialog" aria-label="查看文档" title="查看文档">
+                  <i data-lucide="file-text"></i><span>查看</span>
+                </a>
+              {% endif %}
+              <a id="knowledge-history-{{ item.document_id }}" class="button button--secondary" href="?dialog=history&amp;document_id={{ item.document_id }}" data-dialog-trigger aria-controls="knowledge-history-dialog" aria-label="查看历史记录" title="查看历史记录">
+                <i data-lucide="history"></i><span>历史记录</span><span class="knowledge-action-count" aria-label="{{ item.question_bank_series_count }} 条记录">{{ item.question_bank_series_count }}</span>
+              </a>
+              {% if item.state == "REJECTED" or item.state == "REVIEW_FAILED" %}
+                <form method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+                  {% csrf_token %}<input type="hidden" name="action" value="retry"><input type="hidden" name="document_id" value="{{ item.document_id }}"><input type="hidden" name="expected_version" value="{{ item.row_version }}">
+                  <button class="button button--secondary" type="submit" aria-label="重新审核" title="重新审核"><i data-lucide="rotate-cw"></i><span>重新审核</span></button>
+                </form>
+              {% endif %}
+              {% if item.state == "APPROVED" %}
+                {% if knowledge_generation_available %}<a id="knowledge-generate-{{ item.document_id }}" class="button button--primary" href="?dialog=generate&amp;document_id={{ item.document_id }}" data-dialog-trigger aria-controls="knowledge-generate-dialog" aria-label="生成题库" title="生成题库"><i data-lucide="sparkles"></i><span>生成题库</span></a>{% else %}<button class="button button--secondary" type="button" disabled aria-label="生成题库暂不可用" title="生成题库暂不可用"><i data-lucide="sparkles"></i><span>生成暂不可用</span></button>{% endif %}
+              {% endif %}
+              {% if item.state == "REJECTED" and not item.pending_appeal_id %}
+                <a id="knowledge-appeal-{{ item.document_id }}" class="button button--secondary" href="?dialog=appeal&amp;document_id={{ item.document_id }}" data-dialog-trigger aria-controls="knowledge-appeal-dialog" aria-label="提交申诉" title="提交申诉">
+                  <i data-lucide="message-circle"></i><span>申诉</span>
+                </a>
+              {% endif %}
+              {% if item.pending_appeal_id %}
+                <form method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+                  {% csrf_token %}<input type="hidden" name="action" value="withdraw_appeal"><input type="hidden" name="appeal_id" value="{{ item.pending_appeal_id }}"><input type="hidden" name="expected_version" value="{{ item.pending_appeal_version }}">
+                  <button class="button button--secondary" type="submit" aria-label="撤回申诉" title="撤回申诉"><i data-lucide="undo-2"></i><span>撤回申诉</span></button>
+                </form>
+              {% endif %}
+              {% if item.state == "DELETE_PENDING" %}
+                <form method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+                  {% csrf_token %}<input type="hidden" name="action" value="restore"><input type="hidden" name="document_id" value="{{ item.document_id }}"><input type="hidden" name="expected_version" value="{{ item.row_version }}">
+                  <button class="button button--primary" type="submit" aria-label="恢复文档" title="恢复文档"><i data-lucide="undo-2"></i><span>恢复</span></button>
+                </form>
+              {% elif item.state != "CONTENT_PURGED" %}
+                <form method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+                  {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="document_id" value="{{ item.document_id }}"><input type="hidden" name="expected_version" value="{{ item.row_version }}">
+                  <button class="button button--danger" type="submit" aria-label="删除文档" title="删除文档"><i data-lucide="trash-2"></i><span>删除</span></button>
+                </form>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+      {% if knowledge_page.total_pages > 1 %}
+        <nav class="knowledge-pagination" aria-label="知识文档分页">
+          {% if knowledge_page.has_previous %}<a href="?page={{ knowledge_page.page_number|add:'-1' }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}
+          <span>第 {{ knowledge_page.page_number }} / {{ knowledge_page.total_pages }} 页</span>
+          {% if knowledge_page.has_next %}<a href="?page={{ knowledge_page.page_number|add:'1' }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="knowledge-empty"><i data-lucide="file-text"></i><h3>暂无知识文档</h3></div>
+    {% endif %}
+  </section>
+
+  {% if dialog_kind == "document" and dialog_document %}
+    <dialog id="knowledge-detail-dialog" class="confirm-dialog knowledge-dialog" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-view-{{ dialog_document.document_id }}" data-dialog-return-url="{% url 'learning:documents' %}#knowledge-{{ dialog_document.document_id }}" aria-labelledby="knowledge-detail-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>知识文档</p><h2 id="knowledge-detail-title">{{ dialog_document.title|default:"文档详情" }}</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <dl class="knowledge-detail-facts"><div><dt>状态</dt><dd>{% if dialog_document.state == "REVIEW_PENDING" %}等待审核{% elif dialog_document.state == "REVIEWING" %}审核中{% elif dialog_document.state == "APPROVED" %}已通过{% elif dialog_document.state == "REJECTED" %}未通过{% elif dialog_document.state == "REVIEW_FAILED" %}审核失败{% else %}不可用{% endif %}</dd></div><div><dt>文件名</dt><dd>{{ dialog_document.original_name }}</dd></div><div><dt>字符</dt><dd>{{ dialog_document.character_count }}</dd></div></dl>
+        {% if dialog_content_html %}<div class="article-prose knowledge-source">{{ dialog_content_html|safe }}</div>{% else %}<p>文档内容当前不可读取。</p>{% endif %}
+        {% if dialog_access_history.items %}<section><h3>管理员访问记录</h3><ol class="knowledge-access-list">{% for access in dialog_access_history.items %}<li><time datetime="{{ access.accessed_at|date:'c' }}">{{ access.accessed_at|date:"Y-m-d H:i" }}</time><span>{{ access.purpose }}</span></li>{% endfor %}</ol></section>{% endif %}
+        <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "history" and dialog_document %}
+    <dialog id="knowledge-history-dialog" class="confirm-dialog knowledge-dialog knowledge-dialog--history" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-history-{{ dialog_document.document_id }}" data-dialog-return-url="{% url 'learning:documents' %}#knowledge-{{ dialog_document.document_id }}" aria-labelledby="knowledge-history-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header>
+          <div><p>题库历史</p><h2 id="knowledge-history-title">{{ dialog_document.title|default:dialog_document.original_name|default:"知识文档" }}</h2></div>
+          <button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button>
+        </header>
+        <div class="knowledge-dialog__scroll">
+          <p class="knowledge-history__intro">本页只展示这份文档创建过的题库记录，其他文档的生成状态不会混入。</p>
+          {% if dialog_history %}
+            <section class="knowledge-generations knowledge-generations--dialog" aria-label="题库生成记录">
+              {% for series in dialog_history %}
+                <article class="knowledge-generation knowledge-generation--{{ series.state|lower }}">
+                  <header>
+                    <div>
+                      <span class="knowledge-generation__state">
+                        {% if series.state == "GENERATION_PENDING" %}等待生成{% elif series.state == "GENERATING" %}生成中{% elif series.state == "PUBLISHED" %}已发布{% elif series.state == "GENERATION_FAILED" %}生成失败{% else %}{{ series.state }}{% endif %}
+                      </span>
+                      <h4>{{ series.base_title }}</h4>
+                    </div>
+                    <time datetime="{{ series.created_at|date:'c' }}">{{ series.created_at|date:"Y-m-d H:i" }}</time>
+                  </header>
+                  {% if series.description %}<p>{{ series.description }}</p>{% endif %}
+                  {% if series.safe_summary %}<p>{{ series.safe_summary }}</p>{% endif %}
+                  {% if series.state == "PUBLISHED" %}
+                    <dl class="knowledge-generation__coverage">
+                      <div><dt>知识点</dt><dd>{{ series.total_knowledge_points }}</dd></div>
+                      <div><dt>已覆盖</dt><dd>{{ series.covered_knowledge_points }}</dd></div>
+                      <div><dt>遗漏</dt><dd>{{ series.omitted_knowledge_points }}</dd></div>
+                    </dl>
+                    {% if series.tags %}<ul class="knowledge-generation__tags" aria-label="题库标签">{% for tag in series.tags %}<li>{{ tag }}</li>{% endfor %}</ul>{% endif %}
+                    <ol class="knowledge-generation__volumes">
+                      {% for volume in series.volumes %}
+                        <li><span>{% if series.volumes|length == 1 %}题库{% elif volume.volume_number == 1 %}第一卷{% else %}第二卷{% endif %}</span><strong>{{ volume.question_count }} 题</strong><a id="knowledge-bank-{{ volume.bank_id }}" class="button button--secondary" href="?dialog=bank&amp;bank_id={{ volume.bank_id }}&amp;history_document_id={{ dialog_document.document_id }}" data-dialog-trigger aria-controls="knowledge-bank-dialog"><i data-lucide="list-tree"></i><span>查看题目</span></a><a class="button button--secondary" href="{% url 'question_banks:detail' bank_id=volume.bank_id %}"><i data-lucide="external-link"></i><span>公开页</span></a></li>
+                      {% endfor %}
+                    </ol>
+                    <div class="knowledge-generation__actions"><a id="knowledge-series-{{ series.series_id }}" class="button button--secondary" href="?dialog=series&amp;series_id={{ series.series_id }}&amp;history_document_id={{ dialog_document.document_id }}" data-dialog-trigger aria-controls="knowledge-series-dialog"><i data-lucide="settings-2"></i><span>编辑资料</span></a></div>
+                  {% elif series.state == "GENERATION_PENDING" or series.state == "GENERATING" %}
+                    <div class="knowledge-generation__progress" aria-hidden="true"><span></span></div>
+                  {% elif series.state == "GENERATION_FAILED" %}
+                    {% if series.failure_message %}<p class="knowledge-generation__error" role="alert">{{ series.failure_message }}</p>{% endif %}
+                    <form class="knowledge-generation__actions" method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+                      {% csrf_token %}<input type="hidden" name="action" value="retry_generation"><input type="hidden" name="series_id" value="{{ series.series_id }}"><input type="hidden" name="expected_version" value="{{ series.row_version }}"><input type="hidden" name="idempotency_key" value="generation-retry:{{ series.series_id }}:{{ series.row_version }}">
+                      <button class="button button--primary" type="submit"><i data-lucide="rotate-cw"></i><span>重新生成</span></button>
+                    </form>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </section>
+          {% else %}
+            <div class="knowledge-history__empty"><i data-lucide="history"></i><h3>暂无生成记录</h3><p>在这份文档上生成题库后，记录会显示在这里。</p></div>
+          {% endif %}
+        </div>
+        <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "appeal" and dialog_document %}
+    <dialog id="knowledge-appeal-dialog" class="confirm-dialog knowledge-dialog knowledge-dialog--compact" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-appeal-{{ dialog_document.document_id }}" data-dialog-return-url="{% url 'learning:documents' %}#knowledge-{{ dialog_document.document_id }}" aria-labelledby="knowledge-appeal-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>正式申诉</p><h2 id="knowledge-appeal-title">提交申诉</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <form method="post" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+          {% csrf_token %}<input type="hidden" name="action" value="appeal">{{ appeal_form.document_id }}{{ appeal_form.expected_version }}{{ appeal_form.non_field_errors }}
+          <div>{{ appeal_form.reason_markdown.label_tag }}{{ appeal_form.reason_markdown }}{{ appeal_form.reason_markdown.errors }}</div>
+          <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit"><i data-lucide="send"></i><span>提交申诉</span></button></div>
+        </form>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "generate" and dialog_document %}
+    <dialog id="knowledge-generate-dialog" class="confirm-dialog knowledge-dialog knowledge-dialog--compact" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-generate-{{ dialog_document.document_id }}" data-dialog-return-url="{% url 'learning:documents' %}#knowledge-{{ dialog_document.document_id }}" aria-labelledby="knowledge-generate-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>题库生成</p><h2 id="knowledge-generate-title">配置题库</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <form method="post" class="knowledge-generation-form" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+          {% csrf_token %}<input type="hidden" name="action" value="generate">{{ generation_form.document_id }}{{ generation_form.idempotency_key }}{{ generation_form.non_field_errors }}
+          <div>{{ generation_form.base_title.label_tag }}{{ generation_form.base_title }}{{ generation_form.base_title.errors }}</div>
+          <div>{{ generation_form.description.label_tag }}{{ generation_form.description }}{{ generation_form.description.errors }}</div>
+          <fieldset class="knowledge-generation-types"><legend>题型</legend>
+            {% include "components/forms/switch.html" with field=generation_form.single_choice only %}
+            {% include "components/forms/switch.html" with field=generation_form.multiple_choice only %}
+            {% include "components/forms/switch.html" with field=generation_form.true_false only %}
+            {% include "components/forms/switch.html" with field=generation_form.short_answer only %}
+          </fieldset>
+          <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit"><i data-lucide="sparkles"></i><span>开始生成</span></button></div>
+        </form>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "series" and dialog_series %}
+    <dialog id="knowledge-series-dialog" class="confirm-dialog knowledge-dialog knowledge-dialog--compact" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-series-{{ dialog_series.series_id }}" data-dialog-return-url="{{ dialog_return_url|default:request.path }}" aria-labelledby="knowledge-series-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>题库资料</p><h2 id="knowledge-series-title">编辑题库资料</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <form method="post" class="knowledge-generation-form" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+          {% csrf_token %}<input type="hidden" name="action" value="update_series">{{ metadata_form.series_id }}{{ metadata_form.expected_version }}{{ metadata_form.non_field_errors }}
+          <div>{{ metadata_form.base_title.label_tag }}{{ metadata_form.base_title }}{{ metadata_form.base_title.errors }}</div>
+          <div>{{ metadata_form.description.label_tag }}{{ metadata_form.description }}{{ metadata_form.description.errors }}</div>
+          <div>{{ metadata_form.tags.label_tag }}{{ metadata_form.tags }}{{ metadata_form.tags.errors }}</div>
+          <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit"><i data-lucide="save"></i><span>保存资料</span></button></div>
+        </form>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "bank" and dialog_bank %}
+    <dialog id="knowledge-bank-dialog" class="confirm-dialog knowledge-dialog" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-bank-{{ dialog_bank.bank_id }}" data-dialog-return-url="{{ dialog_return_url|default:request.path }}" aria-labelledby="knowledge-bank-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>当前修订 · v{{ dialog_bank.revision_sequence }}</p><h2 id="knowledge-bank-title">{{ dialog_bank.base_title }}{% if dialog_bank.volume_count > 1 %} · 第 {{ dialog_bank.volume_number }} 卷{% endif %}</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <ol class="knowledge-question-list">
+          {% for question in dialog_bank.questions %}
+            <li><div><span>{{ question.ordinal }}</span><p>{{ question.stem_markdown }}</p></div><a id="knowledge-question-{{ dialog_bank.bank_id }}-{{ question.logical_id }}" class="icon-button" href="?dialog=question&amp;bank_id={{ dialog_bank.bank_id }}&amp;question_id={{ question.logical_id|urlencode }}{% if dialog_history_document_id %}&amp;history_document_id={{ dialog_history_document_id }}{% endif %}" aria-label="编辑题目"><i data-lucide="pencil"></i></a></li>
+          {% endfor %}
+        </ol>
+        <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
+      </div>
+    </dialog>
+  {% elif dialog_kind == "question" and dialog_bank and dialog_question %}
+    <dialog id="knowledge-question-dialog" class="confirm-dialog knowledge-dialog" data-confirm-dialog data-auto-modal data-dialog-return-focus="knowledge-bank-{{ dialog_bank.bank_id }}" data-dialog-return-url="{{ dialog_return_url|default:request.path }}" aria-labelledby="knowledge-question-title">
+      <div class="confirm-dialog__content knowledge-dialog__content">
+        <header><div><p>题目 {{ dialog_question.ordinal }}</p><h2 id="knowledge-question-title">编辑题目</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <form method="post" class="knowledge-generation-form" data-submit-once hx-post="{% url 'learning:documents' %}" hx-target="#knowledge-workspace" hx-swap="outerHTML">
+          {% csrf_token %}<input type="hidden" name="action" value="revise_question">{{ question_form.bank_id }}{{ question_form.logical_id }}{{ question_form.expected_bank_version }}{{ question_form.non_field_errors }}
+          <div>{{ question_form.stem_markdown.label_tag }}{{ question_form.stem_markdown }}{{ question_form.stem_markdown.errors }}</div>
+          {% if dialog_question.question_type == "SINGLE_CHOICE" or dialog_question.question_type == "MULTIPLE_CHOICE" %}<div>{{ question_form.options_text.label_tag }}{{ question_form.options_text }}{{ question_form.options_text.errors }}</div><div>{{ question_form.correct_option_ids.label_tag }}{{ question_form.correct_option_ids }}{{ question_form.correct_option_ids.errors }}</div>{% elif dialog_question.question_type == "TRUE_FALSE" %}<div>{{ question_form.boolean_answer.label_tag }}{{ question_form.boolean_answer }}{{ question_form.boolean_answer.errors }}</div>{% else %}<div>{{ question_form.reference_answer.label_tag }}{{ question_form.reference_answer }}{{ question_form.reference_answer.errors }}</div><div>{{ question_form.scoring_points.label_tag }}{{ question_form.scoring_points }}{{ question_form.scoring_points.errors }}</div>{% endif %}
+          <div>{{ question_form.explanation_markdown.label_tag }}{{ question_form.explanation_markdown }}{{ question_form.explanation_markdown.errors }}</div>
+          <div>{{ question_form.revision_reason.label_tag }}{{ question_form.revision_reason }}{{ question_form.revision_reason.errors }}</div>
+          <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button button--primary" type="submit"><i data-lucide="save"></i><span>保存修订</span></button></div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+</div>

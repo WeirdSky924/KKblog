@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ bank.title }} · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}question-bank-shell{% endblock %}
+{% block main_class %}question-bank-main{% endblock %}
+
+{% block content %}
+  <article class="question-bank-page question-bank-detail" aria-labelledby="question-bank-title">
+    <a class="question-bank-back" href="{% url 'question_banks:index' %}"><i data-lucide="arrow-left"></i><span>返回题库列表</span></a>
+    <header class="question-bank-detail__header">
+      <div><p class="learning-folio">公开题库</p><h1 id="question-bank-title">{{ bank.title }}</h1>{% if bank.description %}<p>{{ bank.description }}</p>{% endif %}</div>
+      <a class="question-bank-author" href="{{ bank.author.profile_url }}">{% if bank.author.avatar_url %}<img src="{{ bank.author.avatar_url }}" alt="">{% else %}<span aria-hidden="true">{{ bank.author.avatar_initial }}</span>{% endif %}<strong>{{ bank.author.display_name }}</strong></a>
+    </header>
+    <dl class="question-bank-detail__facts"><div><dt>题量</dt><dd>{{ bank.question_count }}</dd></div><div><dt>完成答题</dt><dd>{{ bank.completed_attempt_count }}</dd></div><div><dt>首次发布</dt><dd><time datetime="{{ bank.published_at|date:'c' }}">{{ bank.published_at|date:"Y-m-d H:i" }}</time></dd></div><div><dt>知识点覆盖</dt><dd>{{ bank.covered_knowledge_points }} / {{ bank.total_knowledge_points }}</dd></div></dl>
+    {% if bank.tags %}<ul class="question-bank-tags" aria-label="题库标签">{% for tag in bank.tags %}<li>{{ tag.name }}</li>{% endfor %}</ul>{% endif %}
+    {% if bank.omitted_knowledge_points %}<p class="question-bank-partial">本系列有 {{ bank.omitted_knowledge_points }} 个知识点未覆盖。</p>{% endif %}
+
+    <ol class="public-question-list">
+      {% for rendered in rendered_questions %}
+        <li class="public-question">
+          <header><span>{{ rendered.source.ordinal|stringformat:"02d" }}</span><strong>{% if rendered.source.question_type == "SINGLE_CHOICE" %}单选题{% elif rendered.source.question_type == "MULTIPLE_CHOICE" %}多选题{% elif rendered.source.question_type == "TRUE_FALSE" %}判断题{% else %}简答题{% endif %}</strong></header>
+          <div class="article-prose public-question__stem">{{ rendered.stem_html|safe }}</div>
+          {% if rendered.source.options %}<ol class="public-question__options" type="A">{% for option in rendered.source.options %}<li class="{% if option.option_id in rendered.source.correct_option_ids %}is-correct{% endif %}"><span>{{ option.text }}</span>{% if option.option_id in rendered.source.correct_option_ids %}<i data-lucide="check" aria-label="正确答案"></i>{% endif %}</li>{% endfor %}</ol>{% elif rendered.source.question_type == "TRUE_FALSE" %}<p class="public-question__answer"><strong>答案</strong><span>{% if rendered.source.boolean_answer %}正确{% else %}错误{% endif %}</span></p>{% else %}<section class="public-question__answer"><h3>参考答案</h3><p>{{ rendered.source.reference_answer }}</p>{% if rendered.source.scoring_points %}<h3>评分要点</h3><ul>{% for point in rendered.source.scoring_points %}<li>{{ point }}</li>{% endfor %}</ul>{% endif %}</section>{% endif %}
+          <section class="public-question__explanation"><h3>解析</h3><div class="article-prose">{{ rendered.explanation_html|safe }}</div></section>
+        </li>
+      {% endfor %}
+    </ol>
+  </article>
+{% endblock %}

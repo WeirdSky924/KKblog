@@ -70,6 +70,7 @@ class Opportunity(models.Model):
     last_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
     last_error_code = models.CharField(max_length=96, blank=True, editable=False)
     last_collected_at = models.DateTimeField(null=True, blank=True, editable=False)
+    published_at = models.DateTimeField(null=True, blank=True, editable=False)
     source_disabled_previous_state = models.CharField(
         max_length=16,
         choices=PublicationState.choices,
@@ -147,6 +148,10 @@ class Opportunity(models.Model):
             models.Index(
                 fields=("source", "origin", "updated_at"),
                 name="opp_admin_source_idx",
+            ),
+            models.Index(
+                fields=("-published_at", "id"),
+                name="opp_publication_time_idx",
             ),
         ]
 

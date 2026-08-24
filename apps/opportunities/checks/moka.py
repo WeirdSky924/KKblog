@@ -7,7 +7,12 @@ from collections.abc import Mapping
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from ._aes import decrypt_aes128_cbc
-from .adapters import AdapterResult, CollectedOpportunity, FetchClient
+from .adapters import (
+    AdapterResult,
+    CollectedOpportunity,
+    FetchClient,
+    published_at_from_mapping,
+)
 from .http import MAX_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
 
 _COHORT = re.compile(r"(?<!\d)(?:20)?(\d{2})\s*届")
@@ -216,6 +221,7 @@ def _job(
         category_labels=category_labels,
         city_labels=tuple(dict.fromkeys(city_labels)),
         cohort_labels=cohorts,
+        published_at=published_at_from_mapping(row),
     )
 
 

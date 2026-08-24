@@ -36,9 +36,15 @@
 | Q302-Q307、Q311 | 管理员内容例外、通知、申诉 | ADR-005、authorization、article/moderation state |
 | Q314 | 正文默认 `2 MiB`，可配 `64 KiB..2 MiB` | content fields、site settings、capacity validation、requirements resolution |
 | Q322 | 无外部 API/第三方登录 | system overview、ADR-003、frontend contract |
+| AKQ-Q001-Q008、Q024-Q025、Q030-Q033、Q036A-Q036C | 附件权限知识文档、审核、申诉、配额、保留与访问透明度 | agents/learning modules、media、authorization、ER/lifecycle、services/tasks |
+| AKQ-Q009-Q010、Q026-Q028、Q034-Q035C、Q039 | 公开题库 HTML 与默认关闭匿名只读 API、筛选、分页、CORS、限流 fail closed | ADR-003 exception、learning module、frontend/API contract、storage lifecycle |
+| AKQ-Q011-Q023、Q029、Q037 | 题库生成/修订/标签、答题、错题、记录、通知和管理批量边界 | learning module、services/events/tasks、authorization、page-state/verification |
+| AKQ-Q003-Q005、Q036D-Q036F、Q038A-Q038B | 三类 Provider、Endpoint 参数、Prompt、SSRF、token ledger 与 reset | agents module、services、events/errors、constraints/tasks |
 
 ## 使用方法
 
 实现一个切片时，在测试计划中引用具体 Q 编号和本表落点。若某条需求在对应文档中找不到字段、状态、服务、页面或验收中的至少一个落点，先补设计；不要把它留给 View 中临时判断。
+
+`AKQ-*` 专指 `docs/planning/agent-knowledge-quiz/requirements-interview.md` 的局部编号，避免与原 322 项访谈编号混淆。AKQ-Q001 到 AKQ-Q039 及其 A-F 子项必须以该记录的最终裁决为准。
 
 需求变化后同时更新原始访谈/变更记录、消歧表、本矩阵和受影响施工文档。只有矩阵行存在不等于功能完成，完成证据以 `delivery/02-module-verification-matrix.md` 为准。

@@ -35,6 +35,13 @@
 | `opportunity_collection_snapshot` / `opportunity_state_transition` | 完整与截断不能同时为真、到期晚于观察；岗位状态转换前后不同且只能使用固定核实状态 |
 | `opportunity_bookmark` / `opportunity_settings` | `(account_id, opportunity_id)` 唯一；设置表只允许主键 `1` 且行版本为正数 |
 | `opportunity_default_filter_selection` | 每个设置、筛选种类与选项/来源/枚举值唯一；城市/类别/届别只能引用筛选选项，企业只能引用来源，状态/招聘类型只能保存非空枚举值 |
+| `agent_endpoint` / `agent_profile` / `agent_prompt_revision` | Endpoint 安全名称唯一；profile stable key 唯一；`(profile_id, sequence)` 唯一且当前 Prompt 必须属于 profile；运行参数与每日额度有范围/交叉 CHECK |
+| `agent_invocation` / `agent_token_ledger` / `agent_token_reservation` / `agent_token_adjustment` / `agent_token_reset_operation` | `(caller_type, caller_id, idempotency_key)` 唯一；ledger scope/date 唯一；reservation/adjustment/reset 幂等键唯一；token 数非负，reset 范围、终态与租约时间形状一致 |
+| `knowledge_document` / `knowledge_review_run` | 同 owner 未清理 `content_sha256` 条件唯一；声明版本/确认事实成对；一个文档至多一个活跃 review run；删除/30 天清理时间与状态匹配 |
+| `learning_appeal` / `knowledge_document_access` | 每目标至多一个 PENDING appeal；access 必须有管理员 actor、用途和成功读取时间，不含正文列 |
+| `question_bank_series` / `question_bank` / `question_bank_revision` / `question` | 每 series 卷号 `1..2` 唯一；`(bank, sequence)` 与 `(revision, ordinal)` 唯一；current revision 属于同 bank；题型/选项/答案与覆盖计数受约束 |
+| `question_bank_tag` / `question_bank_tag_assignment` | learning 内规范名称唯一；每 series/tag 唯一，不引用 content tag |
+| `quiz_attempt` / `quiz_response` / `wrong_question` | response 每 attempt/question logical ID 唯一；wrong item 每 account/bank/question logical ID 唯一；计时、版本、分数与 mastery 枚举受约束 |
 
 “恰好一个管理员”“每篇最多十标签”“父评论同线程”“修订指针同文章”在普通 `CHECK` 难以完整表达时，使用以下优先级：原生唯一/外键约束、延迟约束触发器、加锁的领域服务、数据库回归测试。不要只在表单层校验。
 
@@ -56,6 +63,10 @@
 | 单全局导出 | 先插入 `RUNNING`，并让 `RUNNING/CANCEL_REQUESTED` 共用部分唯一约束作为最终并发裁决 |
 | 导航编辑/移动/删除 | 锁全树与树版本；默认展开只允许父节点，原父节点失去最后子项时同事务复位并推进节点版本 |
 | 软删除到期清理 | `skip_locked` 小批量领取；每个文章独立事务与幂等文件清理 |
+| AGENT 首次外呼与结算 | 锁全站/Endpoint 当日 ledger 并按稳定顺序原子预留；结算/adjustment 依幂等键，活跃 reservation 不被 reset 清除 |
+| 文档提交/审核领取 | 锁账户配额、文档和运行；摘要唯一约束裁决重复；领取同时占用业务并发和 token reservation |
+| 题库生成/修订 | 锁文档、系列/题库当前指针与账户配额；所有卷完整校验后原子发布，不暴露半卷 |
+| 答题保存/提交 | 锁本人 attempt 并校验 row version；重复自动保存/提交幂等，提交后 wrong book 更新同事务 |
 
 默认使用 PostgreSQL `READ COMMITTED` 加显式行锁，不为“看起来更安全”全局升到 SERIALIZABLE。只有已证明的跨行写偏差再局部采用更高隔离级别。
 
@@ -88,11 +99,16 @@
 | 审计检索 | `(created_at desc)`、`(action, created_at)`、`(target_type,target_id)` |
 | 运行错误 | `(last_seen_at desc)`、`(error_code,last_seen_at)` |
 | 任务监控 | `(state, scheduled_at)`、唯一幂等键 |
-| 公开岗位 | `(publication_state, verification_status, source_id)`，再按来源规范企业名、标题和稳定 ID 排序 |
+| 公开岗位 | `(publication_state, verification_status, source_id)` 过滤索引；`(published_at desc, id)` 支持发布时间倒序且空值最后，再按来源规范企业名、标题和稳定 ID 收口 |
 | 后台岗位 | `(source_id, origin, updated_at)`；审核队列 `(state, kind, created_at)` |
 | 公开招聘来源 | `(enabled, publicly_visible, normalized_company_name)`；检查摘要 `(check_state, last_checked_at)` |
 | 岗位筛选与收藏 | `(option_id, opportunity_id)`；账户收藏 `(account_id, created_at desc, opportunity_id)` |
 | 检查历史 | 来源/目标类型/开始时间、岗位/开始时间及到期清理索引 |
+| AGENT 管理/用量 | endpoint 启用+名称；profile stable key；invocation 状态/创建时间；ledger scope/date；reservation lease expiry 部分索引 |
+| 本人知识文档 | `(owner_id, state, created_at desc, id)`；待审核/清理使用 `(state, purge_after, id)` 部分索引 |
+| 公开题库 | 可见题库 `(published_at desc, id)`；完成次数/题量排序稳定索引；标题/简介/learning tag trigram 与关联索引 |
+| 审核/生成运行 | `(state, scheduled_at, id)`、业务幂等键、lease expiry 部分索引 |
+| 答题/错题/记录 | `(account_id, updated_at desc, id)`；wrong `(account_id, mastery, bank_snapshot_id, id)`；response `(attempt_id, ordinal)` |
 
 分页使用稳定二级键。文章传统页码可以 OFFSET；评论无限滚动、通知和日志使用 keyset cursor，避免数据增长后重复/漏项。
 
@@ -107,6 +123,9 @@
 - 媒体资产：不得由任意业务外键直接 `CASCADE` 删除磁盘文件；先解绑，再由媒体服务/任务删除文件并标记。
 - 标签删除：业务软删除，不依赖级联；当前关联移除并保留恢复历史。
 - 通知管理员删除：业务软删除并从用户查询排除，审计仍保留。
+- 知识文档最终清理：先经 learning 解除 media 绑定并保留无正文 tombstone；不得级联已生成题库。
+- 题库最终清理：停止公开/API/新答题并删除本体；历史 response/wrong 快照置空引用后继续限本人读取。
+- 账户彻底删除：删除本人文档、题库、attempt/wrong；其他账户历史中作者引用置空并匿名化，审计只保留不可反向识别的计数/时间桶。
 
 ## 迁移模板
 

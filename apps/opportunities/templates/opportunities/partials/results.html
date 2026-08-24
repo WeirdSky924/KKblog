@@ -38,7 +38,15 @@
             <div class="opportunity-job__verification">
               <span>核实状态</span>
               <strong>{{ job.verification_status_label }}</strong>
-              <small>{{ job.availability_label }}{% if job.last_verified_at %} · {{ job.last_verified_at|date:"Y-m-d H:i" }}{% endif %}</small>
+              <small>{{ job.availability_label }}</small>
+              <small class="opportunity-job__published-at">
+                <i data-lucide="calendar-days" aria-hidden="true"></i>
+                {% if job.published_at %}
+                  <span>发布于 <time datetime="{{ job.published_at|date:'c' }}">{{ job.published_at|date:"Y-m-d H:i" }}</time></span>
+                {% else %}
+                  <span>发布时间未知</span>
+                {% endif %}
+              </small>
             </div>
 
             <div class="opportunity-public__actions">

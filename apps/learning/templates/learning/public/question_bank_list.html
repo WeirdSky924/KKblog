@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}公开题库 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}question-bank-shell{% endblock %}
+{% block main_class %}question-bank-main{% endblock %}
+
+{% block content %}
+  <section class="question-bank-page" aria-labelledby="question-bank-list-title">
+    <header class="question-bank-heading">
+      <div><p class="learning-folio">公开题库</p><h1 id="question-bank-list-title">知识题库</h1><p>浏览已公开的结构化题库、答案与解析。</p></div>
+    </header>
+
+    <details class="question-bank-filters" {% if request.GET %}open{% endif %}>
+      <summary>搜索与筛选</summary>
+      <form method="get">
+        <div class="question-bank-filter-search">
+          <div>{{ filter_form.q.label_tag }}{{ filter_form.q }}{{ filter_form.q.errors }}</div>
+          <div>{{ filter_form.sort.label_tag }}{{ filter_form.sort }}{{ filter_form.sort.errors }}</div>
+          <button class="button button--primary" type="submit"><i data-lucide="search"></i><span>筛选</span></button>
+          {% if request.GET %}<a class="button button--secondary" href="{% url 'question_banks:index' %}">清除</a>{% endif %}
+        </div>
+        <div class="question-bank-filter-grid">
+          <fieldset><legend>{{ filter_form.tags.label }}</legend>{{ filter_form.tags }}{{ filter_form.tags.errors }}</fieldset>
+          <fieldset><legend>{{ filter_form.question_types.label }}</legend>{{ filter_form.question_types }}{{ filter_form.question_types.errors }}</fieldset>
+          <fieldset><legend>题量</legend><div class="question-bank-filter-range"><div>{{ filter_form.min_questions.label_tag }}{{ filter_form.min_questions }}{{ filter_form.min_questions.errors }}</div><div>{{ filter_form.max_questions.label_tag }}{{ filter_form.max_questions }}{{ filter_form.max_questions.errors }}</div></div></fieldset>
+          <fieldset><legend>发布时间</legend><div class="question-bank-filter-range"><div>{{ filter_form.published_from.label_tag }}{{ filter_form.published_from }}{{ filter_form.published_from.errors }}</div><div>{{ filter_form.published_to.label_tag }}{{ filter_form.published_to }}{{ filter_form.published_to.errors }}</div></div></fieldset>
+          <div class="question-bank-filter-author">{{ filter_form.author.label_tag }}{{ filter_form.author }}{{ filter_form.author.errors }}</div>
+        </div>
+      </form>
+    </details>
+
+    <section class="question-bank-results" aria-labelledby="question-bank-results-title">
+      <header><h2 id="question-bank-results-title">题库列表</h2><span>{{ bank_page.total_items }} 个结果</span></header>
+      {% if bank_page.items %}
+        <div class="question-bank-list">
+          {% for bank in bank_page.items %}
+            <article class="question-bank-item">
+              <div class="question-bank-item__main">
+                <div><p>{{ bank.published_at|date:"Y-m-d" }}</p><h3><a href="{% url 'question_banks:detail' bank_id=bank.bank_id %}">{{ bank.title }}</a></h3>{% if bank.description %}<p>{{ bank.description }}</p>{% endif %}</div>
+                <a class="question-bank-author" href="{{ bank.author.profile_url }}">{% if bank.author.avatar_url %}<img src="{{ bank.author.avatar_url }}" alt="">{% else %}<span aria-hidden="true">{{ bank.author.avatar_initial }}</span>{% endif %}<strong>{{ bank.author.display_name }}</strong></a>
+              </div>
+              {% if bank.tags %}<ul class="question-bank-tags" aria-label="题库标签">{% for tag in bank.tags %}<li>{{ tag.name }}</li>{% endfor %}</ul>{% endif %}
+              <dl class="question-bank-item__facts"><div><dt>题量</dt><dd>{{ bank.question_count }}</dd></div><div><dt>完成</dt><dd>{{ bank.completed_attempt_count }}</dd></div><div><dt>覆盖</dt><dd>{{ bank.covered_knowledge_points }} / {{ bank.total_knowledge_points }}</dd></div></dl>
+              <ul class="question-bank-types" aria-label="包含题型">{% for type in bank.question_types %}<li>{% if type == "SINGLE_CHOICE" %}单选{% elif type == "MULTIPLE_CHOICE" %}多选{% elif type == "TRUE_FALSE" %}判断{% else %}简答{% endif %}</li>{% endfor %}</ul>
+              {% if bank.omitted_knowledge_points %}<p class="question-bank-partial">有 {{ bank.omitted_knowledge_points }} 个知识点未覆盖</p>{% endif %}
+            </article>
+          {% endfor %}
+        </div>
+        {% if bank_page.total_pages > 1 %}<nav class="knowledge-pagination" aria-label="公开题库分页">{% if bank_page.has_previous %}<a href="?{{ previous_query }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}<span>第 {{ bank_page.page_number }} / {{ bank_page.total_pages }} 页</span>{% if bank_page.has_next %}<a href="?{{ next_query }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}</nav>{% endif %}
+      {% else %}
+        <div class="knowledge-empty"><i data-lucide="list-tree"></i><h3>没有符合条件的题库</h3></div>
+      {% endif %}
+    </section>
+  </section>
+{% endblock %}

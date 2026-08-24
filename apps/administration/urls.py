@@ -1,6 +1,8 @@
 from django.urls import path
 
 from apps.administration.permissions import administrator_required
+from apps.administration.views.agent_endpoints import agent_endpoints
+from apps.administration.views.agent_profiles import agent_profiles
 from apps.administration.views.article_moderation import (
     create_article_case_action,
     restore_article_case_action,
@@ -15,6 +17,11 @@ from apps.administration.views.exchange import download_export, exchange
 from apps.administration.views.index import index
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
+from apps.administration.views.learning_documents import learning_documents
+from apps.administration.views.learning_question_bank_queue import (
+    learning_question_bank_queue,
+)
+from apps.administration.views.learning_question_banks import learning_question_banks
 from apps.administration.views.navigation import navigation
 from apps.administration.views.notifications import notifications
 from apps.administration.views.opportunities import opportunities
@@ -30,6 +37,31 @@ app_name = "admin"
 
 urlpatterns = [
     path("", administrator_required(index), name="index"),
+    path(
+        "agent-endpoints/",
+        administrator_required(agent_endpoints),
+        name="agent-endpoints",
+    ),
+    path(
+        "agent-profiles/",
+        administrator_required(agent_profiles),
+        name="agent-profiles",
+    ),
+    path(
+        "learning-documents/",
+        administrator_required(learning_documents),
+        name="learning-documents",
+    ),
+    path(
+        "question-banks/",
+        administrator_required(learning_question_banks),
+        name="question-banks",
+    ),
+    path(
+        "question-banks/queue/",
+        administrator_required(learning_question_bank_queue),
+        name="question-bank-queue",
+    ),
     path("users/", administrator_required(users), name="users"),
     path("articles/", administrator_required(articles), name="articles"),
     path(

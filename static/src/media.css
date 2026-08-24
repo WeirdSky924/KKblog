@@ -141,7 +141,8 @@
   object-fit: contain;
 }
 
-.media-picker[data-media-kind="attachment"] .media-picker__preview {
+.media-picker[data-media-kind="attachment"] .media-picker__preview,
+.media-picker[data-media-kind="document"] .media-picker__preview {
   min-height: 7rem;
   aspect-ratio: auto;
 }
@@ -318,11 +319,13 @@
     gap: 0.375rem;
   }
 
-  .media-picker[data-media-kind="attachment"] .media-picker__body {
+  .media-picker[data-media-kind="attachment"] .media-picker__body,
+  .media-picker[data-media-kind="document"] .media-picker__body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .media-picker[data-media-kind="attachment"] .media-picker__preview {
+  .media-picker[data-media-kind="attachment"] .media-picker__preview,
+  .media-picker[data-media-kind="document"] .media-picker__preview {
     min-height: 5rem;
   }
 }

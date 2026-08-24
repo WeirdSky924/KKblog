@@ -80,6 +80,24 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem("opportunities", "工作机会", "admin:opportunities"),
         ),
     ),
+    AdminNavigationGroup(
+        label="智能与题库",
+        items=(
+            AdminNavigationItem(
+                "agent-endpoints", "Endpoint 与用量", "admin:agent-endpoints"
+            ),
+            AdminNavigationItem(
+                "agent-profiles", "AGENT 与 Prompt", "admin:agent-profiles"
+            ),
+            AdminNavigationItem(
+                "learning-documents", "知识文档与申诉", "admin:learning-documents"
+            ),
+            AdminNavigationItem("question-banks", "题库与运行", "admin:question-banks"),
+            AdminNavigationItem(
+                "question-bank-queue", "题库队列", "admin:question-bank-queue"
+            ),
+        ),
+    ),
 )
 
 
