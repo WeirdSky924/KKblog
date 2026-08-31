@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
@@ -9,6 +10,7 @@ from django.db import close_old_connections, transaction
 from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, FrozenClock, SystemClock
+from apps.operations.models import TaskRun, TaskRunStatus
 from apps.operations.public import (
     due_task_run_business_objects,
     recover_expired_task_leases,
@@ -22,6 +24,8 @@ RUN_CHECK_TASK_NAME = "apps.opportunities.run_check"
 RUN_BUSINESS_PREFIX = "opportunity-run:"
 LEASE_EXPIRED_ERROR = "opportunities.check_lease_expired.v1"
 SOURCE_TIMEOUT_WARNING = "opportunities.source_timeout_warning.v1"
+ORPHANED_RUN_ERROR = "opportunities.check_run_orphaned.v1"
+_SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +33,7 @@ class CheckLeaseRecoveryResult:
     recovered: int
     redispatched: int
     stalled: int = 0
+    reconciled: int = 0
 
 
 def _run_id(value: str) -> str | None:
@@ -208,6 +213,89 @@ def _monitor_source_timeouts(*, now, batch_size: int) -> int:
         return warned
 
 
+def _reconcile_terminal_run(
+    run_id: str, *, task_status: str, error_code: str, now
+) -> bool:
+    """Close an active domain run whose TaskRun already reached a terminal state."""
+    with transaction.atomic():
+        run = OpportunityCheckRun.objects.select_for_update().filter(pk=run_id).first()
+        if run is None or run.state not in {
+            OpportunityCheckRun.State.PENDING,
+            OpportunityCheckRun.State.RUNNING,
+            OpportunityCheckRun.State.CANCEL_REQUESTED,
+        }:
+            return False
+        pending_states = (
+            OpportunityCheckRunSource.State.PENDING,
+            OpportunityCheckRunSource.State.RUNNING,
+        )
+        if task_status == TaskRunStatus.CANCELLED:
+            run.source_runs.filter(state__in=pending_states).update(
+                state=OpportunityCheckRunSource.State.NOT_EXECUTED,
+                safe_error_code=error_code,
+                completed_at=now,
+            )
+            run.state = OpportunityCheckRun.State.CANCEL_REQUESTED
+        else:
+            run.source_runs.filter(state__in=pending_states).update(
+                state=OpportunityCheckRunSource.State.FAILED,
+                safe_error_code=error_code,
+                completed_at=now,
+            )
+        run.current_source = None
+        run.save(update_fields=("state", "current_source", "updated_at"))
+        _finish_run(run.id, clock=FrozenClock(now))
+        return True
+
+
+def _reconcile_terminal_runs(*, now, batch_size: int) -> int:
+    """Repair active runs left behind after a terminal TaskRun or hard failure."""
+    runs = tuple(
+        OpportunityCheckRun.objects.filter(
+            state__in=(
+                OpportunityCheckRun.State.PENDING,
+                OpportunityCheckRun.State.RUNNING,
+                OpportunityCheckRun.State.CANCEL_REQUESTED,
+            ),
+        )
+        .exclude(task_run_id="")
+        .order_by("updated_at", "id")
+        .values_list("id", "task_run_id")[:batch_size]
+    )
+    if not runs:
+        return 0
+    task_runs = {
+        row.run_id: row
+        for row in TaskRun.objects.filter(
+            run_id__in=[task_run_id for _run_id, task_run_id in runs],
+            status__in=(
+                TaskRunStatus.SUCCEEDED,
+                TaskRunStatus.FINAL_FAILED,
+                TaskRunStatus.CANCELLED,
+            ),
+        )
+    }
+    reconciled = 0
+    for run_id, task_run_id in runs:
+        task_run = task_runs.get(task_run_id)
+        if task_run is None:
+            continue
+        error_code = (
+            task_run.last_error_code
+            if task_run.status == TaskRunStatus.FINAL_FAILED
+            and _SAFE_ERROR_CODE.fullmatch(task_run.last_error_code or "")
+            else ORPHANED_RUN_ERROR
+        )
+        if _reconcile_terminal_run(
+            run_id,
+            task_status=task_run.status,
+            error_code=error_code,
+            now=now,
+        ):
+            reconciled += 1
+    return reconciled
+
+
 def recover_expired_check_runs(
     *,
     dispatcher: Callable[[str], None],
@@ -225,6 +313,7 @@ def recover_expired_check_runs(
     active_clock = clock or SystemClock()
     now = active_clock.now()
     close_old_connections()
+    reconciled = _reconcile_terminal_runs(now=now, batch_size=batch_size)
     recovered = recover_expired_task_leases(
         batch_size=batch_size,
         clock=active_clock,
@@ -251,12 +340,14 @@ def recover_expired_check_runs(
         recovered=recovered,
         redispatched=dispatched,
         stalled=stalled,
+        reconciled=reconciled,
     )
 
 
 __all__ = [
     "CheckLeaseRecoveryResult",
     "LEASE_EXPIRED_ERROR",
+    "ORPHANED_RUN_ERROR",
     "RUN_CHECK_TASK_NAME",
     "SOURCE_TIMEOUT_WARNING",
     "recover_expired_check_runs",

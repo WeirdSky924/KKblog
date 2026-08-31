@@ -26,6 +26,7 @@
 1. 执行 `python manage.py migrate --plan`；有待执行项时只执行前向 `python manage.py migrate`，不执行反向迁移。
 2. 读回 `showmigrations`、关键索引/约束和 `makemigrations --check`。如果本次生产基线没有待迁移项，记录“无 migration，跳过迁移前备份”或按运维政策仍保留备份，不把代码提交当作迁移成功。
 3. 在新 Worker 可用且数据库连接健康后，运行一次有界的机会检查租约恢复入口（等价于 `recover_check_leases_task`）。它会用新连接协调过期 TaskRun、来源明细和 OpportunityCheckRun，并只重新派发到期且可恢复的运行；不得直接执行来源采集函数。
+   - 本次正式只读基线已发现一条 `FULL/RUNNING` 但关联 TaskRun 为 `final_failed` 的历史运行；恢复入口必须先将它收口为终态并释放活动互斥，不能等待下一次每日调度自行覆盖。
 4. 读回以下不变量：没有过期租约继续标为 `running`；活动运行只有一个；来源 `RUNNING` 与 TaskRun 租约一致；终态运行不再被每日调度复用；失败状态保留安全错误码和通知去重事实。
 5. 不直接修复或删除无法确认归属的生产行。若恢复入口发现结构矛盾，停止发布并保留 ID、状态和安全错误码，交由人工审计。
 
