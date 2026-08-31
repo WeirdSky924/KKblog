@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "a8f0c6f0-cc1b-511a-8442-50edb46708c9",
+      "company_name": "欣旺达",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://sunwoda.zhiye.com/Intern",
+      "note": "第十四批核验：北森公开实习职位列表，完整读回 1 页 1 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwoda.zhiye.com"
+      ]
+    },
+    {
+      "id": "e640bba6-e4bf-5df6-b4bc-1712dd6e89e6",
+      "company_name": "洲明科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://unilumin.zhiye.com/Campus",
+      "note": "第十四批核验：北森公开校园职位列表，完整读回 6 页 29 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "unilumin.zhiye.com"
+      ]
+    }
+  ]
+}

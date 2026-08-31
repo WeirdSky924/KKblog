@@ -16,6 +16,7 @@ CSRF_TRUSTED_ORIGINS = [_environment.public_url]
 DATABASES = {"default": _environment.database}
 REDIS_URL = _environment.redis_url
 MEDIA_ROOT = _environment.media_root
+EXCHANGE_IMPORT_ROOT = MEDIA_ROOT / ".exchange" / "imports"
 INITIAL_ADMIN_PASSWORD = _environment.initial_admin_password
 TRUSTED_PROXY_CIDRS = _environment.trusted_proxy_cidrs
 ANALYTICS_ENABLED = True

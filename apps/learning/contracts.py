@@ -136,6 +136,14 @@ class QuestionType(models.TextChoices):
     SHORT_ANSWER = "SHORT_ANSWER", "简答"
 
 
+QUIZ_QUESTION_TYPE_ORDER = (
+    QuestionType.SINGLE_CHOICE,
+    QuestionType.MULTIPLE_CHOICE,
+    QuestionType.TRUE_FALSE,
+    QuestionType.SHORT_ANSWER,
+)
+
+
 class QuestionBankCoverageState(models.TextChoices):
     COMPLETE = "COMPLETE", "Complete"
     PARTIAL = "PARTIAL", "Partial"

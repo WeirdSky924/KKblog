@@ -21,14 +21,6 @@
       {% endif %}
     </header>
 
-    <nav class="opportunity-admin__tabs" aria-label="工作机会管理">
-      <a href="?tab=reviews"{% if active_tab == "reviews" %} aria-current="page"{% endif %}>审核队列{% if opportunity_admin_review_count %}<span>{{ opportunity_admin_review_count }}</span>{% endif %}</a>
-      <a href="?tab=jobs"{% if active_tab == "jobs" %} aria-current="page"{% endif %}>岗位</a>
-      <a href="?tab=sources"{% if active_tab == "sources" %} aria-current="page"{% endif %}>来源</a>
-      <a href="?tab=runs"{% if active_tab == "runs" %} aria-current="page"{% endif %}>任务历史{% if opportunity_admin_failure_count %}<span data-opportunity-run-attention>{{ opportunity_admin_failure_count }}</span>{% endif %}</a>
-      <a href="?tab=settings"{% if active_tab == "settings" %} aria-current="page"{% endif %}>设置</a>
-    </nav>
-
     {% if page_error %}<p class="opportunity-admin__error" role="alert">{{ page_error }}</p>{% endif %}
     {% if job_filter_form.errors or source_filter_form.errors or page_form.errors %}
       <div class="opportunity-admin__error" role="alert">

@@ -64,7 +64,7 @@ Hero 使用独立 `HERO` 用途，绑定到 `SITE_BRAND/site/hero` 单槽。视�
 - Embed 只匹配管理员启用的主机/路径规则，初始仅 Bilibili。策略 owner 规范化来源 URL 并生成播放器地址；来源停用时，已认可且仍合法的历史 URL 降级为站外安全链接，未知/非法来源只显示“来源不可用”且不回显用户 URL。
 - 页面 CSP 只允许 frame 指向本站与 `https://player.bilibili.com`；正文、编辑器和 sanitizer 均不接受用户 iframe、HTML 或服务端抓取。
 - sanitizer 规则版本进入渲染缓存键；升级后旧缓存整体失效。
-- TipTap schema、renderer 与 sanitizer 当前分别以 schema fingerprint、`kaj-tiptap-renderer-v6`、`kaj-html-v7` 进入缓存身份；renderer 只渲染 schema 规范化结果，危险 v2 链接、越权媒体和不受信 embed 返回稳定错误，不以删除后成功替代拒绝。
+- TipTap schema、renderer 与 sanitizer 当前分别以 schema fingerprint、`kaj-tiptap-renderer-v7`、`kaj-html-v7` 进入缓存身份；renderer 只渲染 schema 规范化结果，危险 v2 链接、越权媒体和不受信 embed 返回稳定错误，不以删除后成功替代拒绝。
 - heading outline projection 与 renderer 共用规范化 JSON 和锚点规则。v2 持久 `kaj-h-<UUID>` 直接输出；无锚点历史 revision 生成确定性 legacy ID。页面层只能消费 projection，不能解析 sanitized HTML 后替换 `id`。
 - `apps/content/rendering.py` 是文章出口投影的唯一 owner。content 的保存校验、编辑预览、终稿审查、公开/历史阅读、搜索摘要与便利导出不得直接调用 `render_markdown` 或 `render_tiptap`；该 owner 只选择显式资源模式并委托本模块的 schema、renderer 与 sanitizer，不复制节点规则。
 

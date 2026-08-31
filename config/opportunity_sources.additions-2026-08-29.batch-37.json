@@ -1,0 +1,41 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "ee929571-7654-5184-8137-a7fc05f67a5d",
+      "company_name": "北京发那科机电有限公司",
+      "source_type": "SOCIAL",
+      "official_url": "https://iwhih7is28.jobs.feishu.cn/index",
+      "note": "第三十七批核验：北京发那科官方 Feishu 社会招聘列表；受限 collector 完整读回 1 个分页批次、9 个岗位，含北京/上海/深圳地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhih7is28.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "199c9457-b1f4-57ab-a8d7-e8182507f010",
+      "company_name": "北京发那科机电有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://iwhih7is28.jobs.feishu.cn/campus/position/list",
+      "note": "第三十七批核验：北京发那科官方 Feishu 校园招聘列表；受限 collector 完整读回 2 个分页批次、24 个岗位，均为校园招聘，含北京/上海/深圳地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhih7is28.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

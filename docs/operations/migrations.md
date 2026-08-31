@@ -140,7 +140,7 @@
 
 `agents.0001` 必须先于任何 AGENT 管理、审核或生成入口开放。它只创建新表并 seed `5,000,000` 的全站默认 policy，不保存密钥、不发网络请求、不回填既有业务数据；旧应用会忽略新表。隔离 PostgreSQL 已验证向前、默认 policy/约束读回、反向到 zero 后 `agent_%` 表为 0、再向前成功。Labs 已于 `2026-08-17` 在明确授权后执行并读回默认 policy `5,000,000/row_version 1`；生产数据库 migration 仍需当次明确授权。应用回滚时数据库保持向前并关闭尚未部署的 AGENT 入口。
 
-`agents.0002` 必须先于开放 Endpoint 显式连接检查。空检查数据的隔离 PostgreSQL 已验证从 `0002` 反向到 `0001` 并再次前向成功，且读回连接检查与 reservation owner 约束；一旦存在 EndpointCheck 或其 reservation，反向会删除检查事实且旧 owner 约束无法容纳检查预留，因此不得作为运行中环境的应用回滚手段。Labs 已于 `2026-08-17` 在明确授权后执行并读回 `agent_endpoint_check`、`agent_token_reservation_owner_shape` 及相关索引；生产 migration 仍需当次明确授权。应用回滚时数据库保持向前，并关闭连接检查与第 7 管理大类入口。
+`agents.0002` 必须先于开放 Endpoint 显式连接检查。空检查数据的隔离 PostgreSQL 已验证从 `0002` 反向到 `0001` 并再次前向成功，且读回连接检查与 reservation owner 约束；一旦存在 EndpointCheck 或其 reservation，反向会删除检查事实且旧 owner 约束无法容纳检查预留，因此不得作为运行中环境的应用回滚手段。Labs 已于 `2026-08-17` 在明确授权后执行并读回 `agent_endpoint_check`、`agent_token_reservation_owner_shape` 及相关索引；生产 migration 仍需当次明确授权。应用回滚时数据库保持向前，并关闭连接检查与“AI 配置”一级组入口。
 
 `agents.0003` 必须先于开放自定义 API Key 的 Endpoint 管理入口。迁移只增加加密密文列、凭据快照列和认证形状约束，不读取或回填真实 API Key、不调用 Provider；隔离 PostgreSQL 已验证前向和约束读回。Labs 已于 `2026-08-18` 在明确授权后执行，读回三张表的 `api_key_ciphertext*` 列、migration leaf `0003`、`health/live=200`、`health/ready=200`；生产 migration 仍需单独授权。应用回滚时数据库保持向前并关闭自定义凭据写入入口。
 

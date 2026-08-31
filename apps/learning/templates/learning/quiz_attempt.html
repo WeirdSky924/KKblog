@@ -1,34 +1,193 @@
 {% extends "base.html" %}
 
 {% block title %}{{ attempt.title }} · 答题{% endblock %}
-{% block body_class %}quiz-shell{% endblock %}
+{% block body_class %}quiz-shell quiz-attempt-shell{% endblock %}
 {% block main_class %}quiz-main{% endblock %}
 
 {% block content %}
-  <section class="quiz-page quiz-attempt" aria-labelledby="quiz-attempt-title" data-quiz-attempt>
-    <header class="quiz-heading quiz-attempt__heading"><div><p class="learning-folio">{% if attempt.status == "SUBMITTED" %}答题结果{% else %}正在答题{% endif %}</p><h1 id="quiz-attempt-title">{{ attempt.title }}</h1><p>{{ attempt.owner_display_name }} · {{ attempt.question_count }} 题</p></div><div class="quiz-attempt__actions"><div class="quiz-attempt__state">{% if attempt.status == "SUBMITTED" %}已提交{% else %}进行中{% endif %}</div><a class="button button--secondary" href="{% url 'learning:quiz-index' %}"><i data-lucide="log-out" aria-hidden="true"></i><span>退出答题</span></a></div></header>
-    {% if saved %}<p class="quiz-notice" role="status">{% if saved == "response" %}答案已保存。{% elif saved == "submitted" %}答题已提交。{% else %}简答自评已保存。{% endif %}</p>{% endif %}
-    {% if page_error %}<p class="quiz-notice quiz-notice--error" role="alert">{{ page_error }}</p>{% endif %}
-    <p class="quiz-live-status" data-quiz-status role="status" aria-live="polite"></p>
-    <div class="quiz-progress" data-quiz-progress data-answered="{{ attempt.answered_count }}" data-total="{{ attempt.question_count }}" aria-label="答题进度"><span data-quiz-progress-bar style="--quiz-progress: {% widthratio attempt.answered_count attempt.question_count 100 %}%"></span><strong data-quiz-progress-label>{{ attempt.answered_count }} / {{ attempt.question_count }}</strong>{% if attempt.soft_time_exceeded %}<em data-quiz-timer>已超过软提醒时间，仍可继续答题</em>{% elif attempt.deadline_at %}<em data-quiz-timer data-deadline="{{ attempt.deadline_at|date:'c' }}">正在计算剩余时间</em>{% endif %}</div>
-    <div class="quiz-response-list">
-      {% for entry in response_entries %}{% with response=entry.response response_form=entry.form %}
-        <article class="quiz-response" id="response-{{ response.response_id }}">
-          <header><span class="quiz-response__number">{{ response.position|stringformat:"02d" }}</span><span>{{ response.question_type }}</span>{% if response.is_correct is not None %}<strong class="{% if response.is_correct %}quiz-correct{% else %}quiz-wrong{% endif %}">{% if response.is_correct %}正确{% else %}待复习{% endif %}</strong>{% endif %}</header>
-          <h2>{{ response.stem_markdown }}</h2>
-          {% if attempt.status == "SUBMITTED" %}
-            {% if response.options %}<ul class="quiz-options">{% for option in response.options %}<li{% if option.id in response.correct_option_ids %} class="quiz-option--correct"{% endif %}>{{ option.text }}</li>{% endfor %}</ul>{% endif %}
-            <p class="quiz-answer-label">你的答案：{% if response.answer is None %}未作答{% elif response.question_type == "TRUE_FALSE" %}{% if response.answer %}真{% else %}假{% endif %}{% elif response.options %}{% for option in response.options %}{% if option.id in response.answer %}{{ option.text }}{% if not forloop.last %}、{% endif %}{% endif %}{% endfor %}{% else %}{{ response.answer }}{% endif %}</p>
-            {% if response.question_type == "SHORT_ANSWER" %}<div class="quiz-reference"><h3>参考答案</h3><p>{{ response.reference_answer }}</p><h3>评分要点</h3><ul>{% for point in response.scoring_points %}<li>{{ point }}</li>{% endfor %}</ul>{% if response.self_assessment %}<p>自评：{% if response.self_assessment == "MASTERED" %}已掌握{% else %}未掌握{% endif %}</p>{% elif entry.assessment_form %}<form method="post" action="{% url 'learning:quiz-assess' response_id=response.response_id %}" class="quiz-assessment">{% csrf_token %}{{ entry.assessment_form.attempt_id }}{{ entry.assessment_form.response_id }}{{ entry.assessment_form.expected_version }}{{ entry.assessment_form.request_id }}{{ entry.assessment_form.self_assessment }}<button class="button button--secondary" type="submit">保存自评</button></form>{% endif %}</div>{% endif %}
-            <div class="article-prose quiz-explanation">{{ response.explanation_markdown }}</div>
-          {% else %}
-            <form method="post" action="{% url 'learning:quiz-save-response' response_id=response.response_id %}" class="quiz-response__form" data-quiz-save>{% csrf_token %}{{ response_form.attempt_id }}{{ response_form.response_id }}{{ response_form.expected_version }}{{ response_form.request_id }}{{ response_form.question_type }}
-            {% if response.options %}<div class="quiz-options">{% for option in response.options %}<label><input type="{% if response.question_type == 'SINGLE_CHOICE' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.id }}"{% if response.answer and option.id in response.answer %} checked{% endif %}> <span>{{ option.id }}. {{ option.text }}</span></label>{% endfor %}</div>{% elif response.question_type == "TRUE_FALSE" %}<div class="quiz-options"><label><input type="radio" name="answer" value="true"{% if response.answer is True %} checked{% endif %}> 真</label><label><input type="radio" name="answer" value="false"{% if response.answer is False %} checked{% endif %}> 假</label></div>{% else %}<textarea name="answer" rows="5" maxlength="10000" placeholder="写下你的答案">{{ response.answer|default:"" }}</textarea>{% endif %}
-            </form>
-          {% endif %}
-        </article>
-      {% endwith %}{% endfor %}
+  <section
+    class="quiz-page quiz-attempt"
+    aria-labelledby="quiz-attempt-title"
+    data-quiz-attempt
+    data-quiz-attempt-id="{{ attempt.attempt_id }}"
+    data-quiz-submitted="{% if attempt.status == 'SUBMITTED' %}true{% else %}false{% endif %}"
+  >
+    <div class="quiz-attempt__top">
+      <div class="quiz-attempt__toolbar">
+        <div class="quiz-attempt__summary">
+          <p class="learning-folio">{% if attempt.status == "SUBMITTED" %}答题结果{% else %}正在答题{% endif %}</p>
+          <span>{{ attempt.owner_display_name }} · {{ attempt.question_count }} 题</span>
+        </div>
+        <div class="quiz-attempt__actions">
+          <div class="quiz-attempt__state">{% if attempt.status == "SUBMITTED" %}已提交{% else %}进行中{% endif %}</div>
+          <a class="button button--secondary" href="{% url 'learning:quiz-index' %}">
+            <i data-lucide="log-out" aria-hidden="true"></i><span>退出答题</span>
+          </a>
+        </div>
+      </div>
+      {% if saved %}<p class="quiz-notice" role="status">{% if saved == "response" %}答案已保存。{% elif saved == "submitted" %}答题已提交。{% else %}简答自评已保存。{% endif %}</p>{% endif %}
+      {% if page_error %}<p class="quiz-notice quiz-notice--error" role="alert">{{ page_error }}</p>{% endif %}
+      <div class="quiz-progress" data-quiz-progress data-answered="{{ attempt.answered_count }}" data-total="{{ attempt.question_count }}" aria-label="答题进度">
+        <span data-quiz-progress-bar style="--quiz-progress: {% widthratio attempt.answered_count attempt.question_count 100 %}%"></span>
+        <div class="quiz-progress__meta">
+          <strong data-quiz-progress-label>{{ attempt.answered_count }} / {{ attempt.question_count }}</strong>
+          <p class="quiz-live-status" data-quiz-status role="status" aria-live="polite"></p>
+          {% if attempt.soft_time_exceeded %}<em data-quiz-timer>已超过软提醒时间，仍可继续答题</em>{% elif attempt.deadline_at %}<em data-quiz-timer data-deadline="{{ attempt.deadline_at|date:'c' }}">正在计算剩余时间</em>{% endif %}
+        </div>
+      </div>
     </div>
-    {% if attempt.status != "SUBMITTED" %}<form method="post" action="{% url 'learning:quiz-submit' attempt_id=attempt.attempt_id %}" class="quiz-submit-form">{% csrf_token %}{{ submit_form.attempt_id }}{{ submit_form.request_id }}<button class="button button--primary" type="submit"><i data-lucide="check"></i><span>提交答题</span></button></form>{% endif %}
+
+    <div class="quiz-attempt__workspace{% if attempt.status == "SUBMITTED" %} quiz-attempt__workspace--submitted{% endif %}">
+      <aside class="quiz-question-nav" aria-label="题目导航">
+        <header class="quiz-question-nav__header">
+          <div><p class="learning-folio">题库</p><h1 id="quiz-attempt-title" title="{{ attempt.title }}">{{ attempt.title }}</h1></div>
+          <strong data-quiz-current-label>第 1 / {{ attempt.question_count }} 题</strong>
+        </header>
+        <div class="quiz-question-nav__groups">
+          {% for group in question_groups %}
+            <section class="quiz-question-nav__group" aria-labelledby="quiz-question-group-{{ forloop.counter }}">
+              <h3 id="quiz-question-group-{{ forloop.counter }}">{{ group.label }}</h3>
+              <div class="quiz-question-nav__grid">
+                {% for entry in group.entries %}{% with response=entry.response %}
+                  <button
+                    class="quiz-question-nav__item{% if entry.nav_state %} quiz-question-nav__item--{{ entry.nav_state }}{% endif %}"
+                    type="button"
+                    data-quiz-question-nav
+                    data-quiz-position="{{ response.position }}"
+                    data-quiz-state="{{ entry.nav_state }}"
+                    aria-label="{{ group.label }} 第 {{ response.position }} 题"
+                    aria-controls="response-{{ response.response_id }}"
+                  >{{ response.position|stringformat:"02d" }}</button>
+                {% endwith %}{% endfor %}
+              </div>
+            </section>
+          {% endfor %}
+        </div>
+        <ul class="quiz-question-nav__legend" aria-label="题目状态说明">
+          {% if attempt.status == "SUBMITTED" %}
+            <li><span data-quiz-legend="correct"></span>正确</li>
+            <li><span data-quiz-legend="wrong"></span>错误</li>
+            <li><span data-quiz-legend="pending"></span>待自评</li>
+          {% else %}
+            <li><span data-quiz-legend="answered"></span>已答</li>
+            <li><span data-quiz-legend="unanswered"></span>未答</li>
+          {% endif %}
+        </ul>
+      </aside>
+
+      <div class="quiz-attempt__content">
+        <div class="quiz-response-list" data-quiz-response-list>
+          {% for entry in response_entries %}{% with response=entry.response response_form=entry.form %}
+            <article
+              class="quiz-response"
+              id="response-{{ response.response_id }}"
+              data-quiz-response
+              data-quiz-position="{{ response.position }}"
+              {% if not forloop.first %}hidden{% endif %}
+            >
+              <header>
+                <span class="quiz-response__number">{{ response.position|stringformat:"02d" }}</span>
+                <span>{{ entry.question_type_label }}</span>
+                {% if response.is_correct is not None %}<strong class="{% if response.is_correct %}quiz-correct{% else %}quiz-wrong{% endif %}">{% if response.is_correct %}正确{% else %}待复习{% endif %}</strong>{% elif attempt.status == "SUBMITTED" and response.question_type == "SHORT_ANSWER" %}<strong class="quiz-pending">待自评</strong>{% endif %}
+              </header>
+              <h2 tabindex="-1">{{ response.stem_markdown }}</h2>
+              {% if attempt.status == "SUBMITTED" %}
+                {% if response.options %}<ul class="quiz-options">{% for option in response.options %}<li{% if option.id in response.correct_option_ids %} class="quiz-option--correct"{% endif %}>{{ option.text }}</li>{% endfor %}</ul>{% endif %}
+                {% if response.question_type == "SHORT_ANSWER" %}<div class="quiz-reference"><h3>参考答案</h3><p>{{ response.reference_answer }}</p><h3>评分要点</h3><ul>{% for point in response.scoring_points %}<li>{{ point }}</li>{% endfor %}</ul>{% if response.self_assessment %}<p>自评：{% if response.self_assessment == "MASTERED" %}已掌握{% else %}未掌握{% endif %}</p>{% elif entry.assessment_form %}<form method="post" action="{% url 'learning:quiz-assess' response_id=response.response_id %}" class="quiz-assessment">{% csrf_token %}{{ entry.assessment_form.attempt_id }}{{ entry.assessment_form.response_id }}{{ entry.assessment_form.expected_version }}{{ entry.assessment_form.request_id }}{{ entry.assessment_form.self_assessment }}<button class="button button--secondary" type="submit">保存自评</button></form>{% endif %}</div>{% endif %}
+              {% else %}
+                <form method="post" action="{% url 'learning:quiz-save-response' response_id=response.response_id %}" class="quiz-response__form" data-quiz-save>{% csrf_token %}{{ response_form.attempt_id }}{{ response_form.response_id }}{{ response_form.expected_version }}{{ response_form.request_id }}{{ response_form.question_type }}
+                  {% if response.options %}<div class="quiz-options">{% for option in response.options %}<label><input type="{% if response.question_type == 'SINGLE_CHOICE' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.id }}"{% if response.answer and option.id in response.answer %} checked{% endif %}> <span>{{ option.id }}. {{ option.text }}</span></label>{% endfor %}</div>{% elif response.question_type == "TRUE_FALSE" %}<div class="quiz-options"><label><input type="radio" name="answer" value="true"{% if response.answer is True %} checked{% endif %}> 真</label><label><input type="radio" name="answer" value="false"{% if response.answer is False %} checked{% endif %}> 假</label></div>{% else %}<textarea name="answer" rows="5" maxlength="10000" placeholder="写下你的答案">{{ response.answer|default:"" }}</textarea>{% endif %}
+                </form>
+              {% endif %}
+            </article>
+          {% endwith %}{% endfor %}
+        </div>
+
+        <nav class="quiz-question-controls" aria-label="题目切换">
+          <button class="button button--secondary" type="button" data-quiz-previous disabled><i data-lucide="chevron-left" aria-hidden="true"></i><span>上一题</span></button>
+          <span data-quiz-position-label>第 1 / {{ attempt.question_count }} 题</span>
+          <button class="button button--secondary" type="button" data-quiz-next{% if attempt.question_count <= 1 %} disabled{% endif %}><span>下一题</span><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+        </nav>
+        {% if attempt.status != "SUBMITTED" %}<form method="post" action="{% url 'learning:quiz-submit' attempt_id=attempt.attempt_id %}" class="quiz-submit-form">{% csrf_token %}{{ submit_form.attempt_id }}{{ submit_form.request_id }}<button class="button button--primary" type="submit"><i data-lucide="check"></i><span>提交答题</span></button></form>{% endif %}
+      </div>
+
+      {% if attempt.status == "SUBMITTED" %}
+        <aside class="quiz-explanation-panel" aria-labelledby="quiz-explanation-title">
+          <header class="quiz-explanation-panel__header">
+            <div>
+              <p class="learning-folio">解析</p>
+              <h2 id="quiz-explanation-title">题目解析</h2>
+            </div>
+            <strong data-quiz-explanation-current>第 1 / {{ attempt.question_count }} 题</strong>
+          </header>
+          <div class="quiz-explanation-panel__body">
+            {% for entry in response_entries %}{% with response=entry.response %}
+              <section
+                class="quiz-explanation-panel__item"
+                data-quiz-explanation
+                data-quiz-position="{{ response.position }}"
+                aria-labelledby="quiz-explanation-question-{{ response.response_id }}"
+                {% if not forloop.first %}hidden{% endif %}
+              >
+                <h3 id="quiz-explanation-question-{{ response.response_id }}">第 {{ response.position }} 题 · {{ entry.question_type_label }}</h3>
+                <dl class="quiz-explanation-panel__answers">
+                  <div>
+                    <dt>作答情况</dt>
+                    <dd>
+                      {% if response.question_type == "SHORT_ANSWER" %}
+                        <strong class="quiz-pending">{% if response.self_assessment == "MASTERED" %}已掌握{% elif response.self_assessment == "NOT_MASTERED" %}未掌握{% else %}待自评{% endif %}</strong>
+                      {% elif response.is_correct %}
+                        <strong class="quiz-correct">正确</strong>
+                      {% else %}
+                        <strong class="quiz-wrong">错误</strong>
+                      {% endif %}
+                      <span class="quiz-explanation-panel__answer-label">你的答案</span>
+                      {% if response.answer is None %}
+                        <span class="quiz-explanation-panel__answer-value">未作答</span>
+                      {% elif response.question_type == "TRUE_FALSE" %}
+                        <span class="quiz-explanation-panel__answer-value">{% if response.answer %}真{% else %}假{% endif %}</span>
+                      {% elif response.options %}
+                        {% if response.answer %}
+                          <ul class="quiz-explanation-panel__answer-list">
+                            {% for option in response.options %}{% if option.id in response.answer %}<li>{{ option.id }}. {{ option.text }}</li>{% endif %}{% endfor %}
+                          </ul>
+                        {% else %}
+                          <span class="quiz-explanation-panel__answer-value">未作答</span>
+                        {% endif %}
+                      {% else %}
+                        <span class="quiz-explanation-panel__answer-value">{{ response.answer|default:"未作答" }}</span>
+                      {% endif %}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>正确答案</dt>
+                    <dd>
+                      {% if response.options %}
+                        {% if response.correct_option_ids %}
+                          <ul class="quiz-explanation-panel__answer-list">
+                            {% for option in response.options %}{% if option.id in response.correct_option_ids %}<li>{{ option.id }}. {{ option.text }}</li>{% endif %}{% endfor %}
+                          </ul>
+                        {% else %}
+                          <span class="quiz-explanation-panel__answer-value">暂无正确答案</span>
+                        {% endif %}
+                      {% elif response.question_type == "TRUE_FALSE" %}
+                        <span class="quiz-explanation-panel__answer-value">{% if response.boolean_answer %}真{% else %}假{% endif %}</span>
+                      {% else %}
+                        <span class="quiz-explanation-panel__answer-value">{{ response.reference_answer|default:"暂无参考答案" }}</span>
+                      {% endif %}
+                    </dd>
+                  </div>
+                </dl>
+                {% if response.explanation_markdown %}
+                  <div class="article-prose quiz-explanation-panel__prose">{{ response.explanation_markdown }}</div>
+                {% else %}
+                  <p class="quiz-explanation-panel__empty">暂无解析内容。</p>
+                {% endif %}
+              </section>
+            {% endwith %}{% endfor %}
+          </div>
+        </aside>
+      {% endif %}
+    </div>
   </section>
 {% endblock %}

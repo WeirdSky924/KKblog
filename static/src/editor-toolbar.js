@@ -23,6 +23,7 @@ import {
   RemoveFormatting,
   SquareCode,
   SquarePlay,
+  Sigma,
   Strikethrough,
   Table2,
   TriangleAlert,
@@ -62,6 +63,7 @@ const ICONS = {
   RemoveFormatting,
   SquareCode,
   SquarePlay,
+  Sigma,
   Strikethrough,
   Table2,
   TriangleAlert,
@@ -345,6 +347,26 @@ export function initializeEditorToolbar({ root, editor, actions = {} }) {
   const { toolbarCommands, blockCommands, disclosures, more } =
     renderToolbar(toolbar);
   let toolbarLayoutFrame = null;
+  let selectionBookmark = null;
+  const rememberSelection = () => {
+    try {
+      selectionBookmark = editor.state.selection.getBookmark();
+    } catch {
+      selectionBookmark = null;
+    }
+  };
+  const restoreSelection = () => {
+    if (!selectionBookmark) return;
+    try {
+      editor.view.dispatch(
+        editor.state.tr
+          .setSelection(selectionBookmark.resolve(editor.state.doc))
+          .setMeta("addToHistory", false),
+      );
+    } catch {
+      selectionBookmark = null;
+    }
+  };
   const layoutToolbar = () => {
     toolbarLayoutFrame = null;
     layoutToolbarOverflow(toolbar, more);
@@ -385,6 +407,7 @@ export function initializeEditorToolbar({ root, editor, actions = {} }) {
   const activate = (event) => {
     const button = event.target.closest?.("[data-editor-command]");
     if (!(button instanceof HTMLButtonElement) || !toolbar.contains(button)) return;
+    restoreSelection();
     if (
       runEditorCommand(editor, button.dataset.editorCommand, {
         actions,
@@ -393,6 +416,12 @@ export function initializeEditorToolbar({ root, editor, actions = {} }) {
     ) {
       button.closest("details")?.removeAttribute("open");
       update();
+    }
+  };
+  const preserveSelection = (event) => {
+    if (event.target.closest?.("[data-editor-command], summary")) {
+      rememberSelection();
+      event.preventDefault();
     }
   };
   const handleKeys = (event) => {
@@ -456,8 +485,11 @@ export function initializeEditorToolbar({ root, editor, actions = {} }) {
       ? new ResizeObserver(scheduleToolbarLayout)
       : null;
   toolbarResizeObserver?.observe(toolbar);
+  toolbar.addEventListener("mousedown", preserveSelection);
   toolbar.addEventListener("click", activate);
   toolbar.addEventListener("keydown", handleKeys);
+  editor.on("selectionUpdate", rememberSelection);
+  rememberSelection();
   document.addEventListener("click", closeOutside);
   window.addEventListener("resize", handleWindowResize);
   window.addEventListener("scroll", positionOpenMenus, true);
@@ -470,8 +502,10 @@ export function initializeEditorToolbar({ root, editor, actions = {} }) {
         window.cancelAnimationFrame(toolbarLayoutFrame);
       }
       toolbarResizeObserver?.disconnect();
+      toolbar.removeEventListener("mousedown", preserveSelection);
       toolbar.removeEventListener("click", activate);
       toolbar.removeEventListener("keydown", handleKeys);
+      editor.off("selectionUpdate", rememberSelection);
       document.removeEventListener("click", closeOutside);
       window.removeEventListener("resize", handleWindowResize);
       window.removeEventListener("scroll", positionOpenMenus, true);

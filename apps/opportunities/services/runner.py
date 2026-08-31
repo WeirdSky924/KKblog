@@ -13,6 +13,7 @@ from apps.core.events import enqueue_event
 from apps.core.time.clock import Clock, SystemClock
 
 from ..checks import DomainRateLimiter, SafeHttpClient, SafeRequestError, get_adapter
+from ..checks.http import MAX_LARGE_ADAPTER_RESPONSE_BYTES, MAX_RESPONSE_BYTES
 from ..checks.robots import RobotsAwareHttpClient
 from ..events import SOURCE_STATE_CHANGED
 from ..models import (
@@ -473,7 +474,21 @@ def run_source_check(
                 if adapter is not None and hasattr(adapter, "source_probe_url")
                 else source.official_url
             )
-            source_response = robots_client.get(source_probe)
+            probe_limit = getattr(
+                adapter, "source_probe_max_response_bytes", MAX_RESPONSE_BYTES
+            )
+            if (
+                isinstance(probe_limit, bool)
+                or not isinstance(probe_limit, int)
+                or not MAX_RESPONSE_BYTES
+                <= probe_limit
+                <= MAX_LARGE_ADAPTER_RESPONSE_BYTES
+            ):
+                raise SafeRequestError("opportunities.adapter_config_invalid.v1")
+            source_response = robots_client.get(
+                source_probe,
+                max_response_bytes=probe_limit,
+            )
         except SafeRequestError as error:
             check = _create_failed_check(
                 source=source,

@@ -45,16 +45,16 @@ from apps.exchange.public import (
     ImportLimits,
     ImportMediaResult,
     ImportMetadataMapping,
-    ImportPreviewResult,
     ImportStaging,
     build_export_archive,
     cancel_export,
-    classify_import_preview,
     confirm_import,
     create_import_preview,
+    discard_import_editor_payload,
     due_export_expiry_ids,
     expire_export,
     export_download,
+    import_editor_payload,
     import_preview,
     mark_export_task_final_failed,
     open_export_archive,
@@ -179,20 +179,19 @@ def create_configured_import_preview(
         image_validator=validate_import_image,
         limits=limits,
     )
-    classified = classify_import_preview(
+    return created
+
+
+def configured_import_editor_payload(*, actor_id, job_id: str):
+    return import_editor_payload(
         actor_id=actor_id,
-        job_id=created.job_id,
-        conflict_facts=import_conflict_facts,
-        metadata_resolver=resolve_import_metadata,
+        job_id=job_id,
+        max_body_bytes=ArticleBodyLimit.configured().maximum_bytes,
     )
-    return ImportPreviewResult(
-        job_id=created.job_id,
-        status=classified.status,
-        item_count=len(classified.items),
-        valid_count=int(classified.preview_summary["valid"]),
-        invalid_count=int(classified.preview_summary["invalid"]),
-        preview_version=classified.preview_version,
-    )
+
+
+def discard_configured_import_editor_payload(*, actor_id, job_id: str) -> bool:
+    return discard_import_editor_payload(actor_id=actor_id, job_id=job_id)
 
 
 def configured_import_preview(*, actor_id, job_id: str):

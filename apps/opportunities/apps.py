@@ -16,8 +16,10 @@ class OpportunitiesConfig(AppConfig):
         from .checks.czbank import CZBANK_ADAPTER
         from .checks.dahua import DAHUA_ADAPTER
         from .checks.deepseek import DEEPSEEK_ADAPTER
+        from .checks.feishu import FEISHU_ADAPTER
         from .checks.getui import GETUI_ADAPTER
         from .checks.hikvision import HIKVISION_ADAPTER
+        from .checks.hotjob import HOTJOB_ADAPTER
         from .checks.huawei import HUAWEI_ADAPTER
         from .checks.hzbank import HZBANK_ADAPTER
         from .checks.jd import JD_CAMPUS_ADAPTER
@@ -40,8 +42,10 @@ class OpportunitiesConfig(AppConfig):
         register_adapter(CZBANK_ADAPTER)
         register_adapter(DAHUA_ADAPTER)
         register_adapter(DEEPSEEK_ADAPTER)
+        register_adapter(FEISHU_ADAPTER)
         register_adapter(GETUI_ADAPTER)
         register_adapter(HZBANK_ADAPTER)
+        register_adapter(HOTJOB_ADAPTER)
         register_adapter(HUAWEI_ADAPTER)
         register_adapter(HIKVISION_ADAPTER)
         register_adapter(JD_CAMPUS_ADAPTER)

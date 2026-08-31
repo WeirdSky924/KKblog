@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -37,6 +37,7 @@ from apps.opportunities.public import (
     admin_adapter_choices,
     admin_check_run_source_detail,
     admin_check_run_sources,
+    admin_filter_option_page,
     admin_filter_options,
     admin_opportunities,
     admin_opportunity_detail,
@@ -44,6 +45,7 @@ from apps.opportunities.public import (
     admin_settings,
     admin_source_choices,
     admin_source_detail,
+    admin_source_option_page,
     admin_sources,
     create_opportunity,
     create_source,
@@ -430,6 +432,51 @@ def _throttled(request, action):
         return False
 
 
+def opportunity_filter_options(request: HttpRequest) -> JsonResponse:
+    kind = request.GET.get("kind", "")
+    query = request.GET.get("q", "")
+    try:
+        page = int(request.GET.get("page", "1"))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = int(request.GET.get("page_size", "40"))
+    except (TypeError, ValueError):
+        page_size = 40
+    if kind == "SOURCE":
+        option_page = admin_source_option_page(
+            actor_id=request.account_id,
+            query=query,
+            page=page,
+            page_size=page_size,
+            selected_ids=request.GET.getlist("selected"),
+            public_only=request.GET.get("scope") == "public",
+        )
+    elif kind in OpportunityFilterKind.values:
+        option_page = admin_filter_option_page(
+            actor_id=request.account_id,
+            kind=kind,
+            query=query,
+            page=page,
+            page_size=page_size,
+            selected_ids=request.GET.getlist("selected"),
+        )
+    else:
+        raise Http404
+    return JsonResponse(
+        {
+            "items": [
+                {"value": item.value, "label": item.label} for item in option_page.items
+            ],
+            "page": option_page.page,
+            "pages": option_page.pages,
+            "total": option_page.total,
+            "has_previous": option_page.has_previous,
+            "has_next": option_page.has_next,
+        }
+    )
+
+
 def _post(request):
     action = request.POST.get("action", "")
     meta = _meta(request)
@@ -438,7 +485,7 @@ def _post(request):
             recipient_id=request.account_id,
             target_type=OPPORTUNITY_CHECK_RUN_TARGET,
         )
-        review_count, _unread_run_count = opportunity_attention_counts(
+        _review_count, unread_run_count = opportunity_attention_counts(
             actor_id=request.account_id
         )
         if request.headers.get("HX-Request") == "true":
@@ -446,8 +493,8 @@ def _post(request):
             response.headers["HX-Trigger"] = json.dumps(
                 {
                     "kaj:administration-attention-read": {
-                        "key": "opportunities",
-                        "count": review_count,
+                        "key": "opportunities-runs",
+                        "count": unread_run_count,
                         "notificationUnreadCount": unread_notification_count(
                             recipient_id=request.account_id
                         ),

@@ -1,0 +1,25 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "cb3e2ffe-f7c3-5648-8dcf-caa568030e48",
+      "company_name": "杰克股份",
+      "source_type": "CAMPUS",
+      "official_url": "https://chinajack.zhiye.com/campus/?PageIndex=1",
+      "note": "第九批核验：北森旧版服务器渲染校园职位表，完整读回 3 页 35 个岗位；已启用 beisen-zhiye-v1 旧版表格解析。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "chinajack.zhiye.com"
+      ]
+    }
+  ]
+}

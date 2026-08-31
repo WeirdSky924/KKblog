@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "2cf32b14-83eb-54ec-884d-cab266fa7da3",
+      "company_name": "去哪儿旅行",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://hf7l9aiqzx.jobs.feishu.cn/index/position/list",
+      "note": "第三十四批核验：去哪儿旅行官方 Feishu 综合职位列表；受限 collector 完整读回 2 个分页批次、57 个岗位，包含社会招聘与实习混合行、城市、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hf7l9aiqzx.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

@@ -64,6 +64,11 @@ import {
   initializeEditorEmbedDialog,
   normalizeAuthorEmbedAttributes,
 } from "./editor-embed.js";
+import {
+  createAuthorLatexExtension,
+  initializeEditorLatexDialog,
+  normalizeAuthorLatexAttributes,
+} from "./editor-latex.js";
 
 const activeEditors = new WeakMap();
 
@@ -105,6 +110,10 @@ function normalizeTiptap(value) {
     }
     if (key === "attrs" && value.type === "embed") {
       normalized.attrs = normalizeAuthorEmbedAttributes(item);
+      return;
+    }
+    if (key === "attrs" && value.type === "latexBlock") {
+      normalized.attrs = normalizeAuthorLatexAttributes(item);
       return;
     }
     if (key === "attrs" && value.type === "codeBlock") {
@@ -201,6 +210,7 @@ function initializeTiptap(root, source, changed, selectionChanged, announce) {
   let tableToolbarController = null;
   let outlineController = null;
   let embedController = null;
+  let latexController = null;
   let pasteController = null;
   const enabledEmbedSources = (() => {
     try {
@@ -237,6 +247,9 @@ function initializeTiptap(root, source, changed, selectionChanged, announce) {
       createAuthorEmbedExtension({
         enabledSources: enabledEmbedSources,
         openDialog: (options) => embedController?.open(options) || false,
+      }),
+      createAuthorLatexExtension({
+        openDialog: (options) => latexController?.open(options) || false,
       }),
       createAuthorCodeBlockExtension(),
       ...createAuthorInputExtensions({
@@ -277,9 +290,11 @@ function initializeTiptap(root, source, changed, selectionChanged, announce) {
     editor,
     enabledSources: enabledEmbedSources,
   });
+  latexController = initializeEditorLatexDialog({ root, editor });
   const actions = {
     "link-dialog": ({ trigger }) => linkController.open(trigger),
     "embed-dialog": ({ trigger }) => embedController.open({ trigger }),
+    "latex-dialog": ({ trigger }) => latexController.open({ trigger }),
   };
   toolbarController = initializeEditorToolbar({
     root,
@@ -292,7 +307,7 @@ function initializeTiptap(root, source, changed, selectionChanged, announce) {
     actions,
   });
   blockMenuController = initializeEditorBlockMenu({ root, editor });
-  slashMenuController = initializeEditorSlashMenu({ root, editor });
+  slashMenuController = initializeEditorSlashMenu({ root, editor, actions });
   tableToolbarController = initializeEditorTableToolbar({ root, editor });
   outlineController = initializeEditorOutline({ root, editor });
   toolbarController.update();
@@ -308,6 +323,7 @@ function initializeTiptap(root, source, changed, selectionChanged, announce) {
       toolbarController?.dispose();
       linkController?.dispose();
       embedController?.dispose();
+      latexController?.dispose();
     },
   };
 }
@@ -338,6 +354,7 @@ function initializeAuthorEditor(root) {
   let previewScroll = null;
   let imagePaste = null;
   let imageWorkflow = null;
+  let latexController = null;
   const previewToggle = root.querySelector("[data-editor-preview-toggle]");
 
   if (!(source instanceof HTMLTextAreaElement)) {
@@ -506,6 +523,9 @@ function initializeAuthorEditor(root) {
         )
       : null;
   const tiptap = tiptapController?.editor || null;
+  if (!tiptap) {
+    latexController = initializeEditorLatexDialog({ root, source });
+  }
   previewScroll = initializeEditorPreviewScroll({ root, source, format, tiptap });
 
   const insertBodyImage = (assetId) => {
@@ -729,6 +749,8 @@ function initializeAuthorEditor(root) {
   const markdownImportApply = markdownImport?.querySelector("[data-markdown-import-apply]");
   const markdownImportClose = markdownImport?.querySelector("[data-markdown-import-close]");
   const markdownImportCancel = markdownImport?.querySelector("[data-markdown-import-cancel]");
+  const markdownLatexTrigger = root.querySelector("[data-latex-trigger]");
+  const openMarkdownLatex = () => latexController?.openMarkdown(markdownLatexTrigger);
   const resetMarkdownImport = () => {
     markdownFile = null;
     if (markdownImportFile instanceof HTMLInputElement) markdownImportFile.value = "";
@@ -828,6 +850,7 @@ function initializeAuthorEditor(root) {
   };
   document.addEventListener("click", closeMarkdownImportOnOutsideClick);
   document.addEventListener("keydown", closeMarkdownImportOnEscape);
+  markdownLatexTrigger?.addEventListener("click", openMarkdownLatex);
 
   if (!tiptap) source.addEventListener("input", schedulePreview);
   root.querySelectorAll("input, select, textarea").forEach((field) => {
@@ -933,10 +956,12 @@ function initializeAuthorEditor(root) {
     imageWorkflow?.dispose();
     disposeEditorUploadTracker(root);
     tiptapController?.dispose();
+    latexController?.dispose();
     tiptap?.destroy();
     previewToggle?.removeEventListener("click", togglePreview);
     document.removeEventListener("click", closeMarkdownImportOnOutsideClick);
     document.removeEventListener("keydown", closeMarkdownImportOnEscape);
+    markdownLatexTrigger?.removeEventListener("click", openMarkdownLatex);
     window.removeEventListener("pagehide", clearLocalMedia);
     clearLocalMedia();
     activeEditors.delete(root);

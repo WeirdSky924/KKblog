@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "3ca47cd1-cec2-53ef-8f8a-49b8a5f8bb0d",
+      "company_name": "安克创新",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://anker-in.jobs.feishu.cn/campushirecn/position/list",
+      "note": "第四十二批核验：安克创新官方 Feishu 校园/实习综合职位列表；受限 collector 完整读回 6 个分页批次、493 个岗位（239 条校园、254 条实习），含城市、类别、同域详情链接和发布时间；同一列表不拆分重复来源。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "anker-in.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

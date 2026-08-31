@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "b17ba075-6e17-56b7-89fb-ebe1d5763842",
+      "company_name": "上海海栎创科技股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://hynitron.zhiye.com/campus",
+      "note": "第十批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hynitron.zhiye.com"
+      ]
+    },
+    {
+      "id": "d7789a8b-e563-56e3-a307-1a9c0c205e88",
+      "company_name": "浩鲸科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://iwhalecloud1.zhiye.com/campus/jobs?shareId=8ef0834f-4b8b-4b4a-b003-91c21257fa69&shareSource=2&qr=1",
+      "note": "第十批核验：北森公开校园职位列表，完整读回 8 页 38 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhalecloud1.zhiye.com"
+      ]
+    }
+  ]
+}

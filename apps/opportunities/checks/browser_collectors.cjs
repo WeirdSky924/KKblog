@@ -19,6 +19,33 @@ const HIRE_PLATFORM_BROWSER_HOSTS = new Set([
   "lf3-static.bytednsdoc.com",
 ]);
 
+// These are the public tenant hosts observed in the supplied channel list.
+// Keeping the set in code prevents an administrator-provided URL from turning
+// the browser collector into a generic remote page runner.
+const FEISHU_SOURCE_HOSTS = new Set([
+  "anker-in.jobs.feishu.cn",
+  "boke.jobs.feishu.cn",
+  "dexmal-inc.jobs.feishu.cn",
+  "fastbase.jobs.feishu.cn",
+  "global-intco.jobs.feishu.cn",
+  "hf7l9aiqzx.jobs.feishu.cn",
+  "iwhih7is28.jobs.feishu.cn",
+  "k11pnjpvz1.jobs.feishu.cn",
+  "kwh0jtf778.jobs.feishu.cn",
+  "leiniao-ibg.jobs.feishu.cn",
+  "learnings.jobs.feishu.cn",
+  "leoglobal.jobs.feishu.cn",
+  "lilithgames.jobs.feishu.cn",
+  "weikezhijia.jobs.feishu.cn",
+  "momenta.jobs.feishu.cn",
+  "qcraft.jobs.feishu.cn",
+  "radrocktech.jobs.feishu.cn",
+  "senturytire.jobs.feishu.cn",
+  "smartlogictech.jobs.feishu.cn",
+  "tarsrobot.jobs.feishu.cn",
+  "xiaopeng.jobs.feishu.cn",
+]);
+
 const PUBLICATION_KEYS = [
   "published_at",
   "publishedAt",
@@ -87,6 +114,15 @@ const CONTRACTS = Object.freeze({
       "g.alicdn.com",
       "lang.alicdn.com",
     ]),
+  },
+  "feishu-career-v1": {
+    sourceHosts: FEISHU_SOURCE_HOSTS,
+    sourcePath: (url) => {
+      const path = url.pathname.replace(/\/+$/u, "");
+      return /^(?:\/(?:[A-Za-z0-9_-]+\/)?position\/list|\/(?:\d+\/)?(?:campus|intern|index(?:\/position\/list)?))$/u.test(path);
+    },
+    browserHostsForSource: (sourceHost) =>
+      new Set([sourceHost, ...HIRE_PLATFORM_BROWSER_HOSTS]),
   },
 });
 
@@ -181,6 +217,25 @@ function captureHireRequest(page, request) {
   });
 }
 
+function detailPath(request, id, websitePath) {
+  const pathname = request.source.pathname.replace(/\/+$/u, "");
+  const listMarker = "/position/list";
+  const listIndex = pathname.indexOf(listMarker);
+  if (listIndex >= 0) {
+    return `${pathname.slice(0, listIndex)}/position/${encodeURIComponent(id)}/detail`;
+  }
+  if (pathname.endsWith("/campus")) {
+    return `${pathname}/position/${encodeURIComponent(id)}/detail`;
+  }
+  if (pathname.endsWith("/intern")) {
+    return `${pathname}/position/${encodeURIComponent(id)}/detail`;
+  }
+  if (pathname.endsWith("/index")) {
+    return `${pathname}/position/${encodeURIComponent(id)}/detail`;
+  }
+  return `/${websitePath}/position/${encodeURIComponent(id)}/detail`;
+}
+
 function hireRow(request, row, websitePath, recruitmentType) {
   const id = text(row.id, 100);
   const title = text(row.title, 200);
@@ -192,9 +247,15 @@ function hireRow(request, row, websitePath, recruitmentType) {
   );
   return {
     title,
-    target_url: `${request.source.origin}/${websitePath}/position/${encodeURIComponent(id)}/detail`,
+    target_url: `${request.source.origin}${detailPath(request, id, websitePath)}`,
     recruitment_type: recruitmentType,
-    plan: subject || (recruitmentType === "INTERNSHIP" ? "实习招聘" : "校园招聘"),
+    plan:
+      subject ||
+      (recruitmentType === "INTERNSHIP"
+        ? "实习招聘"
+        : recruitmentType === "SOCIAL"
+          ? "社会招聘"
+          : "校园招聘"),
     location_text: cities.join("、") || "工作地点以官网为准",
     category_labels: labels([row.job_function?.name, row.job_category?.name]),
     city_labels: cities,
@@ -308,13 +369,26 @@ function loadHireSubjects(payload) {
 }
 
 function recruitmentFromHireRow(row) {
-  const value = text(
-    row.job_subject?.subject_group_info?.name ||
-      row.recruit_type?.parent?.name ||
-      row.recruit_type?.name,
-    100,
-  );
-  return value.includes("实习") ? "INTERNSHIP" : "CAMPUS";
+  const value = [
+    row.job_subject?.subject_group_info?.name,
+    row.job_subject?.name?.zh_cn,
+    row.job_subject?.name?.i18n,
+    row.recruit_type?.name,
+    row.recruit_type?.i18n_name,
+    row.recruit_type?.en_name,
+    row.recruit_type?.parent?.name,
+    row.recruit_type?.parent?.i18n_name,
+    row.title,
+  ]
+    .map((item) => text(item, 100))
+    .filter(Boolean)
+    .join(" ");
+  if (/实习|intern/iu.test(value)) return "INTERNSHIP";
+  if (/校招|校园|应届|campus|graduate/iu.test(value)) return "CAMPUS";
+  if (/社会|社招|正式|全职|experienced|full[- ]?time/iu.test(value)) {
+    return "SOCIAL";
+  }
+  return "CAMPUS";
 }
 
 function collectXiaomi(request) {
@@ -323,6 +397,14 @@ function collectXiaomi(request) {
     bySubject: false,
     websitePath: internship ? "internship" : "campus",
     recruitmentType: () => (internship ? "INTERNSHIP" : "CAMPUS"),
+  });
+}
+
+function collectFeishu(request) {
+  return collectHirePlatform(request, {
+    bySubject: false,
+    websitePath: "position",
+    recruitmentType: recruitmentFromHireRow,
   });
 }
 
@@ -434,6 +516,13 @@ const COLLECTORS = Object.freeze({
   "xiaomi-intern-v1": collectXiaomi,
   "bytedance-campus-v1": collectByteDance,
   "alibaba-campus-v1": collectAlibaba,
+  "feishu-career-v1": collectFeishu,
 });
 
-module.exports = { COLLECTORS, CONTRACTS };
+module.exports = {
+  COLLECTORS,
+  CONTRACTS,
+  FEISHU_SOURCE_HOSTS,
+  hireRow,
+  recruitmentFromHireRow,
+};

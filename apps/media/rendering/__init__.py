@@ -17,6 +17,14 @@ from .html_policy import (
     render_author_html,
     render_cache_key,
 )
+from .latex import (
+    MAX_LATEX_BLOCKS,
+    MAX_LATEX_SOURCE_BYTES,
+    contains_disallowed_latex_macro,
+    latex_fallback_source,
+    normalize_latex_source,
+    render_latex_block,
+)
 from .markdown import render_markdown
 from .references import markdown_media_ids, tiptap_attachment_ids, tiptap_media_ids
 from .tiptap import (
@@ -88,6 +96,8 @@ __all__ = [
     "NormalizedTipTapDocument",
     "RenderedContent",
     "RenderingError",
+    "MAX_LATEX_BLOCKS",
+    "MAX_LATEX_SOURCE_BYTES",
     "SANITIZER_VERSION",
     "SUPPORTED_TIPTAP_SCHEMA_VERSIONS",
     "TIPTAP_CODE_LANGUAGES",
@@ -101,6 +111,10 @@ __all__ = [
     "configured_rendering_version",
     "configured_trusted_embed_policy",
     "render_author_html",
+    "render_latex_block",
+    "normalize_latex_source",
+    "latex_fallback_source",
+    "contains_disallowed_latex_macro",
     "render_cache_key",
     "render_import_preview",
     "render_markdown",

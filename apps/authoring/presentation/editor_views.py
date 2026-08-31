@@ -1,4 +1,5 @@
 import json
+from pathlib import PurePath
 from urllib.parse import urlencode
 
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed
@@ -44,6 +45,7 @@ from apps.content.public import (
 )
 from apps.core.http import is_htmx_fragment_request
 from apps.core.ids import new_ulid, normalize_ulid
+from apps.exchange.public import ImportPreviewError
 from apps.media.public import (
     MediaAccessError,
     TipTapAttachmentMetadata,
@@ -228,6 +230,17 @@ def _create_upload_scope(request) -> str:
         raise Http404 from None
 
 
+def _exchange_integrations():
+    from config import exchange_integrations
+
+    return exchange_integrations
+
+
+def _import_editor_title(source_name: str) -> str:
+    stem = PurePath(source_name).stem
+    return (stem or source_name)[:30]
+
+
 def _render_editor(request, *, status=200, **context):
     return private_response(
         render(request, "authoring/editor.html", context, status=status)
@@ -265,13 +278,27 @@ def create(request):
             if selected_format == ContentFormat.MARKDOWN
             else '{"type":"doc","content":[]}'
         )
+        initial_title = ""
+        import_job_id = ""
+        if selected_format == ContentFormat.MARKDOWN and request.GET.get("import_job"):
+            import_job_id = request.GET["import_job"]
+            try:
+                imported = _exchange_integrations().configured_import_editor_payload(
+                    actor_id=actor_id,
+                    job_id=import_job_id,
+                )
+            except ImportPreviewError:
+                raise Http404 from None
+            initial_body = imported.body_markdown
+            initial_title = _import_editor_title(imported.source_name)
         form = ArticleEditorForm(
             initial={
                 "content_format": selected_format,
                 "upload_scope": _create_upload_scope(request),
                 "baseline_revision_id": "NEW",
-                "title": "",
+                "title": initial_title,
                 "body": initial_body,
+                "import_job_id": import_job_id,
                 "summary_mode": "AUTO",
                 "visibility": "PUBLIC",
                 "comments_enabled": True,
@@ -299,6 +326,12 @@ def create(request):
         except ContentCommandError as exc:
             form.add_error(None, exc.safe_message)
         else:
+            import_job_id = form.cleaned_data.get("import_job_id") or ""
+            if import_job_id:
+                _exchange_integrations().discard_configured_import_editor_payload(
+                    actor_id=actor_id,
+                    job_id=import_job_id,
+                )
             if request.POST.get("save_intent") == "review":
                 return _review_response(request, article_id=created.article_id)
             return redirect(

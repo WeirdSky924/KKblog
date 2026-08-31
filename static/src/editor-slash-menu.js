@@ -16,6 +16,7 @@ import {
   SquareCode,
   Table2,
   TriangleAlert,
+  Sigma,
   createIcons,
 } from "lucide";
 
@@ -41,6 +42,7 @@ const ICONS = {
   Pilcrow,
   Quote,
   SquareCode,
+  Sigma,
   Table2,
   TriangleAlert,
 };
@@ -163,7 +165,7 @@ function optionElement(command, menuId, index) {
   return option;
 }
 
-export function initializeEditorSlashMenu({ root, editor }) {
+export function initializeEditorSlashMenu({ root, editor, actions = {} }) {
   const host = root.querySelector(".author-tiptap");
   if (!(host instanceof HTMLElement)) {
     return { update() {}, dispose() {} };
@@ -358,6 +360,7 @@ export function initializeEditorSlashMenu({ root, editor }) {
       return false;
     }
     const ran = runEditorCommand(editor, command.id, {
+      actions,
       prepareChain: (chain) => chain.deleteRange(range),
       skipCommandWhenActive: true,
     });

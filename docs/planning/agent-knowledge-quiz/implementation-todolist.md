@@ -89,13 +89,13 @@
 
 补充裁决（2026-08-22）：调用方动态领域校验在统一 AGENT harness 内执行并参与一次 schema/semantic repair；失败、拒答、结构化修复失败和租约失效的 token reservation 统一以 `0` 结算，不进入每日额度，失败原因只通过安全通知说明。
 
-### T04｜交付第 7 管理大类的 AGENT 与 Prompt 页面
+### T04｜交付“AI 配置”一级组的 AGENT 与 Prompt 页面
 
 状态：已完成（2026-08-17）。
 
 依赖：T02-T03；Q038A-Q038B 已确认 Endpoint 全部运行参数由管理员逐项配置及其默认/硬范围。
 
-结果：管理导航新增“智能与题库”；仅管理员可使用 Endpoint/AGENT 列表和编辑弹窗，逐 Endpoint 编辑 context/output/per-run/timeout/concurrency/daily token 参数，并管理全站 daily token、用量摘要、“恢复默认上限”和“重置今日已用量”。完成启停、显式连通性检查、Markdown Prompt 多行编辑/安全预览/版本切换。普通业务用户没有配置入口。
+结果：管理导航新增独立“AI 配置”一级组；仅管理员可使用 Endpoint/AGENT 列表和编辑弹窗，逐 Endpoint 编辑 context/output/per-run/timeout/concurrency/daily token 参数，并管理全站 daily token、用量摘要、“恢复默认上限”和“重置今日已用量”。完成启停、显式连通性检查、Markdown Prompt 多行编辑/安全预览/版本切换。普通业务用户没有配置入口。
 
 验证：服务端管理员权限、CSRF、防重复、参数范围/交叉冲突、全站/单 Endpoint reset 对账与活跃预留保留、二次确认/row version/审计、连接检查频控/费用提示且不回写、错误保留表单、焦点恢复、390/768/1440 和三主题；页面不回显密钥或完整调用内容。
 
@@ -239,11 +239,11 @@ Labs 根据持续授权应用 `learning.0006_public_question_bank_projection` �
 
 依赖：T06、T09-T10；Q031-Q032、Q037 已确认申诉处理、原文访问透明度和显式勾选批量操作。
 
-结果：第 7 大类提供 LearningQuotaPolicy 全局默认与有附件权限账户字段覆盖、本人剩余摘要边界、自动审核/生成状态、脱敏错误、题库公开状态、事后隐藏/恢复/删除和申诉审核队列；文档申诉批准只触发新 AGENT 审核，管理处置批准显式恢复并通过 Outbox 通知 appellant。管理员成功查看原文写含 actor/用途的访问审计，不触发用户通知。文档/题库支持仅限显式勾选 ID 的批量隐藏/恢复/删除预检与有界逐项结果，不支持当前页/全部筛选展开；原文和申诉逐条。不建立发布前人工审核队列。所有写动作调用 owner service 并审计/通知。
+结果：“智能与题库”一级组提供 LearningQuotaPolicy 全局默认与有附件权限账户字段覆盖、本人剩余摘要边界、自动审核/生成状态、脱敏错误、题库公开状态、事后隐藏/恢复/删除和申诉审核队列；文档申诉批准只触发新 AGENT 审核，管理处置批准显式恢复并通过 Outbox 通知 appellant。管理员成功查看原文写含 actor/用途的访问审计，不触发用户通知。文档/题库支持仅限显式勾选 ID 的批量隐藏/恢复/删除预检与有界逐项结果，不支持当前页/全部筛选展开；原文和申诉逐条。不建立发布前人工审核队列。所有写动作调用 owner service 并审计/通知。
 
 验证：管理员权限、业务配额默认/部分覆盖/清除覆盖继承/硬范围/row version/审计与用户摘要隔离、确认弹窗、分页与有界加载、显式 ID/数量/状态分布、禁止当前页和筛选展开、部分失败逐项结果、原文/申诉无批量入口、申诉结果通知去重、状态竞态、错误不泄露正文/Prompt/答案/密钥、侧边提醒已读语义。
 
-证据：新增 `learning.0007_remove_learningappeal_learning_appeal_one_pending_document_and_more`，为文档/题库增加管理员锁定与删除 actor，申诉改为文档或题库二选一并分别保持单个 pending 唯一；旧 DELETE_PENDING 数据回填为 OWNER。`apps.learning.services.administration` 提供管理员隐藏/恢复/删除、显式 ID + row version 预检/执行、最大 50 项的逐项成功/失败结果；administration query 提供文档/题库/申诉分页、原文访问审计和全站 quota/账户 override 查询。申诉批准后的恢复、AuditEntry 和通用通知事件 `learning.document_administration_changed.v1` / `learning.question_bank_administration_changed.v1` 接入现有通知 owner；第 7 大类导航加入“知识文档与申诉”“题库与运行”，附件授权账户提供配额覆盖入口，批量 dialog 关闭后恢复到触发按钮焦点。
+证据：新增 `learning.0007_remove_learningappeal_learning_appeal_one_pending_document_and_more`，为文档/题库增加管理员锁定与删除 actor，申诉改为文档或题库二选一并分别保持单个 pending 唯一；旧 DELETE_PENDING 数据回填为 OWNER。`apps.learning.services.administration` 提供管理员隐藏/恢复/删除、显式 ID + row version 预检/执行、最大 50 项的逐项成功/失败结果；administration query 提供文档/题库/申诉分页、原文访问审计和全站 quota/账户 override 查询。申诉批准后的恢复、AuditEntry 和通用通知事件 `learning.document_administration_changed.v1` / `learning.question_bank_administration_changed.v1` 接入现有通知 owner；“智能与题库”一级组导航包含“知识文档与申诉”“题库与运行”，附件授权账户提供配额覆盖入口，批量 dialog 关闭后恢复到触发按钮焦点。
 
 聚焦回归在正确隔离 PostgreSQL/Redis/Mailpit 环境中取得 `13 passed in 108.04s`（learning administration、administration HTTP、notifications consumer）；此前 T13 完整 learning 回归取得 `107 passed`。最终 `.venv/bin/ruff check`（相关 410 个 Python 文件）、`ruff format --check`、Django `check`、`makemigrations --check --dry-run`、`git diff --check` 均退出 0；修复了学习申诉通知 builder 的错误缩进并以确定性 EventEnvelope 读回 `learning_appeal_notification_builder=ok`。`npm run build:css` 与 `npm run build:js` 均退出 0。
 
@@ -386,4 +386,4 @@ T17 收口证据：服务层结果由 HTTP View 透传，重复 `request_id` 不
 
 ## 11. 当前停止点
 
-规划文档已经建立，Q001-Q039 及全部 A-F 子项已确认，T00-T12 已完成，当前仅 T13 进行中。T12 的唯一公开 query/filter projection、独立 HTML 列表/详情、组合筛选与模糊搜索、稳定排序/分页、答案范围、隐藏 404、迁移往返、三主题三视口键盘浏览器和 Labs migration/静态/健康读回均已闭合。下一步按 T13 在第 7 管理大类交付 LearningQuotaPolicy 与账户覆盖、文档/题库状态和申诉队列、原文访问审计，以及只接受显式勾选 ID 的有界批量处置；先审计现有 administration 分页/dialog、learning owner service/query、Audit/Outbox 与通知复用点，再以管理员权限、row version、申诉和批量预检的聚焦 RED 固定边界。当前 Goal 持续授权继续适用；不执行无必要的真实 Provider、Git 或生产动作。
+规划文档已经建立，Q001-Q039 及全部 A-F 子项已确认，T00-T12 已完成，当前仅 T13 进行中。T12 的唯一公开 query/filter projection、独立 HTML 列表/详情、组合筛选与模糊搜索、稳定排序/分页、答案范围、隐藏 404、迁移往返、三主题三视口键盘浏览器和 Labs migration/静态/健康读回均已闭合。下一步按 T13 在“智能与题库”一级组交付 LearningQuotaPolicy 与账户覆盖、文档/题库状态和申诉队列、原文访问审计，以及只接受显式勾选 ID 的有界批量处置；先审计现有 administration 分页/dialog、learning owner service/query、Audit/Outbox 与通知复用点，再以管理员权限、row version、申诉和批量预检的聚焦 RED 固定边界。当前 Goal 持续授权继续适用；不执行无必要的真实 Provider、Git 或生产动作。

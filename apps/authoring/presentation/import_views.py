@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.http import Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -109,6 +111,23 @@ def _completed_single_article_response(request, context):
     return private_response(redirect(edit_url))
 
 
+def _editor_redirect(request, *, actor_id, job_id: str):
+    try:
+        payload = _integrations().configured_import_editor_payload(
+            actor_id=actor_id,
+            job_id=job_id,
+        )
+    except ImportPreviewError:
+        return None
+    query = urlencode({"format": "MARKDOWN", "import_job": payload.job_id})
+    editor_url = f"{reverse('authoring:create')}?{query}"
+    if is_htmx_fragment_request(request):
+        response = HttpResponse(status=204)
+        response.headers["HX-Redirect"] = editor_url
+        return private_response(response)
+    return private_response(redirect(editor_url))
+
+
 def import_workspace(request):
     actor_id, response = author_id_or_response(request)
     if response is not None:
@@ -128,14 +147,8 @@ def import_workspace(request):
         except ImportPreviewError as exc:
             form.add_error("source", exc.safe_message)
         else:
-            return private_response(
-                redirect(
-                    reverse(
-                        "authoring:import-job",
-                        kwargs={"job_id": result.job_id},
-                    )
-                )
-            )
+            query = urlencode({"format": "MARKDOWN", "import_job": result.job_id})
+            return private_response(redirect(f"{reverse('authoring:create')}?{query}"))
     status = 422 if request.method == "POST" else 200
     return _render_import(
         request,
@@ -151,6 +164,8 @@ def import_job(request, job_id: str):
         return response
     if denied := _method(request, ("GET",)):
         return denied
+    if response := _editor_redirect(request, actor_id=actor_id, job_id=job_id):
+        return response
     context = _context(actor_id=actor_id, job_id=job_id)
     if response := _completed_single_article_response(request, context):
         return response
@@ -293,6 +308,8 @@ def import_job_status(request, job_id: str):
         return response
     if denied := _method(request, ("GET",)):
         return denied
+    if response := _editor_redirect(request, actor_id=actor_id, job_id=job_id):
+        return response
     context = _context(actor_id=actor_id, job_id=job_id)
     if response := _completed_single_article_response(request, context):
         return response

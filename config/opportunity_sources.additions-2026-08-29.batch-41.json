@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "a972fcad-1acd-5628-81ac-f383561221e6",
+      "company_name": "中芯国际",
+      "source_type": "CAMPUS",
+      "official_url": "https://smics.zhiye.com/campus",
+      "note": "第四十一批核验：中芯国际官网指向的官方北森校园列表；新增旧版 zwm 列表解析后完整读回 25 页、248 个岗位，含 2026/2027 届、城市、类别和同域详情链接。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "smics.zhiye.com"
+      ]
+    },
+    {
+      "id": "87cafac9-aa09-57be-aab0-69a7fa3fba4c",
+      "company_name": "中芯国际",
+      "source_type": "SOCIAL",
+      "official_url": "https://smics.zhiye.com/social",
+      "note": "第四十一批核验：中芯国际官网指向的官方北森社会列表；新增旧版 zwm 列表解析后完整读回 30 页、293 个岗位，含城市、类别和同域详情链接。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "smics.zhiye.com"
+      ]
+    }
+  ]
+}

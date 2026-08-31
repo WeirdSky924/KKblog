@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "63897daa-041a-5dca-a4a4-12e78d5714d0",
+      "company_name": "锐石创芯",
+      "source_type": "SOCIAL",
+      "official_url": "https://radrocktech.jobs.feishu.cn/index/position/list",
+      "note": "第三十五批核验：锐石创芯官方 Feishu 社会招聘职位列表；受限 collector 完整读回 2 个分页批次、8 个岗位，公开招聘类型均为社招，含深圳/上海/成都地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "radrocktech.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

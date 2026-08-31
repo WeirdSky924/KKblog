@@ -1,0 +1,2080 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "f266407e-059b-448d-be0d-f4da8a86010b",
+      "company_name": "德州仪器",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/ti/143986#/jobs",
+      "note": "CSV 官方确认；Moka 公开职位接口读回 68 个岗位。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "c4004d03-6687-4bbc-a988-d8a0d11f512c",
+      "company_name": "微博",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/sina/43536#/jobs",
+      "note": "CSV 官方确认；Moka 公开职位接口可分页读取。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "66258dbf-c0d9-4023-82da-a5ea643a79db",
+      "company_name": "滴滴",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/didiglobal/96064#/jobs",
+      "note": "CSV 官方确认；短链已解析为官方 Moka 租户并读回岗位。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "f4dac02f-c26b-4371-ae64-530401b1860f",
+      "company_name": "乐元素科技（北京）股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/leyuansu/166186?locale=zh-CN#/jobs",
+      "note": "CSV 官方确认；申请短链已解析为公开校园职位租户。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "5de484a9-914e-4aee-b7c7-d498604012b7",
+      "company_name": "电科金仓",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/kingbase/47259#/jobs",
+      "note": "CSV 官方确认；短链已解析为公开校园职位租户。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "2905a196-e868-4260-9620-c7eee47e9b28",
+      "company_name": "天翼云科技有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU62b2ae672f9d24458d72f9cc/pb/school.html",
+      "note": "Hotjob 公开接口读回 42 个校招岗位，含 publishDate、地点和类别。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "d6a53d6b-bd14-4446-8f70-85b5988bc189",
+      "company_name": "双环传动",
+      "source_type": "SOCIAL",
+      "official_url": "https://wecruit.hotjob.cn/SU63e33df0bef57c62009492b4/pb/social.html",
+      "note": "Hotjob 公开接口读回日常招聘岗位；来源页为社会招聘列表。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "ac716648-8ca6-4a89-8a08-637a79f8c5ec",
+      "company_name": "长光卫星",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU6805dad01eb80570a8bee6c1/mc/position/campus",
+      "note": "Hotjob 公开接口读回 15 个校招岗位；来源为官方多端职位页。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "8a89064c-9ec1-424b-a391-dd9d2afbd454",
+      "company_name": "三棵树",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://wecruit.hotjob.cn/SU6173b0982f9d247cb9737459/pb/interns.html",
+      "note": "Hotjob 公开接口读回 42 个日常实习岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "0baa2357-4b23-4637-9e18-5d475c7aa57f",
+      "company_name": "宝时得科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64ae46c02f9d24760adac777/pb/index.html",
+      "note": "Hotjob 公开综合入口；校招和社会招聘接口均返回结构化岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "7ea331b9-e1e6-4fc9-902d-8aff5b2025a7",
+      "company_name": "安信证券",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU625d4a0b2f9d24287db127c8/pb/index.html",
+      "note": "Hotjob 官方别名解析后的综合招聘页；校招和社会岗位接口可读。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "99ce1572-e827-4c8d-acc5-96e86a573120",
+      "company_name": "大众汽车（中国）投资有限公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://faw-vw.hotjob.cn/SU64bb3226bef57c7e364a7a2c/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口读回校招与社会岗位，保留来源主机。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "faw-vw.hotjob.cn"
+      ]
+    },
+    {
+      "id": "72c9255a-c39b-4901-a8b6-6e7bde0d9780",
+      "company_name": "格科",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://gcoreinc.hotjob.cn/SU645cde90bef57c0907ebd1b4/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口读回 2027 校招及社会岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "gcoreinc.hotjob.cn"
+      ]
+    },
+    {
+      "id": "eba3f97b-d07e-4240-9c67-7978affc1790",
+      "company_name": "新城控股集团股份有限公司上海分公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://seazen.hotjob.cn/SU630dafb40dcad4076dfdf5ce/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口含实习与社会招聘岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "seazen.hotjob.cn"
+      ]
+    },
+    {
+      "id": "5302ae73-f58e-4a07-b1de-1a4e42dcea50",
+      "company_name": "深圳创维-RGB",
+      "source_type": "CAMPUS",
+      "official_url": "https://skyworth.hotjob.cn/SU668b8b251c240e2e76ea71d8/pb/school.html",
+      "note": "Hotjob 公开校招列表；接口读回 106 个岗位并提供发布时间。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "skyworth.hotjob.cn"
+      ]
+    },
+    {
+      "id": "e4594088-2d08-4fca-b3b1-b6e570679de8",
+      "company_name": "中国民航信息网络股份有限公司嘉兴分公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://travelsky.hotjob.cn/SU6358e2600dcad448466b5464/pb/index.html",
+      "note": "Hotjob 官方租户；校招和社会岗位列表接口可读。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "travelsky.hotjob.cn"
+      ]
+    },
+    {
+      "id": "ae795e2a-7a69-4f9a-b37b-d0075e36d7a7",
+      "company_name": "地平线",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64819a4f2f9d2433ba8b043a/pb/index.html",
+      "note": "由官方校园域解析到的 Hotjob 租户主页；接口同时支持校招与社会岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "67a53c2f-ad57-4f36-ab99-51f36129e46e",
+      "company_name": "天风证券",
+      "source_type": "SOCIAL",
+      "official_url": "https://wecruit.hotjob.cn/SU6114cab40dcad4106ffc953b/pb/social.html",
+      "note": "Hotjob 社会招聘列表；公开接口读回 13 个岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "b630b8da-49db-4e9f-9dd5-1f2b15320752",
+      "company_name": "华泰证券",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU5d4bd89a9b0d7889b8422dbe/mc/index",
+      "note": "Hotjob 官方综合入口；公开接口读回社会岗位，支持后续校招类型。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "fe76ee9b-41cf-4dac-9af6-a1a12a7a38c4",
+      "company_name": "Fastlane",
+      "source_type": "CAMPUS",
+      "official_url": "https://fastbase.jobs.feishu.cn/588906/position/list",
+      "note": "Feishu 招聘公开列表；受限浏览器沙箱读回 14 个岗位、发布时间和详情链接。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "fastbase.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "d721b4d4-7fcd-4769-af4c-b7217dc0f2b5",
+      "company_name": "莉莉丝游戏",
+      "source_type": "CAMPUS",
+      "official_url": "https://lilithgames.jobs.feishu.cn/campus",
+      "note": "Feishu 招聘公开校园列表；受限浏览器沙箱实际读回岗位。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "lilithgames.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "d88e3166-03d1-5e2d-a616-8d5f2f7c4880",
+      "company_name": "诺瓦星云",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://novastar.zhiye.com/intern/jobs",
+      "note": "第二批核验：北森公开实习职位列表，完整读回 1 页 1 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "novastar.zhiye.com"
+      ]
+    },
+    {
+      "id": "7d859d81-9c51-5b42-b528-cb2f03e1c731",
+      "company_name": "诺瓦星云",
+      "source_type": "SOCIAL",
+      "official_url": "https://novastar.zhiye.com/social/jobs",
+      "note": "第二批核验：北森公开社会招聘职位列表，完整读回 20 页 96 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "novastar.zhiye.com"
+      ]
+    },
+    {
+      "id": "7eaf4964-9db5-579f-8e8a-1c019695f409",
+      "company_name": "广东奥马冰箱有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://homa-hr.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 6 页 29 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "homa-hr.zhiye.com"
+      ]
+    },
+    {
+      "id": "b5e3a0c8-3dee-5eb9-b0fe-221c9521ae7f",
+      "company_name": "华夏航空",
+      "source_type": "CAMPUS",
+      "official_url": "https://hxhk.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hxhk.zhiye.com"
+      ]
+    },
+    {
+      "id": "54b0c631-f00f-58fd-919a-7a53bc97b265",
+      "company_name": "中茵微电子",
+      "source_type": "CAMPUS",
+      "official_url": "https://joinsilicon.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 3 页 13 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "joinsilicon.zhiye.com"
+      ]
+    },
+    {
+      "id": "a9c1593b-aa5d-50af-abc1-f0a466e64175",
+      "company_name": "杰华特微电子股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://joulwatt.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 6 页 26 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "joulwatt.zhiye.com"
+      ]
+    },
+    {
+      "id": "f5a6cc5b-078e-5f62-9ead-5d421e75bf23",
+      "company_name": "三未信安",
+      "source_type": "CAMPUS",
+      "official_url": "https://sansec.zhiye.com/campus/jobs",
+      "note": "第四批核验：北森公开校园职位列表，完整读回 2 页 9 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sansec.zhiye.com"
+      ]
+    },
+    {
+      "id": "63be458c-8c6d-51f7-87ba-41ac1fc5b4c0",
+      "company_name": "星宸科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://sigmastar.zhiye.com/campus/jobs",
+      "note": "第五批核验：北森公开校园职位列表，完整读回 7 页 31 个岗位；与 sigmastar1.zhiye.com 镜像岗位 ID 100% 重合，选本 URL 作为 canonical 来源。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sigmastar.zhiye.com"
+      ]
+    },
+    {
+      "id": "efe4722f-60ac-5e6a-8eb7-7ef143a842a4",
+      "company_name": "新芯",
+      "source_type": "CAMPUS",
+      "official_url": "https://whxmc.zhiye.com/jobs",
+      "note": "第六批核验：北森公开职位列表，完整读回 10 页 50 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "whxmc.zhiye.com"
+      ]
+    },
+    {
+      "id": "db93258a-e23a-55ba-b73b-4b97e6fe7023",
+      "company_name": "上海鸣石私募基金管理有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://mingshiim.zhiye.com/campus/jobs?memory=%7B%7D&silence=1",
+      "note": "第七批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "mingshiim.zhiye.com"
+      ]
+    },
+    {
+      "id": "aa03c308-d210-5ec9-9d0e-2b4010d966d6",
+      "company_name": "深圳市亿道信息股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://emdoor1.zhiye.com/campus",
+      "note": "第八批核验：北森公开校园职位列表，完整读回 3 页 15 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "emdoor1.zhiye.com"
+      ]
+    },
+    {
+      "id": "4d024851-12a1-5b58-8ff4-d18a21b7e3ca",
+      "company_name": "深圳方正微电子有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://founderic.zhiye.com/Campus",
+      "note": "第八批核验：北森公开校园职位列表，完整读回 7 页 32 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "founderic.zhiye.com"
+      ]
+    },
+    {
+      "id": "cb3e2ffe-f7c3-5648-8dcf-caa568030e48",
+      "company_name": "杰克股份",
+      "source_type": "CAMPUS",
+      "official_url": "https://chinajack.zhiye.com/campus/?PageIndex=1",
+      "note": "第九批核验：北森旧版服务器渲染校园职位表，完整读回 3 页 35 个岗位；已启用 beisen-zhiye-v1 旧版表格解析。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "chinajack.zhiye.com"
+      ]
+    },
+    {
+      "id": "b17ba075-6e17-56b7-89fb-ebe1d5763842",
+      "company_name": "上海海栎创科技股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://hynitron.zhiye.com/campus",
+      "note": "第十批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hynitron.zhiye.com"
+      ]
+    },
+    {
+      "id": "d7789a8b-e563-56e3-a307-1a9c0c205e88",
+      "company_name": "浩鲸科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://iwhalecloud1.zhiye.com/campus/jobs?shareId=8ef0834f-4b8b-4b4a-b003-91c21257fa69&shareSource=2&qr=1",
+      "note": "第十批核验：北森公开校园职位列表，完整读回 8 页 38 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhalecloud1.zhiye.com"
+      ]
+    },
+    {
+      "id": "c193a5e0-475b-5e6b-8d32-093131e31ca5",
+      "company_name": "金山云",
+      "source_type": "CAMPUS",
+      "official_url": "https://jssoft.zhiye.com/campus/",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 1 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jssoft.zhiye.com"
+      ]
+    },
+    {
+      "id": "5004f1bc-6ea9-5cd8-b8e8-90fbddcbd706",
+      "company_name": "慧策（掌上先机）",
+      "source_type": "CAMPUS",
+      "official_url": "https://huicecom.zhiye.com/campus/jobs",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 14 页 70 个岗位；当前仅含 2025/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "huicecom.zhiye.com"
+      ]
+    },
+    {
+      "id": "f21928ac-ae33-58ad-b358-79f8421e7ffa",
+      "company_name": "货拉拉",
+      "source_type": "CAMPUS",
+      "official_url": "https://huolala.zhiye.com/Campus",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 0 个岗位，页面明确为空列表。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "huolala.zhiye.com"
+      ]
+    },
+    {
+      "id": "8de29385-4957-5c30-acb2-8958216089fd",
+      "company_name": "龙旗科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://longcheerzp.zhiye.com/Campus",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 0 个岗位，页面明确为空列表。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "longcheerzp.zhiye.com"
+      ]
+    },
+    {
+      "id": "6d31b190-401f-5228-9632-4cdf9437e711",
+      "company_name": "锦浪科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://ginlong.zhiye.com/campus/jobs",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 5 页 25 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "ginlong.zhiye.com"
+      ]
+    },
+    {
+      "id": "e957496f-9988-5305-acec-f4c4a4ecd069",
+      "company_name": "基恩士",
+      "source_type": "CAMPUS",
+      "official_url": "https://keyence.zhiye.com/campus/jobs",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 1 页 1 个岗位；标题含 2027/2026 届信息，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "keyence.zhiye.com"
+      ]
+    },
+    {
+      "id": "5cd3417c-c15a-57f0-9a41-52b395b0f916",
+      "company_name": "星纵物联",
+      "source_type": "CAMPUS",
+      "official_url": "https://milesight.zhiye.com/campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 3 页 15 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "milesight.zhiye.com"
+      ]
+    },
+    {
+      "id": "8b516835-6472-5049-becf-c9f59da16d90",
+      "company_name": "迈瑞医疗",
+      "source_type": "CAMPUS",
+      "official_url": "https://mindray.zhiye.com/campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 2 页 10 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "mindray.zhiye.com"
+      ]
+    },
+    {
+      "id": "4db9c96d-71e3-5f53-8f22-c240c93bac2d",
+      "company_name": "新能德",
+      "source_type": "CAMPUS",
+      "official_url": "https://nvtpower.zhiye.com/Campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 9 页 43 个岗位；响应含 2027/2028/2025 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "nvtpower.zhiye.com"
+      ]
+    },
+    {
+      "id": "db1e1caa-9d7e-58b1-9ddd-d97a0d1ce3e5",
+      "company_name": "豪威集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://ovt-omnivision.zhiye.com/campus?r=-1&c=4301",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 16 页 78 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "ovt-omnivision.zhiye.com"
+      ]
+    },
+    {
+      "id": "10b17f69-6f0f-56c2-97c9-a887b0b5beb3",
+      "company_name": "上海精测",
+      "source_type": "CAMPUS",
+      "official_url": "https://pmish-tech.zhiye.com/campus?c=3502",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 5 页 25 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "pmish-tech.zhiye.com"
+      ]
+    },
+    {
+      "id": "c417cb2e-01f4-5c1e-b3a3-ea78a314158e",
+      "company_name": "前海开源",
+      "source_type": "CAMPUS",
+      "official_url": "https://qhkyfund.zhiye.com/Campus",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 4 页 16 个岗位；当前仅含 2025/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "qhkyfund.zhiye.com"
+      ]
+    },
+    {
+      "id": "abd2539d-5634-524b-97b4-b39296c8aada",
+      "company_name": "四方继保",
+      "source_type": "CAMPUS",
+      "official_url": "https://sf-auto.zhiye.com/campus/jobs",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 10 页 48 个岗位；当前为 2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sf-auto.zhiye.com"
+      ]
+    },
+    {
+      "id": "a8f0c6f0-cc1b-511a-8442-50edb46708c9",
+      "company_name": "欣旺达",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://sunwoda.zhiye.com/Intern",
+      "note": "第十四批核验：北森公开实习职位列表，完整读回 1 页 1 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwoda.zhiye.com"
+      ]
+    },
+    {
+      "id": "e640bba6-e4bf-5df6-b4bc-1712dd6e89e6",
+      "company_name": "洲明科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://unilumin.zhiye.com/Campus",
+      "note": "第十四批核验：北森公开校园职位列表，完整读回 6 页 29 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "unilumin.zhiye.com"
+      ]
+    },
+    {
+      "id": "0ef5d66c-0c11-5d15-8dd1-c2a4a228ab2b",
+      "company_name": "康尼机电",
+      "source_type": "CAMPUS",
+      "official_url": "https://kangni.zhiye.com/campus/jobs?1=[{%22id%22:%225%22,%22label%22:%22%E7%A0%94%E5%8F%91%22}]",
+      "note": "第十五批核验：北森公开校园职位列表，完整读回 5 页 21 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kangni.zhiye.com"
+      ]
+    },
+    {
+      "id": "edf101a8-4951-576f-a9bf-61541cc06089",
+      "company_name": "武汉芯动科技有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://innosilicon.zhiye.com/Campus",
+      "note": "第十五批核验：北森公开校园职位列表，完整读回 4 页 20 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "innosilicon.zhiye.com"
+      ]
+    },
+    {
+      "id": "47eb2319-21c7-5882-adaa-5c31ef761b7c",
+      "company_name": "春风动力",
+      "source_type": "CAMPUS",
+      "official_url": "https://cfmoto.zhiye.com/Campus",
+      "note": "第十六批核验：北森公开校园职位列表，完整读回 41 页 205 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "cfmoto.zhiye.com"
+      ]
+    },
+    {
+      "id": "afdd88b6-dd08-5edb-92eb-66c705fd5101",
+      "company_name": "科大讯飞",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://iflytek.zhiye.com/7/jobs",
+      "note": "第十七批核验：北森官方综合职位列表，使用受限 page_size=50 完整读回 18 页 895 个岗位；岗位字段含 2027/2028 届，无法从页面统一判定招聘类型的保留 OTHER。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iflytek.zhiye.com"
+      ]
+    },
+    {
+      "id": "025fcdc4-40fe-54c3-ba74-66cb93c2f24f",
+      "company_name": "苏纳光电",
+      "source_type": "CAMPUS",
+      "official_url": "https://suna-opto.zhiye.com/campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 1 页 41 个岗位；页面含城市和岗位类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "suna-opto.zhiye.com"
+      ]
+    },
+    {
+      "id": "1fd99997-c60c-5e31-9a5b-0ac1c527897d",
+      "company_name": "苏纳光电",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://suna-opto.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 2 页 165 个岗位；综合页按公开 CategoryId 区分校招、实习和社会招聘。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "suna-opto.zhiye.com"
+      ]
+    },
+    {
+      "id": "a3408469-5e47-51b4-95ae-27a908084c2c",
+      "company_name": "新华三",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://h3c.zhiye.com/",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 4 页 371 个岗位；部分岗位地点为空时保留为未公开。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "h3c.zhiye.com"
+      ]
+    },
+    {
+      "id": "c4995037-dbda-5271-9f0f-3b2d8b912438",
+      "company_name": "新华三",
+      "source_type": "SOCIAL",
+      "official_url": "https://h3c.zhiye.com/social/jobs",
+      "note": "第十八批核验：北森公开社会招聘职位列表，完整读回 3 页 295 个岗位；响应部分地点为空，适配器保留岗位并标记未公开。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "h3c.zhiye.com"
+      ]
+    },
+    {
+      "id": "11a8922c-87ad-5633-8b6f-b4497e083844",
+      "company_name": "睿创微纳",
+      "source_type": "CAMPUS",
+      "official_url": "https://raytrontek.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 1 页 63 个岗位，含 2026 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "raytrontek.zhiye.com"
+      ]
+    },
+    {
+      "id": "2828e0c4-3c61-5715-99f3-ed136aa8608f",
+      "company_name": "睿创微纳",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://raytrontek.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 3 页 270 个岗位；旧届别保留并交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "raytrontek.zhiye.com"
+      ]
+    },
+    {
+      "id": "effd128a-f5b8-5aa9-be32-2690f8b9d01e",
+      "company_name": "传音控股",
+      "source_type": "CAMPUS",
+      "official_url": "https://transsion.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 2 页 178 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "transsion.zhiye.com"
+      ]
+    },
+    {
+      "id": "5f50bc4c-fbf6-523f-82fa-1d4eab7186f8",
+      "company_name": "传音控股",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://transsion.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 10 页 969 个岗位；综合页包含不同招聘类别，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "transsion.zhiye.com"
+      ]
+    },
+    {
+      "id": "196013cc-fee3-5dbc-9924-08b17ce6cc57",
+      "company_name": "天职国际",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://tzcpa.zhiye.com/",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 5 页 467 个岗位；综合页含 2026、2027 和 2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tzcpa.zhiye.com"
+      ]
+    },
+    {
+      "id": "628a402d-475e-5d2a-9cce-596d77f7bc0b",
+      "company_name": "天职国际",
+      "source_type": "CAMPUS",
+      "official_url": "https://tzcpa.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 2 页 110 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tzcpa.zhiye.com"
+      ]
+    },
+    {
+      "id": "44970868-badd-5cdf-a826-5d081b3dcf64",
+      "company_name": "万兴科技",
+      "source_type": "SOCIAL",
+      "official_url": "https://wondershare.zhiye.com/",
+      "note": "第十八批核验：北森公开社会招聘职位列表，完整读回 1 页 39 个岗位。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondershare.zhiye.com"
+      ]
+    },
+    {
+      "id": "1be91673-9f8a-5146-beec-ed0645fe4963",
+      "company_name": "万兴科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wondersharecampus.zhiye.com/",
+      "note": "第十八批核验：北森公开全球校园综合职位列表，完整读回 2 页 141 个岗位，含 2027/2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondersharecampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "7db46d44-09a1-52b6-90e4-bddfbfb57c94",
+      "company_name": "万兴科技",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://wondersharecampus.zhiye.com/intern/jobs",
+      "note": "第十八批核验：北森公开实习职位列表，完整读回 2 页 110 个岗位，含 2027/2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondersharecampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "611c6de0-f8cf-558a-b404-dcda54c22f7a",
+      "company_name": "欣旺达",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://sunwoda.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 6 页 502 个岗位；综合页按公开类别区分招聘类型。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwoda.zhiye.com"
+      ]
+    },
+    {
+      "id": "27d5be8a-c085-57b6-a708-7aa64be3e95b",
+      "company_name": "欣旺达",
+      "source_type": "CAMPUS",
+      "official_url": "https://sunwodacampus.zhiye.com/",
+      "note": "第十九批核验：北森公开校园综合职位列表，完整读回 13 页 1,253 个岗位；含 2026/2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwodacampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "01f374c5-e06d-5c7e-ad3b-e24593fd5214",
+      "company_name": "欣旺达",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://sunwodacampus.zhiye.com/intern/jobs",
+      "note": "第十九批核验：北森公开实习职位列表，接口明确返回 0 条并完整结束；保留来源用于后续恢复监测。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwodacampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "5b7233f4-2b19-5cee-8863-accd38370b5c",
+      "company_name": "恒玄科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://bestechnic.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 1 页 85 个岗位；页面提供地点和类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "bestechnic.zhiye.com"
+      ]
+    },
+    {
+      "id": "18d1d9d6-b78f-5be4-9e35-8b890b57365c",
+      "company_name": "一鸣食品",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://inm.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 2 页 169 个岗位；响应含多个历史届别，交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "inm.zhiye.com"
+      ]
+    },
+    {
+      "id": "bb860822-f13b-5123-85b8-8b29ba05b7e8",
+      "company_name": "思摩尔国际（SMOORE）",
+      "source_type": "CAMPUS",
+      "official_url": "https://careers.smooretech.com/campus-recruitment/smoore/150918",
+      "note": "第二十批核验：官方 Moka 校园职位列表，完整读回 1 页 12 个岗位，含 2027 届与发布时间字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com",
+        "careers.smooretech.com"
+      ]
+    },
+    {
+      "id": "ec051978-e3a2-5e48-a61d-5eb70cf33db4",
+      "company_name": "巨一",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU64ed532b1c240e725e5af025/pb/school.html",
+      "note": "第二十批核验：Hotjob 公开校园职位列表，完整读回 1 页 1 个岗位，含发布时间和 2026 届字段。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "c16bcf0c-45e8-5646-9c70-7afb592d274d",
+      "company_name": "巨一",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64ed53ed1c240e725e5b0be4/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，完整读回 2 页 10 个岗位，含校园和社会招聘及发布时间。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "1ddeac0a-6cd8-5ed0-a84e-582d4f453087",
+      "company_name": "宇通集团",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64e7157a1eb80519a8e4efcf/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，完整读回 7 页 79 个岗位，含 2027 届和发布时间字段。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "4291f731-5b87-5779-ac2d-a38e13b409f2",
+      "company_name": "浙江长龙航空股份有限公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU6656786d1c240e071a6867a7/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，稳定重试后完整读回 7 页 87 个岗位；首次分页元数据漂移被适配器拒绝，未作为成功证据。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "e1362eaf-b68b-5804-9387-09132da46979",
+      "company_name": "海信集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://jobs.hisense.com/campus",
+      "note": "第二十一批核验：海信官方北森校园职位列表，完整读回 5 页 475 个岗位，含 2026/2027 届、地点和类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jobs.hisense.com"
+      ]
+    },
+    {
+      "id": "f65976b9-912b-51d7-bb0d-ac80cafe46c3",
+      "company_name": "海信集团",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://jobs.hisense.com/",
+      "note": "第二十一批核验：海信官方北森综合职位列表，完整读回 13 页 1,204 个岗位；综合页包含校园、实习与社会岗位，旧届别交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jobs.hisense.com"
+      ]
+    },
+    {
+      "id": "f55d9c44-36c7-5948-8f4b-c2110e4ef573",
+      "company_name": "华勤技术",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/hq/44757#/jobs",
+      "note": "第二十一批核验：华勤官网公开链接指向的 Moka 校园职位列表，完整读回 2 页 52 个岗位，含发布时间和 2027 届字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "becec10b-9fd4-5c3d-a1df-ca04fb25e5d7",
+      "company_name": "华勤技术",
+      "source_type": "SOCIAL",
+      "official_url": "https://app.mokahr.com/social-recruitment/hq/44756#/jobs",
+      "note": "第二十一批核验：华勤官网公开链接指向的 Moka 社会职位列表，完整读回 2 页 48 个岗位，含发布时间字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "e17815c2-ad54-5a2a-8cc1-c3e8ddfa918d",
+      "company_name": "华勤技术",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://app.mokahr.com/campus-recruitment/hq/45417#/jobs",
+      "note": "第二十一批核验：华勤官网公开实习链接指向的 Moka 列表，完整读回 3 页 69 个岗位（68 个实习、1 个校园大使），含发布时间；混合行按适配器公开字段保留。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "7f58f542-3ecb-51e6-bd7b-46913e583017",
+      "company_name": "英科医疗科技股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://global-intco.jobs.feishu.cn/840753/position/list",
+      "note": "第二十二批核验：官方 Feishu 校招职位列表；受限浏览器 collector 完整读回 3 页 158 个岗位，含项目、城市、职能、届别和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "global-intco.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "d4daf7fe-546e-5e00-95d1-dd1bd2b5a664",
+      "company_name": "元气森林",
+      "source_type": "SOCIAL",
+      "official_url": "https://k11pnjpvz1.jobs.feishu.cn/index",
+      "note": "第二十三批核验：官方 Feishu 社会招聘列表；受限 collector 完整读回 5 批次 312 个岗位，其中 17 条实习、295 条社会招聘，含城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "k11pnjpvz1.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "94d6576f-0338-512e-a340-5756398627f6",
+      "company_name": "Momenta",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://momenta.jobs.feishu.cn/intern",
+      "note": "第二十四批核验：官方 Feishu 实习职位列表；受限 collector 完整读回 2 个分页批次、96 个岗位，其中 93 条实习、3 条校园项目，含城市、职能、届别和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "momenta.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "73070c2e-0ab2-5ffb-b55a-0382c73d4612",
+      "company_name": "乐信圣文",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://learnings.jobs.feishu.cn/index",
+      "note": "第二十五批核验：官方 Feishu 综合招聘列表；受限 collector 完整读回 2 个分页批次、42 个岗位（33 条社会、8 条实习、1 条校园），含城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "learnings.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "6b189212-bab3-590d-bbeb-f7b55b1085ad",
+      "company_name": "轻舟智航",
+      "source_type": "SOCIAL",
+      "official_url": "https://qcraft.jobs.feishu.cn/index",
+      "note": "第二十六批核验：官方 Feishu 社会招聘列表；受限 collector 完整读回 2 个分页批次、57 个岗位，其中 54 条社会、3 条实习，含城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "qcraft.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "2f0660a1-19f1-5d1a-b112-a94dea9022e2",
+      "company_name": "英科再生",
+      "source_type": "CAMPUS",
+      "official_url": "https://global-intco.jobs.feishu.cn/251907/position/list",
+      "note": "第二十七批核验：官方 Feishu 校园职位列表；受限 collector 完整读回 2 个分页批次、53 个岗位（49 条校园、4 条实习），含 2027 届、城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "global-intco.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "5e68e84b-23a9-50c2-aeae-16b60fe8646c",
+      "company_name": "波克",
+      "source_type": "CAMPUS",
+      "official_url": "https://boke.jobs.feishu.cn/581609/position/list",
+      "note": "第二十八批核验：官方 Feishu 校园职位列表；受限 collector 完整读回 2 个分页批次、105 个岗位（97 条校园、8 条实习），含 2027 届、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "boke.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "96df0a87-1877-5013-95fd-a1c140abb84e",
+      "company_name": "上海它石智航技术有限公司",
+      "source_type": "SOCIAL",
+      "official_url": "https://tarsrobot.jobs.feishu.cn/index/position/list",
+      "note": "第二十九批核验：官方 Feishu 社会招聘职位列表；受限 collector 完整读回 3 个分页批次、116 个岗位，均含同域详情链接、上海地点和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tarsrobot.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "0b2fb61c-24f9-54c8-bc47-257f40ac7ed0",
+      "company_name": "思朗科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://smartlogictech.jobs.feishu.cn/xiaozhao/position/list",
+      "note": "第三十批核验：思朗科技官方 Feishu 校园招聘列表；受限 collector 完整读回 2 个分页批次、41 个岗位，含 2027 届标题、城市、职能/详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "smartlogictech.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "109fd14a-c405-516e-952c-4ab96bde8ef8",
+      "company_name": "原力灵机",
+      "source_type": "SOCIAL",
+      "official_url": "https://dexmal-inc.jobs.feishu.cn/index/position/list",
+      "note": "第三十一批核验：原力灵机官方 Feishu 社会招聘职位列表；受限 collector 完整读回 2 个分页批次、52 个岗位，含北京/无锡地点、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "dexmal-inc.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "c011f787-751b-5b2d-bac5-54d2e07ded66",
+      "company_name": "青岛森麒麟轮胎股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://senturytire.jobs.feishu.cn/029966/position/list",
+      "note": "第三十二批核验：森麒麟官方 Feishu 校园招聘职位列表；受限 collector 完整读回 2 个分页批次、11 个岗位，均为 2027 届，含青岛地点、岗位类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "senturytire.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "3e25a5df-42b9-53c9-ba9e-0c7b69903f34",
+      "company_name": "广州小鹏汽车科技有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://xiaopeng.jobs.feishu.cn/campus/position/list",
+      "note": "第三十三批核验：小鹏官方 Feishu 校园职位列表；受限 collector 完整读回 6 个分页批次、507 个岗位，含 2027 校招与实习混合行、城市、类别、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "xiaopeng.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "2cf32b14-83eb-54ec-884d-cab266fa7da3",
+      "company_name": "去哪儿旅行",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://hf7l9aiqzx.jobs.feishu.cn/index/position/list",
+      "note": "第三十四批核验：去哪儿旅行官方 Feishu 综合职位列表；受限 collector 完整读回 2 个分页批次、57 个岗位，包含社会招聘与实习混合行、城市、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hf7l9aiqzx.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "63897daa-041a-5dca-a4a4-12e78d5714d0",
+      "company_name": "锐石创芯",
+      "source_type": "SOCIAL",
+      "official_url": "https://radrocktech.jobs.feishu.cn/index/position/list",
+      "note": "第三十五批核验：锐石创芯官方 Feishu 社会招聘职位列表；受限 collector 完整读回 2 个分页批次、8 个岗位，公开招聘类型均为社招，含深圳/上海/成都地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "radrocktech.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "7c72c0d4-bd73-5cc7-87c7-295864d2e219",
+      "company_name": "马上消费",
+      "source_type": "SOCIAL",
+      "official_url": "https://weikezhijia.jobs.feishu.cn/MSXF/position/list",
+      "note": "第三十六批核验：马上消费官方 Feishu 社会招聘职位列表；受限 collector 完整读回 1 个分页批次、3 个岗位，含北京/重庆/成都/杭州地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "weikezhijia.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "71fa63c5-97c8-5270-961e-38e5e1f72b63",
+      "company_name": "马上消费",
+      "source_type": "CAMPUS",
+      "official_url": "https://weikezhijia.jobs.feishu.cn/MSXF0619/position/list",
+      "note": "第三十六批核验：马上消费官方 Feishu 校招职位列表；受限 collector 完整读回 1 个分页批次、0 个岗位，空列表为官网当前真实状态，不伪造岗位。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "weikezhijia.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "ee929571-7654-5184-8137-a7fc05f67a5d",
+      "company_name": "北京发那科机电有限公司",
+      "source_type": "SOCIAL",
+      "official_url": "https://iwhih7is28.jobs.feishu.cn/index",
+      "note": "第三十七批核验：北京发那科官方 Feishu 社会招聘列表；受限 collector 完整读回 1 个分页批次、9 个岗位，含北京/上海/深圳地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhih7is28.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "199c9457-b1f4-57ab-a8d7-e8182507f010",
+      "company_name": "北京发那科机电有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://iwhih7is28.jobs.feishu.cn/campus/position/list",
+      "note": "第三十七批核验：北京发那科官方 Feishu 校园招聘列表；受限 collector 完整读回 2 个分页批次、24 个岗位，均为校园招聘，含北京/上海/深圳地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iwhih7is28.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "3f96fd9d-bb85-5681-8005-f7a237f5e377",
+      "company_name": "利欧集团",
+      "source_type": "SOCIAL",
+      "official_url": "https://leoglobal.jobs.feishu.cn/leosz/position/list",
+      "note": "第三十八批核验：利欧集团官方 Feishu 社会招聘列表（由 CSV 候选租户 canonical 重定向）；受限 collector 完整读回 2 个分页批次、47 个岗位，其中 44 条社会、3 条实习，含城市、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leoglobal.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "c6e01a1e-6a09-51a4-ae96-69ee802849a8",
+      "company_name": "利欧集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://leoglobal.jobs.feishu.cn/leoxz/position/list",
+      "note": "第三十八批核验：利欧集团官方 Feishu 校园招聘列表（由 CSV 候选租户 canonical 重定向）；受限 collector 完整读回 2 个分页批次、31 个岗位，均为 2027 届校园招聘，含城市、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leoglobal.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "6fb5cd83-39e8-591f-9fca-bdff0c773cf6",
+      "company_name": "雷鸟创新",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://leiniao-ibg.jobs.feishu.cn/index",
+      "note": "第三十九批核验：雷鸟创新官方 Feishu 职位列表；受限 collector 完整读回 3 个分页批次、123 个岗位（109 条社会、14 条实习），含深圳/宁波/成都/无锡/北京地点、类别、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leiniao-ibg.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "ca955c1e-a43a-5536-8e13-d3809afba8e9",
+      "company_name": "禾赛科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://kwh0jtf778.jobs.feishu.cn/229043/position/list",
+      "note": "第四十批核验：禾赛科技官方 Feishu 校园招聘职位列表；受限 collector 完整读回 3 个分页批次、149 个岗位（144 条校园、5 条实习），含上海/杭州地点、类别、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kwh0jtf778.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "0d9cd51e-a938-5584-aaba-a68616c2a807",
+      "company_name": "禾赛科技",
+      "source_type": "SOCIAL",
+      "official_url": "https://kwh0jtf778.jobs.feishu.cn/index/position/list",
+      "note": "第四十批核验：禾赛科技官方 Feishu 社会招聘职位列表；受限 collector 稳定重试后完整读回 3 个分页批次、156 个岗位，均含城市、类别、同域详情链接和发布时间。首次运行无进展已按边界终止，后续重试完整成功。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kwh0jtf778.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "a972fcad-1acd-5628-81ac-f383561221e6",
+      "company_name": "中芯国际",
+      "source_type": "CAMPUS",
+      "official_url": "https://smics.zhiye.com/campus",
+      "note": "第四十一批核验：中芯国际官网指向的官方北森校园列表；新增旧版 zwm 列表解析后完整读回 25 页、248 个岗位，含 2026/2027 届、城市、类别和同域详情链接。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "smics.zhiye.com"
+      ]
+    },
+    {
+      "id": "87cafac9-aa09-57be-aab0-69a7fa3fba4c",
+      "company_name": "中芯国际",
+      "source_type": "SOCIAL",
+      "official_url": "https://smics.zhiye.com/social",
+      "note": "第四十一批核验：中芯国际官网指向的官方北森社会列表；新增旧版 zwm 列表解析后完整读回 30 页、293 个岗位，含城市、类别和同域详情链接。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "smics.zhiye.com"
+      ]
+    },
+    {
+      "id": "3ca47cd1-cec2-53ef-8f8a-49b8a5f8bb0d",
+      "company_name": "安克创新",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://anker-in.jobs.feishu.cn/campushirecn/position/list",
+      "note": "第四十二批核验：安克创新官方 Feishu 校园/实习综合职位列表；受限 collector 完整读回 6 个分页批次、493 个岗位（239 条校园、254 条实习），含城市、类别、同域详情链接和发布时间；同一列表不拆分重复来源。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "anker-in.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

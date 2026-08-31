@@ -1,0 +1,41 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "7c72c0d4-bd73-5cc7-87c7-295864d2e219",
+      "company_name": "马上消费",
+      "source_type": "SOCIAL",
+      "official_url": "https://weikezhijia.jobs.feishu.cn/MSXF/position/list",
+      "note": "第三十六批核验：马上消费官方 Feishu 社会招聘职位列表；受限 collector 完整读回 1 个分页批次、3 个岗位，含北京/重庆/成都/杭州地点、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "weikezhijia.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "71fa63c5-97c8-5270-961e-38e5e1f72b63",
+      "company_name": "马上消费",
+      "source_type": "CAMPUS",
+      "official_url": "https://weikezhijia.jobs.feishu.cn/MSXF0619/position/list",
+      "note": "第三十六批核验：马上消费官方 Feishu 校招职位列表；受限 collector 完整读回 1 个分页批次、0 个岗位，空列表为官网当前真实状态，不伪造岗位。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "weikezhijia.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

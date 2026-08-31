@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from apps.administration.navigation_registry import resolved_admin_navigation
 from apps.administration.presentation.opportunity_attention import (
     opportunity_attention_counts,
@@ -24,17 +26,25 @@ def administration_shell(request):
         actor_id=actor_id
     )
     review_counts["opportunities"] = opportunity_reviews + opportunity_failures
+    review_counts["opportunities-reviews"] = opportunity_reviews
+    review_counts["opportunities-runs"] = opportunity_failures
     review_counts["learning-documents"] = admin_learning_appeal_page(
         actor_id=actor_id,
         state="PENDING",
         page=1,
         page_size=20,
     ).total_items
+    current_route = getattr(match, "view_name", "")
+    current_query = ""
+    if current_route == "admin:opportunities":
+        request_query = getattr(request, "GET", {})
+        current_query = urlencode({"tab": request_query.get("tab", "reviews")})
     return {
         "admin_navigation_groups": resolved_admin_navigation(
             review_counts=review_counts
         ),
-        "admin_current_route": getattr(match, "view_name", ""),
+        "admin_current_route": current_route,
+        "admin_current_query": current_query,
         "opportunity_admin_review_count": opportunity_reviews,
         "opportunity_admin_failure_count": opportunity_failures,
     }

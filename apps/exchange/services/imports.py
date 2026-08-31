@@ -8,8 +8,10 @@ from pathlib import Path, PurePath, PurePosixPath
 from uuid import UUID
 
 from django.db import transaction
+from django.db.models.functions import Lower
 from django.utils import timezone
 
+from apps.core.ids import normalize_ulid
 from apps.exchange.formats import ArchiveError, MarkdownParseError, extract_zip
 from apps.exchange.formats.markdown import parse_markdown
 from apps.exchange.limits import DEFAULT_IMPORT_LIMITS, ImportLimits
@@ -48,6 +50,15 @@ class ImportPreviewResult:
     valid_count: int
     invalid_count: int
     preview_version: int
+
+
+@dataclass(frozen=True, slots=True)
+class ImportEditorPayload:
+    job_id: str
+    source_name: str
+    body_markdown: str
+    item_count: int
+    invalid_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +108,15 @@ def _source_kind(value: str) -> ImportJob.SourceKind:
     except (TypeError, ValueError):
         raise ImportPreviewError(
             "exchange.import_source_invalid.v1", "只支持 Markdown 或 ZIP 导入。"
+        ) from None
+
+
+def _job_id(value: str) -> str:
+    try:
+        return normalize_ulid(value)
+    except (TypeError, ValueError):
+        raise ImportPreviewError(
+            "exchange.import_not_found.v1", "未找到导入预览。"
         ) from None
 
 
@@ -308,8 +328,87 @@ def _error(code: str) -> ImportPreviewError:
         "exchange.archive_invalid.v1": "导入压缩包无法安全读取。",
         "exchange.import_no_markdown.v1": "导入包中没有 Markdown 文章。",
         "exchange.import_staging_failed.v1": "导入文件暂存失败，请重试。",
+        "exchange.import_no_valid_items.v1": "导入文件中没有可编辑的 Markdown 内容。",
+        "exchange.import_combined_body_too_large.v1": "拼接后的正文超过文章长度上限。",
     }
     return ImportPreviewError(code, messages.get(code, "导入预览创建失败。"))
+
+
+def import_editor_payload(
+    *,
+    actor_id: UUID | str,
+    job_id: str,
+    max_body_bytes: int,
+) -> ImportEditorPayload:
+    actor = _actor_id(actor_id)
+    if (
+        isinstance(max_body_bytes, bool)
+        or not isinstance(max_body_bytes, int)
+        or max_body_bytes < 1
+    ):
+        raise ValueError("max_body_bytes must be a positive integer")
+    job = (
+        ImportJob.objects.filter(
+            pk=_job_id(job_id),
+            author_id=actor,
+            status__in=(
+                ImportJob.Status.PREVIEW_READY,
+                ImportJob.Status.PROCESSING,
+                ImportJob.Status.FAILED,
+            ),
+        )
+        .only("id", "source_name", "preview_summary")
+        .first()
+    )
+    if job is None:
+        raise ImportPreviewError("exchange.import_not_found.v1", "未找到导入预览。")
+
+    valid_items = job.items.filter(parse_status=ImportItem.ParseStatus.VALID).order_by(
+        Lower("item_path"), "item_path", "id"
+    )
+    item_count = valid_items.count()
+    if not item_count:
+        raise _error("exchange.import_no_valid_items.v1")
+
+    parts: list[str] = []
+    total_bytes = 0
+    for item in valid_items.iterator(chunk_size=100):
+        body = item.body_markdown.strip()
+        if not body:
+            continue
+        separator = "\n\n" if parts else ""
+        candidate = f"{separator}{body}"
+        total_bytes += len(candidate.encode("utf-8"))
+        if total_bytes > max_body_bytes:
+            raise _error("exchange.import_combined_body_too_large.v1")
+        parts.append(body)
+
+    body_markdown = "\n\n".join(parts)
+    if not body_markdown:
+        raise _error("exchange.import_no_valid_items.v1")
+    invalid_count = int(job.preview_summary.get("invalid", 0))
+    return ImportEditorPayload(
+        job_id=job.id,
+        source_name=job.source_name,
+        body_markdown=body_markdown,
+        item_count=item_count,
+        invalid_count=invalid_count,
+    )
+
+
+def discard_import_editor_payload(*, actor_id: UUID | str, job_id: str) -> bool:
+    actor = _actor_id(actor_id)
+    identity = _job_id(job_id)
+    deleted, _ = ImportJob.objects.filter(
+        pk=identity,
+        author_id=actor,
+        status__in=(
+            ImportJob.Status.PREVIEW_READY,
+            ImportJob.Status.PROCESSING,
+            ImportJob.Status.FAILED,
+        ),
+    ).delete()
+    return deleted > 0
 
 
 def create_import_preview(
@@ -371,7 +470,7 @@ def create_import_preview(
                 raise _error(exc.code) from None
             markdown_paths = sorted(
                 (path for path in extracted if path.suffix.casefold() == ".md"),
-                key=lambda path: _relative_path(path, package_root),
+                key=lambda path: _relative_path(path, package_root).casefold(),
             )
         else:
             package_root = source_path.parent

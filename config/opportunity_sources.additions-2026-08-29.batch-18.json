@@ -1,0 +1,265 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "025fcdc4-40fe-54c3-ba74-66cb93c2f24f",
+      "company_name": "苏纳光电",
+      "source_type": "CAMPUS",
+      "official_url": "https://suna-opto.zhiye.com/campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 1 页 41 个岗位；页面含城市和岗位类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "suna-opto.zhiye.com"
+      ]
+    },
+    {
+      "id": "1fd99997-c60c-5e31-9a5b-0ac1c527897d",
+      "company_name": "苏纳光电",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://suna-opto.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 2 页 165 个岗位；综合页按公开 CategoryId 区分校招、实习和社会招聘。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "suna-opto.zhiye.com"
+      ]
+    },
+    {
+      "id": "a3408469-5e47-51b4-95ae-27a908084c2c",
+      "company_name": "新华三",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://h3c.zhiye.com/",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 4 页 371 个岗位；部分岗位地点为空时保留为未公开。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "h3c.zhiye.com"
+      ]
+    },
+    {
+      "id": "c4995037-dbda-5271-9f0f-3b2d8b912438",
+      "company_name": "新华三",
+      "source_type": "SOCIAL",
+      "official_url": "https://h3c.zhiye.com/social/jobs",
+      "note": "第十八批核验：北森公开社会招聘职位列表，完整读回 3 页 295 个岗位；响应部分地点为空，适配器保留岗位并标记未公开。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "h3c.zhiye.com"
+      ]
+    },
+    {
+      "id": "11a8922c-87ad-5633-8b6f-b4497e083844",
+      "company_name": "睿创微纳",
+      "source_type": "CAMPUS",
+      "official_url": "https://raytrontek.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 1 页 63 个岗位，含 2026 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "raytrontek.zhiye.com"
+      ]
+    },
+    {
+      "id": "2828e0c4-3c61-5715-99f3-ed136aa8608f",
+      "company_name": "睿创微纳",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://raytrontek.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 3 页 270 个岗位；旧届别保留并交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "raytrontek.zhiye.com"
+      ]
+    },
+    {
+      "id": "effd128a-f5b8-5aa9-be32-2690f8b9d01e",
+      "company_name": "传音控股",
+      "source_type": "CAMPUS",
+      "official_url": "https://transsion.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 2 页 178 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "transsion.zhiye.com"
+      ]
+    },
+    {
+      "id": "5f50bc4c-fbf6-523f-82fa-1d4eab7186f8",
+      "company_name": "传音控股",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://transsion.zhiye.com/jobs",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 10 页 969 个岗位；综合页包含不同招聘类别，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "transsion.zhiye.com"
+      ]
+    },
+    {
+      "id": "196013cc-fee3-5dbc-9924-08b17ce6cc57",
+      "company_name": "天职国际",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://tzcpa.zhiye.com/",
+      "note": "第十八批核验：北森公开综合职位列表，完整读回 5 页 467 个岗位；综合页含 2026、2027 和 2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tzcpa.zhiye.com"
+      ]
+    },
+    {
+      "id": "628a402d-475e-5d2a-9cce-596d77f7bc0b",
+      "company_name": "天职国际",
+      "source_type": "CAMPUS",
+      "official_url": "https://tzcpa.zhiye.com/Campus",
+      "note": "第十八批核验：北森公开校园职位列表，完整读回 2 页 110 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tzcpa.zhiye.com"
+      ]
+    },
+    {
+      "id": "44970868-badd-5cdf-a826-5d081b3dcf64",
+      "company_name": "万兴科技",
+      "source_type": "SOCIAL",
+      "official_url": "https://wondershare.zhiye.com/",
+      "note": "第十八批核验：北森公开社会招聘职位列表，完整读回 1 页 39 个岗位。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondershare.zhiye.com"
+      ]
+    },
+    {
+      "id": "1be91673-9f8a-5146-beec-ed0645fe4963",
+      "company_name": "万兴科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wondersharecampus.zhiye.com/",
+      "note": "第十八批核验：北森公开全球校园综合职位列表，完整读回 2 页 141 个岗位，含 2027/2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondersharecampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "7db46d44-09a1-52b6-90e4-bddfbfb57c94",
+      "company_name": "万兴科技",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://wondersharecampus.zhiye.com/intern/jobs",
+      "note": "第十八批核验：北森公开实习职位列表，完整读回 2 页 110 个岗位，含 2027/2028 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wondersharecampus.zhiye.com"
+      ]
+    }
+  ]
+}

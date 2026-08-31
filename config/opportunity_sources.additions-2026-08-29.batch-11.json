@@ -1,0 +1,105 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "c193a5e0-475b-5e6b-8d32-093131e31ca5",
+      "company_name": "金山云",
+      "source_type": "CAMPUS",
+      "official_url": "https://jssoft.zhiye.com/campus/",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 1 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jssoft.zhiye.com"
+      ]
+    },
+    {
+      "id": "5004f1bc-6ea9-5cd8-b8e8-90fbddcbd706",
+      "company_name": "慧策（掌上先机）",
+      "source_type": "CAMPUS",
+      "official_url": "https://huicecom.zhiye.com/campus/jobs",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 14 页 70 个岗位；当前仅含 2025/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "huicecom.zhiye.com"
+      ]
+    },
+    {
+      "id": "f21928ac-ae33-58ad-b358-79f8421e7ffa",
+      "company_name": "货拉拉",
+      "source_type": "CAMPUS",
+      "official_url": "https://huolala.zhiye.com/Campus",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 0 个岗位，页面明确为空列表。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "huolala.zhiye.com"
+      ]
+    },
+    {
+      "id": "8de29385-4957-5c30-acb2-8958216089fd",
+      "company_name": "龙旗科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://longcheerzp.zhiye.com/Campus",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 1 页 0 个岗位，页面明确为空列表。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "longcheerzp.zhiye.com"
+      ]
+    },
+    {
+      "id": "6d31b190-401f-5228-9632-4cdf9437e711",
+      "company_name": "锦浪科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://ginlong.zhiye.com/campus/jobs",
+      "note": "第十一批核验：北森公开校园职位列表，完整读回 5 页 25 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "ginlong.zhiye.com"
+      ]
+    }
+  ]
+}

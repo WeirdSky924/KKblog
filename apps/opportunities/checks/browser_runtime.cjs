@@ -42,8 +42,9 @@ function labels(values) {
 function cohortLabels(...values) {
   const found = [];
   for (const value of values) {
-    for (const match of text(value, 400).matchAll(/20\d{2}\s*届/gu)) {
-      found.push(match[0].replace(/\s+/gu, ""));
+    for (const match of text(value, 400).matchAll(/(?<!\d)(?:20)?\d{2}\s*届/gu)) {
+      const normalized = match[0].replace(/\s+/gu, "");
+      found.push(normalized.length === 3 ? `20${normalized}` : normalized);
     }
   }
   return labels(found);
@@ -74,13 +75,14 @@ function parseRequest(value, contracts) {
   } catch {
     throw new CollectorError(ERROR.denied);
   }
+  const sourceHosts = contract.sourceHosts || new Set([contract.sourceHost]);
   if (
     source.protocol !== "https:" ||
-    source.hostname !== contract.sourceHost ||
+    !sourceHosts.has(source.hostname) ||
     !contract.sourcePath(source) ||
     !Array.isArray(request.allowed_hosts) ||
-    request.allowed_hosts.length < 1 ||
-    request.allowed_hosts.some((host) => host !== contract.sourceHost) ||
+    request.allowed_hosts.length !== 1 ||
+    request.allowed_hosts[0] !== source.hostname ||
     !Number.isInteger(request.max_pages) ||
     request.max_pages < 1 ||
     request.max_pages > 100 ||
@@ -93,10 +95,17 @@ function parseRequest(value, contracts) {
   ) {
     throw new CollectorError(ERROR.denied);
   }
-  return { ...request, source, contract };
+  const resourceHosts =
+    typeof contract.browserHostsForSource === "function"
+      ? contract.browserHostsForSource(source.hostname)
+      : contract.browserHosts;
+  if (!(resourceHosts instanceof Set) || !resourceHosts.has(source.hostname)) {
+    throw new CollectorError(ERROR.denied);
+  }
+  return { ...request, source, contract, resourceHosts };
 }
 
-function resourceGuard(contract) {
+function resourceGuard(resourceHosts) {
   return async (route) => {
     const request = route.request();
     let target;
@@ -117,7 +126,7 @@ function resourceGuard(contract) {
     ]);
     if (
       target.protocol !== "https:" ||
-      !contract.browserHosts.has(target.hostname) ||
+      !resourceHosts.has(target.hostname) ||
       !permittedType.has(request.resourceType())
     ) {
       await route.abort("blockedbyclient");
@@ -149,7 +158,7 @@ async function withBrowser(request, collect) {
       serviceWorkers: "block",
     });
     context.setDefaultTimeout(Math.min(30000, request.timeout_ms));
-    await context.route("**/*", resourceGuard(request.contract));
+    await context.route("**/*", resourceGuard(request.resourceHosts));
     const page = await context.newPage();
     return await collect(page, context, request);
   } finally {

@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "2f0660a1-19f1-5d1a-b112-a94dea9022e2",
+      "company_name": "英科再生",
+      "source_type": "CAMPUS",
+      "official_url": "https://global-intco.jobs.feishu.cn/251907/position/list",
+      "note": "第二十七批核验：官方 Feishu 校园职位列表；受限 collector 完整读回 2 个分页批次、53 个岗位（49 条校园、4 条实习），含 2027 届、城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "global-intco.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

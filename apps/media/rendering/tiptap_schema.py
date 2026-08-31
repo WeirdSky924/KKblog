@@ -8,13 +8,14 @@ from apps.core.ids import normalize_ulid
 
 from .headings import is_safe_heading_anchor
 from .html_policy import MAX_SOURCE_BYTES, RenderingError, normalize_safe_link
+from .latex import MAX_LATEX_BLOCKS, normalize_latex_source
 
 LEGACY_TIPTAP_SCHEMA_VERSION = 1
 CURRENT_TIPTAP_SCHEMA_VERSION = 2
 SUPPORTED_TIPTAP_SCHEMA_VERSIONS = frozenset(
     {LEGACY_TIPTAP_SCHEMA_VERSION, CURRENT_TIPTAP_SCHEMA_VERSION}
 )
-TIPTAP_SCHEMA_FINGERPRINT = "kaj-tiptap-v1-v2-heading-anchor"
+TIPTAP_SCHEMA_FINGERPRINT = "kaj-tiptap-v1-v2-heading-anchor-latex-block"
 MAX_TIPTAP_NODES = 10_000
 MAX_TIPTAP_DEPTH = 100
 MAX_TIPTAP_TABLE_ROWS = 50
@@ -37,6 +38,7 @@ _V2_BLOCKS = _V1_BLOCKS | {
     "attachment",
     "callout",
     "embed",
+    "latexBlock",
     "table",
     "taskList",
 }
@@ -129,6 +131,7 @@ class _TipTapSchemaValidator:
         self.table_cells = 0
         self.table_depth = 0
         self.attachment_count = 0
+        self.latex_block_count = 0
         self.heading_anchors: set[str] = set()
         self.blocks = _V1_BLOCKS if version == 1 else _V2_BLOCKS
         self.body_media_ids: list[str] = []
@@ -184,6 +187,8 @@ class _TipTapSchemaValidator:
             return self._attachment(node)
         if node_type == "embed":
             return self._embed(node)
+        if node_type == "latexBlock":
+            return self._latex_block(node)
         if node_type == "doc":
             self._keys(node, {"type", "content"})
             return {"type": "doc", "content": self._children(node, depth, self.blocks)}
@@ -498,6 +503,21 @@ class _TipTapSchemaValidator:
         )
         return {"type": "embed", "attrs": {"source": source, "url": url}}
 
+    def _latex_block(self, node: dict[str, Any]) -> dict[str, Any]:
+        self.latex_block_count += 1
+        if self.latex_block_count > MAX_LATEX_BLOCKS:
+            self._fail("structure_limit", "TipTap document has too many LaTeX blocks")
+        self._keys(node, {"type", "attrs"}, required={"attrs"})
+        attrs = node.get("attrs")
+        if not isinstance(attrs, dict):
+            self._fail("attributes_invalid", "LaTeX block attributes are invalid")
+        self._keys(attrs, {"formula"}, required={"formula"})
+        try:
+            formula = normalize_latex_source(attrs.get("formula"))
+        except (TypeError, ValueError):
+            self._fail("attributes_invalid", "LaTeX block formula is invalid")
+        return {"type": "latexBlock", "attrs": {"formula": formula}}
+
     def _children(
         self,
         node: dict[str, Any],
@@ -545,6 +565,7 @@ class _TipTapSchemaValidator:
 __all__ = [
     "CURRENT_TIPTAP_SCHEMA_VERSION",
     "LEGACY_TIPTAP_SCHEMA_VERSION",
+    "MAX_LATEX_BLOCKS",
     "MAX_TIPTAP_DEPTH",
     "MAX_TIPTAP_NODES",
     "MAX_TIPTAP_TABLE_CELLS",

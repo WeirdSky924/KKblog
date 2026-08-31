@@ -9,6 +9,7 @@ class AdminNavigationItem:
     key: str
     label: str
     route_name: str
+    query_string: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +25,7 @@ class ResolvedAdminNavigationItem:
     route_name: str
     url: str
     review_count: int
+    query_string: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,11 +79,40 @@ ADMIN_NAVIGATION = (
     AdminNavigationGroup(
         label="招聘管理",
         items=(
-            AdminNavigationItem("opportunities", "工作机会", "admin:opportunities"),
+            AdminNavigationItem(
+                "opportunities-reviews",
+                "审核队列",
+                "admin:opportunities",
+                "tab=reviews",
+            ),
+            AdminNavigationItem(
+                "opportunities-jobs",
+                "岗位",
+                "admin:opportunities",
+                "tab=jobs",
+            ),
+            AdminNavigationItem(
+                "opportunities-sources",
+                "来源",
+                "admin:opportunities",
+                "tab=sources",
+            ),
+            AdminNavigationItem(
+                "opportunities-runs",
+                "任务历史",
+                "admin:opportunities",
+                "tab=runs",
+            ),
+            AdminNavigationItem(
+                "opportunities-settings",
+                "设置",
+                "admin:opportunities",
+                "tab=settings",
+            ),
         ),
     ),
     AdminNavigationGroup(
-        label="智能与题库",
+        label="AI 配置",
         items=(
             AdminNavigationItem(
                 "agent-endpoints", "Endpoint 与用量", "admin:agent-endpoints"
@@ -89,6 +120,11 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem(
                 "agent-profiles", "AGENT 与 Prompt", "admin:agent-profiles"
             ),
+        ),
+    ),
+    AdminNavigationGroup(
+        label="智能与题库",
+        items=(
             AdminNavigationItem(
                 "learning-documents", "知识文档与申诉", "admin:learning-documents"
             ),
@@ -113,6 +149,8 @@ def resolved_admin_navigation(
                 url = reverse(item.route_name)
             except NoReverseMatch:
                 continue
+            if item.query_string:
+                url = f"{url}?{item.query_string}"
             items.append(
                 ResolvedAdminNavigationItem(
                     key=item.key,
@@ -120,6 +158,7 @@ def resolved_admin_navigation(
                     route_name=item.route_name,
                     url=url,
                     review_count=max(0, int(counts.get(item.key, 0))),
+                    query_string=item.query_string,
                 )
             )
         if items:

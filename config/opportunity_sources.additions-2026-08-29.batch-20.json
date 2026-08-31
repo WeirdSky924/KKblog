@@ -1,0 +1,96 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "bb860822-f13b-5123-85b8-8b29ba05b7e8",
+      "company_name": "思摩尔国际（SMOORE）",
+      "source_type": "CAMPUS",
+      "official_url": "https://careers.smooretech.com/campus-recruitment/smoore/150918",
+      "note": "第二十批核验：官方 Moka 校园职位列表，完整读回 1 页 12 个岗位，含 2027 届与发布时间字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com",
+        "careers.smooretech.com"
+      ]
+    },
+    {
+      "id": "ec051978-e3a2-5e48-a61d-5eb70cf33db4",
+      "company_name": "巨一",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU64ed532b1c240e725e5af025/pb/school.html",
+      "note": "第二十批核验：Hotjob 公开校园职位列表，完整读回 1 页 1 个岗位，含发布时间和 2026 届字段。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "c16bcf0c-45e8-5646-9c70-7afb592d274d",
+      "company_name": "巨一",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64ed53ed1c240e725e5b0be4/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，完整读回 2 页 10 个岗位，含校园和社会招聘及发布时间。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "1ddeac0a-6cd8-5ed0-a84e-582d4f453087",
+      "company_name": "宇通集团",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64e7157a1eb80519a8e4efcf/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，完整读回 7 页 79 个岗位，含 2027 届和发布时间字段。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "4291f731-5b87-5779-ac2d-a38e13b409f2",
+      "company_name": "浙江长龙航空股份有限公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU6656786d1c240e071a6867a7/mc/index",
+      "note": "第二十批核验：Hotjob 公开综合职位列表，稳定重试后完整读回 7 页 87 个岗位；首次分页元数据漂移被适配器拒绝，未作为成功证据。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    }
+  ]
+}

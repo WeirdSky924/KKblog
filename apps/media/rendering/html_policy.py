@@ -14,6 +14,7 @@ from apps.core.ids import normalize_ulid
 
 from .embeds import TrustedEmbedPolicy, configured_trusted_embed_policy
 from .headings import is_safe_heading_anchor
+from .latex import normalize_latex_source
 
 SANITIZER_VERSION = "kaj-html-v7"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
@@ -81,7 +82,11 @@ _ALLOWED_ATTRIBUTES = {
     "a": {"data-kaj-attachment", "download", "href", "title"},
     "aside": {"data-callout", "data-kaj-attachment-card"},
     "code": {"data-language"},
-    "div": {"data-table-scroll"},
+    "div": {
+        "data-kaj-latex",
+        "data-kaj-latex-source",
+        "data-table-scroll",
+    },
     "img": {"alt", "data-width", "src", "title"},
     "input": {"checked", "disabled", "type"},
     "kaj-embed": {"data-source", "data-url"},
@@ -268,6 +273,20 @@ class _SafeFragmentTransformer(HTMLParser):
             values.get("data-language", "")
         ):
             safe_attrs.append(("data-language", values["data-language"]))
+        elif tag == "div" and values.get("data-kaj-latex") == "true":
+            try:
+                formula = normalize_latex_source(
+                    values.get("data-kaj-latex-source", "")
+                )
+            except (TypeError, ValueError):
+                formula = None
+            if formula is not None:
+                safe_attrs.extend(
+                    (
+                        ("data-kaj-latex", "true"),
+                        ("data-kaj-latex-source", formula),
+                    )
+                )
         elif tag == "div" and values.get("data-table-scroll") == "true":
             safe_attrs.append(("data-table-scroll", "true"))
         elif tag == "ul" and values.get("data-task-list") == "true":

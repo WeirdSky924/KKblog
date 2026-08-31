@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "d88e3166-03d1-5e2d-a616-8d5f2f7c4880",
+      "company_name": "诺瓦星云",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://novastar.zhiye.com/intern/jobs",
+      "note": "第二批核验：北森公开实习职位列表，完整读回 1 页 1 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "novastar.zhiye.com"
+      ]
+    },
+    {
+      "id": "7d859d81-9c51-5b42-b528-cb2f03e1c731",
+      "company_name": "诺瓦星云",
+      "source_type": "SOCIAL",
+      "official_url": "https://novastar.zhiye.com/social/jobs",
+      "note": "第二批核验：北森公开社会招聘职位列表，完整读回 20 页 96 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "novastar.zhiye.com"
+      ]
+    }
+  ]
+}

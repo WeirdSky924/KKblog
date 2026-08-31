@@ -14,7 +14,7 @@
   <input type="hidden" name="view" value="{{ opportunity_view }}">
   {% for name, value in opportunity_preserved_fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
 
-  {% if opportunity_view == "jobs" %}
+  {% if opportunity_view == "jobs" or opportunity_view == "bookmarks" %}
     <div class="opportunity-public__search">
       <label for="opportunity-job-q">搜索岗位</label>
       <div>
@@ -24,7 +24,7 @@
           name="job_q"
           maxlength="100"
           value="{{ opportunity_form.job_q.value|default:'' }}"
-          placeholder="岗位、企业、计划、地点或公开证据"
+          placeholder="岗位、企业、计划或地点"
         >
         <button class="icon-button" type="submit" aria-label="搜索岗位" title="搜索">
           <i data-lucide="search"></i>
@@ -39,7 +39,7 @@
       {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.categories title="岗位类别" picker_id="public-job-categories" auto_submit=True only %}
       {% include "components/forms/opportunity_filter_picker.html" with field=opportunity_form.cohorts title="届别" picker_id="public-job-cohorts" auto_submit=True only %}
     </div>
-    {% if opportunity_authenticated %}
+    {% if opportunity_authenticated and opportunity_view == "jobs" %}
       <label class="opportunity-public__bookmark-filter">
         {{ opportunity_form.bookmarked }}
         <span>仅看我的收藏</span>

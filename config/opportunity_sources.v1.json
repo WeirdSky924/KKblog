@@ -21,7 +21,9 @@
       "source_type": "SOCIAL"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "esign.zhiye.com"
@@ -39,7 +41,9 @@
       "source_type": "CAMPUS"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "esign.zhiye.com"
@@ -57,7 +61,9 @@
       "source_type": "INTERNSHIP"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "rokid.zhiye.com"
@@ -220,7 +226,9 @@
       "source_type": "SOCIAL"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "ahxz.dbappsecurity.com.cn"
@@ -238,7 +246,9 @@
       "source_type": "CAMPUS"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "ahxz.dbappsecurity.com.cn"
@@ -310,7 +320,9 @@
       "source_type": "COMPREHENSIVE"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "campus.hundsun.com"
@@ -328,7 +340,9 @@
       "source_type": "CAMPUS"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "campus.hundsun.com"
@@ -346,7 +360,9 @@
       "source_type": "INTERNSHIP"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "career.h3c.com"
@@ -364,7 +380,9 @@
       "source_type": "CAMPUS"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "career.h3c.com"
@@ -382,7 +400,9 @@
       "source_type": "INTERNSHIP"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "youzan.zhiye.com"
@@ -655,7 +675,9 @@
       "source_type": "SOCIAL"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "dptech.zhiye.com"
@@ -673,7 +695,9 @@
       "source_type": "CAMPUS"
     },
     {
-      "adapter_config": {},
+      "adapter_config": {
+        "page_size": 100
+      },
       "adapter_key": "beisen-zhiye-v1",
       "allowed_hosts": [
         "dptech.zhiye.com"

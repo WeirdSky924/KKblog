@@ -256,6 +256,10 @@ label.opportunity-filter-dialog__search {
   border-block-start: 1px solid var(--line);
 }
 
+.opportunity-filter-dialog__footer:has([data-opportunity-filter-more]) {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
 .opportunity-filter-dialog__footer > span {
   color: var(--text-secondary);
   font-size: 0.75rem;
@@ -283,6 +287,17 @@ label.opportunity-filter-dialog__search {
   .opportunity-filter-dialog__options {
     grid-template-columns: minmax(0, 1fr);
     padding-inline: 1rem;
+  }
+
+  .opportunity-filter-dialog__footer:has([data-opportunity-filter-more]) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .opportunity-filter-dialog__footer:has([data-opportunity-filter-more])
+    [data-opportunity-filter-more] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
   }
 }
 

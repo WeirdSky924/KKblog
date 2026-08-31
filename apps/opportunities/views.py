@@ -30,6 +30,12 @@ JOB_FILTER_PARAMETERS = (
     "bookmarked",
 )
 SOURCE_FILTER_PARAMETERS = ("source_q", "source_types")
+BOOKMARKS_RESET_PARAMETERS = (
+    *JOB_FILTER_PARAMETERS,
+    *SOURCE_FILTER_PARAMETERS,
+    "job_page",
+    "source_page",
+)
 
 
 def _actor(request):
@@ -63,16 +69,18 @@ def _query_url(query, *, view=None, remove=()):
 
 def _pagination_query(request, view):
     query = request.GET.copy()
-    query.pop("job_page" if view == "jobs" else "source_page", None)
+    query.pop("job_page" if view in {"jobs", "bookmarks"} else "source_page", None)
     return query.urlencode()
 
 
 def _preserved_fields(request, view):
     excluded = {"view", "per_page"}
     excluded.update(
-        JOB_FILTER_PARAMETERS if view == "jobs" else SOURCE_FILTER_PARAMETERS
+        JOB_FILTER_PARAMETERS
+        if view in {"jobs", "bookmarks"}
+        else SOURCE_FILTER_PARAMETERS
     )
-    excluded.add("job_page" if view == "jobs" else "source_page")
+    excluded.add("job_page" if view in {"jobs", "bookmarks"} else "source_page")
     return tuple(
         (name, value)
         for name in request.GET
@@ -82,7 +90,7 @@ def _preserved_fields(request, view):
 
 
 def _page_size_fields(request, view):
-    current_page = "job_page" if view == "jobs" else "source_page"
+    current_page = "job_page" if view in {"jobs", "bookmarks"} else "source_page"
     return tuple(
         (name, value)
         for name in request.GET
@@ -143,7 +151,7 @@ def _context(request):
         values = form.cleaned_data
         view = values["view"]
         active_filters = _active_filter_count(values)
-        if view == "jobs":
+        if view in {"jobs", "bookmarks"}:
             jobs = public_opportunities(
                 actor_id=actor_id,
                 query=values["job_q"],
@@ -153,7 +161,7 @@ def _context(request):
                 recruitment_types=values["recruitment_types"],
                 category_ids=values["categories"],
                 cohort_ids=values["cohorts"],
-                bookmarked_only=values["bookmarked"],
+                bookmarked_only=(view == "bookmarks" or values["bookmarked"]),
                 page=values["job_page"],
                 page_size=values["per_page"],
             )
@@ -166,12 +174,15 @@ def _context(request):
             )
     else:
         status = 422
-        if view not in {"jobs", "sources"}:
+        if view not in {"jobs", "sources", "bookmarks"}:
             view = "jobs"
     current_path = request.get_full_path()
+    bookmark_path = _query_url(
+        request.GET, view="bookmarks", remove=BOOKMARKS_RESET_PARAMETERS
+    )
     clear_parameters = (
         (*JOB_FILTER_PARAMETERS, "job_page")
-        if view == "jobs"
+        if view in {"jobs", "bookmarks"}
         else (*SOURCE_FILTER_PARAMETERS, "source_page")
     )
     return {
@@ -187,6 +198,8 @@ def _context(request):
         "opportunity_page_size_fields": _page_size_fields(request, view),
         "opportunity_jobs_url": _query_url(request.GET, view="jobs"),
         "opportunity_sources_url": _query_url(request.GET, view="sources"),
+        "opportunity_bookmarks_path": bookmark_path,
+        "opportunity_bookmarks_login_url": _login_url(bookmark_path),
         "opportunity_clear_url": _query_url(
             request.GET, view=view, remove=clear_parameters
         ),
@@ -202,6 +215,8 @@ def opportunities(request):
     if not request.GET:
         query = _default_query(public_opportunity_filters()).urlencode()
         return redirect(f"{reverse('opportunities:index')}?{query}")
+    if request.GET.get("view") == "bookmarks" and _actor(request) is None:
+        return redirect(_login_url(_query_url(request.GET, view="bookmarks")))
     context = _context(request)
     status = context.pop("status")
     template = (

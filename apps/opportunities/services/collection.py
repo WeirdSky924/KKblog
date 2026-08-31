@@ -432,6 +432,13 @@ def record_collection_snapshot(
             "changed": applied.changed,
             "missing": applied.missing,
             "skipped": applied.skipped,
+            # Keep the adapter's pagination evidence with the immutable
+            # snapshot so an administrator can distinguish a complete empty
+            # listing from a truncated or partially read result.
+            "pages_read": result.pages_read,
+            "observed_opportunities": len(result.opportunities),
+            "complete": result.complete,
+            "truncated": result.truncated,
         },
         observed_at=observed_at,
         expires_at=observed_at + timedelta(days=90),

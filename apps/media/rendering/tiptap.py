@@ -15,6 +15,7 @@ from .html_policy import (
     normalize_allowed_media_ids,
     sanitize_candidate_html,
 )
+from .latex import render_latex_block
 from .tiptap_schema import (
     LEGACY_TIPTAP_SCHEMA_VERSION,
     TIPTAP_CODE_LANGUAGES,
@@ -39,7 +40,7 @@ _MARK_PRIORITY = {
     "link": 5,
 }
 UnavailableResourceBehavior = Literal["reject", "placeholder", "omit"]
-TIPTAP_RENDERER_VERSION = "kaj-tiptap-renderer-v6"
+TIPTAP_RENDERER_VERSION = "kaj-tiptap-renderer-v7"
 
 _ATTACHMENT_TYPE_LABELS = {
     "application/zip": "ZIP",
@@ -261,6 +262,8 @@ class _TipTapRenderer:
             return self._render_attachment(node)
         if node_type == "embed":
             return self._render_embed(node)
+        if node_type == "latexBlock":
+            return render_latex_block(node["attrs"]["formula"])
         raise TipTapSchemaError(
             "media.tiptap.node_unsupported.v1", "TipTap node is unsupported"
         )

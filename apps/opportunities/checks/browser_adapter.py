@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from .adapters import AdapterResult, CollectedOpportunity, parse_published_at
 from .browser import BrowserCollector
@@ -83,7 +83,7 @@ class BrowserSourceAdapter:
         *,
         key: str,
         source_validator: Callable[[str], None],
-        allowed_hosts: frozenset[str],
+        allowed_hosts: Iterable[str] | Callable[[str], Iterable[str]],
         collector: BrowserCollector | None = None,
     ) -> None:
         self.key = key
@@ -104,10 +104,15 @@ class BrowserSourceAdapter:
         self._source_validator(source_url)
         max_pages, max_opportunities, duration = _limits(config)
         heartbeat()
+        allowed_hosts = (
+            self._allowed_hosts(source_url)
+            if callable(self._allowed_hosts)
+            else self._allowed_hosts
+        )
         raw = self._collector.collect(
             adapter_key=self.key,
             source_url=source_url,
-            allowed_hosts=self._allowed_hosts,
+            allowed_hosts=allowed_hosts,
             max_pages=max_pages,
             max_opportunities=max_opportunities,
             timeout_seconds=duration,

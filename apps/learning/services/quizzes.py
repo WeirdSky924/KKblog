@@ -10,6 +10,7 @@ from django.utils import timezone
 from apps.accounts.public import is_active_account, lock_active_account
 from apps.learning.contracts import (
     QUIZ_DURATION_OPTIONS,
+    QUIZ_QUESTION_TYPE_ORDER,
     LearningCommandError,
     QuestionType,
     QuizAttemptSource,
@@ -69,6 +70,32 @@ def _current_time(value: datetime | None) -> datetime:
     if not isinstance(current, datetime) or current.tzinfo is None:
         raise LearningCommandError("learning.quiz_time_invalid.v1", "答题时间不合法。")
     return current
+
+
+def _select_questions(questions, *, question_count: int, random_questions: bool):
+    """Select the requested questions, then order them by type.
+
+    Random selection remains global so the configured question count keeps its
+    existing semantics. Once selected, questions are grouped in the product
+    order and shuffled only within their own type when randomization is on.
+    """
+    randomizer = secrets.SystemRandom() if random_questions else None
+    selected = (
+        randomizer.sample(questions, question_count)
+        if randomizer is not None
+        else questions[:question_count]
+    )
+    grouped = {question_type: [] for question_type in QUIZ_QUESTION_TYPE_ORDER}
+    for question in selected:
+        grouped[question.question_type].append(question)
+    if randomizer is not None:
+        for group in grouped.values():
+            randomizer.shuffle(group)
+    return [
+        question
+        for question_type in QUIZ_QUESTION_TYPE_ORDER
+        for question in grouped[question_type]
+    ]
 
 
 def _question_types(values) -> tuple[str, ...]:
@@ -200,10 +227,11 @@ def start_quiz_attempt(
             raise LearningCommandError(
                 "learning.quiz_count_invalid.v1", "题量超过所选题型范围。"
             )
-        if random_questions:
-            selected = secrets.SystemRandom().sample(questions, question_count)
-        else:
-            selected = questions[:question_count]
+        selected = _select_questions(
+            questions,
+            question_count=question_count,
+            random_questions=random_questions,
+        )
         question_order = [question.logical_id for question in selected]
         option_orders = {}
         response_specs = []
@@ -337,10 +365,11 @@ def start_wrong_question_attempt(
             raise LearningCommandError(
                 "learning.quiz_count_invalid.v1", "题量超过所选错题范围。"
             )
-        if random_questions:
-            selected = secrets.SystemRandom().sample(wrong_items, question_count)
-        else:
-            selected = wrong_items[:question_count]
+        selected = _select_questions(
+            wrong_items,
+            question_count=question_count,
+            random_questions=random_questions,
+        )
         question_order = [item.logical_id for item in selected]
         option_orders = {}
         response_specs = []

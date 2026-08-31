@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "6b189212-bab3-590d-bbeb-f7b55b1085ad",
+      "company_name": "轻舟智航",
+      "source_type": "SOCIAL",
+      "official_url": "https://qcraft.jobs.feishu.cn/index",
+      "note": "第二十六批核验：官方 Feishu 社会招聘列表；受限 collector 完整读回 2 个分页批次、57 个岗位，其中 54 条社会、3 条实习，含城市、职能和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "qcraft.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

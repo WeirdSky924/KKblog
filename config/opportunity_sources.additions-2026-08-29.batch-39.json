@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "6fb5cd83-39e8-591f-9fca-bdff0c773cf6",
+      "company_name": "雷鸟创新",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://leiniao-ibg.jobs.feishu.cn/index",
+      "note": "第三十九批核验：雷鸟创新官方 Feishu 职位列表；受限 collector 完整读回 3 个分页批次、123 个岗位（109 条社会、14 条实习），含深圳/宁波/成都/无锡/北京地点、类别、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leiniao-ibg.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

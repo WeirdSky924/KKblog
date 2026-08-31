@@ -1,0 +1,85 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "7eaf4964-9db5-579f-8e8a-1c019695f409",
+      "company_name": "广东奥马冰箱有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://homa-hr.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 6 页 29 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "homa-hr.zhiye.com"
+      ]
+    },
+    {
+      "id": "b5e3a0c8-3dee-5eb9-b0fe-221c9521ae7f",
+      "company_name": "华夏航空",
+      "source_type": "CAMPUS",
+      "official_url": "https://hxhk.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "hxhk.zhiye.com"
+      ]
+    },
+    {
+      "id": "54b0c631-f00f-58fd-919a-7a53bc97b265",
+      "company_name": "中茵微电子",
+      "source_type": "CAMPUS",
+      "official_url": "https://joinsilicon.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 3 页 13 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "joinsilicon.zhiye.com"
+      ]
+    },
+    {
+      "id": "a9c1593b-aa5d-50af-abc1-f0a466e64175",
+      "company_name": "杰华特微电子股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://joulwatt.zhiye.com/campus/jobs",
+      "note": "第三批核验：北森公开校园职位列表，完整读回 6 页 26 个岗位；响应含 2027/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "joulwatt.zhiye.com"
+      ]
+    }
+  ]
+}

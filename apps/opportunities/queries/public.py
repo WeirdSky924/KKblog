@@ -366,6 +366,7 @@ def public_opportunity_sources(
             filter=Q(
                 opportunities__publication_state="PUBLISHED",
                 opportunities__verification_status__in=("CONFIRMED", "PENDING"),
+                opportunities__list_missing=False,
             ),
         )
     ).order_by("normalized_company_name", "source_type", "id")

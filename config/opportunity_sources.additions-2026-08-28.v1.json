@@ -1,0 +1,383 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "f266407e-059b-448d-be0d-f4da8a86010b",
+      "company_name": "德州仪器",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/ti/143986#/jobs",
+      "note": "CSV 官方确认；Moka 公开职位接口读回 68 个岗位。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "c4004d03-6687-4bbc-a988-d8a0d11f512c",
+      "company_name": "微博",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/sina/43536#/jobs",
+      "note": "CSV 官方确认；Moka 公开职位接口可分页读取。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "66258dbf-c0d9-4023-82da-a5ea643a79db",
+      "company_name": "滴滴",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/didiglobal/96064#/jobs",
+      "note": "CSV 官方确认；短链已解析为官方 Moka 租户并读回岗位。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "f4dac02f-c26b-4371-ae64-530401b1860f",
+      "company_name": "乐元素科技（北京）股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/leyuansu/166186?locale=zh-CN#/jobs",
+      "note": "CSV 官方确认；申请短链已解析为公开校园职位租户。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "5de484a9-914e-4aee-b7c7-d498604012b7",
+      "company_name": "电科金仓",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/kingbase/47259#/jobs",
+      "note": "CSV 官方确认；短链已解析为公开校园职位租户。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "2905a196-e868-4260-9620-c7eee47e9b28",
+      "company_name": "天翼云科技有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU62b2ae672f9d24458d72f9cc/pb/school.html",
+      "note": "Hotjob 公开接口读回 42 个校招岗位，含 publishDate、地点和类别。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "d6a53d6b-bd14-4446-8f70-85b5988bc189",
+      "company_name": "双环传动",
+      "source_type": "SOCIAL",
+      "official_url": "https://wecruit.hotjob.cn/SU63e33df0bef57c62009492b4/pb/social.html",
+      "note": "Hotjob 公开接口读回日常招聘岗位；来源页为社会招聘列表。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "ac716648-8ca6-4a89-8a08-637a79f8c5ec",
+      "company_name": "长光卫星",
+      "source_type": "CAMPUS",
+      "official_url": "https://wecruit.hotjob.cn/SU6805dad01eb80570a8bee6c1/mc/position/campus",
+      "note": "Hotjob 公开接口读回 15 个校招岗位；来源为官方多端职位页。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "8a89064c-9ec1-424b-a391-dd9d2afbd454",
+      "company_name": "三棵树",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://wecruit.hotjob.cn/SU6173b0982f9d247cb9737459/pb/interns.html",
+      "note": "Hotjob 公开接口读回 42 个日常实习岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "0baa2357-4b23-4637-9e18-5d475c7aa57f",
+      "company_name": "宝时得科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64ae46c02f9d24760adac777/pb/index.html",
+      "note": "Hotjob 公开综合入口；校招和社会招聘接口均返回结构化岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "7ea331b9-e1e6-4fc9-902d-8aff5b2025a7",
+      "company_name": "安信证券",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU625d4a0b2f9d24287db127c8/pb/index.html",
+      "note": "Hotjob 官方别名解析后的综合招聘页；校招和社会岗位接口可读。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "99ce1572-e827-4c8d-acc5-96e86a573120",
+      "company_name": "大众汽车（中国）投资有限公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://faw-vw.hotjob.cn/SU64bb3226bef57c7e364a7a2c/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口读回校招与社会岗位，保留来源主机。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "faw-vw.hotjob.cn"
+      ]
+    },
+    {
+      "id": "72c9255a-c39b-4901-a8b6-6e7bde0d9780",
+      "company_name": "格科",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://gcoreinc.hotjob.cn/SU645cde90bef57c0907ebd1b4/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口读回 2027 校招及社会岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "gcoreinc.hotjob.cn"
+      ]
+    },
+    {
+      "id": "eba3f97b-d07e-4240-9c67-7978affc1790",
+      "company_name": "新城控股集团股份有限公司上海分公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://seazen.hotjob.cn/SU630dafb40dcad4076dfdf5ce/pb/index.html",
+      "note": "Hotjob 官方租户；公开接口含实习与社会招聘岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "seazen.hotjob.cn"
+      ]
+    },
+    {
+      "id": "5302ae73-f58e-4a07-b1de-1a4e42dcea50",
+      "company_name": "深圳创维-RGB",
+      "source_type": "CAMPUS",
+      "official_url": "https://skyworth.hotjob.cn/SU668b8b251c240e2e76ea71d8/pb/school.html",
+      "note": "Hotjob 公开校招列表；接口读回 106 个岗位并提供发布时间。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "skyworth.hotjob.cn"
+      ]
+    },
+    {
+      "id": "e4594088-2d08-4fca-b3b1-b6e570679de8",
+      "company_name": "中国民航信息网络股份有限公司嘉兴分公司",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://travelsky.hotjob.cn/SU6358e2600dcad448466b5464/pb/index.html",
+      "note": "Hotjob 官方租户；校招和社会岗位列表接口可读。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "travelsky.hotjob.cn"
+      ]
+    },
+    {
+      "id": "ae795e2a-7a69-4f9a-b37b-d0075e36d7a7",
+      "company_name": "地平线",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU64819a4f2f9d2433ba8b043a/pb/index.html",
+      "note": "由官方校园域解析到的 Hotjob 租户主页；接口同时支持校招与社会岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "67a53c2f-ad57-4f36-ab99-51f36129e46e",
+      "company_name": "天风证券",
+      "source_type": "SOCIAL",
+      "official_url": "https://wecruit.hotjob.cn/SU6114cab40dcad4106ffc953b/pb/social.html",
+      "note": "Hotjob 社会招聘列表；公开接口读回 13 个岗位。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "b630b8da-49db-4e9f-9dd5-1f2b15320752",
+      "company_name": "华泰证券",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://wecruit.hotjob.cn/SU5d4bd89a9b0d7889b8422dbe/mc/index",
+      "note": "Hotjob 官方综合入口；公开接口读回社会岗位，支持后续校招类型。",
+      "adapter_key": "hotjob-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "wecruit.hotjob.cn"
+      ]
+    },
+    {
+      "id": "fe76ee9b-41cf-4dac-9af6-a1a12a7a38c4",
+      "company_name": "Fastlane",
+      "source_type": "CAMPUS",
+      "official_url": "https://fastbase.jobs.feishu.cn/588906/position/list",
+      "note": "Feishu 招聘公开列表；受限浏览器沙箱读回 14 个岗位、发布时间和详情链接。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "fastbase.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "d721b4d4-7fcd-4769-af4c-b7217dc0f2b5",
+      "company_name": "莉莉丝游戏",
+      "source_type": "CAMPUS",
+      "official_url": "https://lilithgames.jobs.feishu.cn/campus",
+      "note": "Feishu 招聘公开校园列表；受限浏览器沙箱实际读回岗位。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "lilithgames.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

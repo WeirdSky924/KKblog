@@ -34,29 +34,53 @@ function initializePicker(picker) {
   const triggerCount = picker.querySelector("[data-opportunity-filter-trigger-count]");
   const footerCount = picker.querySelector("[data-opportunity-filter-count]");
   const clear = picker.querySelector("[data-opportunity-filter-clear]");
+  const more = picker.querySelector("[data-opportunity-filter-more]");
+  const optionsContainer = picker.querySelector("[data-opportunity-filter-options]");
   const empty = picker.querySelector("[data-opportunity-filter-empty]");
-  const options = Array.from(
-    picker.querySelectorAll("[data-opportunity-filter-option]"),
-  );
-  const inputs = options
-    .map((option) => option.querySelector("input[type='checkbox']"))
-    .filter((input) => input instanceof HTMLInputElement);
+  let options = Array.from(picker.querySelectorAll("[data-opportunity-filter-option]"));
+  const lazy = picker.dataset.opportunityFilterLazy === "true";
+  const optionName = picker.dataset.opportunityFilterName || "";
+  let lazyPage = 0;
+  let lazyQuery = "";
+  let lazyHasMore = false;
+  let lazyLoading = false;
+  let lazyReloadPending = false;
+  let lazyTimer = 0;
+  let lazyRequest = 0;
+  const selectedLabels = new Map();
   const displayMode = picker.dataset.opportunityFilterDisplay || "summary";
   const required = picker.dataset.opportunityFilterRequired === "true";
   if (
     !(trigger instanceof HTMLButtonElement) ||
     !(dialog instanceof HTMLDialogElement) ||
     !(search instanceof HTMLInputElement) ||
-    !(clear instanceof HTMLButtonElement)
+    !(clear instanceof HTMLButtonElement) ||
+    !(optionsContainer instanceof HTMLElement)
   ) {
     return;
   }
   picker.dataset.filterPickerBound = "true";
 
+  const inputs = () =>
+    options
+      .map((option) => option.querySelector("input[type='checkbox']"))
+      .filter((input) => input instanceof HTMLInputElement);
   const selectedOptions = () =>
     options.filter((option) => option.querySelector("input[type='checkbox']")?.checked);
-  const signature = () => inputs.filter((input) => input.checked).map((input) => input.value).join("\u0000");
+  const signature = () =>
+    inputs()
+      .filter((input) => input.checked)
+      .map((input) => input.value)
+      .join("\u0000");
   let committedSelection = signature();
+
+  options.forEach((option) => {
+    const input = option.querySelector("input[type='checkbox']");
+    const label = option.dataset.opportunityFilterLabel || "";
+    if (input instanceof HTMLInputElement && input.checked) {
+      selectedLabels.set(input.value, label);
+    }
+  });
 
   const renderChipSummary = (names) => {
     if (!(summary instanceof HTMLElement)) return;
@@ -122,24 +146,147 @@ function initializePicker(picker) {
     }
   };
 
-  inputs.forEach((input) => input.addEventListener("change", updateSelection));
-  search.addEventListener("input", applySearch);
+  const renderLazyOptions = (items, { append = false } = {}) => {
+    const records = new Map();
+    if (append) {
+      options.forEach((option) => {
+        const input = option.querySelector("input[type='checkbox']");
+        if (input instanceof HTMLInputElement) {
+          records.set(input.value, option.dataset.opportunityFilterLabel || "");
+        }
+      });
+    }
+    items.forEach((item) => {
+      if (item && typeof item.value === "string" && typeof item.label === "string") {
+        records.set(item.value, item.label);
+      }
+    });
+    selectedLabels.forEach((label, value) => {
+      if (!records.has(value)) records.set(value, label);
+    });
+    optionsContainer.replaceChildren();
+    records.forEach((label, value) => {
+      const option = document.createElement("label");
+      option.dataset.opportunityFilterOption = "";
+      option.dataset.opportunityFilterLabel = label;
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = optionName;
+      input.value = value;
+      input.checked = selectedLabels.has(value);
+      const text = document.createElement("span");
+      text.textContent = label;
+      option.append(input, text);
+      optionsContainer.append(option);
+    });
+    if (empty instanceof HTMLElement) {
+      empty.textContent = lazyQuery ? "没有匹配的选项" : "暂无可用选项";
+      empty.hidden = records.size > 0;
+      optionsContainer.append(empty);
+    }
+    options = Array.from(optionsContainer.querySelectorAll("[data-opportunity-filter-option]"));
+    updateSelection();
+  };
+
+  const lazyUrl = (page) => {
+    const url = new URL(picker.dataset.opportunityFilterOptionsUrl || "", window.location.href);
+    url.searchParams.set("kind", picker.dataset.opportunityFilterOptionKind || "");
+    url.searchParams.set("q", lazyQuery);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("page_size", "40");
+    const scope = picker.dataset.opportunityFilterOptionScope;
+    if (scope) url.searchParams.set("scope", scope);
+    inputs()
+      .filter((input) => input.checked)
+      .forEach((input) => url.searchParams.append("selected", input.value));
+    return url;
+  };
+
+  const loadLazyOptions = async ({ reset = false } = {}) => {
+    if (!(picker.dataset.opportunityFilterOptionsUrl || "")) return;
+    if (lazyLoading) {
+      if (reset) lazyReloadPending = true;
+      return;
+    }
+    if (reset) lazyPage = 0;
+    const page = lazyPage + 1;
+    const requestId = ++lazyRequest;
+    lazyLoading = true;
+    picker.setAttribute("aria-busy", "true");
+    if (more instanceof HTMLButtonElement) more.disabled = true;
+    try {
+      const response = await fetch(lazyUrl(page), {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error(`option request failed: ${response.status}`);
+      const payload = await response.json();
+      if (requestId !== lazyRequest || !Array.isArray(payload.items)) return;
+      renderLazyOptions(payload.items, { append: !reset && page > 1 });
+      lazyPage = Number.isInteger(payload.page) ? payload.page : page;
+      lazyHasMore = payload.has_next === true;
+      if (more instanceof HTMLButtonElement) more.hidden = !lazyHasMore;
+      if (empty instanceof HTMLElement) empty.hidden = payload.items.length > 0;
+    } catch {
+      if (requestId === lazyRequest && empty instanceof HTMLElement) {
+        empty.hidden = false;
+        empty.textContent = "选项加载失败，请重试";
+      }
+    } finally {
+      if (requestId === lazyRequest) {
+        lazyLoading = false;
+        picker.removeAttribute("aria-busy");
+        if (more instanceof HTMLButtonElement) more.disabled = false;
+        if (lazyReloadPending) {
+          lazyReloadPending = false;
+          loadLazyOptions({ reset: true });
+        }
+      }
+    }
+  };
+
+  optionsContainer.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
+    const option = input.closest("[data-opportunity-filter-option]");
+    const label = option?.dataset.opportunityFilterLabel || "";
+    if (input.checked) selectedLabels.set(input.value, label);
+    else selectedLabels.delete(input.value);
+    updateSelection();
+  });
+  search.addEventListener("input", () => {
+    if (!lazy) {
+      applySearch();
+      return;
+    }
+    lazyQuery = search.value;
+    window.clearTimeout(lazyTimer);
+    lazyTimer = window.setTimeout(() => loadLazyOptions({ reset: true }), 220);
+  });
   search.addEventListener("keydown", (event) => {
     if (event.key === "Enter") event.preventDefault();
   });
   trigger.addEventListener("click", () => {
     search.value = "";
-    applySearch();
+    lazyQuery = "";
+    if (!lazy) applySearch();
     dialog.showModal();
+    if (lazy) loadLazyOptions({ reset: true });
     requestAnimationFrame(() => search.focus());
   });
   clear.addEventListener("click", () => {
-    inputs.forEach((input) => {
+    selectedLabels.clear();
+    inputs().forEach((input) => {
       input.checked = false;
     });
     updateSelection();
     search.focus();
   });
+  if (more instanceof HTMLButtonElement) {
+    more.addEventListener("click", () => {
+      if (lazyHasMore) loadLazyOptions();
+    });
+  }
   dialog.querySelectorAll("[data-opportunity-filter-close], [data-opportunity-filter-done]").forEach((button) => {
     button.addEventListener("click", () => dialog.close());
   });
@@ -161,7 +308,7 @@ function initializePicker(picker) {
   });
 
   updateSelection();
-  applySearch();
+  if (!lazy) applySearch();
 }
 
 export function initializeOpportunityFilterPickers(root = document) {

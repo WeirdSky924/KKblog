@@ -3,6 +3,53 @@ import { initializeOpportunityFilterPickers } from "./opportunity-filter-picker.
 let filtersOpen = false;
 let pendingPosition = null;
 const filterTimers = new WeakMap();
+const DEFAULT_JOB_COLUMNS = Object.freeze([
+  "company",
+  "title",
+  "recruitment",
+  "city",
+  "published",
+  "actions",
+]);
+const JOB_COLUMN_KEYS = new Set([
+  "company",
+  "title",
+  "recruitment",
+  "cohort",
+  "category",
+  "city",
+  "verification",
+  "published",
+  "actions",
+]);
+const JOB_COLUMNS_STORAGE_KEY = "kaj.opportunities.visible-job-columns.v1";
+
+function loadVisibleJobColumns() {
+  try {
+    const value = JSON.parse(
+      window.localStorage.getItem(JOB_COLUMNS_STORAGE_KEY) || "null",
+    );
+    if (!Array.isArray(value) || value.some((column) => !JOB_COLUMN_KEYS.has(column))) {
+      return new Set(DEFAULT_JOB_COLUMNS);
+    }
+    return new Set(value);
+  } catch {
+    return new Set(DEFAULT_JOB_COLUMNS);
+  }
+}
+
+function storeVisibleJobColumns(columns) {
+  try {
+    window.localStorage.setItem(
+      JOB_COLUMNS_STORAGE_KEY,
+      JSON.stringify([...columns].filter((column) => JOB_COLUMN_KEYS.has(column))),
+    );
+  } catch {
+    // Private browsing and strict storage policies should not block the table.
+  }
+}
+
+let visibleJobColumns = loadVisibleJobColumns();
 
 function bindDisclosure(root) {
   const disclosure = root.querySelector?.("[data-opportunity-filter-disclosure]");
@@ -53,27 +100,58 @@ function bindFilterChanges(root) {
   });
 }
 
-function bindEvidence(root) {
-  root.querySelectorAll?.("[data-opportunity-evidence]").forEach((button) => {
-    if (
-      !(button instanceof HTMLButtonElement) ||
-      button.dataset.opportunityBound === "true"
-    ) {
-      return;
-    }
-    button.dataset.opportunityBound = "true";
-    button.addEventListener("click", () => {
-      const targetId = button.getAttribute("aria-controls");
-      const evidence = targetId ? document.getElementById(targetId) : null;
-      if (!(evidence instanceof HTMLElement)) {
-        return;
-      }
-      const expanded = button.getAttribute("aria-expanded") === "true";
-      evidence.hidden = expanded;
-      button.setAttribute("aria-expanded", String(!expanded));
-      button.title = expanded ? "查看公开证据" : "收起公开证据";
+function bindJobColumns(root) {
+  const table = root.querySelector?.("[data-opportunity-job-table]");
+  const picker = root.querySelector?.("[data-opportunity-column-picker]");
+  if (
+    !(table instanceof HTMLTableElement) ||
+    !(picker instanceof HTMLDetailsElement) ||
+    picker.dataset.opportunityColumnsBound === "true"
+  ) {
+    return;
+  }
+  const toggles = Array.from(
+    picker.querySelectorAll("[data-opportunity-column-toggle]"),
+  ).filter((toggle) => toggle instanceof HTMLButtonElement);
+  if (!toggles.length) return;
+  picker.dataset.opportunityColumnsBound = "true";
+
+  const apply = () => {
+    const next = new Set(
+      toggles
+        .filter((toggle) => toggle.getAttribute("aria-checked") === "true")
+        .map((toggle) => toggle.value),
+    );
+    // Operations remain reachable even if a user hides every data column.
+    next.add("actions");
+    visibleJobColumns = next;
+    toggles.forEach((toggle) => {
+      const selected = toggle.disabled || visibleJobColumns.has(toggle.value);
+      toggle.setAttribute("aria-checked", String(selected));
+      toggle.classList.toggle("is-selected", selected);
+    });
+    table.querySelectorAll("[data-opportunity-column]").forEach((cell) => {
+      if (!(cell instanceof HTMLElement)) return;
+      cell.hidden = !visibleJobColumns.has(cell.dataset.opportunityColumn || "");
+    });
+  };
+
+  toggles.forEach((toggle) => {
+    toggle.setAttribute(
+      "aria-checked",
+      String(toggle.disabled || visibleJobColumns.has(toggle.value)),
+    );
+    toggle.addEventListener("click", () => {
+      if (toggle.disabled) return;
+      toggle.setAttribute(
+        "aria-checked",
+        String(toggle.getAttribute("aria-checked") !== "true"),
+      );
+      apply();
+      storeVisibleJobColumns(visibleJobColumns);
     });
   });
+  apply();
 }
 
 function focusIdentity(element) {
@@ -140,7 +218,10 @@ function bindRequestPositionSupport() {
     const bookmarkFilter = document.querySelector(
       "[data-opportunity-filter-form] input[name='bookmarked']:checked",
     );
-    if (bookmarkFilter instanceof HTMLInputElement) {
+    const workspace = document.querySelector("[data-opportunity-workspace]");
+    const isBookmarksView =
+      workspace instanceof HTMLElement && workspace.dataset.opportunityView === "bookmarks";
+    if (bookmarkFilter instanceof HTMLInputElement || isBookmarksView) {
       document
         .querySelector("[data-opportunity-filter-form]")
         ?.dispatchEvent(
@@ -167,5 +248,5 @@ export function initializeOpportunities(root = document) {
   bindRequestPositionSupport();
   bindDisclosure(workspace);
   bindFilterChanges(workspace);
-  bindEvidence(workspace);
+  bindJobColumns(workspace);
 }

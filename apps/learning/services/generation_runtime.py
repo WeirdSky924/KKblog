@@ -52,6 +52,12 @@ from .source_units import (
 )
 
 _SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*$")
+_RETRYABLE_OUTPUT_ERRORS = frozenset(
+    {
+        "agents.response_schema_invalid.v1",
+        "agents.response_semantics_invalid.v1",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -581,7 +587,11 @@ def execute_question_bank_generation(
             raise TaskCancelled(
                 result_ref=f"question-generation:{identity}:source"
             ) from None
-        if isinstance(error, GatewayError) and not error.retryable:
+        if (
+            isinstance(error, GatewayError)
+            and not error.retryable
+            and error.code not in _RETRYABLE_OUTPUT_ERRORS
+        ):
             raise TaskFinalFailed(error_code=error.code) from None
         raise RetryableTaskError(error.code) from None
     except Exception:

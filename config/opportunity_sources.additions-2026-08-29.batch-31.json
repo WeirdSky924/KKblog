@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "109fd14a-c405-516e-952c-4ab96bde8ef8",
+      "company_name": "原力灵机",
+      "source_type": "SOCIAL",
+      "official_url": "https://dexmal-inc.jobs.feishu.cn/index/position/list",
+      "note": "第三十一批核验：原力灵机官方 Feishu 社会招聘职位列表；受限 collector 完整读回 2 个分页批次、52 个岗位，含北京/无锡地点、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "dexmal-inc.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

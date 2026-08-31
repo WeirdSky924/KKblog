@@ -94,6 +94,7 @@ import {
   Settings,
   Settings2,
   ShieldCheck,
+  Sigma,
   SlidersHorizontal,
   Sparkles,
   Square,
@@ -158,6 +159,7 @@ import {
   uploadMediaFile,
 } from "./media-upload.js";
 import { initializeReadableCodeBlocks } from "./editor-code-block.js";
+import { initializeLatexRenderer } from "./editor-latex.js";
 import { initializeEditorTagPickers } from "./editor-tag-picker.js";
 import { editorUploadTrackerFor } from "./editor-upload-state.js";
 
@@ -255,6 +257,7 @@ const availableIcons = {
   Settings,
   Settings2,
   ShieldCheck,
+  Sigma,
   SlidersHorizontal,
   Sparkles,
   Square,
@@ -1243,6 +1246,7 @@ document.addEventListener("kaj:focus", (event) => {
 
 document.addEventListener("kaj:editor-preview", (event) => {
   initializeIcons(event.detail?.root ?? document);
+  initializeLatexRenderer(event.detail?.root ?? document);
 });
 
 document.addEventListener("kaj:media-library", (event) => {
@@ -1363,6 +1367,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeConfirmDialogs(root);
   initializeArticleActions(root);
   initializeReadableCodeBlocks(root);
+  initializeLatexRenderer(root);
   initializeCharacterCounts(root);
   initializePublicationForms(root);
   initializePasswordReveals(root);
@@ -1400,6 +1405,7 @@ document.addEventListener("htmx:load", (event) => {
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeArticleActions(root);
+  initializeLatexRenderer(root);
   initializePasswordReveals(root);
   initializeAdministrationOperations(root);
   initializeAdministrationArticlePreviews(root);
@@ -1518,6 +1524,7 @@ initializeNotificationDialogs();
 initializeConfirmDialogs();
 initializeArticleActions();
 initializeReadableCodeBlocks();
+initializeLatexRenderer();
 initializeCharacterCounts();
 initializePublicationForms();
 initializePasswordReveals();

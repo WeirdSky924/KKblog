@@ -205,7 +205,12 @@ MODERATION_ARTICLE_APPEAL_EVIDENCE_GATEWAY_PROVIDER = (
 CONTENT_SCHEDULE_BATCH_SIZE = 100
 CONTENT_PURGE_BATCH_SIZE = 100
 ARTICLE_BODY_MAX_BYTES = 2 * 1024 * 1024
-EXCHANGE_IMPORT_ROOT = BASE_DIR / "var" / "exchange" / "imports"
+# Import previews need a writable, private directory in every runtime.  The
+# Labs host service and production containers deliberately keep the application
+# tree read-only; the media volume is the shared writable volume for web and
+# worker processes.  The direct-media endpoint only serves database-authorized
+# asset IDs, so this hidden staging subtree is never exposed as a media asset.
+EXCHANGE_IMPORT_ROOT = MEDIA_ROOT / ".exchange" / "imports"
 EXCHANGE_IMPORT_COMPRESSED_MAX_BYTES = 64 * 1024 * 1024
 EXCHANGE_IMPORT_EXPANDED_MAX_BYTES = 256 * 1024 * 1024
 EXCHANGE_IMPORT_ITEM_MAX_COUNT = 1000

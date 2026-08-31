@@ -2,6 +2,7 @@
   id="opportunity-workspace"
   class="opportunity-public__workspace"
   data-opportunity-workspace
+  data-opportunity-view="{{ opportunity_view }}"
   data-focus-after-swap
   tabindex="-1"
 >
@@ -24,6 +25,22 @@
       hx-sync="#opportunity-workspace:replace"
       {% if opportunity_view == "sources" %}aria-current="page"{% endif %}
     >官方来源</a>
+    {% if opportunity_authenticated %}
+      <a
+        href="{{ opportunity_bookmarks_path }}"
+        hx-get="{{ opportunity_bookmarks_path }}"
+        hx-target="#opportunity-workspace"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-sync="#opportunity-workspace:replace"
+        {% if opportunity_view == "bookmarks" %}aria-current="page"{% endif %}
+      >我的收藏</a>
+    {% else %}
+      <a
+        href="{{ opportunity_bookmarks_login_url }}"
+        {% if opportunity_view == "bookmarks" %}aria-current="page"{% endif %}
+      >我的收藏</a>
+    {% endif %}
   </nav>
 
   <details

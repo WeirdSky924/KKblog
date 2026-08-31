@@ -92,8 +92,8 @@
 | `admin:errors` | administration | 管理员 | S0,S1,S2,S3,S4,S5；trace/脱敏/未找到 | operations |
 | `admin:tasks` | administration | 管理员 | S0,S1,S2,S4,S5,S7；运行/成功/终败/无手动重试 | operations |
 | `admin:analytics` | administration | 管理员 | S0,S1,S4,S5；同源代理/不可直连 | operations |
-| `admin:agent-endpoints` | administration/agents | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；参数/启停/检查/token reset/秘密不回显 | 新增 learning-admin |
-| `admin:agent-profiles` | administration/agents | 管理员 | S0,S1,S2,S3,S4,S5,S6；Prompt Markdown/历史/切换/409 | 新增 learning-admin |
+| `admin:agent-endpoints` | administration/ai-config | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；参数/启停/检查/token reset/秘密不回显 | 新增 learning-admin |
+| `admin:agent-profiles` | administration/ai-config | 管理员 | S0,S1,S2,S3,S4,S5,S6；Prompt Markdown/历史/切换/409 | 新增 learning-admin |
 | `admin:learning-documents` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；分页/逐条原文/申诉/显式批量 | 新增 learning-admin |
 | `admin:question-banks` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；配额/运行/处置/显式批量 | 新增 learning-admin |
 | `admin:question-bank-api` | administration/learning | 管理员 | S0,S1,S2,S3,S4,S5,S6；开关/限流/CORS/用量 | 新增 learning-admin |

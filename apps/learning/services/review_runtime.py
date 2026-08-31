@@ -36,6 +36,12 @@ from .quotas import release_learning_model_run, reserve_learning_model_run
 from .reviews import complete_knowledge_review
 
 _SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*$")
+_RETRYABLE_OUTPUT_ERRORS = frozenset(
+    {
+        "agents.response_schema_invalid.v1",
+        "agents.response_semantics_invalid.v1",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -292,7 +298,11 @@ def execute_knowledge_review(
         )
         if reservation is not None:
             release_learning_model_run(reservation_id=reservation.reservation_id)
-        if isinstance(error, GatewayError) and not error.retryable:
+        if (
+            isinstance(error, GatewayError)
+            and not error.retryable
+            and error.code not in _RETRYABLE_OUTPUT_ERRORS
+        ):
             raise TaskFinalFailed(error_code=code) from None
         raise RetryableTaskError(code) from None
     except Exception:

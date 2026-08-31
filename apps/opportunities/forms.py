@@ -12,7 +12,8 @@ from .public import (
 
 class OpportunityPageForm(forms.Form):
     view = forms.ChoiceField(
-        required=False, choices=(("jobs", "岗位"), ("sources", "官方来源"))
+        required=False,
+        choices=(("jobs", "岗位"), ("sources", "官方来源"), ("bookmarks", "我的收藏")),
     )
     job_q = forms.CharField(required=False, max_length=100, strip=True)
     source_q = forms.CharField(required=False, max_length=100, strip=True)

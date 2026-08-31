@@ -1,0 +1,99 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "e1362eaf-b68b-5804-9387-09132da46979",
+      "company_name": "海信集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://jobs.hisense.com/campus",
+      "note": "第二十一批核验：海信官方北森校园职位列表，完整读回 5 页 475 个岗位，含 2026/2027 届、地点和类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jobs.hisense.com"
+      ]
+    },
+    {
+      "id": "f65976b9-912b-51d7-bb0d-ac80cafe46c3",
+      "company_name": "海信集团",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://jobs.hisense.com/",
+      "note": "第二十一批核验：海信官方北森综合职位列表，完整读回 13 页 1,204 个岗位；综合页包含校园、实习与社会岗位，旧届别交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "jobs.hisense.com"
+      ]
+    },
+    {
+      "id": "f55d9c44-36c7-5948-8f4b-c2110e4ef573",
+      "company_name": "华勤技术",
+      "source_type": "CAMPUS",
+      "official_url": "https://app.mokahr.com/campus-recruitment/hq/44757#/jobs",
+      "note": "第二十一批核验：华勤官网公开链接指向的 Moka 校园职位列表，完整读回 2 页 52 个岗位，含发布时间和 2027 届字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "becec10b-9fd4-5c3d-a1df-ca04fb25e5d7",
+      "company_name": "华勤技术",
+      "source_type": "SOCIAL",
+      "official_url": "https://app.mokahr.com/social-recruitment/hq/44756#/jobs",
+      "note": "第二十一批核验：华勤官网公开链接指向的 Moka 社会职位列表，完整读回 2 页 48 个岗位，含发布时间字段。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    },
+    {
+      "id": "e17815c2-ad54-5a2a-8cc1-c3e8ddfa918d",
+      "company_name": "华勤技术",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://app.mokahr.com/campus-recruitment/hq/45417#/jobs",
+      "note": "第二十一批核验：华勤官网公开实习链接指向的 Moka 列表，完整读回 3 页 69 个岗位（68 个实习、1 个校园大使），含发布时间；混合行按适配器公开字段保留。",
+      "adapter_key": "moka-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "app.mokahr.com"
+      ]
+    }
+  ]
+}

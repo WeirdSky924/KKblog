@@ -38,11 +38,14 @@ from .exports import (
 )
 from .imports import (
     DEFAULT_IMPORT_LIMITS,
+    ImportEditorPayload,
     ImportImage,
     ImportLimits,
     ImportPreviewError,
     ImportPreviewResult,
     create_import_preview,
+    discard_import_editor_payload,
+    import_editor_payload,
 )
 from .processing import (
     ImportContentCommand,
@@ -51,6 +54,7 @@ from .processing import (
     ImportProcessingError,
     ImportProcessingResult,
     ImportProcessingRetryable,
+    mark_import_job_final_failed,
     process_import_job,
 )
 
@@ -74,6 +78,7 @@ __all__ = [
     "ImportDecisionError",
     "ImportDecisionResult",
     "ImportImage",
+    "ImportEditorPayload",
     "ImportLimits",
     "ImportMetadataMapping",
     "ImportMediaResult",
@@ -84,9 +89,12 @@ __all__ = [
     "ImportProcessingError",
     "ImportProcessingResult",
     "ImportProcessingRetryable",
+    "mark_import_job_final_failed",
     "classify_import_preview",
     "confirm_import",
     "create_import_preview",
+    "discard_import_editor_payload",
+    "import_editor_payload",
     "import_preview",
     "process_import_job",
     "request_export",

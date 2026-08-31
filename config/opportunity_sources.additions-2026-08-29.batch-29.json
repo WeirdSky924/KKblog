@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "96df0a87-1877-5013-95fd-a1c140abb84e",
+      "company_name": "上海它石智航技术有限公司",
+      "source_type": "SOCIAL",
+      "official_url": "https://tarsrobot.jobs.feishu.cn/index/position/list",
+      "note": "第二十九批核验：官方 Feishu 社会招聘职位列表；受限 collector 完整读回 3 个分页批次、116 个岗位，均含同域详情链接、上海地点和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "tarsrobot.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,11 @@ from django.views.decorators.http import require_http_methods
 
 from apps.accounts.public import is_active_account
 from apps.core.ids import new_ulid
-from apps.learning.contracts import QuestionType, QuizAttemptSource
+from apps.learning.contracts import (
+    QUIZ_QUESTION_TYPE_ORDER,
+    QuestionType,
+    QuizAttemptSource,
+)
 from apps.learning.public import (
     LearningCommandError,
     PublicQuestionBankFilterError,
@@ -52,6 +56,35 @@ def _uuid(value) -> UUID | None:
         return UUID(str(value))
     except (TypeError, ValueError):
         return None
+
+
+_QUESTION_TYPE_LABELS = {
+    QuestionType.SINGLE_CHOICE: "单选题",
+    QuestionType.MULTIPLE_CHOICE: "多选题",
+    QuestionType.TRUE_FALSE: "判断题",
+    QuestionType.SHORT_ANSWER: "简答题",
+}
+
+
+def _has_answer(value) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, dict)):
+        return bool(value)
+    return True
+
+
+def _navigation_state(response, *, submitted: bool) -> str:
+    answered = _has_answer(response.answer)
+    if not submitted:
+        return "answered" if answered else ""
+    if not answered:
+        return "wrong"
+    if response.question_type == QuestionType.SHORT_ANSWER:
+        return "pending"
+    return "correct" if response.is_correct else "wrong"
 
 
 def _question_type_choices(options):
@@ -237,11 +270,31 @@ def _attempt_context(
                 "response": response,
                 "form": response_form,
                 "assessment_form": assessment_form,
+                "question_type_label": _QUESTION_TYPE_LABELS.get(
+                    response.question_type, response.question_type
+                ),
+                "nav_state": _navigation_state(
+                    response, submitted=detail.status == "SUBMITTED"
+                ),
             }
         )
+    question_groups = tuple(
+        {
+            "question_type": question_type,
+            "label": _QUESTION_TYPE_LABELS[question_type],
+            "entries": tuple(
+                entry
+                for entry in entries
+                if entry["response"].question_type == question_type
+            ),
+        }
+        for question_type in QUIZ_QUESTION_TYPE_ORDER
+        if any(entry["response"].question_type == question_type for entry in entries)
+    )
     return {
         "attempt": detail,
         "response_entries": tuple(entries),
+        "question_groups": question_groups,
         "submit_form": submit_form
         or QuizSubmitForm(
             initial={"attempt_id": detail.attempt_id, "request_id": new_ulid()}

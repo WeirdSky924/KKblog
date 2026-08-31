@@ -1,0 +1,25 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "afdd88b6-dd08-5edb-92eb-66c705fd5101",
+      "company_name": "科大讯飞",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://iflytek.zhiye.com/7/jobs",
+      "note": "第十七批核验：北森官方综合职位列表，使用受限 page_size=50 完整读回 18 页 895 个岗位；岗位字段含 2027/2028 届，无法从页面统一判定招聘类型的保留 OTHER。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "iflytek.zhiye.com"
+      ]
+    }
+  ]
+}

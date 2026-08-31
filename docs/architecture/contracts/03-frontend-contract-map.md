@@ -20,7 +20,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:about` | `navigation/static_page.html` | `published_static_page` | 无 | 无内容 404/隐藏入口 |
 | `public:friend-links` | `navigation/friend_links.html` | `visible_friend_links` | 无 | 名称/描述、安全新标签、无 Logo 依赖 |
 | `public:guestbook` | `comments/thread_page.html` | `guestbook_thread` | 评论列表/表单 | 开关、访客、登录、举报 |
-| `opportunities:index` | `opportunities/index.html` | `public_opportunities`, `public_opportunity_sources`, `public_opportunity_filters`, `public_opportunity_summary` | `opportunity-workspace` | 岗位/来源双视图、同组 OR/组间 AND、搜索提交、即时复选/每页、历史/焦点/滚动恢复、公开证据、空态 |
+| `opportunities:index` | `opportunities/index.html` | `public_opportunities`, `public_opportunity_sources`, `public_opportunity_filters`, `public_opportunity_summary` | `opportunity-workspace` | 岗位/来源/我的收藏三视图、同组 OR/组间 AND、搜索提交、即时复选/每页、历史/焦点/滚动恢复、企业发布时间与岗位名称排序、空态 |
 | `opportunities:bookmark` | `opportunities/partials/bookmark_button.html` | `set_opportunity_bookmark` | 稳定收藏控件 | 未登录安全回跳、登录幂等持久化、实心图标、通用反馈、仅看收藏取消后刷新 |
 | `question-banks:index` | `learning/question_bank_index.html` | `public_question_bank_page` | 列表/搜索/筛选/分页 | 最新/最多答题/题量排序、组内 OR/组间 AND、访客与登录一致、空结果 |
 | `question-banks:detail` | `learning/question_bank_detail.html` | `public_question_bank_detail` | 无 | 隐藏/删除 404、题面/答案/解析安全投影、登录答题入口 |
@@ -105,8 +105,8 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `admin:tasks` | 任务记录 | operations | 运行/成功/最终失败，无手动重试 |
 | `admin:analytics` | Umami | analytics | 同源认证入口、不可公网直达 |
 | `admin:opportunities` | 工作机会五标签 | opportunities | 审核队列支持接受当前页与确认后接受全部待审核；来源/岗位 dialog；任务历史按来源分页并以 dialog 按需展示新增/更新岗位；检查仅创建持久任务，不同步抓取 |
-| `admin:agent-endpoints` | 智能与题库/Endpoint | agents | 运行参数、模型匹配的 reasoning effort/旧版 thinking budget、秘密别名、启停、连接检查、双层 token 上限/用量与 reset |
-| `admin:agent-profiles` | AGENT/Prompt | agents | profile 绑定、Markdown Prompt 修订/预览、当前版本切换、并发 409 |
+| `admin:agent-endpoints` | AI 配置/Endpoint | agents | 运行参数、模型匹配的 reasoning effort/旧版 thinking budget、秘密别名、启停、连接检查、双层 token 上限/用量与 reset |
+| `admin:agent-profiles` | AI 配置/AGENT 与 Prompt | agents | profile 绑定、Markdown Prompt 修订/预览、当前版本切换、并发 409 |
 | `admin:learning-documents` | 知识文档与申诉 | learning | 有界分页、逐条原文访问、显式勾选批量处置、申诉逐条决定 |
 | `admin:question-banks` | 题库与运行设置 | learning | 配额、生成上限、API 开关与账户覆盖；队列通过独立入口管理 |
 | `admin:question-bank-queue` | 题库队列 | learning | HTMX 局部筛选、生成/可见性状态、隐藏/恢复/删除、显式勾选批量、冷静期读回 |

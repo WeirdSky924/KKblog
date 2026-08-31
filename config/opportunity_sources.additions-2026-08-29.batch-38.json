@@ -1,0 +1,41 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "3f96fd9d-bb85-5681-8005-f7a237f5e377",
+      "company_name": "利欧集团",
+      "source_type": "SOCIAL",
+      "official_url": "https://leoglobal.jobs.feishu.cn/leosz/position/list",
+      "note": "第三十八批核验：利欧集团官方 Feishu 社会招聘列表（由 CSV 候选租户 canonical 重定向）；受限 collector 完整读回 2 个分页批次、47 个岗位，其中 44 条社会、3 条实习，含城市、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leoglobal.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "c6e01a1e-6a09-51a4-ae96-69ee802849a8",
+      "company_name": "利欧集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://leoglobal.jobs.feishu.cn/leoxz/position/list",
+      "note": "第三十八批核验：利欧集团官方 Feishu 校园招聘列表（由 CSV 候选租户 canonical 重定向）；受限 collector 完整读回 2 个分页批次、31 个岗位，均为 2027 届校园招聘，含城市、类别、同域详情链接和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "leoglobal.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

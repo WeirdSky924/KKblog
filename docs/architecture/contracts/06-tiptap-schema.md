@@ -14,7 +14,7 @@
 - 未知版本关闭失败，不尝试按最新版本猜测。
 - schema version 是 revision 元数据，不写进 TipTap `doc` 顶层 attrs，也不根据节点内容猜测。
 - renderer/sanitizer/schema 版本共同进入公开正文缓存身份；任一合同变化都不能复用旧 HTML。
-- 当前统一实现版本为 `kaj-tiptap-renderer-v6` 与 `kaj-html-v7`；renderer 只消费 schema owner 的规范化结果，不维护第二份 node/mark/attrs 校验白名单。
+- 当前统一实现版本为 `kaj-tiptap-renderer-v7` 与 `kaj-html-v7`；renderer 只消费 schema owner 的规范化结果，不维护第二份 node/mark/attrs 校验白名单。
 
 ## 2. 全局结构限制
 
@@ -63,8 +63,11 @@
 | `tableCell` | v2 | tableRow | `block+` | 无 |
 | `attachment` | v2 | block 容器 | 无 | `src: media:<ULID>`；无客户端路径/文件名 |
 | `embed` | v2 | block 容器 | 无 | `source` 与 `url`；必须匹配服务端可信来源策略 |
+| `latexBlock` | v2 | block 容器 | 无 | `formula: str`；仅块级公式源码，浏览器 KaTeX 渲染，禁止自定义宏 |
 
-`block` 集合为 paragraph、heading、blockquote、bulletList、orderedList、codeBlock、horizontalRule、image，以及 v2 的 taskList、callout、table、attachment、embed。列表和 callout 可包含普通 block，但 table、attachment 和 embed 不允许递归嵌入自身。
+`block` 集合为 paragraph、heading、blockquote、bulletList、orderedList、codeBlock、horizontalRule、image，以及 v2 的 taskList、callout、table、attachment、embed、latexBlock。列表和 callout 可包含普通 block，但 table、attachment、embed 和 latexBlock 不允许递归嵌入自身。
+
+`latexBlock.formula` 只做 UTF-8、控制字符、单块 `16 KiB` 和单文档 `200` 块限制；服务端不执行公式语法校验，因此错误公式仍可保存。公开 HTML 输出带有转义后的原始 `$$...$$` 回退文本和源码属性。浏览器端使用 KaTeX 的 `throwOnError`、`trust: false`、`strict: "error"` 配置渲染；渲染失败或检测到 `newcommand`、`def`、`DeclareMathOperator` 等自定义宏时，保持原始公式文本，不生成部分 HTML。
 
 ### 标题锚点与大纲
 
@@ -86,7 +89,7 @@ v2 首批允许：`text`、`bash`、`css`、`diff`、`html`、`javascript`、`js
 
 - 最多 50 行、20 列、1,000 个单元格。
 - 每行单元格数量必须一致；首行可以全部是 `tableHeader`，其余行只能是 `tableCell`。
-- 首版没有 colspan、rowspan、公式、嵌套 table 或数据库语义。
+- 首版没有 colspan、rowspan、嵌套 table 或数据库语义；公式只支持独立块，不支持行内 `$...$`。
 - 超限或畸形结构返回 `media.tiptap.table_invalid.v1`，不自动补齐或截断。
 
 ## 4. Mark 合同

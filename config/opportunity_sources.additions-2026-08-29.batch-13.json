@@ -1,0 +1,85 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "db1e1caa-9d7e-58b1-9ddd-d97a0d1ce3e5",
+      "company_name": "豪威集团",
+      "source_type": "CAMPUS",
+      "official_url": "https://ovt-omnivision.zhiye.com/campus?r=-1&c=4301",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 16 页 78 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "ovt-omnivision.zhiye.com"
+      ]
+    },
+    {
+      "id": "10b17f69-6f0f-56c2-97c9-a887b0b5beb3",
+      "company_name": "上海精测",
+      "source_type": "CAMPUS",
+      "official_url": "https://pmish-tech.zhiye.com/campus?c=3502",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 5 页 25 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "pmish-tech.zhiye.com"
+      ]
+    },
+    {
+      "id": "c417cb2e-01f4-5c1e-b3a3-ea78a314158e",
+      "company_name": "前海开源",
+      "source_type": "CAMPUS",
+      "official_url": "https://qhkyfund.zhiye.com/Campus",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 4 页 16 个岗位；当前仅含 2025/2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "qhkyfund.zhiye.com"
+      ]
+    },
+    {
+      "id": "abd2539d-5634-524b-97b4-b39296c8aada",
+      "company_name": "四方继保",
+      "source_type": "CAMPUS",
+      "official_url": "https://sf-auto.zhiye.com/campus/jobs",
+      "note": "第十三批核验：北森公开校园职位列表，完整读回 10 页 48 个岗位；当前为 2026 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sf-auto.zhiye.com"
+      ]
+    }
+  ]
+}

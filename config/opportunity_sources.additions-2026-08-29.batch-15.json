@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "0ef5d66c-0c11-5d15-8dd1-c2a4a228ab2b",
+      "company_name": "康尼机电",
+      "source_type": "CAMPUS",
+      "official_url": "https://kangni.zhiye.com/campus/jobs?1=[{%22id%22:%225%22,%22label%22:%22%E7%A0%94%E5%8F%91%22}]",
+      "note": "第十五批核验：北森公开校园职位列表，完整读回 5 页 21 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kangni.zhiye.com"
+      ]
+    },
+    {
+      "id": "edf101a8-4951-576f-a9bf-61541cc06089",
+      "company_name": "武汉芯动科技有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://innosilicon.zhiye.com/Campus",
+      "note": "第十五批核验：北森公开校园职位列表，完整读回 4 页 20 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "innosilicon.zhiye.com"
+      ]
+    }
+  ]
+}

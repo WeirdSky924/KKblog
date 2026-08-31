@@ -1,0 +1,45 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "aa03c308-d210-5ec9-9d0e-2b4010d966d6",
+      "company_name": "深圳市亿道信息股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://emdoor1.zhiye.com/campus",
+      "note": "第八批核验：北森公开校园职位列表，完整读回 3 页 15 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "emdoor1.zhiye.com"
+      ]
+    },
+    {
+      "id": "4d024851-12a1-5b58-8ff4-d18a21b7e3ca",
+      "company_name": "深圳方正微电子有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://founderic.zhiye.com/Campus",
+      "note": "第八批核验：北森公开校园职位列表，完整读回 7 页 32 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "founderic.zhiye.com"
+      ]
+    }
+  ]
+}

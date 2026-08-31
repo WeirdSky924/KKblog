@@ -1,0 +1,25 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "63be458c-8c6d-51f7-87ba-41ac1fc5b4c0",
+      "company_name": "星宸科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://sigmastar.zhiye.com/campus/jobs",
+      "note": "第五批核验：北森公开校园职位列表，完整读回 7 页 31 个岗位；与 sigmastar1.zhiye.com 镜像岗位 ID 100% 重合，选本 URL 作为 canonical 来源。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sigmastar.zhiye.com"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "db93258a-e23a-55ba-b73b-4b97e6fe7023",
+      "company_name": "上海鸣石私募基金管理有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://mingshiim.zhiye.com/campus/jobs?memory=%7B%7D&silence=1",
+      "note": "第七批核验：北森公开校园职位列表，完整读回 1 页 5 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "mingshiim.zhiye.com"
+      ]
+    }
+  ]
+}

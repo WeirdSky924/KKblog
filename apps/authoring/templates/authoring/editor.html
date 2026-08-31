@@ -58,6 +58,7 @@
         {{ editor_form.upload_scope }}
         {{ editor_form.baseline_revision_id }}
         {{ editor_form.edit_token }}
+        {{ editor_form.import_job_id }}
         {{ editor_embed_sources|json_script:"editor-embed-sources" }}
 
         {% if editor_form.errors %}
@@ -244,6 +245,15 @@
                       aria-haspopup="dialog"
                     >
                       <i data-lucide="file-plus-2"></i><span>导入 .md</span>
+                    </button>
+                    <button
+                      class="author-markdown-import__trigger author-markdown-latex-trigger"
+                      type="button"
+                      data-latex-trigger
+                      aria-label="插入块级 LaTeX"
+                      title="插入块级 LaTeX"
+                    >
+                      <i data-lucide="sigma"></i><span>插入公式</span>
                     </button>
                     <section
                       id="author-markdown-import-card"

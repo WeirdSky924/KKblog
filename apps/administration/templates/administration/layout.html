@@ -10,10 +10,10 @@
         <p>站点管理</p>
         <strong>{{ shell_account.display_name }}</strong>
       </div>
-      {% include "administration/partials/module_navigation.html" with navigation_variant="sidebar" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route only %}
+      {% include "administration/partials/module_navigation.html" with navigation_variant="sidebar" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route admin_current_query=admin_current_query only %}
     </aside>
     <div class="administration-mobile-navigation">
-      {% include "administration/partials/module_navigation.html" with navigation_variant="mobile" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route only %}
+      {% include "administration/partials/module_navigation.html" with navigation_variant="mobile" admin_navigation_groups=admin_navigation_groups admin_current_route=admin_current_route admin_current_query=admin_current_query only %}
     </div>
     <div class="administration-workspace">
       {% block admin_content %}{% endblock %}

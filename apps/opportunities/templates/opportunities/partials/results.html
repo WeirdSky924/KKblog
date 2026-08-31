@@ -1,81 +1,90 @@
 <section class="opportunity-public__results" aria-live="polite" data-opportunity-results>
-  {% if opportunity_view == "jobs" %}
-    <div class="opportunity-public__results-heading">
-      <h2>岗位记录</h2>
-      <span>{{ opportunity_jobs.total_count }} 条结果</span>
+  {% if opportunity_view == "jobs" or opportunity_view == "bookmarks" %}
+    <div class="opportunity-public__results-heading opportunity-public__results-heading--jobs">
+      <h2>{% if opportunity_view == "bookmarks" %}我的收藏{% else %}岗位记录{% endif %}</h2>
+      <div class="opportunity-public__results-tools">
+        <span>{{ opportunity_jobs.total_count }} 条结果</span>
+        {% if opportunity_jobs.items %}
+        <details class="opportunity-public__column-picker" data-opportunity-column-picker>
+          <summary aria-label="选择显示的岗位列" title="选择显示的岗位列">
+            <i data-lucide="settings-2" aria-hidden="true"></i><span>显示列</span>
+          </summary>
+          <div class="opportunity-public__column-options" role="menu" aria-label="岗位列表显示列">
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="company" data-opportunity-column-toggle aria-checked="true"><i data-lucide="check" aria-hidden="true"></i><span>企业</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="title" data-opportunity-column-toggle aria-checked="true"><i data-lucide="check" aria-hidden="true"></i><span>岗位</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="recruitment" data-opportunity-column-toggle aria-checked="true"><i data-lucide="check" aria-hidden="true"></i><span>招聘类型</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="cohort" data-opportunity-column-toggle aria-checked="false"><i data-lucide="check" aria-hidden="true"></i><span>届别</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="category" data-opportunity-column-toggle aria-checked="false"><i data-lucide="check" aria-hidden="true"></i><span>岗位类别</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="city" data-opportunity-column-toggle aria-checked="true"><i data-lucide="check" aria-hidden="true"></i><span>城市地点</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="verification" data-opportunity-column-toggle aria-checked="false"><i data-lucide="check" aria-hidden="true"></i><span>核实状态</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="published" data-opportunity-column-toggle aria-checked="true"><i data-lucide="check" aria-hidden="true"></i><span>发布时间</span></button>
+            <button class="opportunity-public__column-option" type="button" role="menuitemcheckbox" value="actions" data-opportunity-column-toggle aria-checked="true" disabled><i data-lucide="check" aria-hidden="true"></i><span>操作</span></button>
+          </div>
+        </details>
+        {% endif %}
+      </div>
     </div>
     {% if opportunity_jobs.items %}
-      <div class="opportunity-job-list">
-        {% for job in opportunity_jobs.items %}
-          <article class="opportunity-job" data-state="{{ job.verification_status|lower }}">
-            <header class="opportunity-job__identity">
-              <p>{{ job.company_name }}</p>
-              <h3>
-                <a href="{{ job.target_url }}" target="_blank" rel="noopener noreferrer">
-                  {{ job.title }}<i data-lucide="external-link" aria-hidden="true"></i>
-                </a>
-              </h3>
-              <div class="opportunity-job__context" aria-label="招聘信息">
-                <span>{{ job.plan }}</span>
-                {% if job.recruitment_type_label != job.plan %}<span>{{ job.recruitment_type_label }}</span>{% endif %}
-                <span>{{ job.cohorts|join:"、"|default:"未标注届别" }}</span>
-              </div>
-            </header>
-
-            <dl class="opportunity-job__facts">
-              <div>
-                <dt>岗位类别</dt>
-                <dd class="opportunity-public__tags">
-                  {% for label in job.categories %}<span>{{ label }}</span>{% empty %}<span>未分类</span>{% endfor %}
-                </dd>
-              </div>
-              <div>
-                <dt>城市 / 地点</dt>
-                <dd>{{ job.cities|join:"、"|default:"未标注" }}{% if job.location_text %}<small>{{ job.location_text }}</small>{% endif %}</dd>
-              </div>
-            </dl>
-
-            <div class="opportunity-job__verification">
-              <span>核实状态</span>
-              <strong>{{ job.verification_status_label }}</strong>
-              <small>{{ job.availability_label }}</small>
-              <small class="opportunity-job__published-at">
-                <i data-lucide="calendar-days" aria-hidden="true"></i>
-                {% if job.published_at %}
-                  <span>发布于 <time datetime="{{ job.published_at|date:'c' }}">{{ job.published_at|date:"Y-m-d H:i" }}</time></span>
-                {% else %}
-                  <span>发布时间未知</span>
-                {% endif %}
-              </small>
-            </div>
-
-            <div class="opportunity-public__actions">
-              {% if opportunity_authenticated %}
-                {% include "opportunities/partials/bookmark_button.html" with bookmark_opportunity_id=job.opportunity_id bookmark_selected=job.bookmarked opportunity_current_path=opportunity_current_path csrf_token=csrf_token only %}
-              {% else %}
-                <a class="icon-button" href="{{ opportunity_login_url }}" aria-label="登录后收藏" title="收藏">
-                  <i data-lucide="bookmark"></i>
-                </a>
-              {% endif %}
-              <button
-                class="icon-button"
-                type="button"
-                data-opportunity-evidence
-                aria-expanded="false"
-                aria-controls="opportunity-evidence-{{ job.opportunity_id }}"
-                title="查看公开证据"
-                aria-label="查看 {{ job.title }} 的公开证据"
-              ><i data-lucide="file-text"></i></button>
-            </div>
-          </article>
-          <div id="opportunity-evidence-{{ job.opportunity_id }}" class="opportunity-job__evidence" hidden>
-            <p>{{ job.public_evidence }}</p>
-          </div>
-        {% endfor %}
+      <div class="opportunity-public__table-wrap opportunity-public__jobs-table-wrap">
+        <table class="opportunity-job-table" data-opportunity-job-table aria-label="{% if opportunity_view == "bookmarks" %}我的收藏岗位列表{% else %}公开岗位列表{% endif %}">
+          <thead>
+            <tr>
+              <th scope="col" data-opportunity-column="company">企业</th>
+              <th scope="col" data-opportunity-column="title">岗位</th>
+              <th scope="col" data-opportunity-column="recruitment">招聘类型</th>
+              <th scope="col" data-opportunity-column="cohort">届别</th>
+              <th scope="col" data-opportunity-column="category">岗位类别</th>
+              <th scope="col" data-opportunity-column="city">城市地点</th>
+              <th scope="col" data-opportunity-column="verification">核实状态</th>
+              <th scope="col" data-opportunity-column="published">发布时间</th>
+              <th scope="col" data-opportunity-column="actions">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in opportunity_jobs.items %}
+              <tr data-state="{{ job.verification_status|lower }}">
+                <td data-opportunity-column="company"><strong>{{ job.company_name }}</strong></td>
+                <td data-opportunity-column="title">
+                  <a class="opportunity-job-table__title" href="{{ job.target_url }}" target="_blank" rel="noopener noreferrer">
+                    {{ job.title }}<i data-lucide="external-link" aria-hidden="true"></i>
+                  </a>
+                </td>
+                <td data-opportunity-column="recruitment">
+                  <strong>{{ job.recruitment_type_label }}</strong>
+                  {% if job.plan and job.plan != job.recruitment_type_label %}<small>{{ job.plan }}</small>{% endif %}
+                </td>
+                <td data-opportunity-column="cohort">{{ job.cohorts|join:"、"|default:"未标注" }}</td>
+                <td data-opportunity-column="category">
+                  <div class="opportunity-public__tags">{% for label in job.categories %}<span>{{ label }}</span>{% empty %}<span>未分类</span>{% endfor %}</div>
+                </td>
+                <td data-opportunity-column="city">
+                  <strong>{{ job.cities|join:"、"|default:"未标注" }}</strong>
+                  {% if job.location_text %}<small>{{ job.location_text }}</small>{% endif %}
+                </td>
+                <td data-opportunity-column="verification">
+                  <strong>{{ job.verification_status_label }}</strong>
+                  <small>{{ job.availability_label }}</small>
+                </td>
+                <td data-opportunity-column="published">
+                  {% if job.published_at %}<time datetime="{{ job.published_at|date:'c' }}">{{ job.published_at|date:"Y-m-d H:i" }}</time>{% else %}<span>未知</span>{% endif %}
+                </td>
+                <td data-opportunity-column="actions">
+                  <div class="opportunity-public__actions">
+                    {% if opportunity_authenticated %}
+                      {% include "opportunities/partials/bookmark_button.html" with bookmark_opportunity_id=job.opportunity_id bookmark_selected=job.bookmarked opportunity_current_path=opportunity_current_path csrf_token=csrf_token only %}
+                    {% else %}
+                      <a class="icon-button" href="{{ opportunity_login_url }}" aria-label="登录后收藏" title="收藏"><i data-lucide="bookmark"></i></a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     {% else %}
       <div class="opportunity-public__empty">
-        <h3>当前条件下没有公开岗位</h3>
+        <h3>{% if opportunity_view == "bookmarks" %}还没有收藏的岗位{% else %}当前条件下没有公开岗位{% endif %}</h3>
         {% if opportunity_active_filters %}<a href="{{ opportunity_clear_url }}">清除筛选</a>{% endif %}
       </div>
     {% endif %}
@@ -86,7 +95,7 @@
       <span>{{ opportunity_sources.total_count }} 个结果</span>
     </div>
     {% if opportunity_sources.items %}
-      <div class="opportunity-public__table-wrap">
+      <div class="opportunity-public__table-wrap opportunity-public__source-table-wrap">
         <table class="opportunity-source-table">
           <thead><tr><th>企业</th><th>来源类型</th><th>官方入口</th><th>状态</th><th>最近成功检查</th><th>公开岗位</th></tr></thead>
           <tbody>

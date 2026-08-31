@@ -1,31 +1,28 @@
 <div id="quiz-workspace" class="opportunity-public__workspace quiz-workspace" data-opportunity-workspace data-focus-after-swap tabindex="-1">
   {% include "learning/partials/quiz_filter_form.html" %}
   {% if quiz_filter_error %}<div class="opportunity-public__error quiz-filter-error" data-error-focus tabindex="-1" role="alert"><h2>筛选条件需要修改</h2><p>{{ quiz_filter_error }}</p></div>{% endif %}
-  <div class="quiz-picker-layout{% if not selected_configuration %} quiz-picker-layout--solo{% endif %}">
+  <div class="quiz-picker-layout{% if not selected_configuration %} quiz-picker-layout--solo{% endif %}" data-quiz-picker-layout>
     <section class="quiz-bank-list" aria-labelledby="quiz-bank-list-title">
       <header class="quiz-section-heading"><div><p class="learning-folio">题库目录</p><h2 id="quiz-bank-list-title">公开题库</h2></div><span>{{ bank_page.total_items }} 个结果</span></header>
       {% for bank in bank_page.items %}
-        <article class="quiz-bank-row{% if selected_configuration and selected_configuration.bank_id == bank.bank_id %} quiz-bank-row--selected{% endif %}">
+        <article class="quiz-bank-row{% if selected_configuration and selected_configuration.bank_id == bank.bank_id %} quiz-bank-row--selected{% endif %}" data-quiz-bank-id="{{ bank.bank_id }}">
           <div class="quiz-bank-row__content"><div class="quiz-bank-row__meta"><span>{{ bank.author.display_name }}</span><span>{{ bank.question_count }} 题</span></div><h3>{{ bank.title }}</h3>{% if bank.description %}<p>{{ bank.description }}</p>{% endif %}</div>
-          <a class="button button--secondary" href="?{% if quiz_bank_query %}{{ quiz_bank_query }}&amp;{% endif %}bank_id={{ bank.bank_id }}"><i data-lucide="sliders-horizontal" aria-hidden="true"></i><span>配置答题</span></a>
+          <a
+            class="button button--secondary"
+            href="?{% if quiz_bank_query %}{{ quiz_bank_query }}&amp;{% endif %}bank_id={{ bank.bank_id }}"
+            hx-get="?{% if quiz_bank_query %}{{ quiz_bank_query }}&amp;{% endif %}bank_id={{ bank.bank_id }}"
+            hx-target="#quiz-config"
+            hx-select="#quiz-config"
+            hx-swap="outerHTML"
+            hx-push-url="?{% if quiz_bank_query %}{{ quiz_bank_query }}&amp;{% endif %}bank_id={{ bank.bank_id }}"
+            hx-sync="#quiz-workspace:replace"
+            data-quiz-config-trigger
+            data-quiz-bank-id="{{ bank.bank_id }}"
+          ><i data-lucide="sliders-horizontal" aria-hidden="true"></i><span>配置答题</span></a>
         </article>
       {% empty %}<p class="quiz-empty">当前条件下没有可答题库。</p>{% endfor %}
       {% if bank_page.total_pages > 1 %}<nav class="quiz-pagination" aria-label="题库分页">{% if bank_page.has_previous %}<a href="?{{ quiz_previous_query }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}<span>第 {{ bank_page.page_number }} / {{ bank_page.total_pages }} 页</span>{% if bank_page.has_next %}<a href="?{{ quiz_next_query }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}</nav>{% endif %}
     </section>
-    {% if selected_configuration %}
-      <aside class="quiz-config" aria-labelledby="quiz-config-title">
-        <header><div><p class="learning-folio">当前选择</p><h2 id="quiz-config-title">{{ selected_configuration.title }}</h2></div><span class="quiz-config__count">{{ selected_configuration.question_count }} 题可选</span></header>
-        <form method="post" class="quiz-config__form">{% csrf_token %}{{ start_form.bank_id }}{{ start_form.expected_revision_id }}{{ start_form.source }}{{ start_form.expected_source_keys }}
-          <fieldset><legend>题型</legend>{{ start_form.question_types }}{{ start_form.question_types.errors }}</fieldset>
-          <div>{{ start_form.question_count.label_tag }}{{ start_form.question_count }}{{ start_form.question_count.errors }}</div>
-          <label class="switch-control" for="{{ start_form.timed.id_for_label }}">{{ start_form.timed }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span class="switch-control__label">开启软计时</span></label>
-          <div>{{ start_form.duration_minutes.label_tag }}{{ start_form.duration_minutes }}{{ start_form.duration_minutes.errors }}</div>
-          <label class="switch-control" for="{{ start_form.random_questions.id_for_label }}">{{ start_form.random_questions }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span class="switch-control__label">随机题目</span></label>
-          <label class="switch-control" for="{{ start_form.random_options.id_for_label }}">{{ start_form.random_options }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span class="switch-control__label">随机选项</span></label>
-          {{ start_form.non_field_errors }}
-          <button class="button button--primary" type="submit"><i data-lucide="play"></i><span>开始答题</span></button>
-        </form>
-      </aside>
-    {% endif %}
+    {% include "learning/partials/quiz_config.html" %}
   </div>
 </div>

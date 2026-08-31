@@ -13,7 +13,12 @@ from .adapters import (
     FetchClient,
     published_at_from_mapping,
 )
-from .http import MAX_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
+from .http import (
+    MAX_ADAPTER_RESPONSE_BYTES,
+    MAX_RESPONSE_BYTES,
+    SafeHttpResult,
+    SafeRequestError,
+)
 
 _COHORT = re.compile(r"(?<!\d)(?:20)?(\d{2})\s*届")
 _MODES = {
@@ -334,7 +339,11 @@ class MokaAdapter:
                 "locale": source["locale"],
             }
             payload = _encrypted_payload(
-                client.post_json(base, request, max_response_bytes=MAX_RESPONSE_BYTES),
+                client.post_json(
+                    base,
+                    request,
+                    max_response_bytes=MAX_ADAPTER_RESPONSE_BYTES,
+                ),
                 iv=iv,
             )
             data = payload.get("data")

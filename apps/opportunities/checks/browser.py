@@ -19,6 +19,7 @@ _COLLECTORS = frozenset(
     {
         "alibaba-campus-v1",
         "bytedance-campus-v1",
+        "feishu-career-v1",
         "hikvision-v1",
         "xiaomi-campus-v1",
         "xiaomi-intern-v1",

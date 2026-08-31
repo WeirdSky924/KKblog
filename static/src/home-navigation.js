@@ -134,6 +134,28 @@ function siteHeaderHeight() {
     : 0;
 }
 
+function bindNavigationViewportMetrics(shell) {
+  const footer = document.querySelector("[data-site-footer]");
+  const syncFooterHeight = () => {
+    const height =
+      footer instanceof HTMLElement
+        ? Math.ceil(footer.getBoundingClientRect().height)
+        : 0;
+    shell.style.setProperty("--site-footer-height", `${Math.max(0, height)}px`);
+    shell.style.setProperty(
+      "--home-navigation-bottom-offset",
+      `calc(${Math.max(0, height)}px + 1rem)`,
+    );
+  };
+
+  syncFooterHeight();
+  window.addEventListener("resize", syncFooterHeight, { passive: true });
+  if (footer instanceof HTMLElement && "ResizeObserver" in window) {
+    const observer = new ResizeObserver(syncFooterHeight);
+    observer.observe(footer);
+  }
+}
+
 function snapTarget(element) {
   return Math.max(0, documentTop(element) - siteHeaderHeight());
 }
@@ -392,6 +414,7 @@ function bindNavigationShell(shell) {
   }
 
   boundNavigationShells.add(shell);
+  bindNavigationViewportMetrics(shell);
   bindNavigationPaging(shell);
   const page = shell.closest("[data-home-page]");
   const articles = page?.querySelector("[data-home-articles]");

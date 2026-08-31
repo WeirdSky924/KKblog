@@ -1,0 +1,41 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "ca955c1e-a43a-5536-8e13-d3809afba8e9",
+      "company_name": "禾赛科技",
+      "source_type": "CAMPUS",
+      "official_url": "https://kwh0jtf778.jobs.feishu.cn/229043/position/list",
+      "note": "第四十批核验：禾赛科技官方 Feishu 校园招聘职位列表；受限 collector 完整读回 3 个分页批次、149 个岗位（144 条校园、5 条实习），含上海/杭州地点、类别、同域详情链接和发布时间，类型按公开行字段保留。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kwh0jtf778.jobs.feishu.cn"
+      ]
+    },
+    {
+      "id": "0d9cd51e-a938-5584-aaba-a68616c2a807",
+      "company_name": "禾赛科技",
+      "source_type": "SOCIAL",
+      "official_url": "https://kwh0jtf778.jobs.feishu.cn/index/position/list",
+      "note": "第四十批核验：禾赛科技官方 Feishu 社会招聘职位列表；受限 collector 稳定重试后完整读回 3 个分页批次、156 个岗位，均含城市、类别、同域详情链接和发布时间。首次运行无进展已按边界终止，后续重试完整成功。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "kwh0jtf778.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "7f58f542-3ecb-51e6-bd7b-46913e583017",
+      "company_name": "英科医疗科技股份有限公司",
+      "source_type": "CAMPUS",
+      "official_url": "https://global-intco.jobs.feishu.cn/840753/position/list",
+      "note": "第二十二批核验：官方 Feishu 校招职位列表；受限浏览器 collector 完整读回 3 页 158 个岗位，含项目、城市、职能、届别和发布时间。",
+      "adapter_key": "feishu-career-v1",
+      "adapter_config": {},
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "global-intco.jobs.feishu.cn"
+      ]
+    }
+  ]
+}

@@ -1,10 +1,12 @@
 from celery import shared_task
+from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
-from apps.exchange.public import ImportProcessingRetryable
+from apps.exchange.public import ImportProcessingRetryable, mark_import_job_final_failed
 from apps.operations.public import (
     RetryableTaskError,
     StartOutcome,
+    TaskFinalFailed,
     execute_celery_entry,
 )
 
@@ -62,11 +64,20 @@ def process_import_job_task(
     preview_version: int,
 ) -> dict[str, str]:
     business_object = _business_object(job_id, preview_version)
-    result = execute_celery_entry(
-        self,
-        task_name="apps.exchange.process_import_job",
-        business_object=business_object,
-        idempotency_key=business_object,
-        service=_process_service,
-    )
+    try:
+        result = execute_celery_entry(
+            self,
+            task_name="apps.exchange.process_import_job",
+            business_object=business_object,
+            idempotency_key=business_object,
+            service=_process_service,
+        )
+    except TaskFinalFailed as error:
+        mark_import_job_final_failed(
+            job_id=job_id,
+            preview_version=preview_version,
+            error_code=error.error_code,
+            completed_at=timezone.now(),
+        )
+        raise
     return _task_response(result)

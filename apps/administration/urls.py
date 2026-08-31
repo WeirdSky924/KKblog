@@ -24,7 +24,10 @@ from apps.administration.views.learning_question_bank_queue import (
 from apps.administration.views.learning_question_banks import learning_question_banks
 from apps.administration.views.navigation import navigation
 from apps.administration.views.notifications import notifications
-from apps.administration.views.opportunities import opportunities
+from apps.administration.views.opportunities import (
+    opportunities,
+    opportunity_filter_options,
+)
 from apps.administration.views.reports import reports
 from apps.administration.views.sections import sections
 from apps.administration.views.site_settings import site_settings
@@ -106,6 +109,11 @@ urlpatterns = [
         "opportunities/",
         administrator_required(opportunities),
         name="opportunities",
+    ),
+    path(
+        "opportunities/filter-options/",
+        administrator_required(opportunity_filter_options),
+        name="opportunity-filter-options",
     ),
     path("exchange/", administrator_required(exchange), name="exchange"),
     path(

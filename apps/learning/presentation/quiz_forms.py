@@ -3,6 +3,19 @@ from django import forms
 from apps.learning.contracts import QUIZ_DURATION_OPTIONS, QuizAttemptSource
 
 
+class MultipleHiddenValueField(forms.Field):
+    """Keep repeated hidden inputs as a list instead of stringifying them."""
+
+    widget = forms.MultipleHiddenInput
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return []
+        if isinstance(value, (list, tuple)):
+            return list(value)
+        return [value]
+
+
 class QuizStartForm(forms.Form):
     bank_id = forms.UUIDField(widget=forms.HiddenInput())
     expected_revision_id = forms.UUIDField(widget=forms.HiddenInput())
@@ -34,7 +47,7 @@ class QuizStartForm(forms.Form):
         initial=True,
         widget=forms.CheckboxInput(attrs={"role": "switch"}),
     )
-    expected_source_keys = forms.CharField(
+    expected_source_keys = MultipleHiddenValueField(
         required=False, widget=forms.MultipleHiddenInput()
     )
 

@@ -58,6 +58,162 @@ function updateProgress(form) {
   if (label instanceof HTMLElement) label.textContent = `${answered} / ${total}`;
 }
 
+function quizAttemptRoot(root) {
+  if (root instanceof HTMLElement && root.matches("[data-quiz-attempt]")) {
+    return root;
+  }
+  if (root instanceof HTMLElement) {
+    const ancestor = root.closest("[data-quiz-attempt]");
+    if (ancestor instanceof HTMLElement) return ancestor;
+  }
+  const attempt = root.querySelector?.("[data-quiz-attempt]");
+  return attempt instanceof HTMLElement ? attempt : null;
+}
+
+function quizResponses(root) {
+  return Array.from(root.querySelectorAll("[data-quiz-response]")).sort(
+    (left, right) =>
+      Number(left.dataset.quizPosition || 0) -
+      Number(right.dataset.quizPosition || 0),
+  );
+}
+
+function quizPositionKey(root) {
+  const attemptId = root.dataset.quizAttemptId;
+  return attemptId ? `kaj:quiz:${attemptId}:position` : "";
+}
+
+function storedQuizPosition(root, responses) {
+  const key = quizPositionKey(root);
+  if (!key) return 1;
+  try {
+    const value = Number.parseInt(window.sessionStorage.getItem(key) || "", 10);
+    if (
+      Number.isInteger(value) &&
+      responses.some((response) => Number(response.dataset.quizPosition) === value)
+    ) {
+      return value;
+    }
+  } catch {
+    // Session storage can be unavailable in private browsing contexts.
+  }
+  return Number(responses[0]?.dataset.quizPosition || 1);
+}
+
+function persistQuizPosition(root, position) {
+  const key = quizPositionKey(root);
+  if (!key) return;
+  try {
+    window.sessionStorage.setItem(key, String(position));
+  } catch {
+    // The current question still works when storage is unavailable.
+  }
+}
+
+function setCurrentQuizQuestion(root, position, { focus = true } = {}) {
+  const responses = quizResponses(root);
+  if (!responses.length) return;
+  const targetIndex = Math.max(
+    0,
+    responses.findIndex(
+      (response) => Number(response.dataset.quizPosition) === Number(position),
+    ),
+  );
+  const target = responses[targetIndex];
+  const targetPosition = Number(target.dataset.quizPosition || targetIndex + 1);
+  responses.forEach((response, index) => {
+    response.hidden = index !== targetIndex;
+    response.dataset.quizCurrent = String(index === targetIndex);
+  });
+
+  const navItems = root.querySelectorAll("[data-quiz-question-nav]");
+  navItems.forEach((item) => {
+    const current = Number(item.dataset.quizPosition) === targetPosition;
+    item.toggleAttribute("aria-current", current);
+    if (current) item.setAttribute("aria-current", "step");
+  });
+  const previous = root.querySelector("[data-quiz-previous]");
+  const next = root.querySelector("[data-quiz-next]");
+  if (previous instanceof HTMLButtonElement) previous.disabled = targetIndex === 0;
+  if (next instanceof HTMLButtonElement) {
+    next.disabled = targetIndex === responses.length - 1;
+  }
+  root
+    .querySelectorAll(
+      "[data-quiz-current-label], [data-quiz-position-label], [data-quiz-explanation-current]",
+    )
+    .forEach((label) => {
+      if (label instanceof HTMLElement) {
+        label.textContent = `第 ${targetPosition} / ${responses.length} 题`;
+      }
+    });
+  root.querySelectorAll("[data-quiz-explanation]").forEach((panel) => {
+    panel.hidden = Number(panel.dataset.quizPosition) !== targetPosition;
+  });
+  root.dataset.quizCurrentPosition = String(targetPosition);
+  persistQuizPosition(root, targetPosition);
+  if (focus) {
+    responses[targetIndex]
+      .querySelector("h2")
+      ?.focus({ preventScroll: true });
+  }
+}
+
+function updateQuestionNavigationState(root) {
+  if (!(root instanceof HTMLElement) || root.dataset.quizSubmitted === "true") {
+    return;
+  }
+  root.querySelectorAll("[data-quiz-question-nav]").forEach((item) => {
+    const position = Number(item.dataset.quizPosition);
+    const response = root.querySelector(
+      `[data-quiz-response][data-quiz-position="${position}"]`,
+    );
+    const form = response?.querySelector("form[data-quiz-save]");
+    const answered = form instanceof HTMLFormElement && formHasAnswer(form);
+    item.dataset.quizState = answered ? "answered" : "";
+    item.classList.toggle("quiz-question-nav__item--answered", answered);
+  });
+}
+
+function bindQuestionNavigation(root) {
+  const attempt = quizAttemptRoot(root);
+  if (!(attempt instanceof HTMLElement) || attempt.dataset.quizNavigationBound === "true") {
+    return;
+  }
+  attempt.dataset.quizNavigationBound = "true";
+  const responses = quizResponses(attempt);
+  if (!responses.length) return;
+  updateQuestionNavigationState(attempt);
+  setCurrentQuizQuestion(attempt, storedQuizPosition(attempt, responses), {
+    focus: false,
+  });
+  attempt.querySelectorAll("[data-quiz-question-nav]").forEach((item) => {
+    item.addEventListener("click", () => {
+      setCurrentQuizQuestion(attempt, item.dataset.quizPosition);
+    });
+  });
+  attempt.querySelector("[data-quiz-previous]")?.addEventListener("click", () => {
+    const current = responses.findIndex(
+      (response) =>
+        Number(response.dataset.quizPosition) ===
+        Number(attempt.dataset.quizCurrentPosition),
+    );
+    if (current > 0) {
+      setCurrentQuizQuestion(attempt, responses[current - 1].dataset.quizPosition);
+    }
+  });
+  attempt.querySelector("[data-quiz-next]")?.addEventListener("click", () => {
+    const current = responses.findIndex(
+      (response) =>
+        Number(response.dataset.quizPosition) ===
+        Number(attempt.dataset.quizCurrentPosition),
+    );
+    if (current >= 0 && current < responses.length - 1) {
+      setCurrentQuizQuestion(attempt, responses[current + 1].dataset.quizPosition);
+    }
+  });
+}
+
 async function saveForm(form) {
   if (form.dataset.saving === "true") return;
   form.dataset.saving = "true";
@@ -90,6 +246,7 @@ function bindForm(form) {
   let timer = 0;
   const schedule = () => {
     updateProgress(form);
+    updateQuestionNavigationState(form.closest("[data-quiz-attempt]"));
     window.clearTimeout(timer);
     const delay = form.querySelector("textarea") ? 550 : 0;
     timer = window.setTimeout(() => saveForm(form), delay);
@@ -122,10 +279,93 @@ function bindTimer(root) {
   tick();
 }
 
+let quizPickerBound = false;
+let quizPickerAnimationTimer = 0;
+
+function quizPickerTrigger(event) {
+  const element = event.detail?.elt;
+  return element instanceof Element
+    ? element.closest("[data-quiz-config-trigger]")
+    : null;
+}
+
+function quizPickerLayout(trigger) {
+  return trigger?.closest("[data-quiz-picker-layout]") ?? null;
+}
+
+function setQuizPickerSelection(layout, bankId) {
+  if (!(layout instanceof HTMLElement) || !bankId) return;
+  layout.querySelectorAll(".quiz-bank-row[data-quiz-bank-id]").forEach((row) => {
+    row.classList.toggle("quiz-bank-row--selected", row.dataset.quizBankId === bankId);
+  });
+}
+
+function restoreQuizPickerLayout(layout) {
+  if (!(layout instanceof HTMLElement)) return;
+  layout.classList.remove("quiz-picker-layout--configuring");
+  if (layout.dataset.quizPickerWasSolo === "true") {
+    layout.classList.add("quiz-picker-layout--solo");
+  }
+  delete layout.dataset.quizPickerPendingBankId;
+  delete layout.dataset.quizPickerPreviousBankId;
+  delete layout.dataset.quizPickerWasSolo;
+}
+
+function bindQuizPicker() {
+  if (quizPickerBound) return;
+  quizPickerBound = true;
+  document.addEventListener("htmx:beforeRequest", (event) => {
+    const trigger = quizPickerTrigger(event);
+    const layout = quizPickerLayout(trigger);
+    if (!(trigger instanceof HTMLElement) || !(layout instanceof HTMLElement)) return;
+    layout.dataset.quizPickerWasSolo = String(
+      layout.classList.contains("quiz-picker-layout--solo"),
+    );
+    layout.dataset.quizPickerPendingBankId = trigger.dataset.quizBankId || "";
+    layout.dataset.quizPickerPreviousBankId =
+      layout.querySelector(".quiz-bank-row--selected")?.dataset.quizBankId || "";
+    layout.classList.remove("quiz-picker-layout--solo");
+    layout.classList.add("quiz-picker-layout--configuring");
+  });
+  document.addEventListener("htmx:afterRequest", (event) => {
+    const trigger = quizPickerTrigger(event);
+    const layout = quizPickerLayout(trigger);
+    if (!(trigger instanceof HTMLElement) || !(layout instanceof HTMLElement)) return;
+    if (event.detail?.successful === true) return;
+    const previousBankId = layout.dataset.quizPickerPreviousBankId || "";
+    restoreQuizPickerLayout(layout);
+    setQuizPickerSelection(layout, previousBankId);
+  });
+  document.addEventListener("htmx:beforeSwap", (event) => {
+    const trigger = quizPickerTrigger(event);
+    const layout = quizPickerLayout(trigger);
+    if (!(trigger instanceof HTMLElement) || !(layout instanceof HTMLElement)) return;
+    if (event.detail?.xhr?.status >= 400) {
+      restoreQuizPickerLayout(layout);
+    }
+  });
+  document.addEventListener("htmx:afterSettle", (event) => {
+    const target = event.detail?.target;
+    if (!(target instanceof Element) || target.id !== "quiz-config") return;
+    const layout = target.closest("[data-quiz-picker-layout]");
+    if (!(layout instanceof HTMLElement)) return;
+    setQuizPickerSelection(layout, layout.dataset.quizPickerPendingBankId || "");
+    window.clearTimeout(quizPickerAnimationTimer);
+    quizPickerAnimationTimer = window.setTimeout(() => {
+      layout.classList.remove("quiz-picker-layout--configuring");
+      delete layout.dataset.quizPickerPendingBankId;
+      delete layout.dataset.quizPickerPreviousBankId;
+      delete layout.dataset.quizPickerWasSolo;
+    }, 380);
+  });
+}
+
 export function initializeQuiz(root = document) {
+  bindQuizPicker();
   const forms = [];
   if (root instanceof HTMLFormElement && root.matches("[data-quiz-save]")) forms.push(root);
   root.querySelectorAll?.("form[data-quiz-save]").forEach((form) => forms.push(form));
   forms.forEach(bindForm);
+  bindQuestionNavigation(root);
   bindTimer(root);
 }

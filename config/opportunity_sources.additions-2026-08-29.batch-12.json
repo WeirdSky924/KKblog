@@ -1,0 +1,85 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "e957496f-9988-5305-acec-f4c4a4ecd069",
+      "company_name": "基恩士",
+      "source_type": "CAMPUS",
+      "official_url": "https://keyence.zhiye.com/campus/jobs",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 1 页 1 个岗位；标题含 2027/2026 届信息，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "keyence.zhiye.com"
+      ]
+    },
+    {
+      "id": "5cd3417c-c15a-57f0-9a41-52b395b0f916",
+      "company_name": "星纵物联",
+      "source_type": "CAMPUS",
+      "official_url": "https://milesight.zhiye.com/campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 3 页 15 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "milesight.zhiye.com"
+      ]
+    },
+    {
+      "id": "8b516835-6472-5049-becf-c9f59da16d90",
+      "company_name": "迈瑞医疗",
+      "source_type": "CAMPUS",
+      "official_url": "https://mindray.zhiye.com/campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 2 页 10 个岗位；岗位未提供明确届别，保留为空。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "mindray.zhiye.com"
+      ]
+    },
+    {
+      "id": "4db9c96d-71e3-5f53-8f22-c240c93bac2d",
+      "company_name": "新能德",
+      "source_type": "CAMPUS",
+      "official_url": "https://nvtpower.zhiye.com/Campus",
+      "note": "第十二批核验：北森公开校园职位列表，完整读回 9 页 43 个岗位；响应含 2027/2028/2025 届，旧届别由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "nvtpower.zhiye.com"
+      ]
+    }
+  ]
+}

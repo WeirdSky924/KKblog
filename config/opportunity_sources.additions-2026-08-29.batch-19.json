@@ -1,0 +1,105 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "611c6de0-f8cf-558a-b404-dcda54c22f7a",
+      "company_name": "欣旺达",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://sunwoda.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 6 页 502 个岗位；综合页按公开类别区分招聘类型。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwoda.zhiye.com"
+      ]
+    },
+    {
+      "id": "27d5be8a-c085-57b6-a708-7aa64be3e95b",
+      "company_name": "欣旺达",
+      "source_type": "CAMPUS",
+      "official_url": "https://sunwodacampus.zhiye.com/",
+      "note": "第十九批核验：北森公开校园综合职位列表，完整读回 13 页 1,253 个岗位；含 2026/2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwodacampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "01f374c5-e06d-5c7e-ad3b-e24593fd5214",
+      "company_name": "欣旺达",
+      "source_type": "INTERNSHIP",
+      "official_url": "https://sunwodacampus.zhiye.com/intern/jobs",
+      "note": "第十九批核验：北森公开实习职位列表，接口明确返回 0 条并完整结束；保留来源用于后续恢复监测。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "sunwodacampus.zhiye.com"
+      ]
+    },
+    {
+      "id": "5b7233f4-2b19-5cee-8863-accd38370b5c",
+      "company_name": "恒玄科技",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://bestechnic.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 1 页 85 个岗位；页面提供地点和类别字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "bestechnic.zhiye.com"
+      ]
+    },
+    {
+      "id": "18d1d9d6-b78f-5be4-9e35-8b890b57365c",
+      "company_name": "一鸣食品",
+      "source_type": "COMPREHENSIVE",
+      "official_url": "https://inm.zhiye.com/",
+      "note": "第十九批核验：北森公开综合职位列表，完整读回 2 页 169 个岗位；响应含多个历史届别，交由统一窗口过滤。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": false,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "inm.zhiye.com"
+      ]
+    }
+  ]
+}

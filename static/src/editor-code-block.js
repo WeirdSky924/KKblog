@@ -1,5 +1,7 @@
 import CodeBlock from "@tiptap/extension-code-block";
 import { mergeAttributes } from "@tiptap/core";
+import { Fragment } from "@tiptap/pm/model";
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { Copy, createIcons } from "lucide";
 
 import { dispatchIsolatedEditorTransaction } from "./editor-history.js";
@@ -24,6 +26,118 @@ export const AUTHOR_CODE_LANGUAGES = Object.freeze(
 const languageValues = new Set(
   AUTHOR_CODE_LANGUAGES.map((language) => language.value),
 );
+
+function selectedTextBlockRange(state) {
+  const selection = state?.selection;
+  if (!selection?.$from || !selection.$to) return null;
+  const range = selection.$from.blockRange(selection.$to);
+  if (!range || range.parent.type.name === "codeBlock") return null;
+  const blocks = [];
+  for (let index = range.startIndex; index < range.endIndex; index += 1) {
+    const node = range.parent.child(index);
+    if (!node.isTextblock) return null;
+    blocks.push(node);
+  }
+  return blocks.length ? { range, blocks } : null;
+}
+
+function codeBlockSelection(state) {
+  const selection = state?.selection;
+  if (!selection?.$from || !selection?.$to) return null;
+  if (
+    selection instanceof NodeSelection &&
+    selection.node?.type.name === "codeBlock"
+  ) {
+    return {
+      node: selection.node,
+      from: selection.from,
+      to: selection.to,
+      offset: 0,
+    };
+  }
+  const { $from, $to } = selection;
+  if ($from.parent.type.name !== "codeBlock" || $to.parent !== $from.parent) {
+    return null;
+  }
+  const depth = $from.depth;
+  const node = $from.node(depth);
+  return {
+    node,
+    from: $from.before(depth),
+    to: $from.after(depth),
+    offset: $from.parentOffset,
+  };
+}
+
+export function restoreCodeBlockAsParagraphs({ state, tr }) {
+  const selected = codeBlockSelection(state);
+  if (!selected) return null;
+
+  const lines = selected.node.textContent.split(/\r?\n/);
+  const paragraphType = state.schema.nodes.paragraph;
+  if (!paragraphType) return false;
+  const paragraphs = lines.map((line) =>
+    paragraphType.create(null, line ? state.schema.text(line) : null),
+  );
+  const transaction = tr || state.tr;
+  transaction.replaceWith(
+    selected.from,
+    selected.to,
+    Fragment.from(paragraphs),
+  );
+
+  const beforeCursor = selected.node.textContent.slice(0, selected.offset);
+  const lineIndex = Math.min(
+    lines.length - 1,
+    beforeCursor.split(/\r?\n/).length - 1,
+  );
+  const lineOffset = beforeCursor.length - beforeCursor.lastIndexOf("\n") - 1;
+  let cursor = selected.from + 1;
+  for (let index = 0; index < lineIndex; index += 1) {
+    cursor += paragraphs[index].nodeSize;
+  }
+  cursor += Math.min(lineOffset, lines[lineIndex].length);
+  transaction.setSelection(TextSelection.create(transaction.doc, cursor));
+  return true;
+}
+
+export function mergeSelectedCodeBlocks({
+  state,
+  tr,
+  attributes,
+  defaultLanguage,
+}) {
+  const selected = selectedTextBlockRange(state);
+  if (!selected || selected.blocks.length < 2) return null;
+
+  // Selecting existing code blocks means "toggle off". For a mixed selection,
+  // replace the complete block range so ProseMirror creates one code block.
+  if (selected.blocks.every((node) => node.type.name === "codeBlock")) {
+    return null;
+  }
+  const codeBlockType = state.schema.nodes.codeBlock;
+  if (!codeBlockType || !selected.range.parent.canReplaceWith(
+    selected.range.startIndex,
+    selected.range.endIndex,
+    codeBlockType,
+  )) {
+    return false;
+  }
+  const text = selected.blocks.map((node) => node.textContent).join("\n");
+  const language = normalizeCodeLanguage(
+    attributes?.language || defaultLanguage,
+  );
+  const codeBlock = codeBlockType.create(
+    { language },
+    text ? state.schema.text(text) : null,
+  );
+  (tr || state.tr).replaceWith(
+    selected.range.start,
+    selected.range.end,
+    codeBlock,
+  );
+  return true;
+}
 
 export function normalizeCodeLanguage(value) {
   return languageValues.has(value) ? value : "text";
@@ -103,6 +217,34 @@ function languageSelect(value) {
 }
 
 const AuthorCodeBlock = CodeBlock.extend({
+  addCommands() {
+    const parent = this.parent?.() || {};
+    return {
+      ...parent,
+      toggleAuthorCodeBlock:
+        (attributes) =>
+        ({ state, tr, commands }) => {
+          const restored = restoreCodeBlockAsParagraphs({ state, tr });
+          if (restored !== null) return restored;
+          const merged = mergeSelectedCodeBlocks({
+            state,
+            tr,
+            attributes,
+            defaultLanguage: this.options.defaultLanguage,
+          });
+          if (merged !== null) return merged;
+          return commands.toggleCodeBlock(attributes);
+        },
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      ...(this.parent?.() || {}),
+      "Mod-Alt-c": () => this.editor.commands.toggleAuthorCodeBlock(),
+    };
+  },
+
   addAttributes() {
     return {
       language: {

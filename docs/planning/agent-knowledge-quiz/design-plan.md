@@ -25,7 +25,7 @@
 | 异步任务、租约、重试、错误 | `apps/operations` | `reuse` TaskRun 与 RuntimeError，不建立独立任务表替代它 |
 | 通知 | `apps/notifications` | `reuse` 通用事件模板与回执，不直接拼通知行 |
 | 审计与 Outbox | `apps/operations`、`apps/core` | `reuse`；管理员配置和状态操作必须审计，提交后派发副作用 |
-| 管理页面 | `apps/administration` | 只编排；第 7 大类承载智能与题库管理入口 |
+| 管理页面 | `apps/administration` | 只编排；AI 配置一级组承载共用 Endpoint/AGENT/Prompt，智能与题库一级组承载 learning 管理入口 |
 | 顶部入口与站点壳 | 共享 navigation template | `extend` 一个登录态答题快捷入口，不创建第二个 Header |
 
 当前项目没有模型/AGENT 调用中心，也没有公共 JSON API。二者都是本轮新增稳定边界。
@@ -163,7 +163,7 @@ STAGED/REJECTED/REVIEW_FAILED -> DELETED
 
 生成流水线对所有文档使用同一规则：先由 learning 按标题/编号/列表等可观察结构拆成有序源知识单元；没有结构时按段落和安全大小切分。源知识单元只是受限证据片段，不等于知识点，也不规定题目数量。AGENT 不预先知道文档是否有序，只把检测到的结构作为降低理解成本的线索，并自行判断每个批次内有多少个可考的原子知识点；一个知识点可以由多个源单元共同支撑，一个源单元也可以支撑多个知识点，输出必须在 `source_unit_ids` 中保留证据引用。每道题必须有且只有一个主要考查知识点，题干可以引用零个或多个辅助知识点；题目数量是上限而不是目标。服务端按批次合并、去重、重新编号和组卷，并验证所有知识点引用均来自当前批次的 AGENT 输出，不能把不确定的文本硬性转换为固定数量题目。
 
-单卷最大题数只由管理员在第 7 大类设置，业务用户不能覆盖。生成运行固化当时的上限、知识点清单摘要和最终题数。
+单卷最大题数只由管理员在“智能与题库”一级组设置，业务用户不能覆盖。生成运行固化当时的上限、知识点清单摘要和最终题数。
 
 知识点超过单卷上限时采用固定降级顺序：
 
@@ -236,7 +236,7 @@ GET /api/v1/question-banks/{public_id}
 
 两条 API 与站内列表/详情调用同一个 `apps.learning.public` query/filter DTO/projection，不复制搜索、可见性、答案或标签规则，但保持独立 transport：站内 `/question-banks...`（最终按项目路由命名）返回服务端 HTML，`/api/v1/question-banks...` 只返回版本化 JSON，不做 `Accept` 内容协商，也不要求站内浏览器调用外部 API 后才能渲染。API enable gate、CORS、匿名 IP 限流、JSON error envelope 和 OpenAPI 只包裹 API transport；关闭 API 不影响 HTML query。
 
-全局 `QuestionBankApiConfiguration` 默认 `enabled=false`，由第 7 管理大类中的 Switch 修改并审计。关闭时所有题库数据路由先于对象查询统一返回 JSON `404`，错误 envelope 使用稳定 code `api_disabled` 和 `Cache-Control: no-store`；列表、任意详情 ID、GET/HEAD 使用同一 gate，不能根据对象存在性分支。切换开关后使题库 API response/ETag 缓存整体失效。已确认开启后允许匿名只读 GET，并使用客户端 IP 进入服务端限流；首版 API 不提供知识文档上传、整理、题库生成或答题写入。
+全局 `QuestionBankApiConfiguration` 默认 `enabled=false`，由“智能与题库”一级组中的 Switch 修改并审计。关闭时所有题库数据路由先于对象查询统一返回 JSON `404`，错误 envelope 使用稳定 code `api_disabled` 和 `Cache-Control: no-store`；列表、任意详情 ID、GET/HEAD 使用同一 gate，不能根据对象存在性分支。切换开关后使题库 API response/ETag 缓存整体失效。已确认开启后允许匿名只读 GET，并使用客户端 IP 进入服务端限流；首版 API 不提供知识文档上传、整理、题库生成或答题写入。
 
 CORS 由 API 配置 owner 的独立策略端口处理。首版唯一可配置模式是 `ALLOWLIST`：默认列表为空，管理员维护精确 Origin。生产 Origin 必须是规范化 `https://host[:port]`，拒绝路径、query、fragment、userinfo、通配符、`null` 和重复项；隔离开发/测试 Origin 由环境专用配置提供，不能混入生产列表。命中时回显精确 Origin、发送 `Vary: Origin`，不发送 `Access-Control-Allow-Credentials`；未命中时仍可按普通匿名 API 处理请求，但不返回 CORS 许可头。无 `Origin` 的服务端请求和本站同源访问不受 CORS 限制。
 
@@ -339,13 +339,10 @@ CSV 导出按每个 QuizResponse 一行展开并重复必要的 attempt 元数�
 
 ## 11. 页面与交互状态
 
-第 7 管理大类建议命名“智能与题库”，包含：
+管理侧栏拆分为两个独立一级组：
 
-1. AGENT 配置：Endpoint、AGENT 用途、启停和连接检查。
-2. Prompt 配置：Markdown 编辑、预览、版本与当前指针。
-3. 知识文档：自动审核状态、失败原因、重新审核和事后隐藏/删除管理。
-4. 题库管理：自动公开后的生成状态、公开状态、题型/题量和事后隐藏/恢复。
-5. 接口设置：全局 Switch、契约摘要和调用状态。
+1. AI 配置：Endpoint 运行参数、用量与连接检查；AGENT 用途、启停和 Prompt Markdown 版本。
+2. 智能与题库：知识文档审核、题库生成/公开状态、题库运行配额和接口设置。
 
 知识文档和题库列表允许管理员明确勾选稳定 ID 后批量隐藏、恢复或进入删除流程；不提供“当前页全部”或“全部筛选结果”隐式扩展选择。确认弹窗从服务端预检返回精确总数、当前状态分布、不可执行项和 row version token；执行 service 再按同一 actor/ID 集/版本校验，采用有界批次并返回逐项结果，不能因部分失败伪装成全部成功。原文访问和申诉决定始终逐条，禁止批量读取正文或批量批准/驳回申诉。
 
@@ -355,7 +352,7 @@ CSV 导出按每个 QuizResponse 一行展开并重复必要的 attempt 元数�
 
 ## 12. 容量、隐私与滥用边界
 
-- `LearningQuotaPolicy` 由 learning 独占，保存全站默认的上传、待处理、生成、并发、题库数量及模型用量限制和 row version；`LearningAccountQuotaOverride` 对有附件权限账户按字段可空覆盖，空值继承全局。管理员在第 7 大类维护并审计，普通用户只能看到自己的剩余摘要，不能查看其他账户或全站费用。
+- `LearningQuotaPolicy` 由 learning 独占，保存全站默认的上传、待处理、生成、并发、题库数量及模型用量限制和 row version；`LearningAccountQuotaOverride` 对有附件权限账户按字段可空覆盖，空值继承全局。管理员在“智能与题库”一级组维护并审计，普通用户只能看到自己的剩余摘要，不能查看其他账户或全站费用。
 - 全站默认单账户配额：每日成功新建知识文档 `10`，`REVIEW_PENDING/REVIEWING` 合计 `3`，每日接受题库生成请求 `5`，审核与生成合计同时模型运行 `1`，未最终清理 QuestionBank `100`。每日窗口按站点时区自然日；重复摘要拒绝和幂等重投不重复计数，同一业务运行的内部重试不新增次数。生成请求一旦被接受即计每日额度，最终系统失败也不回退已可能消耗的调用；`DELETE_PENDING` 仍占题库总量直到最终清理。管理员可在全站配额配置处二次确认重置当天所有账户的生成计数，配额上限和进行中任务保持不变。
 - 账户覆盖硬范围：每日上传 `1..100`、同时待处理 `1..20`、每日生成 `1..50`、同时模型运行 `1..3`、未最终清理题库 `1..2000`。全局默认与账户覆盖写入都使用同一 schema；不接受 0、负数或越界值，完全禁用通过撤销 `attachment_upload_enabled` 完成，避免把配额变成第二权限系统。
 - 全站配置和每个启用 Endpoint 都必须有每日 token 上限，且单业务运行仍受 Endpoint 上下文和单运行预算约束。运行在第一次 Provider 调用前，根据全部分块、最大输出和重试策略计算保守最坏用量，以同一 reservation ID 原子预留全站与 Endpoint 两个站点时区自然日 ledger；任一层不足都不调用模型，运行进入可重试的配额阻塞状态。

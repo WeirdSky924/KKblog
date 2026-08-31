@@ -34,6 +34,23 @@ class AdminPage:
 
 
 @dataclass(frozen=True, slots=True)
+class AdminOptionItem:
+    value: str
+    label: str
+
+
+@dataclass(frozen=True, slots=True)
+class AdminOptionPage:
+    items: tuple[AdminOptionItem, ...]
+    page: int
+    pages: int
+    total: int
+    page_size: int
+    has_previous: bool
+    has_next: bool
+
+
+@dataclass(frozen=True, slots=True)
 class AdminSourceItem:
     source_id: UUID
     company_name: str
@@ -202,6 +219,79 @@ def _page(
     )
 
 
+def _option_page(
+    queryset,
+    *,
+    page: int,
+    page_size: int,
+    label_field: str = "label",
+) -> AdminOptionPage:
+    page_size = page_size if page_size in (20, 40, 50) else 40
+    page_number = page if isinstance(page, int) and page >= 1 else 1
+    result = Paginator(queryset, page_size).get_page(page_number)
+    return AdminOptionPage(
+        tuple(
+            AdminOptionItem(str(row[0]), row[1])
+            for row in result.object_list.values_list("id", label_field)
+        ),
+        result.number,
+        result.paginator.num_pages,
+        result.paginator.count,
+        page_size,
+        result.has_previous(),
+        result.has_next(),
+    )
+
+
+def _option_page_with_selected(
+    queryset,
+    *,
+    selected_queryset,
+    selected: tuple[UUID, ...],
+    page: int,
+    page_size: int,
+    label_field: str,
+) -> AdminOptionPage:
+    """Keep selected values visible while paginating the remaining options."""
+    if not selected:
+        return _option_page(
+            queryset,
+            page=page,
+            page_size=page_size,
+            label_field=label_field,
+        )
+    selected_items = tuple(
+        AdminOptionItem(str(row[0]), row[1])
+        for row in selected_queryset.values_list("id", label_field)
+    )
+    remaining = queryset.exclude(pk__in=selected)
+    remaining_page = _option_page(
+        remaining,
+        page=page,
+        page_size=page_size,
+        label_field=label_field,
+    )
+    total = remaining_page.total + len(selected_items)
+    # Selected values are pinned to page one and do not consume an additional
+    # page. The remaining queryset already provides the correct page window
+    # for the "load more" control, including when many values are selected.
+    pages = max(1, remaining_page.pages)
+    items = (
+        selected_items + remaining_page.items
+        if remaining_page.page == 1
+        else remaining_page.items
+    )
+    return AdminOptionPage(
+        items,
+        remaining_page.page,
+        pages,
+        total,
+        remaining_page.page_size,
+        remaining_page.has_previous,
+        remaining_page.has_next,
+    )
+
+
 def _administrator(actor_id) -> None:
     if not is_administrator(actor_id):
         raise PermissionError("Administrator access is required")
@@ -229,6 +319,7 @@ _FILTER_OVERRIDE_FIELDS = {
     OpportunityFilterKind.CITY: "city_overridden",
     OpportunityFilterKind.COHORT: "cohort_overridden",
 }
+_MAX_SELECTED_OPTIONS = 200
 
 
 def _effective_assignments(row, assignments, kind):
@@ -483,12 +574,14 @@ def admin_opportunities(
     ):
         if values:
             rows = rows.filter(**{f"{field}__in": values})
+    has_assignment_filter = False
     for kind, values in (
         (OpportunityFilterKind.CATEGORY, category_ids),
         (OpportunityFilterKind.CITY, city_ids),
         (OpportunityFilterKind.COHORT, cohort_ids),
     ):
         if values:
+            has_assignment_filter = True
             rows = rows.filter(
                 filter_assignments__option_id__in=values,
                 filter_assignments__option__kind=kind,
@@ -497,7 +590,8 @@ def admin_opportunities(
         rows = rows.filter(
             list_missing__in=tuple(value == "true" for value in list_missing)
         )
-    rows = rows.distinct()
+    if has_assignment_filter:
+        rows = rows.distinct()
     return _page(
         rows,
         page=page,
@@ -545,9 +639,12 @@ def admin_opportunity_detail(
 
 def admin_review_queue(*, actor_id, state="OPEN", page=1, page_size=20) -> AdminPage:
     _administrator(actor_id)
-    rows = OpportunityReviewItem.objects.select_related("opportunity__source").order_by(
-        "created_at", "id"
-    )
+    # Prefetch after the paginator has sliced the review rows. Joining the
+    # two large opportunity tables before sorting makes PostgreSQL scan and
+    # hash the entire catalogue even when the UI only needs 20 reviews.
+    rows = OpportunityReviewItem.objects.prefetch_related(
+        "opportunity__source"
+    ).order_by("created_at", "id")
     if state:
         rows = rows.filter(state=state)
     return _page(
@@ -714,6 +811,94 @@ def admin_check_run_source_detail(
     )
 
 
+def _selected_uuids(values) -> tuple[UUID, ...]:
+    selected: list[UUID] = []
+    for value in values or ():
+        if len(selected) >= _MAX_SELECTED_OPTIONS:
+            break
+        try:
+            identity = UUID(str(value))
+        except (TypeError, ValueError):
+            continue
+        if identity not in selected:
+            selected.append(identity)
+    return tuple(selected)
+
+
+def admin_filter_option_page(
+    *,
+    actor_id,
+    kind: str,
+    query: str = "",
+    page: int = 1,
+    page_size: int = 40,
+    selected_ids=(),
+    active_only: bool = True,
+) -> AdminOptionPage:
+    """Return a bounded page of filter options for admin pickers.
+
+    Selected values are kept in the result even when they are outside the
+    current search page. This lets a picker preserve an existing manual value
+    while the rest of the option catalogue remains on-demand.
+    """
+    _administrator(actor_id)
+    if kind not in OpportunityFilterKind.values:
+        raise ValueError("Invalid opportunity filter kind")
+    selected = _selected_uuids(selected_ids)
+    term = " ".join(str(query).split())[:100]
+    rows = OpportunityFilterOption.objects.filter(kind=kind)
+    if active_only:
+        rows = rows.filter(Q(source_observations__active=True) | Q(pk__in=selected))
+    selected_rows = rows.filter(pk__in=selected)
+    if term:
+        rows = rows.filter(Q(label__icontains=term) | Q(pk__in=selected))
+    rows = rows.distinct().order_by("normalized_label", "id")
+    return _option_page_with_selected(
+        rows,
+        selected_queryset=selected_rows.distinct().order_by("normalized_label", "id"),
+        selected=selected,
+        page=page,
+        page_size=page_size,
+        label_field="label",
+    )
+
+
+def admin_source_option_page(
+    *,
+    actor_id,
+    query: str = "",
+    page: int = 1,
+    page_size: int = 40,
+    selected_ids=(),
+    public_only: bool = False,
+) -> AdminOptionPage:
+    """Return a bounded page of source choices for admin pickers."""
+    _administrator(actor_id)
+    selected = _selected_uuids(selected_ids)
+    term = " ".join(str(query).split())[:120]
+    rows = OpportunitySource.objects.all()
+    if public_only:
+        rows = rows.filter(enabled=True, publicly_visible=True)
+    selected_rows = rows.filter(pk__in=selected)
+    if term:
+        rows = rows.filter(
+            Q(company_name__icontains=term)
+            | Q(official_url__icontains=term)
+            | Q(pk__in=selected)
+        )
+    rows = rows.order_by("normalized_company_name", "source_type", "id")
+    return _option_page_with_selected(
+        rows,
+        selected_queryset=selected_rows.order_by(
+            "normalized_company_name", "source_type", "id"
+        ),
+        selected=selected,
+        page=page,
+        page_size=page_size,
+        label_field="company_name",
+    )
+
+
 def admin_filter_options(
     *, actor_id, kind: str, active_only: bool = True
 ) -> tuple[OpportunityFilterOption, ...]:
@@ -795,6 +980,8 @@ def admin_attention_counts(*, actor_id) -> tuple[int, int]:
 
 __all__ = [
     "AdminPage",
+    "AdminOptionItem",
+    "AdminOptionPage",
     "AdminSourceItem",
     "AdminOpportunityItem",
     "AdminReviewItem",
@@ -812,11 +999,13 @@ __all__ = [
     "admin_check_run_source_detail",
     "admin_check_run_sources",
     "admin_filter_options",
+    "admin_filter_option_page",
     "admin_settings",
     "admin_source_detail",
     "admin_opportunity_detail",
     "admin_open_review_count",
     "admin_attention_counts",
     "admin_source_choices",
+    "admin_source_option_page",
     "admin_adapter_choices",
 ]

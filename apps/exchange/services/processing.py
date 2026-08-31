@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import PurePosixPath
 from types import MappingProxyType
 from uuid import UUID
@@ -11,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.events import enqueue_event
+from apps.core.ids import normalize_ulid
 
 from ..events import IMPORT_TITLE_WARNING
 from ..models import ImportItem, ImportJob
@@ -403,6 +405,76 @@ def _finalize_job(job_id: str, preview_version: int) -> ImportProcessingResult:
         job.status,
         MappingProxyType(summary),
     )
+
+
+def mark_import_job_final_failed(
+    *,
+    job_id: str,
+    preview_version: int,
+    error_code: str,
+    completed_at,
+) -> bool:
+    if not isinstance(job_id, str):
+        raise ValueError("Invalid import job ID")
+    try:
+        normalized_job_id = normalize_ulid(job_id)
+    except (TypeError, ValueError):
+        raise ValueError("Invalid import job ID") from None
+    if (
+        isinstance(preview_version, bool)
+        or not isinstance(preview_version, int)
+        or preview_version < 1
+        or not isinstance(error_code, str)
+        or _ERROR_CODE.fullmatch(error_code) is None
+    ):
+        raise ValueError("Invalid import failure state")
+    if not isinstance(completed_at, datetime) or completed_at.tzinfo is None:
+        raise ValueError("completed_at must be timezone-aware")
+
+    with transaction.atomic():
+        job = (
+            ImportJob.objects.select_for_update()
+            .filter(
+                pk=normalized_job_id,
+                confirmed_preview_version=preview_version,
+            )
+            .first()
+        )
+        if job is None or job.status in {
+            ImportJob.Status.COMPLETED,
+            ImportJob.Status.PARTIAL,
+            ImportJob.Status.FAILED,
+        }:
+            return False
+        job.items.filter(result_status=ImportItem.ResultStatus.PENDING).update(
+            result_status=ImportItem.ResultStatus.FAILED,
+            result_reason_code=error_code,
+        )
+        counts = {
+            status: job.items.filter(result_status=status).count()
+            for status in (
+                ImportItem.ResultStatus.SUCCESS,
+                ImportItem.ResultStatus.SKIPPED,
+                ImportItem.ResultStatus.FAILED,
+            )
+        }
+        job.status = ImportJob.Status.FAILED
+        job.error_code = error_code
+        job.result_summary = {
+            "failed": counts[ImportItem.ResultStatus.FAILED],
+            "skipped": counts[ImportItem.ResultStatus.SKIPPED],
+            "success": counts[ImportItem.ResultStatus.SUCCESS],
+        }
+        job.completed_at = completed_at
+        job.save(
+            update_fields=(
+                "status",
+                "error_code",
+                "result_summary",
+                "completed_at",
+            )
+        )
+    return True
 
 
 def process_import_job(

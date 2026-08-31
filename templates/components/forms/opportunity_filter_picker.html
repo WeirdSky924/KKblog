@@ -4,6 +4,13 @@
   data-opportunity-filter-auto-submit="{% if auto_submit %}true{% else %}false{% endif %}"
   data-opportunity-filter-display="{% if picker_variant == 'editor' %}chips{% else %}summary{% endif %}"
   data-opportunity-filter-required="{% if field.field.required %}true{% else %}false{% endif %}"
+  {% if lazy_options %}
+    data-opportunity-filter-lazy="true"
+    data-opportunity-filter-options-url="{{ options_url }}"
+    data-opportunity-filter-option-kind="{{ option_kind }}"
+    {% if option_scope %}data-opportunity-filter-option-scope="{{ option_scope }}"{% endif %}
+    data-opportunity-filter-name="{{ field.html_name }}"
+  {% endif %}
 >
   <span id="{{ picker_id }}-label" class="opportunity-filter-picker__label">{{ title }}</span>
   {{ field.errors }}
@@ -68,6 +75,7 @@
       <footer class="opportunity-filter-dialog__footer">
         <button class="button button--secondary" type="button" data-opportunity-filter-clear>清空</button>
         <span data-opportunity-filter-count>已选择 {{ field.value|length }} 项</span>
+        {% if lazy_options %}<button class="button button--secondary" type="button" data-opportunity-filter-more hidden>加载更多</button>{% endif %}
         <button class="button button--primary" type="button" data-opportunity-filter-done>完成</button>
       </footer>
     </div>

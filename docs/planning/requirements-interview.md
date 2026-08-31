@@ -1971,15 +1971,15 @@ Notes: Privacy-policy and terms-of-use requirements remain undecided.
 Question: Do registered users need privacy-policy and terms-of-use pages?
 
 Answer: Reserve the space; leave it empty for now.
-Decision: Add configurable placeholder support for privacy-policy and terms-of-use pages, with no initial content.
-Notes: Registration-consent behavior while legal pages are empty remains undecided.
+Decision: Add configurable support for About, privacy-policy and terms-of-use pages. The original empty-page placeholder decision is superseded on 2026-08-27: the canonical, publishable Markdown content is stored in `docs/legal/about.md`, `docs/legal/privacy-policy.md` and `docs/legal/terms-of-use.md`.
+Notes: The current legal-page content identifies the operator as individual developer Kaj, uses `610785424@qq.com` for privacy and account requests, applies Mainland China law with Hangzhou dispute resolution, and takes effect on 2026-08-27. The content is intended to be published in the formal environment without user edits.
 
 ### Q210 - Empty Legal-Page Registration Behavior
 
 Question: While privacy-policy and terms pages are empty, must registration display and require a consent checkbox?
 
 Answer: Hide them for now; no consent checkbox is required.
-Decision: Do not display empty legal-page links or registration-consent controls until their content is configured.
+Decision: Do not display empty legal-page links or registration-consent controls while a page has no published source. Once the canonical pages are published, footer/navigation links are enabled; acceptance is currently expressed through use of the site and the published terms, without adding a separate registration checkbox in this content-preparation task.
 Notes: Backend web-framework confirmation remains undecided.
 
 ### Q211 - Django Framework

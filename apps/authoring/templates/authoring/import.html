@@ -40,7 +40,7 @@
             <div class="author-import-file">
               <label for="{{ import_upload_form.source.id_for_label }}">{{ import_upload_form.source.label }}</label>
               {{ import_upload_form.source }}
-              <p class="field-help">解析只创建预览；确认前不会写入文章、标签或正式媒体目录。</p>
+              <p class="field-help">解析后会进入普通新建文章编辑器；保存前不会写入文章、标签或正式媒体目录。</p>
               {% if import_upload_form.source.errors %}
                 <ul class="author-operation-errors" role="alert" tabindex="-1" data-error-focus>
                   {% for error in import_upload_form.source.errors %}<li>{{ error }}</li>{% endfor %}
@@ -53,7 +53,7 @@
               </ul>
             {% endif %}
             <button class="button button--primary" type="submit">
-              <i data-lucide="eye"></i><span>解析并预览</span>
+              <i data-lucide="file-pen-line"></i><span>读取并进入编辑器</span>
             </button>
           </form>
         </section>

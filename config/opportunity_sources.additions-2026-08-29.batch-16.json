@@ -1,0 +1,25 @@
+{
+  "schema": "kaj.opportunity-source-config.v1",
+  "sources": [
+    {
+      "id": "47eb2319-21c7-5882-adaa-5c31ef761b7c",
+      "company_name": "春风动力",
+      "source_type": "CAMPUS",
+      "official_url": "https://cfmoto.zhiye.com/Campus",
+      "note": "第十六批核验：北森公开校园职位列表，完整读回 41 页 205 个岗位，含 2027 届字段。",
+      "adapter_key": "beisen-zhiye-v1",
+      "adapter_config": {
+        "page_size": 100
+      },
+      "enabled": true,
+      "respect_robots_txt": true,
+      "request_interval_seconds": 2,
+      "max_pages": 100,
+      "max_opportunities": 5000,
+      "max_duration_seconds": 600,
+      "allowed_hosts": [
+        "cfmoto.zhiye.com"
+      ]
+    }
+  ]
+}
