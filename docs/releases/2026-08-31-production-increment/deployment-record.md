@@ -1,6 +1,6 @@
 # 2026-08-31 正式增量执行记录
 
-状态：待执行。请在获批的生产维护窗口内填写；不要在此记录密码、API Key、Cookie、连接串、正文或个人数据。
+状态：已完成（2026-08-31）。本记录不包含密码、API Key、Cookie、连接串、正文或个人数据。
 
 ## 候选验证（2026-08-31，非生产）
 
@@ -20,44 +20,47 @@
 
 ## 发布身份
 
-- 候选 Git 提交：
+- 候选 Git 提交：`a7df26300e790505df07ff9d11305f540bcae7d4`
 - 上一正式提交：`e5adc20`
-- 候选 Web/Worker/Beat 镜像摘要：
-- 候选 Caddy 镜像摘要：
-- 执行窗口（Asia/Shanghai）：
-- 执行人/复核人：
+- 候选 Web/Worker/Beat 镜像：`kaj-blog-web:a7df26300e`
+- 候选镜像摘要：`sha256:5e1ead7584017f3a4afff73b80fb8362561431ef8feca2efba4fd4ba82a99d7a`
+- 上一应用镜像保留：`kaj-blog-web:dbbe60c843ba`
+- Caddy 未变更：`kaj-blog-caddy:2cbead0`
+- 执行窗口（Asia/Shanghai）：`2026-08-31 17:08–17:40`
+- 执行人/复核人：自动化发布流程 / Codex 读回
 
 ## 备份与迁移
 
-- 生产数据库备份 ID、路径、大小、SHA-256：
-- 媒体归档路径、大小、SHA-256：
-- `pg_restore --list`：
-- `migrate --plan`：
-- 实际迁移 leaf 与退出码：
+- 生产数据库备份：`var/production/backups/pre-6bc43794-20260831T170816+0800.dump`，`79,160,650` 字节，SHA-256 `3f9707c670a93894bce2fbc7374089de92493b3ec3c375894bffe1e4a28df9ee`。
+- 媒体归档：`var/production/backups/pre-6bc43794-20260831T170816+0800-media.tar.gz`，`5,102,000` 字节，SHA-256 `d2acc27c0eac5e74d82ec6391f1abd444c5df2fa74b9d76aef1090903bb5e6fe`；包含 296 个归档条目。
+- `pg_restore --list`：候选镜像内 PostgreSQL 16 客户端校验成功，1005 行。
+- `migrate --plan`：无待执行 migration；正式 leaf 保持 87。
+- 实际迁移：跳过，退出码 0；未反向迁移。
+- 编排备份：`var/production/compose.runtime.yaml.pre-a7df263-20260831T1715+0800`。
 
 ## 错误状态修复
 
-- 恢复入口与批次：
-- 回收/重新派发数量：
-- 仍为 RUNNING 的过期租约：
-- 活动运行与来源运行态读回：
-- 安全错误码/通知去重读回：
+- 恢复入口与批次：`apps.opportunities.recover_check_leases` 每分钟自动执行。
+- 回收/重新派发数量：历史孤儿运行收口 1 条；过期租约回收 0；重新派发 0。
+- 仍为 RUNNING 的过期租约：0。
+- 活动运行与来源运行态读回：活动运行 0、运行中来源 0、running TaskRun 0；历史运行已转为 `PARTIAL`（25 成功、15 失败、1 截断）。
+- 安全错误码/通知去重读回：失败来源保留安全错误码；恢复汇总经现有 Outbox 发布，无重复活动运行。
 
 ## 来源配置
 
-- dry-run 输出（109 条）：
-- apply 输出（created/updated）：
-- 启用/停用计数：
-- 岗位、快照、TaskRun 导入前后计数：
-- 未执行手动爬取确认：
-- 下一次定时采集时间与观察负责人：
+- dry-run 输出：`sources=109 dry_run=true`。
+- apply 输出：`sources=109 created=109 updated=0`。
+- 启用/停用计数：新增来源启用 88、停用 21；全部 `publicly_visible=false/check_state=NEVER`。
+- 岗位、快照、TaskRun 导入前后计数：岗位 11874，来源导入前后未增加；本窗口未创建来源检查运行。
+- 未执行手动爬取确认：未调用 source check、adapter `collect()` 或浏览器 collector。
+- 下一次定时采集：由 Beat 在下一个上海时间 18:00 窗口自动触发；本次不提前执行。
 
 ## 健康与回退
 
-- `/health/live`：
-- `/health/ready`：
-- 关键页面/媒体读回：
-- Web/Worker/Beat/Caddy 状态与 RestartCount：
-- 日志 5xx/404/OOM 检查：
-- 是否需要回退及原因：
-- 旧镜像和备份保留位置：
+- `/health/live`：`200`；`/health/ready`：`200`。
+- 关键页面/媒体读回：主页、文章、找工作、知识文档、答题入口均 `200`；版本化 CSS `200/468415` 字节，KaTeX 字体 `200/28076` 字节。
+- Web/Worker/Beat/Caddy 状态：全部运行；Web/Worker healthy；本次 Beat 重建后 RestartCount 为 1，当前无 OOM。
+- 静态资源：`collectstatic --noinput` 成功，164 copied、4 unmodified、64 post-processed。
+- 日志 5xx/404/OOM 检查：未发现候选启动、迁移或 OOM 错误；公网异常 Host 请求被既有 `ALLOWED_HOSTS` 安全拒绝。
+- 是否需要回退及原因：不需要；旧应用镜像和数据库保持可回退状态。
+- 旧镜像和备份保留位置：旧镜像 `kaj-blog-web:dbbe60c843ba`、上述数据库/媒体备份均保留。
