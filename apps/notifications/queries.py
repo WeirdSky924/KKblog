@@ -3,7 +3,8 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core import signing
-from django.db.models import Count, Q
+from django.db.models import Count, IntegerField, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
 
@@ -53,6 +54,7 @@ class NotificationInboxPage:
     items: tuple[NotificationItem, ...]
     next_cursor: str | None
     start_index: int
+    unread_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,6 +240,25 @@ def _visible_receipts(recipient_id: UUID):
     )
 
 
+def _unread_count_expression(recipient_id: UUID):
+    unread = (
+        NotificationReceipt.objects.filter(
+            recipient_id=recipient_id,
+            read_at__isnull=True,
+            notification__hidden_at__isnull=True,
+            notification__deleted_at__isnull=True,
+        )
+        .order_by()
+        .values("recipient_id")
+        .annotate(total=Count("id"))
+        .values("total")[:1]
+    )
+    return Coalesce(
+        Subquery(unread, output_field=IntegerField()),
+        Value(0, output_field=IntegerField()),
+    )
+
+
 def _target_url(target_type: str, target_id: str) -> str | None:
     if target_type == "article":
         return reverse("article:detail", kwargs={"article_id": target_id})
@@ -301,13 +322,13 @@ def notification_popover(
     if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 5:
         raise ValueError("Invalid notification popover limit")
     rows = tuple(
-        _visible_receipts(identity).order_by(
-            "-notification__created_at", "-notification_id"
-        )[:limit]
+        _visible_receipts(identity)
+        .annotate(unread_count_value=_unread_count_expression(identity))
+        .order_by("-notification__created_at", "-notification_id")[:limit]
     )
     return NotificationPopover(
         items=tuple(_item(row) for row in rows),
-        unread_count=unread_notification_count(recipient_id=identity),
+        unread_count=(int(rows[0].unread_count_value) if rows else 0),
     )
 
 
@@ -410,6 +431,7 @@ def notification_inbox(
                 notification_id__lt=notification_id,
             )
         )
+    query = query.annotate(unread_count_value=_unread_count_expression(identity))
     fetched = tuple(
         query.order_by("-notification__created_at", "-notification_id")[: page_size + 1]
     )
@@ -427,6 +449,7 @@ def notification_inbox(
             else None
         ),
         start_index=offset,
+        unread_count=int(fetched[0].unread_count_value) if fetched else 0,
     )
 
 

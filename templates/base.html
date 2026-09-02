@@ -22,12 +22,13 @@
     >
     <script src="{% static 'dist/navigation-state.js' %}"></script>
     <script src="{% static 'dist/theme.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'dist/styles.css' %}?v=ef0231f14bf10cdd139c">
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}?v=notify-height-20260902">
     <script type="module" src="{% static 'dist/app.js' %}?v=85230a68e0899f06f219"></script>
     {% if analytics_tracking.enabled %}
       <script
         defer
         src="{{ analytics_tracking.script_path }}"
+        data-host-url="{{ analytics_tracking.host_url }}"
         data-website-id="{{ analytics_tracking.website_id }}"
       ></script>
     {% endif %}

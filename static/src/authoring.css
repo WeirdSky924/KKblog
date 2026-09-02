@@ -748,14 +748,15 @@
   color: var(--text-secondary);
   cursor: pointer;
   opacity: 0;
-  transform: translateX(-50%);
+  transform: none;
   transition: opacity 120ms ease;
 }
 
 .author-editor-rail-toggle::before {
   position: absolute;
   inset-block: 0;
-  inset-inline: -0.5rem;
+  inset-inline-start: 0;
+  inset-inline-end: -0.5rem;
   content: "";
 }
 

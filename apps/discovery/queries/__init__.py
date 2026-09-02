@@ -24,7 +24,12 @@ from .home import (
     tag_article_page,
 )
 from .like_counts import article_like_count, article_like_counts
-from .profiles import PublicProfilePage, profile_article_page
+from .profiles import (
+    PublicProfilePage,
+    PublicProfileStats,
+    profile_article_page,
+    public_profile_stats,
+)
 from .search import AuthorSearchPage, author_search_page
 from .view_counts import article_view_count, article_view_counts
 
@@ -42,6 +47,7 @@ __all__ = [
     "DiscoveryFilterOption",
     "DiscoveryFilters",
     "PublicProfilePage",
+    "PublicProfileStats",
     "UnavailableBookmarkItem",
     "article_detail_page",
     "article_like_count",
@@ -53,6 +59,7 @@ __all__ = [
     "discovery_filters",
     "home_article_page",
     "profile_article_page",
+    "public_profile_stats",
     "search_article_page",
     "section_article_page",
     "tag_article_page",

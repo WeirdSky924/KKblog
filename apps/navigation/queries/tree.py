@@ -76,7 +76,9 @@ def _target(node: NavigationNode, sections: dict[str, str]) -> tuple[str, bool]:
 
 
 def _flat_items(rows: tuple[NavigationNode, ...]) -> dict[UUID, AdminNavigationNode]:
-    sections = {str(item.section_id): item.name for item in section_list()}
+    sections = {
+        str(item.section_id): item.name for item in section_list(include_covers=False)
+    }
     items = {}
     for row in rows:
         target_label, target_missing = _target(row, sections)

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from django.db import IntegrityError, ProgrammingError, transaction
 
-from apps.content.public import article_for_reader
+from apps.content.public import article_reader_target
 from apps.core.ids import normalize_ulid
 
 from ..models import ArticleLike
@@ -57,7 +57,7 @@ def set_article_like(*, account_id, article_id: str, liked: bool) -> ArticleLike
     if type(liked) is not bool:
         raise ArticleLikeCommandError
     if liked:
-        article_for_reader(actor_id=account, article_id=article)
+        article_reader_target(actor_id=account, article_id=article)
     try:
         with transaction.atomic():
             if liked:

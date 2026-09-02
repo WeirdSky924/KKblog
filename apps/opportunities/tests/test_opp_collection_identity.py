@@ -232,6 +232,10 @@ def test_collection_snapshot_keeps_distinct_jobs_on_one_url() -> None:
 
     assert len(snapshot.opportunity_identity_hashes) == 2
     assert len(snapshot.opportunity_field_hashes) == 2
+    assert snapshot.difference_summary["pages_read"] == result.pages_read
+    assert snapshot.difference_summary["observed_opportunities"] == 2
+    assert snapshot.difference_summary["complete"] is True
+    assert snapshot.difference_summary["truncated"] is False
 
 
 def test_authoritative_listing_refreshes_present_jobs_without_detail_requests() -> None:

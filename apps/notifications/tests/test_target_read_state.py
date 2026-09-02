@@ -95,7 +95,7 @@ def test_task_history_read_action_updates_shared_notification_state() -> None:
     assert response.status_code == 204
     trigger = json.loads(response.headers["HX-Trigger"])
     assert trigger["kaj:administration-attention-read"] == {
-        "key": "opportunities",
+        "key": "opportunities-runs",
         "count": 0,
         "notificationUnreadCount": 0,
     }

@@ -13,7 +13,7 @@
         </nav>
       {% endif %}
       {% if profile_filter_mode or filter_options.tags %}<form
-        class="tag-filter{% if profile_filter_mode %} profile-filter{% endif %}"
+        class="tag-filter{% if profile_filter_mode %} profile-filter records-filter{% endif %}"
         data-tag-filter
         action="{{ index_action }}"
         method="get"
@@ -21,43 +21,103 @@
         hx-target="#article-index"
         hx-swap="outerHTML"
         hx-push-url="true"
-        hx-trigger="change"
+        hx-trigger="change, tag-filter-change"
         hx-sync="this:replace"
         hx-indicator="#article-index-loading"
       >
         {% if profile_filter_mode and filter_options.sections %}
-          <div class="profile-filter__section">
+          <div class="profile-filter__field profile-filter__section">
             <label for="{{ pagination_form.section.id_for_label }}">分区</label>
             {{ pagination_form.section }}
           </div>
         {% endif %}
         {% if filter_options.tags %}
-          <details class="tag-filter__disclosure"{% if selected_tag_ids %} open{% endif %}>
-            <summary class="tag-filter__summary">
-              <span class="tag-filter__summary-title">标签筛选<span id="article-index-loading" class="tag-filter__loading htmx-indicator" role="status">正在更新文章列表…</span></span>
-              <span class="tag-filter__summary-meta">
-                <span data-tag-selection-count aria-live="polite">已选择 {{ selected_tag_ids|length }} / 5</span>
-                <i data-lucide="chevron-down" aria-hidden="true"></i>
-              </span>
-            </summary>
-            <fieldset>
-              <legend class="visually-hidden">标签筛选</legend>
-              <div class="tag-filter__options">
-                {% for checkbox in pagination_form.tags %}
-                  <label class="tag-filter__option">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
-                {% empty %}
-                  <p>暂无可筛选标签</p>
-                {% endfor %}
+          <div
+            class="{% if profile_filter_mode %}profile-filter__field profile-filter__tags{% else %}tag-filter__picker{% endif %}"
+            data-tag-filter-picker
+            data-tag-picker-limit="5"
+          >
+            {% if profile_filter_mode %}
+              <span id="profile-tag-picker-label" class="profile-filter__field-label">标签</span>
+              <div class="profile-filter__tags-row">
+            {% else %}
+              <span class="tag-filter__picker-label">标签筛选<span id="article-index-loading" class="tag-filter__loading htmx-indicator" role="status">正在更新文章列表…</span></span>
+              <div class="tag-filter__picker-row">
+            {% endif %}
+                <button
+                  id="{% if profile_filter_mode %}profile-tag-picker-trigger{% else %}home-tag-picker-trigger{% endif %}"
+                  class="author-tag-picker__trigger"
+                  type="button"
+                  data-tag-picker-trigger
+                  aria-haspopup="dialog"
+                  aria-controls="{% if profile_filter_mode %}profile-tag-picker-dialog{% else %}home-tag-picker-dialog{% endif %}"
+                  {% if profile_filter_mode %}aria-labelledby="profile-tag-picker-label profile-tag-picker-summary"{% else %}aria-label="标签筛选"{% endif %}
+                >
+                  <span class="author-tag-picker__trigger-copy">
+                    <span id="{% if profile_filter_mode %}profile-tag-picker-summary{% else %}home-tag-picker-summary{% endif %}" data-tag-picker-summary>选择标签</span>
+                    <small data-tag-picker-filter-count>已选择 {{ selected_tag_ids|length }} / 5</small>
+                  </span>
+                  <i data-lucide="chevron-down" aria-hidden="true"></i>
+                </button>
+                {% if selected_section_id or selected_tag_ids %}
+                  <a
+                    class="{% if profile_filter_mode %}profile-filter__clear{% else %}tag-filter__picker-clear{% endif %}"
+                    href="{{ clear_filter_url }}"
+                    hx-get="{{ clear_filter_url }}"
+                    hx-target="#article-index"
+                    hx-swap="outerHTML"
+                    hx-push-url="true"
+                  >清除筛选</a>
+                {% endif %}
               </div>
-            </fieldset>
-          </details>
+            <dialog
+              id="{% if profile_filter_mode %}profile-tag-picker-dialog{% else %}home-tag-picker-dialog{% endif %}"
+              class="author-tag-picker"
+              data-tag-picker-dialog
+              aria-labelledby="{% if profile_filter_mode %}profile-tag-picker-title{% else %}home-tag-picker-title{% endif %}"
+            >
+              <div class="author-tag-picker__panel">
+                <header class="author-tag-picker__header">
+                  <div>
+                    <h2 id="{% if profile_filter_mode %}profile-tag-picker-title{% else %}home-tag-picker-title{% endif %}">选择标签</h2>
+                    <p>{% if profile_filter_mode %}可多选标签，筛选作者公开文章。{% else %}可多选标签，筛选最新文章。{% endif %}</p>
+                  </div>
+                  <button
+                    class="author-tag-picker__close"
+                    type="button"
+                    data-tag-picker-close
+                    aria-label="关闭标签选择"
+                  >
+                    <i data-lucide="x"></i>
+                  </button>
+                </header>
+                <label class="author-tag-picker__search" for="{% if profile_filter_mode %}profile-tag-picker-search{% else %}home-tag-picker-search{% endif %}">
+                  <span class="visually-hidden">搜索标签</span>
+                  <i data-lucide="search" aria-hidden="true"></i>
+                  <input
+                    id="{% if profile_filter_mode %}profile-tag-picker-search{% else %}home-tag-picker-search{% endif %}"
+                    type="search"
+                    maxlength="50"
+                    autocomplete="off"
+                    placeholder="搜索标签"
+                    data-tag-picker-search
+                  >
+                </label>
+                <div class="author-tag-picker__status" aria-live="polite" data-tag-picker-status></div>
+                <div class="author-tag-picker__options" data-tag-picker-options>
+                  <div data-tag-picker-existing>
+                    {{ pagination_form.tags }}
+                  </div>
+                  <p class="author-tag-picker__empty" data-tag-picker-empty hidden>没有匹配的标签</p>
+                </div>
+                <footer class="author-tag-picker__footer">
+                  <span data-tag-picker-footer-count>已选择 {{ selected_tag_ids|length }} / 5</span>
+                  <button class="button button--primary" type="button" data-tag-picker-done>完成</button>
+                </footer>
+              </div>
+            </dialog>
+          </div>
         {% endif %}
-        <div class="tag-filter__actions">
-          <noscript><button class="button button--primary" type="submit">筛选</button></noscript>
-          {% if profile_filter_mode and selected_section_id or profile_filter_mode and selected_tag_ids %}
-            <a class="profile-filter__clear" href="{{ clear_filter_url }}" hx-get="{{ clear_filter_url }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true">清除筛选</a>
-          {% endif %}
-        </div>
       </form>{% endif %}
     </div>
   {% endif %}

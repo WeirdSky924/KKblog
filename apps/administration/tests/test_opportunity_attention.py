@@ -59,6 +59,11 @@ def test_administration_shell_reuses_opportunity_counts(monkeypatch) -> None:
         "admin_pending_tag_review_count",
         lambda **kwargs: 5,
     )
+    monkeypatch.setattr(
+        context,
+        "admin_learning_appeal_page",
+        lambda **kwargs: SimpleNamespace(total_items=6),
+    )
 
     def navigation(*, review_counts):
         captured_counts.update(review_counts)

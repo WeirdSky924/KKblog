@@ -23,6 +23,7 @@ from apps.opportunities.public import (
     create_source,
     mark_source_initial_success,
     public_opportunities,
+    public_opportunity_sources,
     replace_source_filter_options,
     set_opportunity_bookmark,
     withdraw_opportunity,
@@ -179,6 +180,20 @@ def test_public_query_hides_a_position_missing_from_two_complete_listings() -> N
     )
 
     assert public_opportunities().items == ()
+
+
+def test_public_source_count_excludes_positions_missing_from_two_listings() -> None:
+    admin = _account(administrator=True)
+    source, result = _opportunity(admin)
+    Opportunity.objects.filter(pk=result.opportunity_id).update(
+        list_missing=True,
+        list_missing_count=2,
+    )
+
+    page = public_opportunity_sources()
+
+    assert len(page.items) == 1
+    assert page.items[0].public_opportunity_count == 0
 
 
 def test_database_rejects_invalid_enums_and_public_disabled_source() -> None:

@@ -411,3 +411,330 @@ def test_beisen_adapter_truncates_when_complete_first_page_exceeds_item_limit():
     assert result.complete is False
     assert result.truncated is True
     assert len(result.opportunities) == 3
+
+
+class _LegacyBeisenClient:
+    def __init__(self, page):
+        self.page = page
+        self.urls = []
+
+    def get(self, url, **limits):
+        del limits
+        self.urls.append(url)
+        return self.page
+
+
+def _legacy_page(*, page: int, total_pages: int = 2) -> SafeHttpResult:
+    job_id = 100 + page
+    html = f"""
+    <div class="joblist">
+      <table class="jobsTable">
+        <tr class="title"><td>职位名称</td><td>职位类型</td><td>工作地点</td><td>发布时间</td></tr>
+        <tr>
+          <td><a title="研发工程师-校招(J{job_id})" href="/zpdetail/{job_id}?PageIndex={page}">研发工程师-校招(J{job_id})</a></td>
+          <td title="研发">研发</td>
+          <td title="浙江省-杭州市">浙江省-杭州市</td>
+          <td>2026-08-{15 + page:02d}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="pager"><div class="counts">共2条记录</div>
+      <div class="tablefooter">当前第{page}/{total_pages}页
+        <a href="/campus/?PageIndex={min(page + 1, total_pages)}">下一页</a>
+      </div>
+    </div>
+    """
+    return SafeHttpResult(
+        status=200,
+        final_url=f"https://legacy.example.com/campus/?PageIndex={page}",
+        title="校园招聘",
+        body=html.encode(),
+        truncated=False,
+    )
+
+
+def test_beisen_adapter_collects_legacy_server_rendered_pages():
+    initial = _legacy_page(page=1)
+    client = _LegacyBeisenClient(_legacy_page(page=2))
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url=initial.final_url,
+        config={"_max_pages": 10, "_max_opportunities": 20},
+        client=client,
+        initial_response=initial,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert result.pages_read == 2
+    assert len(result.opportunities) == 2
+    assert result.category_labels == ("研发",)
+    assert result.city_labels == ("杭州市",)
+    assert result.opportunities[0].target_url == (
+        "https://legacy.example.com/zpdetail/101?PageIndex=1"
+    )
+    assert result.opportunities[0].published_at is not None
+    assert client.urls == [
+        "https://legacy.example.com/campus/?PageIndex=2",
+    ]
+
+
+class _BeisenPageSizeClient(_BeisenClient):
+    def post_json(self, url, payload, **limits):
+        self.posts.append((url, payload, limits))
+        if url.endswith("GetJobAdSearchConditions"):
+            return _result(
+                {
+                    "Code": 200,
+                    "Data": [
+                        {"Value": "LocId", "Data": []},
+                        {"Value": "ClassificationOne", "Data": []},
+                    ],
+                }
+            )
+        page_size = payload["PageSize"]
+        page_index = payload["PageIndex"]
+        rows = [
+            {
+                "JobAdId": page_index * page_size + index,
+                "JobAdName": f"岗位 {page_index * page_size + index}",
+                "CategoryId": "2",
+                "LocNames": ["浙江省·杭州市"],
+            }
+            for index in range(min(page_size, 21 - page_index * page_size))
+        ]
+        return _result({"Code": 200, "Count": 21, "Data": rows})
+
+
+class _BeisenEmptyLocationClient(_BeisenClient):
+    def post_json(self, url, payload, **limits):
+        self.posts.append((url, payload, limits))
+        if url.endswith("GetJobAdSearchConditions"):
+            return _result(
+                {
+                    "Code": 200,
+                    "Data": [
+                        {"Value": "LocId", "Data": []},
+                        {"Value": "ClassificationOne", "Data": []},
+                    ],
+                }
+            )
+        return _result(
+            {
+                "Code": 200,
+                "Count": 1,
+                "Data": [
+                    {
+                        "JobAdId": 390000001,
+                        "JobAdName": "海外销售经理",
+                        "CategoryId": "1",
+                        "LocNames": [],
+                        "ClassificationOne": "营销类",
+                    }
+                ],
+            }
+        )
+
+
+def test_beisen_adapter_accepts_jobs_without_location_labels():
+    initial = SafeHttpResult(
+        status=200,
+        final_url="https://jobs.example.com/social/jobs",
+        title="社会招聘",
+        body=(
+            "<script>BSGlobal = "
+            + json.dumps(
+                {
+                    "Pages": [
+                        {
+                            "Key": "social-page-id",
+                            "PageType": 2,
+                            "BusinessType": "1",
+                            "Config": "{}",
+                        }
+                    ]
+                }
+            )
+            + ";</script>"
+        ).encode(),
+        truncated=False,
+    )
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url=initial.final_url,
+        config={"_max_pages": 2, "_max_opportunities": 20},
+        client=_BeisenEmptyLocationClient(),
+        initial_response=initial,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert len(result.opportunities) == 1
+    assert result.opportunities[0].location_text == "未公开"
+    assert result.opportunities[0].city_labels == ()
+
+
+def test_beisen_adapter_honors_bounded_page_size_override():
+    page_config = {
+        "Pages": [
+            {
+                "Key": "campus-page-id",
+                "PageType": 2,
+                "BusinessType": "2",
+                "Config": "{}",
+            }
+        ]
+    }
+    initial = SafeHttpResult(
+        status=200,
+        final_url="https://jobs.example.com/campus/jobs",
+        title="校园招聘",
+        body=(
+            "<script>BSGlobal = "
+            + json.dumps(page_config, ensure_ascii=False)
+            + ";</script>"
+        ).encode(),
+        truncated=False,
+    )
+    client = _BeisenPageSizeClient()
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url=initial.final_url,
+        config={"page_size": 20, "_max_pages": 10, "_max_opportunities": 100},
+        client=client,
+        initial_response=initial,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert result.pages_read == 2
+    assert len(result.opportunities) == 21
+    jobs_requests = [
+        payload
+        for url, payload, _limits in client.posts
+        if url.endswith("GetJobAdPageList")
+    ]
+    assert [payload["PageSize"] for payload in jobs_requests] == [20, 20]
+    job_limits = [
+        limits
+        for url, _payload, limits in client.posts
+        if url.endswith("GetJobAdPageList")
+    ]
+    assert all(
+        limits["max_response_bytes"] == MAX_LARGE_ADAPTER_RESPONSE_BYTES
+        for limits in job_limits
+    )
+
+
+def test_beisen_adapter_uses_large_default_page_size_for_unconfigured_sources():
+    page_config = {
+        "Pages": [
+            {
+                "Key": "campus-page-id",
+                "PageType": 2,
+                "BusinessType": "2",
+                "Config": "{}",
+            }
+        ]
+    }
+    initial = SafeHttpResult(
+        status=200,
+        final_url="https://jobs.example.com/campus/jobs",
+        title="校园招聘",
+        body=(
+            "<script>BSGlobal = "
+            + json.dumps(page_config, ensure_ascii=False)
+            + ";</script>"
+        ).encode(),
+        truncated=False,
+    )
+    client = _BeisenPageSizeClient()
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url=initial.final_url,
+        config={"_max_pages": 2, "_max_opportunities": 100},
+        client=client,
+        initial_response=initial,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert len(result.opportunities) == 21
+    jobs_requests = [
+        payload
+        for url, payload, _limits in client.posts
+        if url.endswith("GetJobAdPageList")
+    ]
+    assert [payload["PageSize"] for payload in jobs_requests] == [100]
+
+
+class _SmicsListClient:
+    def __init__(self, second_page: SafeHttpResult):
+        self.second_page = second_page
+        self.urls = []
+
+    def get(self, url, **limits):
+        self.urls.append((url, limits))
+        return self.second_page
+
+
+def _smics_page(page: int, total_pages: int, rows: str) -> SafeHttpResult:
+    return SafeHttpResult(
+        status=200,
+        final_url=f"https://smics.zhiye.com/campus/?PageIndex={page}",
+        title="中芯国际校园招聘",
+        body=(
+            '<div class="zwm"><ul>'
+            + rows
+            + "</ul></div>"
+            + f'<div class="page"><a class="now">{page}</a>'
+            + (
+                f'<a href="/campus/?PageIndex={page + 1}">下一页</a>'
+                if page < total_pages
+                else ""
+            )
+            + f'<a href="/campus/?PageIndex={total_pages}">{total_pages}</a></div>'
+        ).encode(),
+        truncated=False,
+    )
+
+
+def test_beisen_adapter_parses_smics_server_rendered_list_pagination():
+    first = _smics_page(
+        1,
+        2,
+        """
+        <li><a href="/campusxq?jobId=390001"><span>技术研发类</span>
+          <span>工艺研发工程师（2027届校招）</span><span>硕士</span>
+          <span>上海市</span><span>查看职位</span></a></li>
+        """,
+    )
+    second = _smics_page(
+        2,
+        2,
+        """
+        <li><a href="/campusxq?jobId=390002"><span>软件算法类</span>
+          <span>应用程序开发工程师（2027届校招）</span><span>硕士</span>
+          <span>北京市</span><span>查看职位</span></a></li>
+        """,
+    )
+    client = _SmicsListClient(second)
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url="https://smics.zhiye.com/campus",
+        config={"_max_pages": 10, "_max_opportunities": 100},
+        client=client,
+        initial_response=first,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert result.pages_read == 2
+    assert [item.title for item in result.opportunities] == [
+        "工艺研发工程师（2027届校招）",
+        "应用程序开发工程师（2027届校招）",
+    ]
+    assert result.opportunities[0].recruitment_type == "CAMPUS"
+    assert result.opportunities[1].city_labels == ("北京市",)
+    assert client.urls[0][0].endswith("/campus/?PageIndex=2")
+    assert client.urls[0][1]["max_response_bytes"] == MAX_ADAPTER_RESPONSE_BYTES

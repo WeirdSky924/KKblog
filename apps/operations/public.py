@@ -49,11 +49,16 @@ from apps.operations.services.tasks import (
     TaskFinalFailed,
     TaskLeaseLost,
     TaskRetryScheduled,
+    TaskRunRecoverySnapshot,
     current_task_run_id,
     due_task_run_business_objects,
     execute_tracked_task,
     recover_expired_task_leases,
+    terminal_task_run_snapshots,
 )
+
+TASK_RUN_CANCELLED = "cancelled"
+TASK_RUN_FINAL_FAILED = "final_failed"
 
 
 def require_image_creation_capacity(path):
@@ -76,11 +81,14 @@ __all__ = [
     "StartOutcome",
     "TaskFinalFailed",
     "TaskLeaseLost",
+    "TaskRunRecoverySnapshot",
     "TaskCancelled",
     "TaskRetryScheduled",
     "TASK_RUN_STATUSES",
     "TaskRunMetadata",
     "TaskRunMetadataProvider",
+    "TASK_RUN_CANCELLED",
+    "TASK_RUN_FINAL_FAILED",
     "capture_runtime_error",
     "consume_backup_task_final_failure",
     "consume_task_final_failure_alert",
@@ -101,6 +109,7 @@ __all__ = [
     "record_audit_entry",
     "record_rich_text_render_metric",
     "recover_expired_task_leases",
+    "terminal_task_run_snapshots",
     "register_audit_schema",
     "search_audit",
     "search_runtime_errors",

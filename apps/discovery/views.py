@@ -169,7 +169,9 @@ def _no_store(response):
 
 def home(request):
     actor_id = _actor_id(request)
-    filter_options = discovery_filters(actor_id=actor_id)
+    # Sections are already represented by the homepage navigation. Avoid loading
+    # the full section/cover catalog when only the tag picker is rendered here.
+    filter_options = discovery_filters(actor_id=actor_id, include_sections=False)
     form = HomePageForm(
         request.GET,
         tag_choices=(
@@ -708,6 +710,7 @@ def public_profile(request, account_id):
         page_size=form.cleaned_data["per_page"] if valid else 20,
         section_id=selected_section_id,
         tag_ids=selected_tag_ids,
+        include_stats=not is_htmx_fragment_request(request),
     )
     if page is None:
         raise Http404 from None
@@ -717,6 +720,7 @@ def public_profile(request, account_id):
         _page_template(request, "discovery/public_profile.html"),
         {
             "profile": page.identity,
+            "profile_stats": page.stats,
             "filter_options": filter_options,
             "pagination_form": form,
             "index_page": page.index_page,

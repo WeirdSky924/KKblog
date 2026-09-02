@@ -88,6 +88,12 @@ class ArticleView:
 
 
 @dataclass(frozen=True, slots=True)
+class ArticleReaderTarget:
+    article_id: str
+    revision_id: str
+
+
+@dataclass(frozen=True, slots=True)
 class ArticleCommentTarget:
     article_id: str
     revision_id: str
@@ -220,9 +226,23 @@ def _revision_outline(revision: ArticleRevision) -> tuple[TipTapOutlineItem, ...
     )
 
 
-def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
+def _reader_article(
+    identity: str, *, lightweight: bool = False
+) -> tuple[Article, ArticleRevision]:
+    query = Article.objects.select_related("published_revision")
+    if lightweight:
+        # Bookmark and reaction commands only need access fields. Avoid loading
+        # the potentially large Markdown/TipTap body just to authorize a write.
+        query = query.only(
+            "id",
+            "author_id",
+            "deleted_at",
+            "published_revision_id",
+            "published_revision__id",
+            "published_revision__visibility",
+        )
     try:
-        article = Article.objects.select_related("published_revision").get(
+        article = query.get(
             pk=identity,
             deleted_at__isnull=True,
             published_revision__isnull=False,
@@ -243,15 +263,23 @@ def _reader_article(identity: str) -> tuple[Article, ArticleRevision]:
 def _require_reader_access(
     article: Article, revision: ArticleRevision, actor: UUID | None
 ) -> None:
-    authenticated = actor is not None and is_active_account(actor)
     if revision.visibility == ArticleRevision.Visibility.PUBLIC:
         return
+    authenticated = actor is not None and is_active_account(actor)
     if revision.visibility == ArticleRevision.Visibility.AUTHENTICATED:
         if not authenticated:
             raise ArticleLoginRequired(article.id)
         return
     if actor != article.author_id or not is_active_author(actor):
         raise ArticleNotFound
+
+
+def article_reader_target(*, actor_id, article_id: str) -> ArticleReaderTarget:
+    identity = _article_id(article_id)
+    actor = _actor_id(actor_id, required=False)
+    article, revision = _reader_article(identity, lightweight=True)
+    _require_reader_access(article, revision, actor)
+    return ArticleReaderTarget(article_id=article.id, revision_id=revision.id)
 
 
 def article_for_reader(*, actor_id, article_id: str) -> ArticleView:

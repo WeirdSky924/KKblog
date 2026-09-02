@@ -2,6 +2,7 @@ const ACTION_FEEDBACK_DURATION = 1050;
 const DOCK_OFFSET = 8;
 const READING_LINE_GAP = 16;
 const feedbackTimers = new WeakMap();
+const articleActionDisposers = new WeakMap();
 let bookmarkFailureEventsBound = false;
 let likeFailureEventsBound = false;
 
@@ -373,8 +374,15 @@ function bindArticleActionShell(shell) {
 
   shell.dataset.articleActionsBound = "true";
   const mobileViewport = window.matchMedia("(max-width: 48rem)");
+  const siteHeader = document.querySelector("[data-site-header]");
+  const siteFooter = document.querySelector("[data-site-footer]");
   let animationFrame = 0;
   let cleanedUp = false;
+  let dockObserver = null;
+  let fallbackScrollBound = false;
+  let headerHeight = 0;
+  let footerOffset = null;
+  let handleShellClick;
 
   const syncActionAccessibility = () => {
     const dockAvailable =
@@ -386,6 +394,93 @@ function bindArticleActionShell(shell) {
     dock.inert = !dockAvailable;
     mobileMenu.setAttribute("aria-hidden", String(!actionsAvailable));
     mobileMenu.inert = !actionsAvailable;
+  };
+
+  const setDockVisible = (visible) => {
+    const next = String(visible);
+    if (dock.dataset.visible === next) return;
+    dock.dataset.visible = next;
+    syncActionAccessibility();
+  };
+
+  const updateHeaderHeight = () => {
+    headerHeight =
+      siteHeader instanceof HTMLElement
+        ? Math.ceil(siteHeader.getBoundingClientRect().height)
+        : 0;
+  };
+
+  const updateFooterOffset = () => {
+    if (!mobileViewport.matches || !(siteFooter instanceof HTMLElement)) return;
+    const next = Math.max(
+      0,
+      Math.ceil(window.innerHeight - siteFooter.getBoundingClientRect().top),
+    );
+    if (next === footerOffset) return;
+    footerOffset = next;
+    dock.style.setProperty("--article-action-footer-offset", `${next}px`);
+  };
+
+  const updateDockFallback = () => {
+    animationFrame = 0;
+    if (!shell.isConnected) {
+      cleanup();
+      return;
+    }
+    if (mobileViewport.matches) {
+      updateFooterOffset();
+      return;
+    }
+    const visible =
+      window.scrollY > 0 &&
+      topActions.getBoundingClientRect().bottom <= headerHeight + DOCK_OFFSET;
+    setDockVisible(visible);
+  };
+
+  const queueDockUpdate = () => {
+    if (animationFrame === 0) {
+      animationFrame = window.requestAnimationFrame(updateDockFallback);
+    }
+  };
+
+  const bindFallbackScroll = () => {
+    if (fallbackScrollBound) return;
+    fallbackScrollBound = true;
+    window.addEventListener("scroll", queueDockUpdate, { passive: true });
+  };
+
+  const unbindFallbackScroll = () => {
+    if (!fallbackScrollBound) return;
+    fallbackScrollBound = false;
+    window.removeEventListener("scroll", queueDockUpdate);
+  };
+
+  const setupDockObserver = () => {
+    dockObserver?.disconnect();
+    dockObserver = null;
+    if (mobileViewport.matches) {
+      bindFallbackScroll();
+      queueDockUpdate();
+      return;
+    }
+    if (!("IntersectionObserver" in window)) {
+      bindFallbackScroll();
+      queueDockUpdate();
+      return;
+    }
+    unbindFallbackScroll();
+    dockObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        setDockVisible(window.scrollY > 0 && !entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: `-${headerHeight + DOCK_OFFSET}px 0px 0px`,
+        threshold: 0,
+      },
+    );
+    dockObserver.observe(topActions);
   };
 
   const setMobileMenu = (open, { returnFocus = false } = {}) => {
@@ -401,49 +496,6 @@ function bindArticleActionShell(shell) {
       : "展开文章快捷操作";
     syncActionAccessibility();
     if (returnFocus && mobileViewport.matches) mobileMenuToggle.focus();
-  };
-
-  const cleanup = () => {
-    if (cleanedUp) return;
-    cleanedUp = true;
-    window.removeEventListener("scroll", queueDockUpdate);
-    window.removeEventListener("resize", queueDockUpdate);
-    document.removeEventListener("click", closeMobileMenuFromOutside);
-    document.removeEventListener("keydown", closeMobileMenuFromKeyboard);
-    mobileViewport.removeEventListener("change", handleViewportChange);
-  };
-
-  const updateDock = () => {
-    animationFrame = 0;
-    if (!shell.isConnected) {
-      cleanup();
-      return;
-    }
-    const siteHeader = document.querySelector("[data-site-header]");
-    const siteFooter = document.querySelector("[data-site-footer]");
-    const headerHeight =
-      siteHeader instanceof HTMLElement
-        ? siteHeader.getBoundingClientRect().height
-        : 0;
-    const footerOffset =
-      siteFooter instanceof HTMLElement
-        ? Math.max(0, window.innerHeight - siteFooter.getBoundingClientRect().top)
-        : 0;
-    dock.style.setProperty(
-      "--article-action-footer-offset",
-      `${footerOffset}px`,
-    );
-    const visible =
-      window.scrollY > 0 &&
-      topActions.getBoundingClientRect().bottom <= headerHeight + DOCK_OFFSET;
-    dock.dataset.visible = String(visible);
-    syncActionAccessibility();
-  };
-
-  const queueDockUpdate = () => {
-    if (animationFrame === 0) {
-      animationFrame = window.requestAnimationFrame(updateDock);
-    }
   };
 
   const closeMobileMenuFromOutside = (event) => {
@@ -464,10 +516,34 @@ function bindArticleActionShell(shell) {
 
   const handleViewportChange = () => {
     setMobileMenu(false);
+    updateHeaderHeight();
+    setupDockObserver();
     queueDockUpdate();
   };
 
-  shell.addEventListener("click", (event) => {
+  const handleWindowResize = () => {
+    updateHeaderHeight();
+    setupDockObserver();
+    queueDockUpdate();
+  };
+
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (animationFrame !== 0) window.cancelAnimationFrame(animationFrame);
+    unbindFallbackScroll();
+    dockObserver?.disconnect();
+    dockObserver = null;
+    window.removeEventListener("resize", handleWindowResize);
+    document.removeEventListener("click", closeMobileMenuFromOutside);
+    document.removeEventListener("keydown", closeMobileMenuFromKeyboard);
+    mobileViewport.removeEventListener("change", handleViewportChange);
+    if (handleShellClick) shell.removeEventListener("click", handleShellClick);
+    shell.removeAttribute("data-article-actions-bound");
+    articleActionDisposers.delete(shell);
+  };
+
+  handleShellClick = (event) => {
     if (!(event.target instanceof Element)) return;
     if (event.target.closest("[data-article-mobile-menu-toggle]")) {
       event.preventDefault();
@@ -529,17 +605,21 @@ function bindArticleActionShell(shell) {
         top: 0,
       });
     }
-  });
+  };
 
-  window.addEventListener("scroll", queueDockUpdate, { passive: true });
-  window.addEventListener("resize", queueDockUpdate);
+  shell.addEventListener("click", handleShellClick);
+
+  window.addEventListener("resize", handleWindowResize);
   document.addEventListener("click", closeMobileMenuFromOutside);
   document.addEventListener("keydown", closeMobileMenuFromKeyboard);
   mobileViewport.addEventListener("change", handleViewportChange);
+  updateHeaderHeight();
+  setupDockObserver();
   syncBookmarkControls(shell);
   syncReadingBookmarkControls(shell);
   setMobileMenu(false);
-  updateDock();
+  if (!mobileViewport.matches && !dockObserver) queueDockUpdate();
+  articleActionDisposers.set(shell, cleanup);
 }
 
 function articleActionShells(root) {
@@ -564,5 +644,11 @@ export function initializeArticleActions(root = document) {
     syncLikeControl(shell);
     handleBookmarkResponse(shell, root);
     handleLikeResponse(shell, root);
+  });
+}
+
+export function disposeArticleActions(root = document) {
+  articleActionShells(root).forEach((shell) => {
+    articleActionDisposers.get(shell)?.();
   });
 }

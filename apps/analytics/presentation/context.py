@@ -10,6 +10,9 @@ def analytics_tracking(_request) -> dict[str, object]:
         "analytics_tracking": {
             "enabled": enabled,
             "script_path": "/analytics/script.js",
+            # The tracker script lives below /analytics, so pin its host to the
+            # site root instead of letting Umami derive /analytics as a prefix.
+            "host_url": "/",
             "website_id": settings.ANALYTICS_WEBSITE_ID if enabled else "",
         }
     }

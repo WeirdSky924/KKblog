@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
@@ -87,10 +88,47 @@ def test_create_import_path_delegates_supported_files_to_exchange_owner(
     )
 
     assert response.status_code == 302
-    assert response.url == reverse("authoring:import-job", args=(job_id,))
+    parsed = urlsplit(response.url)
+    assert parsed.path == reverse("authoring:create")
+    assert parse_qs(parsed.query) == {
+        "format": ["MARKDOWN"],
+        "import_job": [job_id],
+    }
     assert len(captured) == 1
     assert captured[0]["source_name"] == filename
     assert captured[0]["source_kind"] == expected_kind
+
+
+def test_import_payload_opens_the_normal_markdown_editor(monkeypatch) -> None:
+    author = _author()
+    job_id = new_ulid()
+    integrations = SimpleNamespace(
+        configured_import_editor_payload=lambda **kwargs: SimpleNamespace(
+            job_id=kwargs["job_id"],
+            source_name="bundle.zip",
+            body_markdown="# First\n\n# Second",
+            item_count=2,
+            invalid_count=0,
+        )
+    )
+    monkeypatch.setattr(
+        "apps.authoring.presentation.editor_views._exchange_integrations",
+        lambda: integrations,
+    )
+
+    response = _client(author).get(
+        reverse("authoring:create"),
+        {"format": "MARKDOWN", "import_job": job_id},
+    )
+    html = response.content.decode()
+
+    assert response.status_code == 200
+    assert "新建文章" in html
+    assert 'value="bundle"' in html
+    assert "# First" in html
+    assert "# Second" in html
+    assert 'name="import_job_id"' in html
+    assert "文章导入" not in html
 
 
 def test_create_import_path_keeps_unsupported_file_error_at_the_entry(

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ profile.display_name }} · {{ site_presentation.site_name }}{% endblock %}
 
@@ -13,13 +14,37 @@
         </div>
       </div>
       <div class="public-profile__folio" aria-hidden="true">
-        <span>{{ profile.avatar_initial }}</span>
+        <img src="{% static 'media/brand/k-mark.svg' %}" width="72" height="72" alt="">
       </div>
     </header>
+    <section class="public-profile__stats" aria-labelledby="profile-stats-title">
+      <h2 id="profile-stats-title" class="visually-hidden">作者统计</h2>
+      {% if profile_stats and profile_stats.available %}
+        <dl class="public-profile__stats-list">
+          <div class="public-profile__stat">
+            <dt>文章总数</dt>
+            <dd>{{ profile_stats.article_count }}</dd>
+          </div>
+          <div class="public-profile__stat">
+            <dt>总浏览量</dt>
+            <dd>{{ profile_stats.view_count }}</dd>
+          </div>
+          <div class="public-profile__stat">
+            <dt>总评论数</dt>
+            <dd>{{ profile_stats.comment_count }}</dd>
+          </div>
+          <div class="public-profile__stat">
+            <dt>总点赞数</dt>
+            <dd>{{ profile_stats.like_count }}</dd>
+          </div>
+        </dl>
+      {% else %}
+        <p class="public-profile__stats-unavailable" role="status">作者统计暂时不可用</p>
+      {% endif %}
+    </section>
     <section class="public-profile__articles" aria-labelledby="articles-title">
       <header class="public-profile__articles-heading">
-        <p class="account-kicker">文章</p>
-        <h2 id="articles-title">发布文章</h2>
+        <h2 id="articles-title">文章<span id="article-index-loading" class="public-profile__articles-loading htmx-indicator" role="status">正在更新文章列表…</span></h2>
       </header>
       {% include "discovery/partials/article_index.html" %}
     </section>

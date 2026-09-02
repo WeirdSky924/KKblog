@@ -82,6 +82,15 @@ class Article(models.Model):
                 name="article_author_updated_idx",
             ),
             models.Index(
+                fields=("-published_at", "-id"),
+                condition=models.Q(
+                    publication_state="PUBLISHED",
+                    deleted_at__isnull=True,
+                    published_at__isnull=False,
+                ),
+                name="article_public_listing_idx",
+            ),
+            models.Index(
                 fields=("scheduled_for", "id"),
                 condition=models.Q(publication_state="SCHEDULED", deleted_at=None),
                 name="article_schedule_due_idx",

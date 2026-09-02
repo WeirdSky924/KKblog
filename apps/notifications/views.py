@@ -6,6 +6,8 @@ from urllib.parse import urlencode
 from django.db import DatabaseError
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.template import loader
+from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
@@ -45,6 +47,16 @@ def _no_store(response):
     return response
 
 
+def _render_partial(request, template_name: str, context, *, status: int = 200):
+    # Partial notification responses do not contain the site shell. Avoid running
+    # global context processors for every popover/detail click while retaining CSRF.
+    payload = dict(context)
+    payload.update(csrf(request))
+    return HttpResponse(
+        loader.get_template(template_name).render(payload), status=status
+    )
+
+
 def _trigger(*, notification_id: str | None, unread_count: int) -> str:
     detail = {"unreadCount": unread_count}
     if notification_id is not None:
@@ -69,15 +81,14 @@ def popover(request):
             extra={"trace_code": getattr(request, "trace_code", "-")},
         )
         return _no_store(
-            render(
+            _render_partial(
                 request,
                 "notifications/partials/popover_error.html",
                 {"trace_code": getattr(request, "trace_code", "-")},
-                status=200,
             )
         )
     return _no_store(
-        render(
+        _render_partial(
             request,
             "notifications/partials/popover.html",
             {"notification_popover": result},
@@ -103,7 +114,7 @@ def inbox(request):
     context = {
         "notification_page": page,
         "notification_cursor_error": error,
-        "notification_unread_count": unread_notification_count(recipient_id=actor_id),
+        "notification_unread_count": page.unread_count,
         "notification_all_read": request.GET.get("read") == "all",
         "notification_append": is_htmx_fragment_request(request)
         and cursor is not None
@@ -114,7 +125,11 @@ def inbox(request):
         if is_htmx_fragment_request(request) and cursor is not None and not error
         else "notifications/list.html"
     )
-    return _no_store(render(request, template, context, status=status))
+    if template == "notifications/partials/inbox_page.html":
+        response = _render_partial(request, template, context, status=status)
+    else:
+        response = render(request, template, context, status=status)
+    return _no_store(response)
 
 
 @require_POST
@@ -136,7 +151,7 @@ def open_notification(request, notification_id: str):
     item = replace(item, is_read=True)
     if not is_htmx_fragment_request(request):
         return _no_store(redirect(reverse("notifications:list")))
-    response = render(
+    response = _render_partial(
         request,
         "notifications/partials/overlay.html",
         {"notification_item": item},
@@ -157,7 +172,7 @@ def mark_all_read(request):
     mark_all_notifications_read(recipient_id=actor_id)
     if not is_htmx_fragment_request(request):
         return _no_store(redirect(f"{inbox_url}?read=all"))
-    response = render(
+    response = _render_partial(
         request,
         "notifications/partials/inbox_page.html",
         {

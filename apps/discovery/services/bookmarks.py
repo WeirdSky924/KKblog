@@ -3,7 +3,7 @@ from uuid import UUID
 
 from django.db import IntegrityError, transaction
 
-from apps.content.public import article_for_reader
+from apps.content.public import article_reader_target
 from apps.core.ids import normalize_ulid
 
 from ..models import Bookmark
@@ -45,7 +45,7 @@ def set_bookmark(*, account_id, article_id: str, bookmarked: bool) -> BookmarkSt
     if type(bookmarked) is not bool:
         raise BookmarkCommandError
     if bookmarked:
-        article_for_reader(actor_id=account, article_id=article)
+        article_reader_target(actor_id=account, article_id=article)
         try:
             with transaction.atomic():
                 _, changed = Bookmark.objects.get_or_create(

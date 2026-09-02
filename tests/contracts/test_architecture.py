@@ -3,15 +3,18 @@ from importlib.util import resolve_name
 from pathlib import Path
 
 APPS_ROOT = Path(__file__).resolve().parents[2] / "apps"
+ARCHITECTURE_ROOT = Path(__file__).resolve().parents[2] / "docs" / "architecture"
 BUSINESS_APPS = {
     "accounts",
     "administration",
+    "agents",
     "analytics",
     "authoring",
     "comments",
     "content",
     "discovery",
     "exchange",
+    "learning",
     "media",
     "moderation",
     "navigation",
@@ -22,6 +25,7 @@ BUSINESS_APPS = {
 ALLOWED_APP_DEPENDENCIES = {
     "core": set(),
     "accounts": {"core", "media"},
+    "agents": {"accounts", "core", "operations"},
     "content": {"accounts", "core", "media", "operations"},
     "media": {"core", "operations"},
     "comments": {"content", "core", "operations"},
@@ -31,16 +35,19 @@ ALLOWED_APP_DEPENDENCIES = {
     "operations": {"core"},
     "opportunities": {"accounts", "core", "operations"},
     "exchange": {"core", "operations"},
+    "learning": {"accounts", "agents", "core", "media", "operations"},
     "analytics": {"accounts", "core", "operations"},
     "discovery": {"comments", "content", "core", "media", "navigation"},
     "authoring": {"accounts", "comments", "content", "core", "exchange", "media"},
     "administration": {
         "accounts",
+        "agents",
         "analytics",
         "comments",
         "content",
         "core",
         "exchange",
+        "learning",
         "media",
         "moderation",
         "navigation",
@@ -49,6 +56,87 @@ ALLOWED_APP_DEPENDENCIES = {
         "opportunities",
     },
 }
+
+
+def test_agent_learning_architecture_contracts_are_registered() -> None:
+    required_markers = {
+        "README.md": ("apps/agents", "apps/learning"),
+        "01-system-directory.md": ("apps/agents", "apps/learning"),
+        "adr/ADR-007-server-rendered-with-question-bank-api.md": (
+            "/api/v1/question-banks",
+            "rate_limiter_unavailable",
+        ),
+        "modules/12-agents-runtime.md": ("apps/agents", "Provider 与威胁边界"),
+        "modules/13-learning-question-banks.md": (
+            "apps/learning",
+            "公开查询和 API",
+        ),
+        "contracts/01-application-services.md": (
+            "## agents 公开服务",
+            "## learning 公开服务",
+        ),
+        "contracts/02-authorization-matrix.md": (
+            "## AGENT 与知识学习",
+            "外部题库 API",
+        ),
+        "contracts/03-frontend-contract-map.md": (
+            "question-banks:index",
+            "admin:agent-endpoints",
+        ),
+        "contracts/04-events-errors.md": (
+            "knowledge.review_completed.v1",
+            "question_bank.generation_completed.v1",
+        ),
+        "contracts/05-background-tasks.md": (
+            "review_knowledge_document",
+            "generate_question_bank",
+        ),
+        "data/01-er-model.md": ("AgentEndpoint", "KnowledgeDocument"),
+        "data/04-indexes-constraints.md": (
+            "agent_endpoint",
+            "knowledge_document",
+        ),
+        "data/05-storage-lifecycle.md": (
+            "知识文档",
+            "题库",
+        ),
+        "delivery/02-module-verification-matrix.md": (
+            "AGENT 运行时",
+            "知识学习",
+        ),
+        "reference/03-requirements-traceability.md": (
+            "AKQ-Q001",
+            "AKQ-Q039",
+        ),
+    }
+    missing = []
+    for relative_path, markers in required_markers.items():
+        content = (ARCHITECTURE_ROOT / relative_path).read_text(encoding="utf-8")
+        for marker in markers:
+            if marker not in content:
+                missing.append(f"{relative_path}: {marker}")
+    assert not missing, "\n".join(missing)
+
+
+def test_agents_and_learning_dependency_direction_is_one_way() -> None:
+    assert ALLOWED_APP_DEPENDENCIES["agents"] == {
+        "accounts",
+        "core",
+        "operations",
+    }
+    assert ALLOWED_APP_DEPENDENCIES["learning"] == {
+        "accounts",
+        "agents",
+        "core",
+        "media",
+        "operations",
+    }
+    dependents = {
+        owner
+        for owner, dependencies in ALLOWED_APP_DEPENDENCIES.items()
+        if "learning" in dependencies
+    }
+    assert dependents == {"administration"}
 
 
 def _imports(path: Path) -> list[str]:

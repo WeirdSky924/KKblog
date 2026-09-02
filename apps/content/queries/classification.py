@@ -51,11 +51,22 @@ def section_cover_asset_ids(section_ids: tuple[str, ...]) -> dict[str, str | Non
     }
 
 
-def section_list() -> tuple[SectionItem, ...]:
+def section_list(*, include_covers: bool = True) -> tuple[SectionItem, ...]:
+    if type(include_covers) is not bool:
+        raise ValueError("include_covers must be a boolean")
     rows = tuple(Section.objects.order_by("normalized_name", "id").values("id", "name"))
-    cover_ids = section_cover_asset_ids(tuple(str(row["id"]) for row in rows))
+    cover_ids = (
+        section_cover_asset_ids(tuple(str(row["id"]) for row in rows))
+        if include_covers
+        else {}
+    )
     return tuple(
-        SectionItem(row["id"], row["name"], cover_ids[str(row["id"])]) for row in rows
+        SectionItem(
+            row["id"],
+            row["name"],
+            cover_ids.get(str(row["id"])),
+        )
+        for row in rows
     )
 
 

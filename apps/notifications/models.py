@@ -26,6 +26,16 @@ class Notification(models.Model):
     class Meta:
         db_table = "notification"
         ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(
+                fields=("-created_at", "-id"),
+                condition=models.Q(
+                    hidden_at__isnull=True,
+                    deleted_at__isnull=True,
+                ),
+                name="notification_visible_time_idx",
+            )
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("dedupe_key",),

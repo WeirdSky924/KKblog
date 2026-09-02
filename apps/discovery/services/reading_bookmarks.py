@@ -4,7 +4,7 @@ from uuid import UUID
 
 from django.db import IntegrityError, ProgrammingError, transaction
 
-from apps.content.public import article_for_reader
+from apps.content.public import article_reader_target
 from apps.core.ids import normalize_ulid
 
 from ..models import ReadingBookmark
@@ -73,7 +73,7 @@ def save_reading_bookmark(
     account = _account_id(account_id)
     article = _article_id(article_id)
     normalized_progress = _progress(progress)
-    readable = article_for_reader(actor_id=account, article_id=article)
+    readable = article_reader_target(actor_id=account, article_id=article)
     try:
         with transaction.atomic():
             _, created = ReadingBookmark.objects.update_or_create(

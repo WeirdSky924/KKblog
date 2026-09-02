@@ -15,6 +15,7 @@ function fuzzyMatch(name, query) {
 }
 
 function parsedProposals(input) {
+  if (!(input instanceof HTMLInputElement)) return [];
   try {
     const values = JSON.parse(input.value || "[]");
     if (!Array.isArray(values)) return [];
@@ -39,6 +40,7 @@ function labelText(input) {
 }
 
 function initializeTagPicker(form) {
+  const filterPicker = form.matches("[data-tag-filter-picker]");
   const dialog = form.querySelector("[data-tag-picker-dialog]");
   const trigger = form.querySelector("[data-tag-picker-trigger]");
   const search = form.querySelector("[data-tag-picker-search]");
@@ -50,17 +52,20 @@ function initializeTagPicker(form) {
   const empty = form.querySelector("[data-tag-picker-empty]");
   const summary = form.querySelector("[data-tag-picker-summary]");
   const countLabels = form.querySelectorAll(
-    "[data-editor-tag-count], [data-tag-picker-footer-count]",
+    "[data-editor-tag-count], [data-tag-picker-footer-count], [data-tag-picker-filter-count]",
   );
-  const existingInputs = Array.from(form.querySelectorAll("input[name='tag_ids']"));
+  const existingInputs = Array.from(
+    form.querySelectorAll("input[name='tag_ids'], input[name='tags']"),
+  );
+  const maxTags = Number.parseInt(form.dataset.tagPickerLimit || "", 10) || MAX_TAGS;
   if (
     !(dialog instanceof HTMLDialogElement) ||
     !(trigger instanceof HTMLButtonElement) ||
     !(search instanceof HTMLInputElement) ||
-    !(proposal instanceof HTMLButtonElement) ||
-    !(proposalLabel instanceof HTMLElement) ||
-    !(proposedContainer instanceof HTMLElement) ||
-    !(proposedInput instanceof HTMLInputElement) ||
+    (!filterPicker && !(proposal instanceof HTMLButtonElement)) ||
+    (!filterPicker && !(proposalLabel instanceof HTMLElement)) ||
+    (!filterPicker && !(proposedContainer instanceof HTMLElement)) ||
+    (!filterPicker && !(proposedInput instanceof HTMLInputElement)) ||
     form.dataset.tagPickerBound === "true"
   ) {
     return;
@@ -75,7 +80,16 @@ function initializeTagPicker(form) {
       .map((name) => [normalizedName(name), name.normalize("NFKC").trim()])
       .filter(([normalized]) => !existingNames.has(normalized)),
   );
-  proposedInput.value = JSON.stringify(Array.from(proposals.values()));
+  if (proposedInput instanceof HTMLInputElement) {
+    proposedInput.value = JSON.stringify(Array.from(proposals.values()));
+  }
+
+  const signature = () =>
+    existingInputs
+      .filter((input) => input.checked)
+      .map((input) => input.value)
+      .join("\u0000");
+  let committedSelection = signature();
 
   const selectedCount = () =>
     existingInputs.filter((input) => input.checked).length + proposals.size;
@@ -87,6 +101,7 @@ function initializeTagPicker(form) {
   };
 
   const syncInput = () => {
+    if (!(proposedInput instanceof HTMLInputElement)) return;
     proposedInput.value = JSON.stringify(Array.from(proposals.values()));
     proposedInput.dispatchEvent(new Event("input", { bubbles: true }));
   };
@@ -99,18 +114,20 @@ function initializeTagPicker(form) {
   const updateSummary = () => {
     const count = selectedCount();
     countLabels.forEach((item) => {
-      item.textContent = `已选择 ${count} / ${MAX_TAGS}`;
+      item.textContent = `已选择 ${count} / ${maxTags}`;
     });
     if (summary instanceof HTMLElement) {
       const names = selectedNames();
       summary.textContent =
         names.length === 0
-          ? "选择文章标签"
+          ? filterPicker
+            ? "选择标签"
+            : "选择文章标签"
           : names.length <= 2
             ? names.join("、")
             : `${names.slice(0, 2).join("、")} 等 ${names.length} 个`;
     }
-    const atLimit = count >= MAX_TAGS;
+    const atLimit = count >= maxTags;
     existingInputs.forEach((input) => {
       input.disabled = atLimit && !input.checked;
     });
@@ -153,32 +170,39 @@ function initializeTagPicker(form) {
       if (wrapper instanceof HTMLElement) wrapper.hidden = !matched;
       if (matched) matches += 1;
     });
-    proposedContainer.querySelectorAll("[data-tag-picker-option]").forEach((row) => {
-      const matched = fuzzyMatch(row.dataset.tagPickerOption || "", query);
-      row.hidden = !matched;
-      if (matched) matches += 1;
-    });
+    if (proposedContainer instanceof HTMLElement) {
+      proposedContainer.querySelectorAll("[data-tag-picker-option]").forEach((row) => {
+        const matched = fuzzyMatch(row.dataset.tagPickerOption || "", query);
+        row.hidden = !matched;
+        if (matched) matches += 1;
+      });
+    }
 
     const display = search.value.normalize("NFKC").trim();
     const valid = display.length > 0 && display.length <= 50 && !/[\u0000-\u001f]/.test(display);
     const exact = existingNames.has(query) || proposals.has(query);
     const canPropose = valid && !exact;
-    proposal.hidden = !canPropose;
-    proposal.disabled = selectedCount() >= MAX_TAGS;
-    proposalLabel.textContent = canPropose
-      ? selectedCount() >= MAX_TAGS
-        ? "已达到 10 个标签上限"
-        : `申请并选择「${display}」`
-      : "";
-    proposal.dataset.proposalName = canPropose ? display : "";
-    if (empty instanceof HTMLElement) empty.hidden = matches > 0 || canPropose || !query;
+    if (proposal instanceof HTMLButtonElement && proposalLabel instanceof HTMLElement) {
+      proposal.hidden = !canPropose;
+      proposal.disabled = selectedCount() >= maxTags;
+      proposalLabel.textContent = canPropose
+        ? selectedCount() >= maxTags
+          ? `已达到 ${maxTags} 个标签上限`
+          : `申请并选择「${display}」`
+        : "";
+      proposal.dataset.proposalName = canPropose ? display : "";
+    }
+    if (empty instanceof HTMLElement) {
+      empty.hidden = matches > 0 || (!filterPicker && canPropose) || !query;
+    }
   };
 
   existingInputs.forEach((input) => {
-    input.addEventListener("change", () => {
-      if (input.checked && selectedCount() > MAX_TAGS) {
+    input.addEventListener("change", (event) => {
+      if (filterPicker) event.stopPropagation();
+      if (input.checked && selectedCount() > maxTags) {
         input.checked = false;
-        setStatus("每篇文章最多选择 10 个标签。", "error");
+        setStatus(`最多选择 ${maxTags} 个标签。`, "error");
       } else {
         setStatus(input.checked ? `已选择「${labelText(input)}」` : `已取消「${labelText(input)}」`);
       }
@@ -187,23 +211,25 @@ function initializeTagPicker(form) {
     });
   });
 
-  proposal.addEventListener("click", () => {
-    const name = proposal.dataset.proposalName || "";
-    const normalized = normalizedName(name);
-    if (!name || proposals.has(normalized) || existingNames.has(normalized)) return;
-    if (selectedCount() >= MAX_TAGS) {
-      setStatus("每篇文章最多选择 10 个标签。", "error");
-      return;
-    }
-    proposals.set(normalized, name);
-    renderProposals();
-    syncInput();
-    search.value = "";
-    updateSummary();
-    applyFilter();
-    setStatus(`已申请并选择「${name}」`);
-    search.focus();
-  });
+  if (proposal instanceof HTMLButtonElement) {
+    proposal.addEventListener("click", () => {
+      const name = proposal.dataset.proposalName || "";
+      const normalized = normalizedName(name);
+      if (!name || proposals.has(normalized) || existingNames.has(normalized)) return;
+      if (selectedCount() >= maxTags) {
+        setStatus(`每篇文章最多选择 ${maxTags} 个标签。`, "error");
+        return;
+      }
+      proposals.set(normalized, name);
+      renderProposals();
+      syncInput();
+      search.value = "";
+      updateSummary();
+      applyFilter();
+      setStatus(`已申请并选择「${name}」`);
+      search.focus();
+    });
+  }
 
   search.addEventListener("input", () => {
     setStatus();
@@ -219,19 +245,33 @@ function initializeTagPicker(form) {
   dialog.querySelectorAll("[data-tag-picker-close], [data-tag-picker-done]").forEach((button) => {
     button.addEventListener("click", () => dialog.close());
   });
-  dialog.addEventListener("close", () => trigger.focus({ preventScroll: true }));
+  dialog.addEventListener("close", () => {
+    trigger.focus({ preventScroll: true });
+    if (!filterPicker) return;
+    const currentSelection = signature();
+    if (currentSelection === committedSelection) return;
+    committedSelection = currentSelection;
+    form.closest("form")?.dispatchEvent(
+      new CustomEvent("tag-filter-change", { bubbles: true }),
+    );
+  });
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
   });
 
-  renderProposals();
+  if (proposedInput instanceof HTMLInputElement) renderProposals();
   updateSummary();
   applyFilter();
 }
 
 export function initializeEditorTagPickers(scope = document) {
-  if (scope instanceof HTMLFormElement && scope.matches("form[data-author-editor]")) {
+  if (
+    scope instanceof HTMLElement &&
+    (scope.matches("form[data-author-editor]") || scope.matches("[data-tag-filter-picker]"))
+  ) {
     initializeTagPicker(scope);
   }
-  scope.querySelectorAll?.("form[data-author-editor]").forEach(initializeTagPicker);
+  scope
+    .querySelectorAll?.("form[data-author-editor], [data-tag-filter-picker]")
+    .forEach(initializeTagPicker);
 }

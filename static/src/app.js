@@ -138,7 +138,10 @@ import { initializeAdministrationOperations } from "./administration-operations.
 import { initializeAdministrationArticlePreviews } from "./administration-article-preview.js";
 import { initializeHomeNavigation } from "./home-navigation.js";
 import { initializeHomeHeroMedia } from "./home-hero.js";
-import { initializeArticleActions } from "./article-actions.js";
+import {
+  disposeArticleActions,
+  initializeArticleActions,
+} from "./article-actions.js";
 import {
   initializeBoostedPageShell,
   initializeNotificationCenters,
@@ -397,11 +400,8 @@ function initializeNotificationDialogs() {
     dialog.dataset.notificationBound = "true";
     const notificationId = dialog.dataset.notificationId || "";
     const origin = notificationTrigger(notificationId);
-    const notificationCenter = origin?.closest("[data-notification-center]");
-    if (notificationCenter instanceof HTMLDetailsElement) {
-      notificationCenter.dataset.notificationDialogActive = "true";
-      notificationCenter.open = true;
-    }
+    const originCenter = origin?.closest("[data-notification-center]");
+    const restoreOriginCenter = originCenter instanceof HTMLDetailsElement;
     const closeDialog = () => {
       if (dialog.open) {
         dialog.close();
@@ -417,12 +417,15 @@ function initializeNotificationDialogs() {
     });
     dialog.addEventListener("close", () => {
       const trigger = notificationTrigger(notificationId);
-      if (notificationCenter instanceof HTMLDetailsElement) {
-        delete notificationCenter.dataset.notificationDialogActive;
-        notificationCenter.open = true;
-      }
       dialog.closest("#modal-layer")?.replaceChildren();
       activeNotificationTrigger = null;
+      if (restoreOriginCenter && originCenter.isConnected) {
+        requestAnimationFrame(() => {
+          if (originCenter.isConnected) {
+            originCenter.open = true;
+          }
+        });
+      }
       if (trigger instanceof HTMLElement) {
         requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
       }
@@ -1348,10 +1351,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   document.querySelectorAll(".site-header details[open]").forEach((disclosure) => {
-    if (
-      disclosure.dataset.notificationDialogActive !== "true" &&
-      !disclosure.contains(event.target)
-    ) {
+    if (!disclosure.contains(event.target)) {
       disclosure.removeAttribute("open");
     }
   });
@@ -1436,6 +1436,7 @@ document.addEventListener("htmx:responseError", notifyAuthorCloudFailure);
 document.addEventListener("htmx:timeout", notifyAuthorCloudFailure);
 
 document.addEventListener("htmx:beforeCleanupElement", (event) => {
+  disposeArticleActions(event.detail?.elt ?? event.target);
   destroyAuthorEditors(event.detail?.elt ?? event.target);
 });
 

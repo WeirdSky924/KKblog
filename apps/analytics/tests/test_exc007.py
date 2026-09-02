@@ -61,6 +61,7 @@ def test_tracker_is_in_shared_shell_and_admin_entry_is_guarded(client) -> None:
     body = public.content.decode()
     assert public.status_code == 200
     assert 'src="/analytics/script.js"' in body
+    assert 'data-host-url="/"' in body
     assert f'data-website-id="{WEBSITE_ID}"' in body
 
     denied = client.get(reverse("admin:analytics"))

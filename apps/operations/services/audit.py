@@ -23,6 +23,8 @@ _FORBIDDEN_FIELDS = {
     "secret",
     "token",
 }
+_DEFAULT_MAX_LIST_ITEMS = 50
+_MAX_SCHEMA_LIST_ITEMS = 200
 
 
 class AuditRejected(ValueError):
@@ -34,6 +36,7 @@ class AuditSchema:
     action: str
     target_type: str
     allowed_fields: frozenset[str]
+    max_list_items: int = _DEFAULT_MAX_LIST_ITEMS
 
     def __post_init__(self) -> None:
         if not _IDENTIFIER.fullmatch(self.action):
@@ -46,6 +49,12 @@ class AuditSchema:
                 marker in lowered for marker in _FORBIDDEN_FIELDS
             ):
                 raise AuditRejected("Unsafe audit schema field")
+        if (
+            isinstance(self.max_list_items, bool)
+            or not isinstance(self.max_list_items, int)
+            or not 1 <= self.max_list_items <= _MAX_SCHEMA_LIST_ITEMS
+        ):
+            raise AuditRejected("Invalid audit schema list limit")
 
 
 _SCHEMAS: dict[str, AuditSchema] = {}
@@ -62,7 +71,7 @@ def registered_audit_schemas() -> MappingProxyType:
     return MappingProxyType(_SCHEMAS)
 
 
-def _safe_value(value):
+def _safe_value(value, *, max_list_items: int):
     if value is None or isinstance(value, bool | int):
         return value
     if isinstance(value, str):
@@ -70,9 +79,9 @@ def _safe_value(value):
             raise AuditRejected("Unsafe audit value")
         return value
     if isinstance(value, list | tuple):
-        if len(value) > 50:
+        if len(value) > max_list_items:
             raise AuditRejected("Unsafe audit value")
-        return [_safe_value(item) for item in value]
+        return [_safe_value(item, max_list_items=max_list_items) for item in value]
     raise AuditRejected("Unsafe audit value type")
 
 
@@ -83,7 +92,10 @@ def _validate_snapshot(
         raise AuditRejected("Audit snapshot must be an object")
     if not set(snapshot) <= schema.allowed_fields:
         raise AuditRejected("Unknown audit field")
-    return {key: _safe_value(value) for key, value in snapshot.items()}
+    return {
+        key: _safe_value(value, max_list_items=schema.max_list_items)
+        for key, value in snapshot.items()
+    }
 
 
 def record_audit_entry(

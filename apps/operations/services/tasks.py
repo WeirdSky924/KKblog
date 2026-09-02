@@ -42,7 +42,6 @@ _CURRENT_TASK_RUN_ID: ContextVar[str | None] = ContextVar(
 Jitter = Callable[[int], int]
 TaskService = Callable[[str], str | None]
 HeartbeatTaskService = Callable[[str, Callable[[], None]], str | None]
-TaskLeaseRecoveryHook = Callable[[TaskRun, bool], None]
 
 
 class StartOutcome(StrEnum):
@@ -109,6 +108,22 @@ class TaskStartResult:
 class TaskFailureResult:
     outcome: StartOutcome
     retry_after_seconds: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class TaskRunRecoverySnapshot:
+    """Safe TaskRun facts needed by a domain recovery callback."""
+
+    run_id: str
+    task_name: str
+    business_object: str
+    status: str
+    attempt: int
+    trace_code: str
+    last_error_code: str
+
+
+TaskLeaseRecoveryHook = Callable[[TaskRunRecoverySnapshot, bool], None]
 
 
 def _validate_identifier(value: str, field_name: str) -> str:
@@ -568,8 +583,17 @@ def recover_expired_task_leases(
                         clock=active_clock,
                         jitter=jitter,
                     )
+                    snapshot = TaskRunRecoverySnapshot(
+                        run_id=run.run_id,
+                        task_name=run.task_name,
+                        business_object=run.business_object,
+                        status=run.status,
+                        attempt=run.attempt,
+                        trace_code=run.trace_code,
+                        last_error_code=run.last_error_code,
+                    )
                     if on_recovered is not None:
-                        on_recovered(run, final_failed)
+                        on_recovered(snapshot, final_failed)
                 recovered += 1
                 break
             except DatabaseError:
@@ -579,6 +603,50 @@ def recover_expired_task_leases(
         else:  # pragma: no cover - the loop either breaks or raises
             continue
     return recovered
+
+
+def terminal_task_run_snapshots(
+    *, run_ids: tuple[str, ...]
+) -> dict[str, TaskRunRecoverySnapshot]:
+    """Return safe facts for terminal task runs without exposing ORM models."""
+    if (
+        not isinstance(run_ids, tuple)
+        or not run_ids
+        or len(run_ids) > 1_000
+        or any(not isinstance(run_id, str) for run_id in run_ids)
+    ):
+        raise ValueError("Invalid task run ids")
+    stable_run_ids = tuple(
+        _validate_identifier(run_id, "task run id") for run_id in run_ids
+    )
+    rows = TaskRun.objects.filter(
+        run_id__in=stable_run_ids,
+        status__in=(
+            TaskRunStatus.SUCCEEDED,
+            TaskRunStatus.FINAL_FAILED,
+            TaskRunStatus.CANCELLED,
+        ),
+    ).values(
+        "run_id",
+        "task_name",
+        "business_object",
+        "status",
+        "attempt",
+        "trace_code",
+        "last_error_code",
+    )
+    return {
+        row["run_id"]: TaskRunRecoverySnapshot(
+            run_id=row["run_id"],
+            task_name=row["task_name"],
+            business_object=row["business_object"],
+            status=row["status"],
+            attempt=row["attempt"],
+            trace_code=row["trace_code"],
+            last_error_code=row["last_error_code"],
+        )
+        for row in rows
+    }
 
 
 def due_task_run_business_objects(

@@ -35,7 +35,7 @@ class _ReviewManager:
     def __init__(self, rows):
         self.rows = rows
 
-    def select_related(self, *relations):
+    def prefetch_related(self, *relations):
         assert relations == ("opportunity__source",)
         return self.rows
 
@@ -43,6 +43,7 @@ class _ReviewManager:
 class _OpportunityRows:
     def __init__(self):
         self.filters = []
+        self.distinct_called = False
 
     def prefetch_related(self, *relations):
         return self
@@ -55,6 +56,7 @@ class _OpportunityRows:
         return self
 
     def distinct(self):
+        self.distinct_called = True
         return self
 
 
@@ -129,3 +131,21 @@ def test_admin_opportunity_query_uses_in_filters_for_multi_selects(monkeypatch) 
         "origin__in",
         "list_missing__in",
     }
+    assert rows.distinct_called is False
+
+
+def test_admin_opportunity_query_distincts_only_for_assignment_filters(
+    monkeypatch,
+) -> None:
+    rows = _OpportunityRows()
+    model = SimpleNamespace(objects=_OpportunityManager(rows))
+    monkeypatch.setattr(administration, "Opportunity", model)
+    monkeypatch.setattr(administration, "_administrator", lambda actor_id: None)
+    monkeypatch.setattr(administration, "_page", lambda rows, **kwargs: rows)
+
+    administration.admin_opportunities(
+        actor_id=uuid4(),
+        category_ids=("category-1",),
+    )
+
+    assert rows.distinct_called is True

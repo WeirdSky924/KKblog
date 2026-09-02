@@ -9,14 +9,29 @@ from django.conf import settings
 from django.contrib.postgres.search import TrigramSimilarity
 from django.core.paginator import Paginator
 from django.db import connection, transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import (
+    Case,
+    Count,
+    F,
+    JSONField,
+    Prefetch,
+    Q,
+    TextField,
+    Value,
+    When,
+)
+from django.db.models.functions import Substr
 
 from apps.accounts.public import is_active_account, is_active_author
 from apps.core.ids import normalize_ulid
 
 from ..models import Article, ArticleRevision, AuthorContentMask, RevisionTag, Tag
 from ..policies import apply_article_reader_scope
-from ..rendering import ArticleRenderingMode, render_article_body
+from ..rendering import (
+    MARKDOWN_SUMMARY_MAX_BYTES,
+    ArticleRenderingMode,
+    render_article_body,
+)
 from .covers import ArticleCoverCandidate, resolve_article_covers
 
 ALLOWED_PAGE_SIZES = frozenset({10, 20, 50})
@@ -154,11 +169,67 @@ def _index_projection(queryset):
         .filter(tag__state__in=FILTERABLE_TAG_STATES)
         .order_by("tag__normalized_name", "tag_id")
     )
-    return queryset.select_related("published_revision__section").prefetch_related(
-        Prefetch(
-            "published_revision__tag_snapshots",
-            queryset=tag_rows,
-            to_attr="visible_index_tags",
+    # Index cards only need metadata and a bounded source for automatic summaries.
+    # Keep large immutable bodies deferred so a 600 KiB article does not travel with
+    # a 20-row page; the CASE expressions still provide the exact page-local summary
+    # input without introducing per-row follow-up queries.
+    return (
+        queryset.select_related("published_revision__section")
+        .annotate(
+            index_markdown_summary_source=Case(
+                When(
+                    published_revision__content_format=ArticleRevision.ContentFormat.MARKDOWN,
+                    published_revision__summary_mode=ArticleRevision.SummaryMode.AUTO,
+                    then=Substr(
+                        "published_revision__body_markdown",
+                        1,
+                        MARKDOWN_SUMMARY_MAX_BYTES,
+                    ),
+                ),
+                default=Value(None, output_field=TextField()),
+                output_field=TextField(),
+            ),
+            index_tiptap_summary_source=Case(
+                When(
+                    published_revision__content_format=ArticleRevision.ContentFormat.TIPTAP_JSON,
+                    published_revision__summary_mode=ArticleRevision.SummaryMode.AUTO,
+                    then=F("published_revision__body_tiptap"),
+                ),
+                default=Value(None, output_field=JSONField()),
+                output_field=JSONField(),
+            ),
+        )
+        .defer(
+            "working_revision_id",
+            "scheduled_revision_id",
+            "scheduled_for",
+            "scheduled_at",
+            "purge_after",
+            "row_version",
+            "created_at",
+            "updated_at",
+            "published_revision__body_markdown",
+            "published_revision__body_tiptap",
+            "published_revision__based_on_id",
+            "published_revision__restore_source_id",
+            "published_revision__attachment_asset_id",
+            "published_revision__comments_enabled",
+            "published_revision__comments_view_login",
+            "published_revision__comments_post_login",
+            "published_revision__created_by_id",
+            "published_revision__reason",
+            "published_revision__import_key",
+            "published_revision__created_at",
+            "published_revision__section__normalized_name",
+            "published_revision__section__created_at",
+            "published_revision__section__updated_at",
+        )
+        .prefetch_related(
+            Prefetch(
+                "published_revision__tag_snapshots",
+                queryset=tag_rows,
+                to_attr="visible_index_tags",
+            )
         )
     )
 
@@ -265,6 +336,19 @@ def visible_articles_by_author(
         queryset,
         page=page,
         page_size=page_size,
+    )
+
+
+def public_article_ids_by_author(*, author_id) -> tuple[str, ...]:
+    try:
+        author = UUID(str(author_id))
+    except (TypeError, ValueError):
+        raise ValueError("author id must be a UUID") from None
+    return tuple(
+        _visible_articles(actor_id=None)
+        .filter(author_id=author)
+        .order_by("id")
+        .values_list("id", flat=True)
     )
 
 
@@ -397,7 +481,11 @@ def _visible_item(
         revision_id=revision.id,
         author_id=article.author_id,
         title=revision.title,
-        summary=_card_summary(revision),
+        summary=_card_summary(
+            revision,
+            markdown_source=getattr(article, "index_markdown_summary_source", None),
+            tiptap_source=getattr(article, "index_tiptap_summary_source", None),
+        ),
         visibility=revision.visibility,
         section_id=section.id if section else None,
         section_name=section.name if section else None,
@@ -410,16 +498,22 @@ def _visible_item(
     )
 
 
-def _card_summary(revision: ArticleRevision) -> str | None:
+def _card_summary(
+    revision: ArticleRevision,
+    *,
+    markdown_source: str | None = None,
+    tiptap_source: dict | None = None,
+) -> str | None:
     if revision.summary_mode == ArticleRevision.SummaryMode.NONE:
         return None
     if revision.summary_mode == ArticleRevision.SummaryMode.CUSTOM:
         return revision.custom_summary
-    body = (
-        revision.body_markdown
-        if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN
-        else revision.body_tiptap
-    )
+    if revision.content_format == ArticleRevision.ContentFormat.MARKDOWN:
+        body = (
+            markdown_source if markdown_source is not None else revision.body_markdown
+        )
+    else:
+        body = tiptap_source if tiptap_source is not None else revision.body_tiptap
     rendered = render_article_body(
         content_format=revision.content_format,
         body=body if body is not None else "",

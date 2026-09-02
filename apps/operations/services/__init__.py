@@ -46,6 +46,7 @@ from .tasks import (
     TaskFinalFailed,
     TaskLeaseLost,
     TaskRetryScheduled,
+    TaskRunRecoverySnapshot,
     claim_task,
     complete_task,
     current_task_run_id,
@@ -55,6 +56,7 @@ from .tasks import (
     heartbeat_task,
     recover_expired_task_leases,
     retry_delay_seconds,
+    terminal_task_run_snapshots,
 )
 
 __all__ = [
@@ -79,6 +81,7 @@ __all__ = [
     "TaskFinalFailed",
     "TaskCancelled",
     "TaskLeaseLost",
+    "TaskRunRecoverySnapshot",
     "TaskRetryScheduled",
     "claim_task",
     "build_weekly_backup",
@@ -100,6 +103,7 @@ __all__ = [
     "record_task_final_failure_alert",
     "record_capacity_sample",
     "recover_expired_task_leases",
+    "terminal_task_run_snapshots",
     "retry_delay_seconds",
     "send_pending_operational_alert_emails",
     "shanghai_backup_week",

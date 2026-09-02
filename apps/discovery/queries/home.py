@@ -186,11 +186,15 @@ def search_article_page(
     return article_index_page(source)
 
 
-def discovery_filters(*, actor_id) -> DiscoveryFilters:
+def discovery_filters(*, actor_id, include_sections: bool = True) -> DiscoveryFilters:
+    if type(include_sections) is not bool:
+        raise ValueError("include_sections must be a boolean")
     return DiscoveryFilters(
         sections=tuple(
             DiscoveryFilterOption(item.section_id, item.name) for item in section_list()
-        ),
+        )
+        if include_sections
+        else (),
         tags=tuple(
             DiscoveryFilterOption(item.tag_id, item.name, item.state)
             for item in selectable_tag_list()

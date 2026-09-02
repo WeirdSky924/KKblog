@@ -4,7 +4,7 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from django.db import connection, connections, transaction
+from django.db import OperationalError, connection, connections, transaction
 
 from apps.core.events.models import OutboxEvent
 from apps.core.time.clock import FrozenClock
@@ -314,6 +314,33 @@ def test_service_rereads_business_object_on_each_attempt() -> None:
 
     assert observed == ["old", "new"]
     assert result.result_ref == "new"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_failure_record_retries_on_a_fresh_connection(monkeypatch) -> None:
+    import apps.operations.services.tasks as task_services
+
+    original_fail_task = task_services.fail_task
+    calls = 0
+
+    def flaky_fail_task(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OperationalError("server closed the connection unexpectedly")
+        return original_fail_task(*args, **kwargs)
+
+    monkeypatch.setattr(task_services, "fail_task", flaky_fail_task)
+    with pytest.raises(TaskRetryScheduled):
+        _execute(
+            lambda _business_object: (_ for _ in ()).throw(
+                OperationalError("connection reset by peer")
+            ),
+            clock=FrozenClock(BASE_TIME),
+        )
+
+    assert calls == 2
+    assert TaskRun.objects.get().status == TaskRunStatus.RETRY_WAIT
 
 
 @pytest.mark.django_db(transaction=True)

@@ -132,6 +132,30 @@ def test_reading_bookmark_updates_one_row_per_account_and_article() -> None:
     ) == Decimal("0.125000")
 
 
+def test_saving_reading_bookmark_does_not_render_article(monkeypatch) -> None:
+    author = _account(
+        "reading-bookmark-lightweight-author",
+        roles=("AUTHOR", "ADMINISTRATOR"),
+    )
+    member = _account("reading-bookmark-lightweight-member")
+    article_id = _published_article(author, label="lightweight")
+
+    def fail_render(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("saving a reading bookmark must not render the article")
+
+    monkeypatch.setattr("apps.content.queries.access._reader_media", fail_render)
+
+    state = save_reading_bookmark(
+        account_id=member.id,
+        article_id=article_id,
+        progress=Decimal("0.375000"),
+    )
+
+    assert state.article_id == article_id
+    assert state.revision_id
+
+
 def test_reading_bookmark_http_requires_login_validates_and_reads_back(
     monkeypatch,
 ) -> None:

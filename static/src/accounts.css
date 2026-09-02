@@ -520,17 +520,17 @@
 }
 
 .public-profile {
-  width: min(100%, 80rem);
-  margin-inline: auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .public-profile__header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 7rem;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) 5rem;
+  align-items: center;
   gap: 2rem;
-  padding-block: 2rem 2.5rem;
-  border-block-start: 4px solid var(--accent);
+  padding-block: 1.75rem 2rem;
+  border-block-start: 2px solid var(--accent);
   border-block-end: 1px solid var(--line);
 }
 
@@ -549,12 +549,62 @@
 
 .public-profile__folio {
   display: grid;
-  justify-items: end;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
   overflow: hidden;
-  color: var(--accent);
-  font-size: 5rem;
-  font-weight: 760;
-  line-height: 0.8;
+  border-inline-start: 1px solid var(--line);
+  opacity: 0.72;
+}
+
+.public-profile__folio img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+}
+
+.public-profile__stats {
+  border-block-end: 1px solid var(--line);
+}
+
+.public-profile__stats-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.public-profile__stat {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border-inline-start: 1px solid var(--line);
+}
+
+.public-profile__stat:first-child {
+  border-inline-start: 0;
+}
+
+.public-profile__stat dt {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.public-profile__stat dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.375rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.public-profile__stats-unavailable {
+  margin: 0;
+  padding-block: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
 }
 
 .public-profile__articles {
@@ -564,16 +614,91 @@
 }
 
 .public-profile__articles-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block-end: 0.75rem;
+}
+
+.public-profile .discovery-filters--profile {
+  display: contents;
+}
+
+.public-profile .profile-filter {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.public-profile .profile-filter__field {
   display: grid;
-  grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
-  align-items: end;
-  gap: 2rem;
-  padding-block-end: 1.25rem;
-  border-block-end: 1px solid var(--line);
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.public-profile .profile-filter__field > label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.public-profile .profile-filter__field-label {
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.public-profile__articles-heading h2 {
+  position: relative;
+}
+
+.public-profile__articles-loading {
+  display: none;
+  position: absolute;
+  inset-inline-start: calc(100% + 0.75rem);
+  inset-block-start: 50%;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.public-profile__articles-loading.htmx-request,
+.htmx-request .public-profile__articles-loading {
+  display: inline;
+}
+
+.public-profile .profile-filter__tags-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.public-profile .profile-filter .author-tag-picker__trigger {
+  flex: 1 1 auto;
+}
+
+.public-profile .profile-filter__clear {
+  display: inline-flex;
+  min-height: 2.75rem;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.public-profile .profile-filter__clear:hover,
+.public-profile .profile-filter__clear:focus-visible {
+  color: var(--accent-hover);
 }
 
 .public-profile__articles-heading h2 {
   margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.3;
 }
 
 .public-profile .article-index__list {
@@ -582,14 +707,47 @@
 }
 
 .public-profile .article-index-row {
+  grid-template-columns: minmax(15rem, 22rem) minmax(0, 1fr);
+  align-items: start;
   border: 0;
   border-block-start: 1px solid var(--line);
   border-radius: 0;
   background: transparent;
+  transition: background-color 180ms ease;
+}
+
+.public-profile .article-index-row:hover,
+.public-profile .article-index-row:focus-within {
+  background: var(--surface-muted);
+}
+
+.public-profile .article-index-row__cover {
+  align-self: start;
+  aspect-ratio: 16 / 9;
+  border-inline-end: 1px solid var(--line);
+}
+
+.public-profile .article-index-row__cover img {
+  display: block;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 .public-profile .article-index-row__body {
-  padding: 1.5rem;
+  gap: 1rem;
+  padding: 1.5rem 1.75rem;
+}
+
+.public-profile .article-index-row__title-line h3 a {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.public-profile .article-index-row__summary {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
 }
 
 @media (max-width: 48rem) {
@@ -616,11 +774,19 @@
   }
 
   .public-profile__header {
-    grid-template-columns: minmax(0, 1fr) 5rem;
+    gap: 1.5rem;
   }
 
   .public-profile__articles {
     gap: 1.25rem;
+  }
+
+  .public-profile .profile-filter__tags-row {
+    flex-wrap: wrap;
+  }
+
+  .public-profile .profile-filter .author-tag-picker__trigger {
+    flex-basis: 100%;
   }
 }
 
@@ -664,6 +830,18 @@
     display: none;
   }
 
+  .public-profile__stats-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .public-profile__stat:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .public-profile__stat:nth-child(n + 3) {
+    border-block-start: 1px solid var(--line);
+  }
+
   .public-profile__header h1 {
     font-size: 1.75rem;
   }
@@ -672,9 +850,17 @@
     padding-block: 2rem;
   }
 
-  .public-profile__articles-heading {
+  .public-profile .article-index-row {
+    grid-template-columns: 1fr;
+  }
+
+  .public-profile .article-index-row__cover {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--line);
+  }
+
+  .public-profile .profile-filter {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.25rem;
   }
 
   .public-profile .article-index-row__body {

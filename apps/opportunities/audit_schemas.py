@@ -84,6 +84,7 @@ def register_opportunity_audit_schemas() -> None:
                     "cohorts",
                 }
             ),
+            max_list_items=200,
         )
     )
 

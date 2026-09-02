@@ -47,7 +47,6 @@ function cancelDisclosureClose(disclosure) {
 
 function disclosureShouldRemainOpen(disclosure) {
   return (
-    disclosure.dataset.notificationDialogActive === "true" ||
     disclosure.matches(":hover") ||
     disclosure.contains(document.activeElement)
   );

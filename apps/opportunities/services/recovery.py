@@ -10,10 +10,13 @@ from django.db import close_old_connections, transaction
 from apps.core.events import enqueue_event
 from apps.core.ids import normalize_ulid
 from apps.core.time.clock import Clock, FrozenClock, SystemClock
-from apps.operations.models import TaskRun, TaskRunStatus
 from apps.operations.public import (
+    TASK_RUN_CANCELLED,
+    TASK_RUN_FINAL_FAILED,
+    TaskRunRecoverySnapshot,
     due_task_run_business_objects,
     recover_expired_task_leases,
+    terminal_task_run_snapshots,
 )
 
 from ..events import CHECK_STALLED
@@ -85,7 +88,9 @@ def _enqueue_stalled_event(
     )
 
 
-def _reconcile_recovered_task(task_run, final_failed: bool, *, now) -> None:
+def _reconcile_recovered_task(
+    task_run: TaskRunRecoverySnapshot, final_failed: bool, *, now
+) -> None:
     if task_run.task_name != RUN_CHECK_TASK_NAME:
         return
     run_id = _run_id(task_run.business_object)
@@ -229,7 +234,7 @@ def _reconcile_terminal_run(
             OpportunityCheckRunSource.State.PENDING,
             OpportunityCheckRunSource.State.RUNNING,
         )
-        if task_status == TaskRunStatus.CANCELLED:
+        if task_status == TASK_RUN_CANCELLED:
             run.source_runs.filter(state__in=pending_states).update(
                 state=OpportunityCheckRunSource.State.NOT_EXECUTED,
                 safe_error_code=error_code,
@@ -264,17 +269,9 @@ def _reconcile_terminal_runs(*, now, batch_size: int) -> int:
     )
     if not runs:
         return 0
-    task_runs = {
-        row.run_id: row
-        for row in TaskRun.objects.filter(
-            run_id__in=[task_run_id for _run_id, task_run_id in runs],
-            status__in=(
-                TaskRunStatus.SUCCEEDED,
-                TaskRunStatus.FINAL_FAILED,
-                TaskRunStatus.CANCELLED,
-            ),
-        )
-    }
+    task_runs = terminal_task_run_snapshots(
+        run_ids=tuple(task_run_id for _run_id, task_run_id in runs)
+    )
     reconciled = 0
     for run_id, task_run_id in runs:
         task_run = task_runs.get(task_run_id)
@@ -282,7 +279,7 @@ def _reconcile_terminal_runs(*, now, batch_size: int) -> int:
             continue
         error_code = (
             task_run.last_error_code
-            if task_run.status == TaskRunStatus.FINAL_FAILED
+            if task_run.status == TASK_RUN_FINAL_FAILED
             and _SAFE_ERROR_CODE.fullmatch(task_run.last_error_code or "")
             else ORPHANED_RUN_ERROR
         )

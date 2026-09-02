@@ -172,6 +172,14 @@
     visibility 0s linear 240ms;
 }
 
+.article-reader-shell .site-header {
+  z-index: 60;
+}
+
+.article-reader-shell .personal-menu__panel {
+  z-index: 70;
+}
+
 .article-action-dock[data-visible="true"] {
   pointer-events: auto;
   transform: translate(0, -50%);
