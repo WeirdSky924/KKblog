@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0005_remove_agentinvocation_agent_invocation_state_valid_and_more'),
+        ("agents", "0005_remove_agentinvocation_agent_invocation_state_valid_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='agentendpointcheck',
-            name='capability_state',
-            field=models.CharField(default='CONNECTIVITY_ONLY', max_length=24),
+            model_name="agentendpointcheck",
+            name="capability_state",
+            field=models.CharField(default="CONNECTIVITY_ONLY", max_length=24),
         ),
         migrations.AddField(
-            model_name='agentendpointcheck',
-            name='capability_strategy',
-            field=models.CharField(blank=True, default='', max_length=24),
+            model_name="agentendpointcheck",
+            name="capability_strategy",
+            field=models.CharField(blank=True, default="", max_length=24),
         ),
         migrations.AddField(
-            model_name='agentendpointcheck',
-            name='schema_key_snapshot',
-            field=models.CharField(blank=True, default='', max_length=96),
+            model_name="agentendpointcheck",
+            name="schema_key_snapshot",
+            field=models.CharField(blank=True, default="", max_length=96),
         ),
     ]

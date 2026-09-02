@@ -4,31 +4,80 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0004_agentinvocationattempt'),
+        ("agents", "0004_agentinvocationattempt"),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='agentinvocation',
-            name='agent_invocation_state_valid',
+            model_name="agentinvocation",
+            name="agent_invocation_state_valid",
         ),
         migrations.RemoveConstraint(
-            model_name='agentinvocation',
-            name='agent_invocation_terminal_shape',
+            model_name="agentinvocation",
+            name="agent_invocation_terminal_shape",
         ),
         migrations.AlterField(
-            model_name='agentinvocation',
-            name='state',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('RUNNING', 'Running'), ('SUCCEEDED', 'Succeeded'), ('FAILED', 'Failed'), ('REFUSED', 'Refused'), ('INCOMPLETE', 'Incomplete'), ('CANCELLED', 'Cancelled')], default='PENDING', max_length=16),
+            model_name="agentinvocation",
+            name="state",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("RUNNING", "Running"),
+                    ("SUCCEEDED", "Succeeded"),
+                    ("FAILED", "Failed"),
+                    ("REFUSED", "Refused"),
+                    ("INCOMPLETE", "Incomplete"),
+                    ("CANCELLED", "Cancelled"),
+                ],
+                default="PENDING",
+                max_length=16,
+            ),
         ),
         migrations.AddConstraint(
-            model_name='agentinvocation',
-            constraint=models.CheckConstraint(condition=models.Q(('state__in', ('PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'REFUSED', 'INCOMPLETE', 'CANCELLED'))), name='agent_invocation_state_valid'),
+            model_name="agentinvocation",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    (
+                        "state__in",
+                        (
+                            "PENDING",
+                            "RUNNING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "REFUSED",
+                            "INCOMPLETE",
+                            "CANCELLED",
+                        ),
+                    )
+                ),
+                name="agent_invocation_state_valid",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='agentinvocation',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('completed_at__isnull', True), ('state__in', ('PENDING', 'RUNNING'))), models.Q(('completed_at__isnull', False), ('state__in', ('SUCCEEDED', 'FAILED', 'REFUSED', 'INCOMPLETE', 'CANCELLED'))), _connector='OR'), name='agent_invocation_terminal_shape'),
+            model_name="agentinvocation",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    models.Q(
+                        ("completed_at__isnull", True),
+                        ("state__in", ("PENDING", "RUNNING")),
+                    ),
+                    models.Q(
+                        ("completed_at__isnull", False),
+                        (
+                            "state__in",
+                            (
+                                "SUCCEEDED",
+                                "FAILED",
+                                "REFUSED",
+                                "INCOMPLETE",
+                                "CANCELLED",
+                            ),
+                        ),
+                    ),
+                    _connector="OR",
+                ),
+                name="agent_invocation_terminal_shape",
+            ),
         ),
     ]

@@ -36,9 +36,7 @@ class Command(BaseCommand):
                     draft=ProfileDraft(
                         key=key,
                         display_name=(
-                            "知识文档审核"
-                            if key == "knowledge-review"
-                            else "题库生成"
+                            "知识文档审核" if key == "knowledge-review" else "题库生成"
                         ),
                         purpose=purpose,
                         endpoint_id=endpoint.id,

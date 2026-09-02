@@ -15,7 +15,7 @@
 
 - `uv run ruff check .`：通过。
 - 目标变更文件 `uv run ruff format --check`：通过。
-- `uv run ruff format --check .`：未全通过，8 个历史基线文件需要格式化；未修改这些无关文件，正式候选需单独处理该门禁。
+- `uv run ruff format --check .`：通过（1010 个 Python 文件已格式化）。
 - `uv run python manage.py check`：通过。
 - `uv run python manage.py makemigrations --check --dry-run`：通过，无模型漂移。
 - `npm run build`：通过，已生成 CSS、JS、字体产物。

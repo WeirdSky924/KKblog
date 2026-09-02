@@ -5,38 +5,94 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('agents', '0003_remove_agentendpoint_agent_endpoint_auth_mode_valid_and_more'),
+        ("agents", "0003_remove_agentendpoint_agent_endpoint_auth_mode_valid_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AgentInvocationAttempt',
+            name="AgentInvocationAttempt",
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('sequence', models.PositiveSmallIntegerField()),
-                ('phase', models.CharField(choices=[('PREPARE', 'Prepare'), ('PROVIDER_RETRY', 'Provider retry'), ('EXTRACT_REPAIR', 'Extract repair'), ('SCHEMA_REPAIR', 'Schema repair'), ('SEMANTIC_REPAIR', 'Semantic repair'), ('ACCEPTED', 'Accepted'), ('FAILED', 'Failed'), ('REFUSED', 'Refused'), ('INCOMPLETE', 'Incomplete')], max_length=24)),
-                ('strategy', models.CharField(max_length=24)),
-                ('schema_key', models.CharField(max_length=96)),
-                ('schema_sha256', models.CharField(max_length=64)),
-                ('adapter_version', models.CharField(default='v1', max_length=32)),
-                ('finish_reason', models.CharField(blank=True, default='', max_length=32)),
-                ('safe_error_code', models.CharField(blank=True, default='', max_length=96)),
-                ('input_bytes', models.PositiveIntegerField(default=0)),
-                ('output_bytes', models.PositiveIntegerField(default=0)),
-                ('usage_trusted', models.BooleanField(default=False)),
-                ('input_tokens', models.PositiveIntegerField(blank=True, null=True)),
-                ('output_tokens', models.PositiveIntegerField(blank=True, null=True)),
-                ('total_tokens', models.PositiveIntegerField(blank=True, null=True)),
-                ('started_at', models.DateTimeField()),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('invocation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attempts', to='agents.agentinvocation')),
+                ("id", models.BigAutoField(primary_key=True, serialize=False)),
+                ("sequence", models.PositiveSmallIntegerField()),
+                (
+                    "phase",
+                    models.CharField(
+                        choices=[
+                            ("PREPARE", "Prepare"),
+                            ("PROVIDER_RETRY", "Provider retry"),
+                            ("EXTRACT_REPAIR", "Extract repair"),
+                            ("SCHEMA_REPAIR", "Schema repair"),
+                            ("SEMANTIC_REPAIR", "Semantic repair"),
+                            ("ACCEPTED", "Accepted"),
+                            ("FAILED", "Failed"),
+                            ("REFUSED", "Refused"),
+                            ("INCOMPLETE", "Incomplete"),
+                        ],
+                        max_length=24,
+                    ),
+                ),
+                ("strategy", models.CharField(max_length=24)),
+                ("schema_key", models.CharField(max_length=96)),
+                ("schema_sha256", models.CharField(max_length=64)),
+                ("adapter_version", models.CharField(default="v1", max_length=32)),
+                (
+                    "finish_reason",
+                    models.CharField(blank=True, default="", max_length=32),
+                ),
+                (
+                    "safe_error_code",
+                    models.CharField(blank=True, default="", max_length=96),
+                ),
+                ("input_bytes", models.PositiveIntegerField(default=0)),
+                ("output_bytes", models.PositiveIntegerField(default=0)),
+                ("usage_trusted", models.BooleanField(default=False)),
+                ("input_tokens", models.PositiveIntegerField(blank=True, null=True)),
+                ("output_tokens", models.PositiveIntegerField(blank=True, null=True)),
+                ("total_tokens", models.PositiveIntegerField(blank=True, null=True)),
+                ("started_at", models.DateTimeField()),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "invocation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="attempts",
+                        to="agents.agentinvocation",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'agent_invocation_attempt',
-                'ordering': ('invocation_id', 'sequence'),
-                'constraints': [models.UniqueConstraint(fields=('invocation', 'sequence'), name='agent_attempt_invocation_sequence_unique'), models.CheckConstraint(condition=models.Q(('sequence__gte', 1)), name='agent_attempt_sequence_positive'), models.CheckConstraint(condition=models.Q(('phase__in', ('PREPARE', 'PROVIDER_RETRY', 'EXTRACT_REPAIR', 'SCHEMA_REPAIR', 'SEMANTIC_REPAIR', 'ACCEPTED', 'FAILED', 'REFUSED', 'INCOMPLETE'))), name='agent_attempt_phase_valid')],
+                "db_table": "agent_invocation_attempt",
+                "ordering": ("invocation_id", "sequence"),
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("invocation", "sequence"),
+                        name="agent_attempt_invocation_sequence_unique",
+                    ),
+                    models.CheckConstraint(
+                        condition=models.Q(("sequence__gte", 1)),
+                        name="agent_attempt_sequence_positive",
+                    ),
+                    models.CheckConstraint(
+                        condition=models.Q(
+                            (
+                                "phase__in",
+                                (
+                                    "PREPARE",
+                                    "PROVIDER_RETRY",
+                                    "EXTRACT_REPAIR",
+                                    "SCHEMA_REPAIR",
+                                    "SEMANTIC_REPAIR",
+                                    "ACCEPTED",
+                                    "FAILED",
+                                    "REFUSED",
+                                    "INCOMPLETE",
+                                ),
+                            )
+                        ),
+                        name="agent_attempt_phase_valid",
+                    ),
+                ],
             },
         ),
     ]

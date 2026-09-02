@@ -232,7 +232,9 @@ def finish_invocation_attempt(
     output_tokens: int | None = None,
     total_tokens: int | None = None,
 ) -> AgentInvocationAttempt:
-    AgentInvocationAttempt.objects.filter(pk=attempt.pk, completed_at__isnull=True).update(
+    AgentInvocationAttempt.objects.filter(
+        pk=attempt.pk, completed_at__isnull=True
+    ).update(
         phase=phase,
         completed_at=completed_at,
         finish_reason=finish_reason[:32],

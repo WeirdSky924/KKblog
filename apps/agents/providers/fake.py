@@ -68,7 +68,7 @@ class DeterministicFakeProviderTransport:
                                             "arguments": value,
                                         },
                                     }
-                                ]
+                                ],
                             }
                             if tool_requested
                             else {"role": "assistant", "content": value}

@@ -63,7 +63,8 @@ def _compile_schema(schema: object, *, depth: int = 0) -> None:
     raw_type = schema.get("type")
     types = raw_type if isinstance(raw_type, list) else [raw_type]
     if not types or any(
-        item not in {"object", "array", "string", "integer", "number", "boolean", "null"}
+        item
+        not in {"object", "array", "string", "integer", "number", "boolean", "null"}
         for item in types
     ):
         raise ValueError("Invalid structured schema")
@@ -102,8 +103,10 @@ def _compile_schema(schema: object, *, depth: int = 0) -> None:
         if "items" not in schema:
             raise ValueError("Invalid structured schema")
         _compile_schema(schema["items"], depth=depth + 1)
-    if "string" in types and "pattern" in schema and not isinstance(
-        schema["pattern"], str
+    if (
+        "string" in types
+        and "pattern" in schema
+        and not isinstance(schema["pattern"], str)
     ):
         raise ValueError("Invalid structured schema")
     if "enum" in schema and (
@@ -141,7 +144,9 @@ class SchemaSpec:
     provider_schema: Mapping[str, object]
     validator: Callable[[object], Mapping[str, object]]
     normalizer: Callable[[Mapping[str, object]], Mapping[str, object]] | None = None
-    semantic_validator: Callable[[Mapping[str, object]], Mapping[str, object]] | None = None
+    semantic_validator: (
+        Callable[[Mapping[str, object]], Mapping[str, object]] | None
+    ) = None
     allowed_strategies: tuple[str, ...] = ("native", "tool", "json_best_effort")
     schema_sha256: str = ""
 
@@ -216,7 +221,9 @@ class SchemaSpec:
         except SchemaValidationError:
             raise
         except Exception:
-            raise SchemaValidationError("agents.response_semantics_invalid.v1") from None
+            raise SchemaValidationError(
+                "agents.response_semantics_invalid.v1"
+            ) from None
         if not isinstance(result, Mapping):
             raise SchemaValidationError("agents.response_semantics_invalid.v1")
         return dict(result)
