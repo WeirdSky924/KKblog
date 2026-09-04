@@ -34,6 +34,7 @@ from ..forms.learning import (
     LearningBatchForm,
     LearningDocumentFilterForm,
 )
+from ..presentation.feedback import learning_batch_feedback
 
 logger = logging.getLogger("kaj.administration.learning")
 
@@ -93,6 +94,7 @@ def _render(
     document_html: str = "",
     saved: str = "",
 ) -> HttpResponse:
+    effective_saved = saved or request.GET.get("saved", "")
     filter_form = LearningDocumentFilterForm(request.GET or None)
     if filter_form.is_valid():
         cleaned = filter_form.cleaned_data
@@ -142,7 +144,11 @@ def _render(
             "document_detail": document_detail,
             "document_html": document_html,
             "page_error": page_error,
-            "saved": saved or request.GET.get("saved", ""),
+            "saved": effective_saved,
+            "batch_feedback": learning_batch_feedback(
+                request.GET,
+                saved=effective_saved,
+            ),
             "filter_query": _filter_query(request),
         },
         status=status,

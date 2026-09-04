@@ -8,7 +8,7 @@
       <p class="account-kicker">个人 · 安全</p>
       <h1 id="sessions-title">设备会话</h1>
       <p>查看当前仍可使用的登录，并退出不再使用的设备。</p>
-      {% if session_revoked %}<p class="account-status" role="status">所选设备已退出。</p>{% endif %}
+      {% if session_revoked %}{% include "components/feedback/trigger.html" with key="session-revoked" message="所选设备已退出。" %}{% endif %}
       {{ revoke_form.non_field_errors }}
       {{ revoke_form.session_id.errors }}
     </header>

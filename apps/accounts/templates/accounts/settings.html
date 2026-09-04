@@ -48,7 +48,7 @@
           <p>昵称修改后需要等待 7 天；未上传头像时使用首字符。</p>
           <a class="settings-section__link" href="{{ profile_identity.profile_url }}">查看公开主页</a>
         </div>
-        {% if profile_saved %}<p class="account-status" role="status">个人资料已更新。</p>{% endif %}
+        {% if profile_saved %}{% include "components/feedback/trigger.html" with key="account-profile-saved" message="个人资料已更新。" %}{% endif %}
         <form method="post" data-submit-once data-live-submit="account-profile" class="account-form settings-form">
           {% csrf_token %}<input type="hidden" name="action" value="change_profile">
           {{ profile_form.non_field_errors }}
@@ -69,7 +69,7 @@
           <p class="account-kicker">账户安全</p>
           <h2 id="credential-settings-title">邮箱与密码</h2>
         </div>
-        {% if credentials_saved %}<p class="account-status" role="status">账号凭证已更新。</p>{% endif %}
+        {% if credentials_saved %}{% include "components/feedback/trigger.html" with key="account-credentials-saved" message="账号凭证已更新。" %}{% endif %}
         <div class="account-panels">
           <section class="account-panel" aria-labelledby="password-title">
             <h2 id="password-title">修改密码</h2>
@@ -92,7 +92,7 @@
               <button class="button button--secondary" type="submit">向新邮箱发送验证码</button>
             </form>
             {% if code_sent %}
-              <p class="account-status" role="status">验证码已发送到新邮箱。</p>
+              {% include "components/feedback/trigger.html" with key="account-email-code-sent" message="验证码已发送到新邮箱。" %}
               <form method="post" data-submit-once data-live-submit="account-email-change" class="account-form">
                 {% csrf_token %}<input type="hidden" name="action" value="change_email">
                 {{ email_form.new_email }}
@@ -116,7 +116,7 @@
           <h2 id="theme-settings-title">阅读主题</h2>
           <p>登录后以账户偏好为准，并同步到当前浏览器。</p>
         </div>
-        {% if theme_saved %}<p class="account-status" role="status">主题偏好已保存。</p>{% endif %}
+        {% if theme_saved %}{% include "components/feedback/trigger.html" with key="account-theme-saved" message="主题偏好已保存。" %}{% endif %}
         <form method="post" data-submit-once data-live-submit="account-theme" class="account-form settings-form settings-form--theme">
           {% csrf_token %}<input type="hidden" name="action" value="change_theme">
           {{ theme_form.non_field_errors }}
@@ -135,7 +135,7 @@
           <h2 id="author-settings-title">文章修改</h2>
           <p>默认关闭；开启后，已发布文章的普通编辑会在云端保存成功后自动重发。</p>
         </div>
-        {% if author_preference_saved %}<p class="account-status" role="status">创作偏好已保存。</p>{% endif %}
+        {% if author_preference_saved %}{% include "components/feedback/trigger.html" with key="account-authoring-saved" message="创作偏好已保存。" %}{% endif %}
         <form method="post" data-submit-once data-live-submit="account-authoring" class="account-form settings-form">
           {% csrf_token %}<input type="hidden" name="action" value="change_author_preference">
           {{ author_preference_form.non_field_errors }}

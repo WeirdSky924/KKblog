@@ -6,7 +6,7 @@
   <section class="learning-admin" aria-labelledby="learning-bank-queue-title">
     <header class="learning-admin__header">
       <div><p>智能与题库</p><h1 id="learning-bank-queue-title">题库队列</h1><p>独立管理题库的运行状态、公开状态和删除流程。</p></div>
-      {% if saved == "batch" %}<p class="learning-admin__notice" role="status">批量处置已完成：共 {{ request.GET.total|default:"0" }} 项，成功 {{ request.GET.succeeded|default:"0" }} 项，失败 {{ request.GET.failed|default:"0" }} 项。{% if request.GET.error %}失败原因：{{ request.GET.error }}{% endif %} 删除操作会先进入 7 天冷静期。</p>{% endif %}
+      {% if saved == "batch" and batch_feedback %}<span data-global-feedback data-feedback-key="learning-bank-batch" data-feedback-level="success" data-feedback-timeout="6500" data-feedback-message="批量处置已完成：共 {{ batch_feedback.total }} 项，成功 {{ batch_feedback.succeeded }} 项，失败 {{ batch_feedback.failed }} 项。{% if batch_feedback.error %}失败原因：{{ batch_feedback.error }}{% endif %} 删除操作会先进入 7 天冷静期。" hidden aria-hidden="true"></span>{% elif saved == "batch" %}{% include "components/feedback/trigger.html" with key="learning-bank-batch-unavailable" level="warning" timeout="6500" message="批量处置已完成，但结果统计暂不可用，请查看队列确认。删除操作会先进入 7 天冷静期。" %}{% endif %}
     </header>
     <form method="get" class="learning-admin__filters" hx-get="{% url 'admin:question-bank-queue' %}" hx-target="#learning-question-bank-queue" hx-swap="outerHTML" hx-push-url="true">
       <div>{{ filter_form.q.label_tag }}{{ filter_form.q }}{{ filter_form.q.errors }}</div>

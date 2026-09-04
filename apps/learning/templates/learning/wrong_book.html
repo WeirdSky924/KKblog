@@ -11,7 +11,7 @@
       <nav class="records-tabs" aria-label="学习记录"><a class="records-tabs__active" href="{% url 'learning:wrong-book' %}">错题本</a><a href="{% url 'learning:records' %}">答题记录</a></nav>
     </header>
     {% include "learning/partials/learning_hub_nav.html" with active="wrong" only %}
-    {% if saved %}<p class="quiz-notice" role="status">掌握状态已更新。</p>{% endif %}
+    {% if saved %}{% include "components/feedback/trigger.html" with key="wrong-question-mastery" message="掌握状态已更新。" %}{% endif %}
     {% if page_error %}<p class="quiz-notice quiz-notice--error" role="alert">{{ page_error }}</p>{% endif %}
     <form method="get" class="records-filter" aria-label="错题筛选">
       <div>{{ wrong_filter_form.mastery_status.label_tag }}{{ wrong_filter_form.mastery_status }}</div>

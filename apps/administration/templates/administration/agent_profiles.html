@@ -18,7 +18,7 @@
     {% if schema_unavailable %}
       <div class="agent-admin__empty" role="status"><h2>AGENT 数据迁移尚未完成</h2><p>完成 `agents.0001` 与 `agents.0002` 后即可配置。</p></div>
     {% else %}
-      {% if saved %}<p class="agent-admin__notice" role="status">{% if saved == "profile-created" %}AGENT 已创建。{% elif saved == "profile-updated" %}AGENT 已更新。{% elif saved == "prompt-saved" %}Prompt 新修订已保存并设为当前版本。{% elif saved == "prompt-switched" %}当前 Prompt 版本已切换。{% endif %}</p>{% endif %}
+      {% if saved == "profile-created" %}{% include "components/feedback/trigger.html" with key="agent-profile-created" message="AGENT 已创建。" %}{% elif saved == "profile-updated" %}{% include "components/feedback/trigger.html" with key="agent-profile-updated" message="AGENT 已更新。" %}{% elif saved == "prompt-saved" %}{% include "components/feedback/trigger.html" with key="agent-prompt-saved" message="Prompt 新修订已保存并设为当前版本。" %}{% elif saved == "prompt-switched" %}{% include "components/feedback/trigger.html" with key="agent-prompt-switched" message="当前 Prompt 版本已切换。" %}{% endif %}
       {% if page_error %}<p class="agent-admin__error" role="alert">{{ page_error }}</p>{% endif %}
 
       <section id="profile-list" class="agent-list" aria-labelledby="profile-list-title">

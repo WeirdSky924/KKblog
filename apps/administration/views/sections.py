@@ -22,6 +22,8 @@ from apps.content.public import (
 )
 from apps.core.ids import normalize_ulid
 
+from ..presentation.feedback import feedback_count
+
 
 def _meta(request: HttpRequest) -> dict[str, str]:
     return {
@@ -154,8 +156,8 @@ def _render(
             ),
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),
-            "affected_articles": request.GET.get("articles", ""),
-            "affected_revisions": request.GET.get("revisions", ""),
+            "affected_articles": feedback_count(request.GET, "articles"),
+            "affected_revisions": feedback_count(request.GET, "revisions"),
             "section_cover_upload_url": reverse(
                 "media:upload", kwargs={"adapter": "section-cover"}
             ),

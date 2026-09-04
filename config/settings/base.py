@@ -54,6 +54,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.request",
                 "apps.accounts.presentation.context.account_theme",
                 "apps.administration.presentation.context.administration_shell",
                 "apps.analytics.presentation.context.analytics_tracking",

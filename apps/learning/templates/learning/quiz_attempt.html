@@ -25,7 +25,7 @@
           </a>
         </div>
       </div>
-      {% if saved %}<p class="quiz-notice" role="status">{% if saved == "response" %}答案已保存。{% elif saved == "submitted" %}答题已提交。{% else %}简答自评已保存。{% endif %}</p>{% endif %}
+      {% if saved == "response" %}{% include "components/feedback/trigger.html" with key="quiz-response-saved" message="答案已保存。" %}{% elif saved == "submitted" %}{% include "components/feedback/trigger.html" with key="quiz-submitted" message="答题已提交。" %}{% elif saved %}{% include "components/feedback/trigger.html" with key="quiz-assessment-saved" message="简答自评已保存。" %}{% endif %}
       {% if page_error %}<p class="quiz-notice quiz-notice--error" role="alert">{{ page_error }}</p>{% endif %}
       <div class="quiz-progress" data-quiz-progress data-answered="{{ attempt.answered_count }}" data-total="{{ attempt.question_count }}" aria-label="答题进度">
         <span data-quiz-progress-bar style="--quiz-progress: {% widthratio attempt.answered_count attempt.question_count 100 %}%"></span>

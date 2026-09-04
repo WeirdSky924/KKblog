@@ -1,7 +1,7 @@
 {% load static tz %}
 <div id="author-article-workspace" class="article-workspace" aria-live="polite">
-  {% if request.GET.cancelled == "1" %}<p class="author-editor-resolution" role="status">定时发布已取消，文章已回到草稿。</p>{% endif %}
-  {% if article_deleted %}<p class="author-editor-resolution" role="status">文章已进入 7 天删除冷静期。</p>{% endif %}
+  {% if request.GET.cancelled == "1" %}{% include "components/feedback/trigger.html" with key="author-schedule-cancelled" message="定时发布已取消，文章已回到草稿。" %}{% endif %}
+  {% if article_deleted %}{% include "components/feedback/trigger.html" with key="author-article-deleted" message="文章已进入 7 天删除冷静期。" %}{% endif %}
   {% if article_delete_error %}<p class="author-editor-error" role="alert">{{ article_delete_error }}</p>{% endif %}
   <nav class="authoring-tabs" aria-label="文章状态">
     {% for tab in workspace.tabs %}

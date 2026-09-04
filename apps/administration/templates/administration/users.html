@@ -8,14 +8,14 @@
       <p>管理 · 账户与角色</p>
       <h1 id="admin-users-title">用户管理</h1>
       <p>搜索账户、调整作者角色，并管理账户生命周期。</p>
-      {% if saved == "author-granted" %}<p role="status">作者角色已授予。</p>{% endif %}
-      {% if saved == "author-revoked" %}<p role="status">作者角色已撤销。</p>{% endif %}
-      {% if saved == "attachment-granted" %}<p role="status">文章附件能力已授予。</p>{% endif %}
-      {% if saved == "attachment-revoked" %}<p role="status">文章附件能力已撤销。</p>{% endif %}
-      {% if saved == "disabled" %}<p role="status">账户已禁用，现有会话已撤销。</p>{% endif %}
-      {% if saved == "enabled" %}<p role="status">账户已启用，旧会话未恢复。</p>{% endif %}
-      {% if saved == "deleted" %}<p role="status">账户及其关联内容已删除。</p>{% endif %}
-      {% if saved == "restrictions-cleared" %}<p role="status">账户的临时登录与邮箱验证码限制已清除。</p>{% endif %}
+      {% if saved == "author-granted" %}{% include "components/feedback/trigger.html" with key="user-author-granted" message="作者角色已授予。" %}{% endif %}
+      {% if saved == "author-revoked" %}{% include "components/feedback/trigger.html" with key="user-author-revoked" message="作者角色已撤销。" %}{% endif %}
+      {% if saved == "attachment-granted" %}{% include "components/feedback/trigger.html" with key="user-attachment-granted" message="文章附件能力已授予。" %}{% endif %}
+      {% if saved == "attachment-revoked" %}{% include "components/feedback/trigger.html" with key="user-attachment-revoked" message="文章附件能力已撤销。" %}{% endif %}
+      {% if saved == "disabled" %}{% include "components/feedback/trigger.html" with key="user-disabled" message="账户已禁用，现有会话已撤销。" %}{% endif %}
+      {% if saved == "enabled" %}{% include "components/feedback/trigger.html" with key="user-enabled" message="账户已启用，旧会话未恢复。" %}{% endif %}
+      {% if saved == "deleted" %}{% include "components/feedback/trigger.html" with key="user-deleted" message="账户及其关联内容已删除。" %}{% endif %}
+      {% if saved == "restrictions-cleared" %}{% include "components/feedback/trigger.html" with key="user-restrictions-cleared" message="账户的临时登录与邮箱验证码限制已清除。" %}{% endif %}
     </header>
 
     <form method="get" class="admin-users__filters" role="search">

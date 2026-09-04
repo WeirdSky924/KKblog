@@ -8,8 +8,8 @@
       <p>管理 · 举报裁决</p>
       <h1 id="admin-reports-title">举报与申诉</h1>
       <p>查看受限证据和举报人身份，完成初审及一次终局复审。</p>
-      {% if saved == "reviewed" %}<p role="status">举报初审已完成。</p>{% endif %}
-      {% if saved == "finalized" %}<p role="status">举报申诉已完成终局复审。</p>{% endif %}
+      {% if saved == "reviewed" %}{% include "components/feedback/trigger.html" with key="report-reviewed" message="举报初审已完成。" %}{% endif %}
+      {% if saved == "finalized" %}{% include "components/feedback/trigger.html" with key="report-finalized" message="举报申诉已完成终局复审。" %}{% endif %}
     </header>
 
     <form method="get" class="admin-queue__filters">

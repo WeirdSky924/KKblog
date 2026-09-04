@@ -8,10 +8,10 @@
       <p>管理 · 内容裁决</p>
       <h1 id="admin-articles-title">文章管理</h1>
       <p>查看所有文章状态，并处理管理员隐藏、删除、恢复与申诉终局。</p>
-      {% if saved == "hide" %}<p role="status">文章已隐藏并通知作者。</p>{% endif %}
-      {% if saved == "delete" %}<p role="status">文章已进入删除冷静期并通知作者。</p>{% endif %}
-      {% if saved == "restored" %}<p role="status">文章已恢复到操作前状态。</p>{% endif %}
-      {% if saved == "appeal-reviewed" %}<p role="status">文章申诉已完成终局复审。</p>{% endif %}
+      {% if saved == "hide" %}{% include "components/feedback/trigger.html" with key="admin-article-hidden" message="文章已隐藏并通知作者。" %}{% endif %}
+      {% if saved == "delete" %}{% include "components/feedback/trigger.html" with key="admin-article-deleted" message="文章已进入删除冷静期并通知作者。" %}{% endif %}
+      {% if saved == "restored" %}{% include "components/feedback/trigger.html" with key="admin-article-restored" message="文章已恢复到操作前状态。" %}{% endif %}
+      {% if saved == "appeal-reviewed" %}{% include "components/feedback/trigger.html" with key="admin-article-appeal" message="文章申诉已完成终局复审。" %}{% endif %}
     </header>
 
     <form method="get" class="admin-queue__filters" role="search">

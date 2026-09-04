@@ -8,11 +8,11 @@
       <p>管理 · 内容分类</p>
       <h1 id="admin-tags-title">标签审核与历史</h1>
       <p>审核作者提议，管理全站标签，并追踪删除后的历史关联与恢复冲突。</p>
-      {% if saved == "created" %}<p role="status">全站标签已创建。</p>{% endif %}
-      {% if saved == "approved" %}<p role="status">待审核标签已通过并通知相关作者。</p>{% endif %}
-      {% if saved == "rejected" %}<p role="status">待审核标签已驳回，当前文章关联已移除。</p>{% endif %}
-      {% if saved == "deleted" %}<p role="status">全站标签已删除，关联历史已保留。</p>{% endif %}
-      {% if saved == "restored" %}<p role="status">标签恢复完成；仍有 {{ restored_conflicts|default:"0" }} 条冲突。</p>{% endif %}
+      {% if saved == "created" %}{% include "components/feedback/trigger.html" with key="tag-created" message="全站标签已创建。" %}{% endif %}
+      {% if saved == "approved" %}{% include "components/feedback/trigger.html" with key="tag-approved" message="待审核标签已通过并通知相关作者。" %}{% endif %}
+      {% if saved == "rejected" %}{% include "components/feedback/trigger.html" with key="tag-rejected" message="待审核标签已驳回，当前文章关联已移除。" %}{% endif %}
+      {% if saved == "deleted" %}{% include "components/feedback/trigger.html" with key="tag-deleted" message="全站标签已删除，关联历史已保留。" %}{% endif %}
+      {% if saved == "restored" and restored_conflicts is not None %}<span data-global-feedback data-feedback-key="tag-restored" data-feedback-level="success" data-feedback-timeout="6500" data-feedback-message="标签恢复完成；仍有 {{ restored_conflicts }} 条冲突。" hidden aria-hidden="true"></span>{% elif saved == "restored" %}{% include "components/feedback/trigger.html" with key="tag-restored-unavailable" level="warning" timeout="6500" message="标签恢复已完成，但冲突统计暂不可用，请查看标签详情确认。" %}{% endif %}
     </header>
 
     <form method="post" class="admin-queue__create" data-submit-once>

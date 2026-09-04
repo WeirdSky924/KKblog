@@ -8,7 +8,7 @@
     hx-swap="outerHTML settle:120ms"
   {% endif %}
 >
-  {% if saved_message %}<p class="account-status" role="status">{{ saved_message }}</p>{% endif %}
+  {% if saved_message %}{% include "components/feedback/trigger.html" with key="learning-document-action" message=saved_message %}{% endif %}
 
   {% if knowledge_can_upload %}
     <section class="knowledge-upload" aria-labelledby="knowledge-upload-title">

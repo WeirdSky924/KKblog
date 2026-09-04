@@ -1053,6 +1053,50 @@ function announceShellError(message) {
   announceShellFeedback(message, { level: "error" });
 }
 
+function initializeFeedbackMarkers(root = document) {
+  const markers = [];
+  if (
+    root instanceof HTMLElement &&
+    root.matches("[data-global-feedback], [data-opportunity-feedback]")
+  ) {
+    markers.push(root);
+  }
+  root
+    .querySelectorAll?.("[data-global-feedback], [data-opportunity-feedback]")
+    .forEach((marker) => markers.push(marker));
+
+  markers.forEach((marker) => {
+    if (
+      !(marker instanceof HTMLElement) ||
+      marker.dataset.feedbackAnnounced === "true"
+    ) {
+      return;
+    }
+    const legacyOpportunity = marker.matches("[data-opportunity-feedback]");
+    const message =
+      marker.dataset.feedbackMessage || marker.dataset.message || "";
+    if (!message) {
+      marker.remove();
+      return;
+    }
+    const rawTimeout = marker.dataset.feedbackTimeout;
+    const timeout = Number.isFinite(Number(rawTimeout))
+      ? Number(rawTimeout)
+      : legacyOpportunity
+        ? 4000
+        : 4500;
+    marker.dataset.feedbackAnnounced = "true";
+    announceShellFeedback(message, {
+      key:
+        marker.dataset.feedbackKey ||
+        (legacyOpportunity ? "opportunity-admin" : ""),
+      level: marker.dataset.feedbackLevel || "success",
+      timeout,
+    });
+    marker.remove();
+  });
+}
+
 async function syncAccountTheme(form, submitter) {
   if (!(submitter instanceof HTMLButtonElement) || form.dataset.syncing === "true") {
     return;
@@ -1442,6 +1486,7 @@ document.addEventListener("htmx:beforeCleanupElement", (event) => {
 
 document.addEventListener("htmx:afterSettle", (event) => {
   const root = currentSwapRoot(event.detail?.target ?? document);
+  initializeFeedbackMarkers(root);
   focusInsertedError(root);
   focusSwappedRegion(root, event);
   focusLoadedCommentReply(root);
@@ -1503,16 +1548,7 @@ window.addEventListener("pageshow", () => {
 
 window.addEventListener("popstate", syncHomeArticleRefreshUrl);
 
-document.querySelectorAll("[data-opportunity-feedback]").forEach((item) => {
-  const message = item.dataset.message;
-  if (message) {
-    announceShellFeedback(message, {
-      key: "opportunity-admin",
-      level: "success",
-      timeout: 4000,
-    });
-  }
-});
+initializeFeedbackMarkers(document);
 
 window.Alpine = Alpine;
 Alpine.start();

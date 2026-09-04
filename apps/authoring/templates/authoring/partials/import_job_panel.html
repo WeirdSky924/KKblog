@@ -22,8 +22,8 @@
   {% if import_error %}
     <p class="author-import-error" role="alert" tabindex="-1" data-error-focus>{{ import_error }}</p>
   {% endif %}
-  {% if import_updated %}<p class="author-operation-feedback" role="status">条目选择已保存。</p>{% endif %}
-  {% if import_confirmed %}<p class="author-operation-feedback" role="status">导入已确认，正在读取真实任务状态。</p>{% endif %}
+  {% if import_updated %}{% include "components/feedback/trigger.html" with key="author-import-updated" message="条目选择已保存。" %}{% endif %}
+  {% if import_confirmed %}{% include "components/feedback/trigger.html" with key="author-import-confirmed" message="导入已确认，正在读取真实任务状态。" %}{% endif %}
 
   {% if import_page.editable %}
     <dl class="author-import-summary">

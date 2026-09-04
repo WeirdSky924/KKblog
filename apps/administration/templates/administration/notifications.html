@@ -8,10 +8,10 @@
       <p class="broadcast-kicker">管理 · 站内通知</p>
       <h1 id="broadcast-title">群发通知</h1>
       <p>每次固定发送给全部注册用户；隐藏可恢复，删除后产品内不可恢复。</p>
-      {% if saved == "broadcast" %}<p class="broadcast-success" role="status">通知已发送给全部注册用户。</p>{% endif %}
-      {% if saved == "hide" %}<p class="broadcast-success" role="status">通知已对所有收件人隐藏。</p>{% endif %}
-      {% if saved == "restore" %}<p class="broadcast-success" role="status">通知已恢复为全体可见。</p>{% endif %}
-      {% if saved == "delete" %}<p class="broadcast-success" role="status">通知已删除，产品内不再提供恢复。</p>{% endif %}
+      {% if saved == "broadcast" %}{% include "components/feedback/trigger.html" with key="admin-broadcast" message="通知已发送给全部注册用户。" %}{% endif %}
+      {% if saved == "hide" %}{% include "components/feedback/trigger.html" with key="admin-notification-hidden" message="通知已对所有收件人隐藏。" %}{% endif %}
+      {% if saved == "restore" %}{% include "components/feedback/trigger.html" with key="admin-notification-restored" message="通知已恢复为全体可见。" %}{% endif %}
+      {% if saved == "delete" %}{% include "components/feedback/trigger.html" with key="admin-notification-deleted" message="通知已删除，产品内不再提供恢复。" %}{% endif %}
     </header>
 
     <section id="broadcast-compose" class="broadcast-compose" aria-labelledby="broadcast-compose-title">

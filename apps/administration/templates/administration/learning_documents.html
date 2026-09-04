@@ -6,7 +6,7 @@
   <section class="learning-admin" aria-labelledby="learning-documents-title">
     <header class="learning-admin__header">
       <div><p>智能与题库</p><h1 id="learning-documents-title">知识文档与申诉</h1><p>审核状态、管理员处置、原文访问与申诉逐条处理。</p></div>
-      {% if saved %}<p class="learning-admin__notice" role="status">{% if saved == "batch" %}批量处置已完成：共 {{ request.GET.total|default:"0" }} 项，成功 {{ request.GET.succeeded|default:"0" }} 项，失败 {{ request.GET.failed|default:"0" }} 项。{% if request.GET.error %}失败原因：{{ request.GET.error }}{% endif %}{% elif saved == "appeal" %}申诉决定已保存。{% else %}文档管理状态已更新。{% endif %}</p>{% endif %}
+      {% if saved == "batch" and batch_feedback %}<span data-global-feedback data-feedback-key="learning-document-batch" data-feedback-level="success" data-feedback-timeout="6500" data-feedback-message="批量处置已完成：共 {{ batch_feedback.total }} 项，成功 {{ batch_feedback.succeeded }} 项，失败 {{ batch_feedback.failed }} 项。{% if batch_feedback.error %}失败原因：{{ batch_feedback.error }}{% endif %}" hidden aria-hidden="true"></span>{% elif saved == "batch" %}{% include "components/feedback/trigger.html" with key="learning-document-batch-unavailable" level="warning" timeout="6500" message="批量处置已完成，但结果统计暂不可用，请查看列表确认。" %}{% elif saved == "appeal" %}{% include "components/feedback/trigger.html" with key="learning-document-appeal" message="申诉决定已保存。" %}{% elif saved %}{% include "components/feedback/trigger.html" with key="learning-document-updated" message="文档管理状态已更新。" %}{% endif %}
     </header>
 
     <form method="get" class="learning-admin__filters" hx-get="{% url 'admin:learning-documents' %}" hx-target="#learning-document-queue" hx-swap="outerHTML" hx-push-url="true">

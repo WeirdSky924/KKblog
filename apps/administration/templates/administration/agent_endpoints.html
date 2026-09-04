@@ -23,11 +23,7 @@
         <p>当前页面保持只读不可用；完成最新 agents migration 后即可配置。</p>
       </div>
     {% else %}
-      {% if saved %}
-        <p class="agent-admin__notice" role="status">
-          {% if saved == "endpoint-created" %}Endpoint 已创建。{% elif saved == "endpoint-updated" %}Endpoint 已更新。{% elif saved == "site-limit" %}全站每日上限已更新。{% elif saved == "check-requested" %}连接检查已进入任务队列。{% elif saved == "usage-reset" %}今日用量已重置，活跃预留保持不变。{% elif saved == "defaults-restored" %}全站与 Endpoint 默认上限已恢复。{% endif %}
-        </p>
-      {% endif %}
+      {% if saved == "endpoint-created" %}{% include "components/feedback/trigger.html" with key="agent-endpoint-created" message="Endpoint 已创建。" %}{% elif saved == "endpoint-updated" %}{% include "components/feedback/trigger.html" with key="agent-endpoint-updated" message="Endpoint 已更新。" %}{% elif saved == "site-limit" %}{% include "components/feedback/trigger.html" with key="agent-site-limit" message="全站每日上限已更新。" %}{% elif saved == "check-requested" %}{% include "components/feedback/trigger.html" with key="agent-check-requested" message="连接检查已进入任务队列。" %}{% elif saved == "usage-reset" %}{% include "components/feedback/trigger.html" with key="agent-usage-reset" message="今日用量已重置，活跃预留保持不变。" %}{% elif saved == "defaults-restored" %}{% include "components/feedback/trigger.html" with key="agent-defaults-restored" message="全站与 Endpoint 默认上限已恢复。" %}{% endif %}
       {% if page_error %}<p class="agent-admin__error" role="alert">{{ page_error }}</p>{% endif %}
       {% if not agent_secret_count %}
         <p class="agent-admin__warning" role="status">服务器密钥别名尚未加载；如使用自定义 API Key，可直接在 Endpoint 中安全保存。密钥不会回显。</p>

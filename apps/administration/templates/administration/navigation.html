@@ -8,12 +8,12 @@
       <p>管理 · 公开站点结构</p>
       <h1 id="admin-navigation-title">主页侧边导航</h1>
       <p>站内页、文章分区、安全外链和无链接的“仅分组”节点共用这棵侧边导航树；选择“文章分区”可排入已有分区，选择“仅分组”只建立层级，顶部栏不显示这些节点。</p>
-      {% if saved == "created" %}<p role="status">导航节点已创建。</p>{% endif %}
-      {% if saved == "edited" %}<p role="status">导航节点已更新。</p>{% endif %}
-      {% if saved == "hidden" %}<p role="status">导航子树已从主页侧边栏隐藏。</p>{% endif %}
-      {% if saved == "shown" %}<p role="status">导航子树已恢复到主页侧边栏。</p>{% endif %}
-      {% if saved == "moved" %}<p role="status">导航子树已移动并重新连续排序。</p>{% endif %}
-      {% if saved == "deleted" %}<p role="status">已删除 {{ deleted_count }} 个导航节点。</p>{% endif %}
+      {% if saved == "created" %}{% include "components/feedback/trigger.html" with key="navigation-created" message="导航节点已创建。" %}{% endif %}
+      {% if saved == "edited" %}{% include "components/feedback/trigger.html" with key="navigation-edited" message="导航节点已更新。" %}{% endif %}
+      {% if saved == "hidden" %}{% include "components/feedback/trigger.html" with key="navigation-hidden" message="导航子树已从主页侧边栏隐藏。" %}{% endif %}
+      {% if saved == "shown" %}{% include "components/feedback/trigger.html" with key="navigation-shown" message="导航子树已恢复到主页侧边栏。" %}{% endif %}
+      {% if saved == "moved" %}{% include "components/feedback/trigger.html" with key="navigation-moved" message="导航子树已移动并重新连续排序。" %}{% endif %}
+      {% if saved == "deleted" and deleted_count is not None %}<span data-global-feedback data-feedback-key="navigation-deleted" data-feedback-level="success" data-feedback-timeout="6500" data-feedback-message="已删除 {{ deleted_count }} 个导航节点。" hidden aria-hidden="true"></span>{% elif saved == "deleted" %}{% include "components/feedback/trigger.html" with key="navigation-deleted-unavailable" level="warning" timeout="6500" message="导航删除已完成，但结果统计暂不可用，请查看导航树确认。" %}{% endif %}
     </header>
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if tree_unavailable and trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
 

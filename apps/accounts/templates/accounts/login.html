@@ -12,8 +12,8 @@
       <p class="auth-switch">还没有账号？<a href="{% url 'accounts:register' %}">创建账号</a></p>
     </header>
     <div class="auth-workspace">
-      {% if password_reset_completed %}<p class="account-status" role="status">密码已重置，请使用新密码登录。</p>{% endif %}
-      {% if session_signed_out %}<p class="account-status" role="status">设备已安全退出。</p>{% endif %}
+      {% if password_reset_completed %}{% include "components/feedback/trigger.html" with key="login-password-reset" message="密码已重置，请使用新密码登录。" %}{% endif %}
+      {% if session_signed_out %}{% include "components/feedback/trigger.html" with key="login-session-signed-out" message="设备已安全退出。" %}{% endif %}
       <h2 class="auth-workspace__title">选择登录方式</h2>
       <div role="tablist" aria-label="登录方式" class="auth-mode-tabs">
         <a id="password-login-tab" role="tab" aria-selected="{% if mode == 'password' %}true{% else %}false{% endif %}" href="?mode=password&next={{ next|urlencode }}"><i data-lucide="key-round" aria-hidden="true"></i><span>密码登录</span></a>

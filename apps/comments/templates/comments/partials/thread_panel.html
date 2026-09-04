@@ -18,7 +18,7 @@
   </header>
 
   {% if comment_feedback %}
-    <p class="comment-thread__feedback" role="status">{{ comment_feedback }}</p>
+    {% include "components/feedback/trigger.html" with key="comment-action" message=comment_feedback %}
   {% endif %}
 
   {% if comment_system_error %}

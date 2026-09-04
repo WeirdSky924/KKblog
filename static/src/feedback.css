@@ -1,7 +1,7 @@
 .global-feedback {
   position: fixed;
   z-index: 80;
-  inset-block-start: 1rem;
+  inset-block-start: calc(var(--site-header-height, 5rem) + 1rem);
   inset-inline-end: 1rem;
   display: grid;
   width: min(calc(100% - 2rem), 28rem);
@@ -151,7 +151,7 @@
 
 @media (max-width: 30rem) {
   .global-feedback {
-    inset-block-start: 0.5rem;
+    inset-block-start: calc(var(--site-header-height, 5rem) + 0.5rem);
     inset-inline: 0.5rem;
     width: auto;
   }

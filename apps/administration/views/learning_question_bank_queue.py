@@ -16,6 +16,7 @@ from apps.learning.public import (
 )
 
 from ..forms.learning import LearningQuestionBankFilterForm
+from ..presentation.feedback import learning_batch_feedback
 from .learning_documents import _batch_form, _filter_query, _meta
 
 
@@ -28,6 +29,7 @@ def _render(
     batch_form=None,
     saved: str = "",
 ) -> HttpResponse:
+    effective_saved = saved or request.GET.get("saved", "")
     filter_form = LearningQuestionBankFilterForm(request.GET or None)
     if filter_form.is_valid():
         cleaned = filter_form.cleaned_data
@@ -58,7 +60,11 @@ def _render(
             "batch_preview": batch_preview,
             "batch_form": batch_form,
             "page_error": page_error,
-            "saved": saved or request.GET.get("saved", ""),
+            "saved": effective_saved,
+            "batch_feedback": learning_batch_feedback(
+                request.GET,
+                saved=effective_saved,
+            ),
         },
         status=status,
     )

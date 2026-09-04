@@ -23,6 +23,8 @@ from apps.content.public import (
     review_tag,
 )
 
+from ..presentation.feedback import feedback_count
+
 VALID_ACTIONS = {"approve", "reject", "delete", "restore"}
 
 
@@ -223,7 +225,7 @@ def _render(
             ),
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),
-            "restored_conflicts": request.GET.get("conflicts", ""),
+            "restored_conflicts": feedback_count(request.GET, "conflicts"),
         },
         status=status,
     )

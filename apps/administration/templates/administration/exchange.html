@@ -8,8 +8,8 @@
       <p>管理 · 数据与归档</p>
       <h1 id="exchange-title">数据交换</h1>
       <p>导出包含所选范围的完整文章历史和媒体；归档保留三天。</p>
-      {% if saved == "requested" %}<p role="status">导出任务已创建，状态会由后台任务更新。</p>{% endif %}
-      {% if saved == "cancelled" %}<p role="status">导出任务已取消，临时归档已清理。</p>{% endif %}
+      {% if saved == "requested" %}{% include "components/feedback/trigger.html" with key="export-requested" message="导出任务已创建，状态会由后台任务更新。" %}{% endif %}
+      {% if saved == "cancelled" %}{% include "components/feedback/trigger.html" with key="export-cancelled" message="导出任务已取消，临时归档已清理。" %}{% endif %}
       {% if page_error %}<p class="admin-operations__error" role="alert" tabindex="-1" data-error-focus>{{ page_error }}</p>{% endif %}
     </header>
 

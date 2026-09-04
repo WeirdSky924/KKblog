@@ -8,7 +8,7 @@
       <p>管理 · 评论与留言</p>
       <h1 id="admin-comments-title">评论管理</h1>
       <p>处理全站缓冲评论，并按文章或留言板查看完整评论树。</p>
-      {% if saved == "deleted" %}<p role="status">评论已终局删除，相关账户已进入通知队列。</p>{% endif %}
+      {% if saved == "deleted" %}{% include "components/feedback/trigger.html" with key="admin-comment-deleted" message="评论已终局删除，相关账户已进入通知队列。" %}{% endif %}
     </header>
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
 

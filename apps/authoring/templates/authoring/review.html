@@ -23,7 +23,7 @@
       </header>
 
       {% if review_restored %}
-        <p class="author-publication__notice" role="status">历史版本已复制为新的工作版本，请完成终稿审查后再发布。</p>
+        {% include "components/feedback/trigger.html" with key="author-review-restored" message="历史版本已复制为新的工作版本，请完成终稿审查后再发布。" %}
       {% endif %}
 
       {% if review_error %}

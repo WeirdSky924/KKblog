@@ -27,6 +27,8 @@ from apps.navigation.public import (
     set_navigation_node_hidden,
 )
 
+from ..presentation.feedback import feedback_count
+
 VALID_CONFIRMATIONS = {"edit", "hide", "show", "delete"}
 EDIT_FORM_PREFIX = "navigation_edit"
 
@@ -216,7 +218,7 @@ def _render(
             ),
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),
-            "deleted_count": request.GET.get("deleted", ""),
+            "deleted_count": feedback_count(request.GET, "deleted"),
         },
         status=status,
     )

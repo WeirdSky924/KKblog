@@ -8,7 +8,7 @@
       <p class="account-kicker">管理 · 账号访问</p>
       <h1 id="invite-title">邀请码</h1>
       <p>生成后只展示一次原码；历史列表只保留尾号、状态和使用记录。</p>
-      {% if saved == "revoked" %}<p class="account-status" role="status">所选邀请码已撤销。</p>{% endif %}
+      {% if saved == "revoked" %}{% include "components/feedback/trigger.html" with key="invite-revoked" message="所选邀请码已撤销。" %}{% endif %}
       {% if error %}<p role="alert" tabindex="-1">{{ error }}</p>{% endif %}
     </header>
 

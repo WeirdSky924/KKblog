@@ -75,9 +75,7 @@
         {% endif %}
 
         {% if editor_conflict_resolved_sequence %}
-          <p class="author-editor-resolution" role="status">
-            已选择版本 {{ editor_conflict_resolved_sequence }} 作为新的编辑基线。
-          </p>
+          <span data-global-feedback data-feedback-key="editor-conflict-resolved" data-feedback-message="已选择版本 {{ editor_conflict_resolved_sequence }} 作为新的编辑基线。" hidden aria-hidden="true"></span>
         {% endif %}
         {% if editor_auto_publish_error %}
           <p class="author-editor-resolution author-editor-resolution--error" role="alert">{{ editor_auto_publish_error }} 请进入终稿审查后重试。</p>

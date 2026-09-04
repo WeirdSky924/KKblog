@@ -62,6 +62,8 @@ from apps.opportunities.public import (
     update_source,
 )
 
+from ..presentation.feedback import feedback_count
+
 TABS = ("reviews", "jobs", "sources", "runs", "settings")
 
 
@@ -304,12 +306,8 @@ def _render(
         "pagination_query": urlencode({"tab": tab}),
         "page_error": page_error,
         "saved": request.GET.get("saved", ""),
-        "saved_count": 0,
+        "saved_count": feedback_count(request.GET, "count"),
     }
-    try:
-        context["saved_count"] = max(0, int(request.GET.get("count", "0")))
-    except (TypeError, ValueError):
-        pass
     if tab == "reviews":
         form = OpportunityPageForm(request.GET)
         context["pagination_query"] = _pagination_query(request, form, tab=tab)

@@ -29,10 +29,10 @@
       </nav>
 
       {% if comment_deleted %}
-        <p class="author-operation-feedback" role="status" tabindex="-1">评论已删除，原位置会显示删除占位。</p>
+        {% include "components/feedback/trigger.html" with key="author-comment-deleted" message="评论已删除，原位置会显示删除占位。" %}
       {% endif %}
       {% if comment_settings_saved %}
-        <p class="author-operation-feedback" role="status" tabindex="-1">评论设置已保存。</p>
+        {% include "components/feedback/trigger.html" with key="author-comment-settings" message="评论设置已保存。" %}
       {% endif %}
 
       {% if comments_tab == "buffer" %}

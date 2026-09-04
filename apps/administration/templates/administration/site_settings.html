@@ -9,12 +9,12 @@
       <p>管理 · 站点结构</p>
       <h1 id="site-settings-title">站点设置</h1>
       <p>品牌、公开页面、可信来源和留言入口共用同一组设置。</p>
-      {% if saved == "configuration" %}<p role="status">站点配置已保存。</p>{% endif %}
-      {% if saved == "email" %}<p role="status">验证码邮件模板已保存。</p>{% endif %}
-      {% if saved == "page" %}<p role="status">公开页面已保存。</p>{% endif %}
-      {% if saved == "friend" %}<p role="status">友情链接已保存。</p>{% endif %}
-      {% if saved == "trusted" %}<p role="status">可信来源设置已保存。</p>{% endif %}
-      {% if saved == "guestbook" %}<p role="status">留言设置已保存。</p>{% endif %}
+      {% if saved == "configuration" %}{% include "components/feedback/trigger.html" with key="site-configuration" message="站点配置已保存。" %}{% endif %}
+      {% if saved == "email" %}{% include "components/feedback/trigger.html" with key="site-email" message="验证码邮件模板已保存。" %}{% endif %}
+      {% if saved == "page" %}{% include "components/feedback/trigger.html" with key="site-page" message="公开页面已保存。" %}{% endif %}
+      {% if saved == "friend" %}{% include "components/feedback/trigger.html" with key="site-friend" message="友情链接已保存。" %}{% endif %}
+      {% if saved == "trusted" %}{% include "components/feedback/trigger.html" with key="site-trusted" message="可信来源设置已保存。" %}{% endif %}
+      {% if saved == "guestbook" %}{% include "components/feedback/trigger.html" with key="site-guestbook" message="留言设置已保存。" %}{% endif %}
     </header>
     {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
 

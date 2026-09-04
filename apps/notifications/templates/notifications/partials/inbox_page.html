@@ -54,7 +54,7 @@
       {% endif %}
     </header>
     {% if notification_all_read %}
-      <p class="notification-inbox__success" role="status">全部通知已标为已读。</p>
+      {% include "components/feedback/trigger.html" with key="notifications-all-read" message="全部通知已标为已读。" %}
     {% endif %}
     {% if notification_page.items %}
       <div id="notification-feed" class="notification-inbox__feed" role="list">
