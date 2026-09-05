@@ -1,0 +1,45 @@
+{% with page_total=page.total_pages page_number=page.page_number page_previous=page.has_previous page_next=page.has_next page_window=page.page_window %}
+  {% if page %}
+    {% with page_param=pagination_page_parameter|default:'page' target=pagination_target|default:'#article-index' no_hx=pagination_no_hx|default:False %}
+      <div class="pagination-bar">
+        <nav class="pagination" aria-label="{{ pagination_label|default:'文章分页' }}">
+          <a
+            class="pagination__direction{% if not page_previous %} pagination__direction--disabled{% endif %}"
+            {% if page_previous %}
+              href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ page_number|add:'-1' }}"
+              {% if not no_hx %}hx-get="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ page_number|add:'-1' }}" hx-target="{{ target }}" hx-swap="outerHTML" hx-push-url="true"{% endif %}
+            {% else %}aria-disabled="true"{% endif %}
+          ><i data-lucide="chevron-left"></i><span>上一页</span></a>
+          <ol>
+            {% if page_window %}
+              {% for number in page_window %}
+                <li>
+                  {% if number %}
+                    <a
+                      href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ number }}"
+                      {% if number == page_number %}aria-current="page"{% elif not no_hx %}hx-get="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ number }}" hx-target="{{ target }}" hx-swap="outerHTML" hx-push-url="true"{% endif %}
+                    >{{ number }}</a>
+                  {% else %}
+                    <span aria-hidden="true">…</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% else %}
+              <li><a aria-current="page">{{ page_number }}</a></li>
+            {% endif %}
+          </ol>
+          <a
+            class="pagination__direction{% if not page_next %} pagination__direction--disabled{% endif %}"
+            {% if page_next %}
+              href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ page_number|add:'1' }}"
+              {% if not no_hx %}hx-get="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}{{ page_param }}={{ page_number|add:'1' }}" hx-target="{{ target }}" hx-swap="outerHTML" hx-push-url="true"{% endif %}
+            {% else %}aria-disabled="true"{% endif %}
+          ><span>下一页</span><i data-lucide="chevron-right"></i></a>
+        </nav>
+        {% if pagination_page_size_options %}
+          {% include "components/navigation/page_size_control.html" %}
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% endif %}
+{% endwith %}

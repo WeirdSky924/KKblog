@@ -41,7 +41,7 @@
           <span class="broadcast-folio" aria-hidden="true">02</span>
           <h2 id="broadcast-index-title">发送记录</h2>
         </div>
-        <p>{{ broadcast_rows|length }} 条最近记录</p>
+          <p>{{ broadcast_page.total_items }} 条记录</p>
       </div>
       {% if query_error %}<p class="broadcast-error" data-error-focus tabindex="-1" role="alert">{{ query_error }}</p>{% endif %}
       {% if broadcast_rows %}
@@ -109,6 +109,7 @@
           <a class="button button--secondary" href="#broadcast-compose">创建第一条通知</a>
         </div>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=broadcast_page pagination_query=broadcast_list_pagination_query pagination_no_hx=True pagination_label="发送记录分页" %}
     </section>
 
     {% if broadcast_detail %}
@@ -166,13 +167,7 @@
               </tbody>
             </table>
           </div>
-          {% if broadcast_detail.recipient_pages > 1 %}
-            <nav class="broadcast-pagination" aria-label="收件回执分页">
-              {% if broadcast_detail.recipient_page > 1 %}<a class="button button--secondary" href="?detail={{ broadcast_detail.notification_id }}&amp;recipient_state={{ recipient_state }}&amp;q={{ recipient_keyword|urlencode }}&amp;page={{ broadcast_detail.recipient_page|add:'-1' }}#broadcast-detail">上一页</a>{% endif %}
-              <span>第 {{ broadcast_detail.recipient_page }} / {{ broadcast_detail.recipient_pages }} 页</span>
-              {% if broadcast_detail.recipient_page < broadcast_detail.recipient_pages %}<a class="button button--secondary" href="?detail={{ broadcast_detail.notification_id }}&amp;recipient_state={{ recipient_state }}&amp;q={{ recipient_keyword|urlencode }}&amp;page={{ broadcast_detail.recipient_page|add:'1' }}#broadcast-detail">下一页</a>{% endif %}
-            </nav>
-          {% endif %}
+          {% include "components/navigation/pagination.html" with index_page=broadcast_detail pagination_query=broadcast_pagination_query pagination_target="#broadcast-detail" pagination_no_hx=True pagination_label="收件回执分页" %}
         {% else %}
           <div class="broadcast-empty"><h3>没有匹配的收件回执</h3><p>调整阅读状态、昵称或邮箱后重新筛选。</p></div>
         {% endif %}

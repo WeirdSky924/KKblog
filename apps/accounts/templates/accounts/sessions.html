@@ -45,6 +45,7 @@
         <a class="button button--primary" href="{% url 'accounts:login' %}">重新登录</a>
       </div>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=session_page pagination_query=session_pagination_query pagination_no_hx=True pagination_label="设备会话分页" %}
 
     <footer id="session-actions" class="session-actions">
       <div>

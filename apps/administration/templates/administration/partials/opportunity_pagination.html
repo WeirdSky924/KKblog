@@ -1,7 +1,1 @@
-{% if page_data and page_data.pages > 1 %}
-  <nav class="opportunity-admin__pagination" aria-label="{{ pagination_label|default:'分页' }}">
-    {% if page_data.page > 1 %}<a class="button button--secondary" href="?{{ pagination_query }}&amp;page={{ page_data.page|add:'-1' }}"><i data-lucide="chevron-left"></i><span>上一页</span></a>{% endif %}
-    <span>第 {{ page_data.page }} / {{ page_data.pages }} 页</span>
-    {% if page_data.page < page_data.pages %}<a class="button button--secondary" href="?{{ pagination_query }}&amp;page={{ page_data.page|add:'1' }}"><span>下一页</span><i data-lucide="chevron-right"></i></a>{% endif %}
-  </nav>
-{% endif %}
+{% include "components/navigation/pagination.html" with index_page=page_data pagination_query=pagination_query pagination_page_parameter="page" pagination_target="#opportunity-admin" pagination_no_hx=True pagination_label=pagination_label %}

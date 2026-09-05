@@ -181,6 +181,8 @@ def _quiz_filter_state(request, *, page_error=""):
         preserved["source"] = request.GET["source"]
     bank_query = request.GET.copy()
     bank_query.pop("bank_id", None)
+    pagination_query = request.GET.copy()
+    pagination_query.pop("page", None)
     clear_url = reverse("learning:quiz-index")
     if preserved:
         clear_url = f"{clear_url}?{urlencode(preserved)}"
@@ -194,6 +196,7 @@ def _quiz_filter_state(request, *, page_error=""):
         "quiz_filter_error": filter_error,
         "quiz_clear_url": clear_url,
         "quiz_bank_query": bank_query.urlencode(),
+        "quiz_pagination_query": pagination_query.urlencode(),
         "quiz_source": request.GET.get("source", QuizAttemptSource.QUESTION_BANK),
         "quiz_previous_query": (
             _quiz_page_query(request, page.page_number - 1) if page.has_previous else ""

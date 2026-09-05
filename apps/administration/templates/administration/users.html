@@ -111,17 +111,7 @@
         </table>
       </div>
 
-      {% if presentation.page.total_pages > 1 %}
-        <nav class="admin-users__pagination" aria-label="用户列表分页">
-          {% if presentation.page.has_previous %}
-            <a href="?q={{ presentation.page.keyword|urlencode }}&amp;status={{ presentation.page.selected_status }}&amp;page={{ presentation.page.page_number|add:'-1' }}">上一页</a>
-          {% endif %}
-          <span>第 {{ presentation.page.page_number }} / {{ presentation.page.total_pages }} 页</span>
-          {% if presentation.page.has_next %}
-            <a href="?q={{ presentation.page.keyword|urlencode }}&amp;status={{ presentation.page.selected_status }}&amp;page={{ presentation.page.page_number|add:'1' }}">下一页</a>
-          {% endif %}
-        </nav>
-      {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=presentation.page pagination_query=pagination_query pagination_target="#user-list" pagination_no_hx=True pagination_label="用户列表分页" %}
     {% else %}
       <div class="admin-users__empty" id="user-list">
         <h2>没有找到匹配账户</h2>

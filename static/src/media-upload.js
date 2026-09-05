@@ -1,5 +1,7 @@
 const ASSET_ID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
-const UPLOAD_TIMEOUT_MS = 60_000;
+// Keep the browser deadline aligned with the reverse proxy's 120-second
+// upstream window. Disk fsync can briefly wait behind a PostgreSQL checkpoint.
+const UPLOAD_TIMEOUT_MS = 120_000;
 
 export class MediaUploadRequestError extends Error {
   constructor(code, message) {

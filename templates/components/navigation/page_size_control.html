@@ -1,0 +1,23 @@
+<form
+  class="page-size-control"
+  action="{{ pagination_page_size_action|default:'' }}"
+  method="get"
+  {% if pagination_page_size_hx %}
+    hx-get="{{ pagination_page_size_action|default:'' }}"
+    hx-target="{{ pagination_page_size_target|default:'#article-index' }}"
+    hx-swap="outerHTML"
+    hx-push-url="true"
+    hx-trigger="change"
+    {% if pagination_page_size_sync %}hx-sync="{{ pagination_page_size_sync }}"{% endif %}
+    {% if pagination_page_size_indicator %}hx-indicator="{{ pagination_page_size_indicator }}"{% endif %}
+  {% endif %}
+>
+  {% for name, value in pagination_page_size_fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  <label for="{{ pagination_page_size_id|default:'pagination-page-size' }}">{{ pagination_page_size_label|default:'每页' }}</label>
+  <select id="{{ pagination_page_size_id|default:'pagination-page-size' }}" name="{{ pagination_page_size_parameter|default:'per_page' }}">
+    {% for value, label in pagination_page_size_options %}
+      <option value="{{ value }}"{% if value == pagination_page_size_value %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <noscript><button class="button button--secondary" type="submit">应用</button></noscript>
+</form>

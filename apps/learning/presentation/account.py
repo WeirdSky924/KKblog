@@ -101,6 +101,8 @@ def _dialog_context(request, *, owner_id: UUID) -> dict[str, object]:
             history = owner_knowledge_document_question_bank_series(
                 owner_id=owner_id,
                 document_id=document_id,
+                page=_page_number(request.GET.get("history_page")),
+                page_size=20,
             )
         except LearningCommandError:
             return {}
@@ -108,6 +110,9 @@ def _dialog_context(request, *, owner_id: UUID) -> dict[str, object]:
             "dialog_kind": dialog,
             "dialog_document": document,
             "dialog_history": history,
+            "dialog_history_pagination_query": urlencode(
+                {"dialog": "history", "document_id": document_id}
+            ),
         }
     if dialog == "series":
         series_id = _uuid(request.GET.get("series_id"))
@@ -218,8 +223,11 @@ def _dialog_context(request, *, owner_id: UUID) -> dict[str, object]:
         "dialog_access_history": owner_document_access_history(
             owner_id=owner_id,
             document_id=document.document_id,
-            page=1,
+            page=_page_number(request.GET.get("access_page")),
             page_size=20,
+        ),
+        "dialog_access_pagination_query": urlencode(
+            {"dialog": "document", "document_id": document.document_id}
         ),
     }
 

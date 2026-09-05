@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.core.paginator import Paginator
 
+from apps.core.pagination import page_window
 from apps.learning.contracts import LearningCommandError
 from apps.learning.models import KnowledgeDocument, KnowledgeDocumentAccess
 
@@ -22,6 +23,10 @@ class OwnerDocumentAccessPage:
     total_items: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 def owner_document_access_history(

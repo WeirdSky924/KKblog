@@ -8,6 +8,7 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 
 from apps.accounts.public import is_administrator
+from apps.core.pagination import page_window
 
 from ..checks.adapters import registered_adapters
 from ..defaults import project_default_filters
@@ -31,6 +32,28 @@ class AdminPage:
     pages: int
     total: int
     page_size: int
+
+    # Compatibility surface for the shared article-index pagination partial.
+    # Existing opportunity callers keep their concise page/pages/total names.
+    @property
+    def page_number(self) -> int:
+        return self.page
+
+    @property
+    def total_pages(self) -> int:
+        return self.pages
+
+    @property
+    def has_previous(self) -> bool:
+        return self.page > 1
+
+    @property
+    def has_next(self) -> bool:
+        return self.page < self.pages
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page, self.pages)
 
 
 @dataclass(frozen=True, slots=True)

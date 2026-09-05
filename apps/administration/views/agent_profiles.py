@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import is_administrator
 from apps.administration.forms.agents import (
@@ -56,11 +57,21 @@ def _profile_form(*, endpoints, data=None, initial=None, key_readonly=False):
     )
 
 
-def _detail(request, profile_id):
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
+def _detail(request, profile_id, *, revision_id=None):
     try:
         return agent_profile_prompt_admin_detail(
             actor_id=request.account_id,
             profile_id=profile_id,
+            page=_page_number(request.GET.get("prompt_page")),
+            page_size=20,
+            revision_id=revision_id,
         )
     except LookupError:
         raise Http404 from None
@@ -87,7 +98,11 @@ def _dialog_from_query(request, profiles, endpoints):
             ),
             None,
         )
-    detail = _detail(request, item.profile_id)
+    detail = _detail(
+        request,
+        item.profile_id,
+        revision_id=request.GET.get("revision_id") if kind == "prompt-switch" else None,
+    )
     if kind == "prompt-edit":
         current_source = next(
             (row.markdown_source for row in detail.revisions if row.is_current), ""
@@ -154,6 +169,16 @@ def _render(
             "dialog_profile": dialog_profile,
             "dialog_form": dialog_form,
             "prompt_detail": prompt_detail,
+            "prompt_pagination_query": (
+                urlencode(
+                    {
+                        "dialog": "prompt-edit",
+                        "profile_id": prompt_detail.profile.profile_id,
+                    }
+                )
+                if prompt_detail is not None
+                else ""
+            ),
             "prompt_preview_html": prompt_preview_html,
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),

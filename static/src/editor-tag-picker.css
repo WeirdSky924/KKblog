@@ -56,6 +56,11 @@
   color: var(--text-secondary);
 }
 
+.author-editor-form .author-tag-picker__trigger {
+  height: 3rem;
+  min-height: 3rem;
+}
+
 .author-tag-picker {
   width: min(42rem, calc(100vw - 2rem));
   max-width: none;

@@ -3,8 +3,10 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from django.core.paginator import Paginator
 from django.db.models import Q
 
+from apps.core.pagination import PageSlice
 from apps.operations.models import RuntimeError as RuntimeErrorRecord
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -75,11 +77,17 @@ def search_runtime_errors(
     end: date | None = None,
     is_admin: bool,
     limit: int = 100,
-) -> list[RuntimeErrorListItem]:
+    page: int | None = None,
+    page_size: int = 20,
+) -> list[RuntimeErrorListItem] | PageSlice[RuntimeErrorListItem]:
     if not is_admin:
         raise PermissionError("Runtime-error access denied")
     if not 1 <= limit <= 200:
         raise ValueError("Invalid runtime-error query limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid runtime-error page")
     queryset = RuntimeErrorRecord.objects.all()
     if trace_code:
         queryset = queryset.filter(occurrences__trace_code=trace_code.strip()[:30])
@@ -98,7 +106,20 @@ def search_runtime_errors(
         queryset = queryset.filter(occurrences__occurred_at__gte=lower)
     if upper:
         queryset = queryset.filter(occurrences__occurred_at__lt=upper)
-    return [_list_item(row) for row in queryset.distinct()[:limit]]
+    ordered = queryset.distinct().order_by("-last_seen_at", "-id")
+    if page is None:
+        return [_list_item(row) for row in ordered[:limit]]
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(_list_item(row) for row in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def error_detail(*, error_id: str, is_admin: bool) -> RuntimeErrorDetail | None:

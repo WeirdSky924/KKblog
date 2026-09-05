@@ -10,7 +10,7 @@ from django.db.models import Count, Q
 from apps.accounts.public import is_active_author
 from apps.core.time.clock import Clock, SystemClock
 
-from ..models import Article
+from ..models import Article, ArticleTombstone
 from ..policies import article_is_reader_masked, author_is_content_masked
 from .access import ArticleNotFound
 
@@ -159,7 +159,12 @@ def _selected(queryset, state: str):
     return selected.order_by("-updated_at", "-id")
 
 
-def _item(article: Article, state: str) -> AuthorArticleItem:
+def _item(
+    article: Article,
+    state: str,
+    *,
+    restorable_deleted_ids: set[str] | None = None,
+) -> AuthorArticleItem:
     revision = article.working_revision
     if revision is None:
         raise RuntimeError("author article is missing its working revision")
@@ -187,7 +192,12 @@ def _item(article: Article, state: str) -> AuthorArticleItem:
         ),
         can_edit=editable,
         can_review=editable,
-        can_restore=state == "DELETED" and not masked,
+        can_restore=(
+            state == "DELETED"
+            and not masked
+            and restorable_deleted_ids is not None
+            and article.id in restorable_deleted_ids
+        ),
         can_delete=editable,
     )
 
@@ -213,8 +223,25 @@ def author_article_page(
     counts = _counts(owned)
     paginator = Paginator(_selected(owned, selected_state), page_size)
     selected = paginator.get_page(_page_number(page))
+    selected_articles = tuple(selected.object_list)
+    restorable_deleted_ids = None
+    if selected_state == "DELETED":
+        restorable_deleted_ids = set(
+            ArticleTombstone.objects.filter(
+                article_id__in=[article.id for article in selected_articles],
+                purged_at__isnull=True,
+                administrative=False,
+            ).values_list("article_id", flat=True)
+        )
     return AuthorArticlePage(
-        items=tuple(_item(article, selected_state) for article in selected.object_list),
+        items=tuple(
+            _item(
+                article,
+                selected_state,
+                restorable_deleted_ids=restorable_deleted_ids,
+            )
+            for article in selected_articles
+        ),
         selected_state=selected_state,
         counts=counts,
         page_number=selected.number,

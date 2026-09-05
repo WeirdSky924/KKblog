@@ -54,7 +54,7 @@
           <span aria-hidden="true">02</span>
           <h2 id="export-history-title">导出记录</h2>
         </div>
-        <p>{{ export_jobs|length }} 条最近记录</p>
+        <p>{{ export_page.total_items }} 条记录</p>
       </div>
       {% if export_jobs %}
         <div class="admin-operations__table-wrap" tabindex="0" aria-label="导出任务记录">
@@ -104,6 +104,7 @@
       {% else %}
         <p class="admin-operations__empty">还没有导出记录。</p>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=export_page pagination_query=pagination_query pagination_no_hx=True pagination_label="导出记录分页" %}
     </section>
 
     <section class="admin-operations__section" aria-labelledby="backup-history-title">
@@ -139,6 +140,7 @@
       {% else %}
         <p class="admin-operations__empty">还没有备份记录。</p>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=backup_page pagination_query=backup_pagination_query pagination_page_parameter="backup_page" pagination_no_hx=True pagination_label="备份记录分页" %}
     </section>
   </section>
 

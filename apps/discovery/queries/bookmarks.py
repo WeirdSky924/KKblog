@@ -7,11 +7,12 @@ from django.templatetags.static import static
 
 from apps.comments.public import article_comment_counts
 from apps.content.public import visible_articles_by_ids
+from apps.core.pagination import page_window
 from apps.core.time import to_shanghai
 
 from ..models import Bookmark
 from ..profile_identity import resolve_profile_identities
-from .home import ArticleIndexItem, article_index_item, page_window
+from .home import ArticleIndexItem, article_index_item
 from .like_counts import article_like_counts
 from .view_counts import article_view_counts
 

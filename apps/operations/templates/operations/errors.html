@@ -46,6 +46,7 @@
     {% elif not error %}
       <p>当前没有符合条件的运行错误。</p>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=error_page pagination_query=pagination_query pagination_no_hx=True pagination_label="运行错误分页" %}
 
     {% if detail %}
       <aside class="space-y-3" aria-labelledby="runtime-error-detail-title">

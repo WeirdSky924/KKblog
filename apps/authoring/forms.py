@@ -127,6 +127,21 @@ class ArticleDeleteForm(forms.Form):
     return_page = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
 
 
+class ArticleRestoreForm(forms.Form):
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("restore", "确认恢复文章"),),
+        widget=forms.HiddenInput,
+    )
+    return_state = forms.ChoiceField(
+        choices=tuple(
+            (state, state) for state in ("PUBLISHED", "DRAFT", "SCHEDULED", "DELETED")
+        ),
+        widget=forms.HiddenInput,
+    )
+    return_page = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+
+
 class EditConflictResolutionForm(forms.Form):
     conflict_token = forms.CharField(max_length=128, widget=forms.HiddenInput)
     local_baseline_revision_id = forms.CharField(

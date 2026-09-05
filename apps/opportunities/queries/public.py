@@ -3,7 +3,19 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core.paginator import Paginator
-from django.db.models import Case, Count, F, IntegerField, Prefetch, Q, When
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    When,
+)
+
+from apps.core.pagination import page_window
 
 from ..defaults import project_default_filters
 from ..models import (
@@ -183,10 +195,7 @@ def _page(source, *, page: int, page_size: int):
     size = page_size if page_size in PAGE_SIZES else 20
     number = page if isinstance(page, int) and page >= 1 else 1
     result = Paginator(source, size).get_page(number)
-    window = tuple(
-        result.paginator.get_elided_page_range(result.number, on_each_side=1, on_ends=1)
-    )
-    return result, tuple(None if not isinstance(item, int) else item for item in window)
+    return result, page_window(result.number, result.paginator.num_pages)
 
 
 def _actor(value) -> UUID | None:
@@ -196,37 +205,43 @@ def _actor(value) -> UUID | None:
         return None
 
 
+def _assignment_exists(
+    *,
+    kind: str,
+    values=(),
+    term: str | None = None,
+    override_field: str | None = None,
+):
+    filters = {
+        "opportunity_id": OuterRef("pk"),
+        "option__kind": kind,
+    }
+    if values:
+        filters["option_id__in"] = values
+    if term:
+        filters["option__label__icontains"] = term
+    assignments = OpportunityFilterAssignment.objects.filter(**filters)
+    if override_field:
+        assignments = assignments.filter(
+            Q(**{f"opportunity__{override_field}": False})
+            | Q(origin=OpportunityFilterAssignment.Origin.MANUAL)
+        )
+    return Exists(assignments)
+
+
 def _effective_assignment(values, *, kind: str, override_field: str) -> Q:
-    return Q(
-        **{
-            f"{override_field}": False,
-            "filter_assignments__option_id__in": values,
-            "filter_assignments__option__kind": kind,
-        }
-    ) | Q(
-        **{
-            f"{override_field}": True,
-            "filter_assignments__option_id__in": values,
-            "filter_assignments__option__kind": kind,
-            "filter_assignments__origin": OpportunityFilterAssignment.Origin.MANUAL,
-        }
+    return _assignment_exists(
+        kind=kind,
+        values=values,
+        override_field=override_field,
     )
 
 
 def _effective_label_search(term: str, *, kind: str, override_field: str) -> Q:
-    return Q(
-        **{
-            override_field: False,
-            "filter_assignments__option__kind": kind,
-            "filter_assignments__option__label__icontains": term,
-        }
-    ) | Q(
-        **{
-            override_field: True,
-            "filter_assignments__option__kind": kind,
-            "filter_assignments__option__label__icontains": term,
-            "filter_assignments__origin": OpportunityFilterAssignment.Origin.MANUAL,
-        }
+    return _assignment_exists(
+        kind=kind,
+        term=term,
+        override_field=override_field,
     )
 
 
@@ -327,9 +342,7 @@ def public_opportunities(
             "id",
         )
     )
-    result, window = _page(
-        rows.distinct().order_by(*ordering), page=page, page_size=page_size
-    )
+    result, window = _page(rows.order_by(*ordering), page=page, page_size=page_size)
     return PublicOpportunityPage(
         tuple(_item(row, bookmarked_ids) for row in result.object_list),
         result.number,

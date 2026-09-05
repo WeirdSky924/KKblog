@@ -46,7 +46,7 @@
             </article>
           {% endfor %}
         </div>
-        {% if bank_page.total_pages > 1 %}<nav class="knowledge-pagination" aria-label="公开题库分页">{% if bank_page.has_previous %}<a href="?{{ previous_query }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}<span>第 {{ bank_page.page_number }} / {{ bank_page.total_pages }} 页</span>{% if bank_page.has_next %}<a href="?{{ next_query }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}</nav>{% endif %}
+        {% include "components/navigation/pagination.html" with index_page=bank_page pagination_query=question_bank_pagination_query pagination_no_hx=True pagination_label="公开题库分页" %}
       {% else %}
         <div class="knowledge-empty"><i data-lucide="list-tree"></i><h3>没有符合条件的题库</h3></div>
       {% endif %}

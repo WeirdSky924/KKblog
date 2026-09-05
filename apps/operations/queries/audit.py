@@ -3,8 +3,10 @@ from datetime import UTC, date, datetime, time, timedelta
 from ipaddress import ip_address
 from zoneinfo import ZoneInfo
 
+from django.core.paginator import Paginator
 from django.db.models import Q
 
+from apps.core.pagination import PageSlice
 from apps.operations.models import AuditEntry
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -61,11 +63,17 @@ def search_audit(
     end: date | None = None,
     is_admin: bool,
     limit: int = 100,
-) -> list[AuditListItem]:
+    page: int | None = None,
+    page_size: int = 20,
+) -> list[AuditListItem] | PageSlice[AuditListItem]:
     if not is_admin:
         raise PermissionError("Audit access denied")
     if not 1 <= limit <= 200:
         raise ValueError("Invalid audit query limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid audit page")
     queryset = AuditEntry.objects.all()
     if keyword:
         term = keyword.strip()[:100]
@@ -86,8 +94,10 @@ def search_audit(
         queryset = queryset.filter(created_at__gte=lower)
     if upper:
         queryset = queryset.filter(created_at__lt=upper)
-    return [
-        AuditListItem(
+    ordered = queryset.order_by("-created_at", "-id")
+
+    def item(row):
+        return AuditListItem(
             id=row.id,
             trace_code=row.trace_code,
             actor_id=str(row.actor_id),
@@ -98,8 +108,20 @@ def search_audit(
             summary=row.summary,
             created_at=row.created_at,
         )
-        for row in queryset[:limit]
-    ]
+
+    if page is None:
+        return [item(row) for row in ordered[:limit]]
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(item(row) for row in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def audit_detail(*, entry_id: str, is_admin: bool) -> AuditDetail:

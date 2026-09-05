@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 
 from apps.accounts.public import is_active_account
+from apps.core.pagination import page_window
 from apps.learning.contracts import (
     LearningCommandError,
     QuestionType,
@@ -108,6 +109,10 @@ class QuizAttemptPage:
     total_items: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 def _owner(account_id) -> UUID:

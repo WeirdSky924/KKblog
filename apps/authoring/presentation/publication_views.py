@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.core import signing
 from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
@@ -28,6 +30,13 @@ from .access import author_id_or_response, private_response
 
 _RECEIPT_SALT = "kaj.authoring.publication-result.v1"
 _RECEIPT_MAX_AGE = 10 * 60
+
+
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
 
 
 def _article(actor_id, article_id):
@@ -279,20 +288,46 @@ def cancel_article_schedule(request, article_id: str):
 
 
 def _versions_context(
-    *, actor_id, article_id: str, selected_id: str = "", restore_error: str = ""
+    *,
+    actor_id,
+    article_id: str,
+    selected_id: str = "",
+    page: int = 1,
+    restore_error: str = "",
 ):
     article = _article(actor_id, article_id)
     try:
-        timeline = revision_timeline(actor_id=actor_id, article_id=article_id)
+        timeline = revision_timeline(
+            actor_id=actor_id,
+            article_id=article_id,
+            page=page,
+            page_size=20,
+        )
     except ArticleNotFound:
         raise Http404 from None
-    rows = version_rows(timeline)
+    rows = version_rows(timeline.items)
     selected = None
     restore_form = None
     if selected_id:
         row = next((item for item in rows if item.revision_id == selected_id), None)
         if row is None:
-            raise Http404
+            try:
+                full_timeline = revision_timeline(
+                    actor_id=actor_id,
+                    article_id=article_id,
+                )
+            except ArticleNotFound:
+                raise Http404 from None
+            row = next(
+                (
+                    item
+                    for item in version_rows(full_timeline)
+                    if item.revision_id == selected_id
+                ),
+                None,
+            )
+            if row is None:
+                raise Http404
         try:
             source = prepare_restore_revision(
                 actor_id=actor_id,
@@ -313,6 +348,8 @@ def _versions_context(
     return {
         "article": article,
         "versions": rows,
+        "version_page": timeline,
+        "pagination_query": urlencode({"revision": selected_id}) if selected_id else "",
         "selected_version": selected,
         "restore_form": restore_form,
         "restore_error": restore_error,
@@ -334,6 +371,7 @@ def versions(request, article_id: str):
                 actor_id=actor_id,
                 article_id=article_id,
                 selected_id=request.GET.get("revision", ""),
+                page=_page_number(request.GET.get("page")),
             ),
         )
     )

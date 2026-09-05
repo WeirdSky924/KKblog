@@ -21,7 +21,7 @@
           ><i data-lucide="sliders-horizontal" aria-hidden="true"></i><span>配置答题</span></a>
         </article>
       {% empty %}<p class="quiz-empty">当前条件下没有可答题库。</p>{% endfor %}
-      {% if bank_page.total_pages > 1 %}<nav class="quiz-pagination" aria-label="题库分页">{% if bank_page.has_previous %}<a href="?{{ quiz_previous_query }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}<span>第 {{ bank_page.page_number }} / {{ bank_page.total_pages }} 页</span>{% if bank_page.has_next %}<a href="?{{ quiz_next_query }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}</nav>{% endif %}
+      {% include "components/navigation/pagination.html" with index_page=bank_page pagination_query=quiz_pagination_query pagination_target="#quiz-workspace" pagination_label="题库分页" %}
     </section>
     {% include "learning/partials/quiz_config.html" %}
   </div>

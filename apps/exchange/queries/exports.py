@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice
 
 from ..models import ExportJob
 
@@ -69,17 +71,36 @@ def _item(job: ExportJob, *, now: datetime) -> ExportJobItem:
 
 
 def export_job_records(
-    *, actor_id, is_admin: bool, limit: int = 100
-) -> tuple[ExportJobItem, ...]:
+    *,
+    actor_id,
+    is_admin: bool,
+    limit: int = 100,
+    page: int | None = None,
+    page_size: int = 20,
+) -> tuple[ExportJobItem, ...] | PageSlice[ExportJobItem]:
     actor = _actor(actor_id, is_admin=is_admin)
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
         raise ValueError("Invalid export job limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid export job page")
     now = timezone.now()
-    return tuple(
-        _item(job, now=now)
-        for job in ExportJob.objects.filter(requested_by_id=actor).order_by(
-            "-created_at", "-id"
-        )[:limit]
+    ordered = ExportJob.objects.filter(requested_by_id=actor).order_by(
+        "-created_at", "-id"
+    )
+    if page is None:
+        return tuple(_item(job, now=now) for job in ordered[:limit])
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(_item(job, now=now) for job in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )
 
 

@@ -37,6 +37,7 @@
     {% else %}
       <p>当前没有符合条件的审计记录。</p>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=audit_page pagination_query=pagination_query pagination_no_hx=True pagination_label="审计记录分页" %}
     {% if detail %}
       <aside aria-labelledby="audit-detail-title" class="space-y-3">
         <h2 id="audit-detail-title">审计详情</h2>

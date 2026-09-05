@@ -161,6 +161,7 @@ def article_case_list(
     actor_id,
     state: str = "",
     limit: int = 100,
+    article_ids: tuple[str, ...] | None = None,
     account_policy: ModerationAccountPolicy | None = None,
 ) -> tuple[ArticleCaseListItem, ...]:
     accounts = account_policy or default_moderation_account_policy()
@@ -174,6 +175,14 @@ def article_case_list(
     queryset = ArticleModerationCase.objects.select_related("appeal")
     if state:
         queryset = queryset.filter(state=state)
+    if article_ids is not None:
+        try:
+            normalized_article_ids = tuple(
+                dict.fromkeys(normalize_ulid(value) for value in article_ids)
+            )
+        except (TypeError, ValueError):
+            raise ValueError("Invalid article moderation case article ids") from None
+        queryset = queryset.filter(article_id__in=normalized_article_ids)
     rows = list(queryset.order_by("-created_at", "-id")[:limit])
     deleted = {
         row.account_id: row

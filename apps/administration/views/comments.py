@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import is_administrator
 from apps.administration.forms.moderation import CommentDeletionConfirmationForm
@@ -22,6 +23,13 @@ from apps.comments.public import (
 from apps.content.public import admin_article_titles
 
 VALID_TABS = {"buffered", "threads"}
+
+
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
 
 
 def _comment(request: HttpRequest, comment_id: str):
@@ -59,11 +67,32 @@ def _render(
         tab = "buffered"
         page_error = "评论管理视图无效。"
         status = 422
+    selected_type = request.GET.get("target_type", "")
+    selected_id = request.GET.get("target_id", "")
     try:
-        workspace = admin_comment_workspace(actor_id=request.account_id)
-        article_ids = tuple(
-            row.target_id for row in workspace.threads if row.target_type == "ARTICLE"
+        workspace = admin_comment_workspace(
+            actor_id=request.account_id,
+            buffered_page=(
+                _page_number(request.GET.get("buffered_page"))
+                if tab == "buffered"
+                else None
+            ),
+            thread_page=(
+                _page_number(request.GET.get("thread_page"))
+                if tab == "threads"
+                else None
+            ),
+            page_size=20,
+            include_buffered=tab == "buffered",
+            include_threads=tab == "threads",
         )
+        article_ids = tuple(
+            row.target_id
+            for row in (*workspace.buffered_items, *workspace.threads)
+            if row.target_type == "ARTICLE"
+        )
+        if selected_type == "ARTICLE" and selected_id:
+            article_ids = (*article_ids, selected_id)
         articles = admin_article_titles(
             actor_id=request.account_id,
             article_ids=article_ids,
@@ -77,8 +106,6 @@ def _render(
         articles = ()
     titles = article_title_map(articles)
 
-    selected_type = request.GET.get("target_type", "")
-    selected_id = request.GET.get("target_id", "")
     comments = ()
     if selected_type or selected_id:
         if not selected_type or not selected_id:
@@ -88,6 +115,8 @@ def _render(
                 actor_id=request.account_id,
                 target_type=selected_type,
                 target_id=selected_id,
+                page=_page_number(request.GET.get("target_page")),
+                page_size=20,
             )
         except AdminCommentNotFound:
             raise Http404 from None
@@ -99,6 +128,7 @@ def _render(
 
     buffered = workspace.buffered_items if workspace is not None else ()
     threads = workspace.threads if workspace is not None else ()
+    comment_page = comments if hasattr(comments, "items") else None
     return_url = f"{reverse('admin:comments')}?tab={tab}#comment-workspace"
     response = render(
         request,
@@ -114,9 +144,23 @@ def _render(
                 titles=titles,
             ),
             "comment_rows": admin_comment_rows(
-                comments=comments,
+                comments=comment_page.items if comment_page is not None else comments,
                 titles=titles,
             ),
+            "buffered_page": workspace.buffered_page if workspace is not None else None,
+            "thread_page": workspace.thread_page if workspace is not None else None,
+            "comment_page": comment_page,
+            "buffered_pagination_query": "tab=buffered",
+            "thread_pagination_query": "tab=threads",
+            "comment_pagination_query": urlencode(
+                {
+                    "tab": "threads",
+                    "target_type": selected_type,
+                    "target_id": selected_id,
+                }
+            )
+            if selected_type and selected_id
+            else "",
             "selected_type": selected_type,
             "selected_id": selected_id,
             "selected_label": (

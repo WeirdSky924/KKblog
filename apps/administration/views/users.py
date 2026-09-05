@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import (
     AccountAdministrationQueryError,
@@ -223,6 +224,7 @@ def _render(
         {
             "presentation": presentation,
             "filter_form": filter_form,
+            "pagination_query": urlencode({"q": keyword, "status": selected_status}),
             "confirmation_kind": confirmation_kind,
             "confirmation_target": confirmation_target,
             "confirmation_form": confirmation_form,

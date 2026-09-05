@@ -306,7 +306,8 @@ def _task_final_failure(payload: Mapping[str, object]) -> None:
         isinstance(payload["task_name"], str)
         and _TASK_NAME.fullmatch(payload["task_name"])
         and not isinstance(attempt, bool)
-        and attempt == 3
+        and isinstance(attempt, int)
+        and 1 <= attempt <= 3
         and isinstance(payload["error_code"], str)
         and _ERROR_CODE.fullmatch(payload["error_code"])
     )
@@ -658,7 +659,7 @@ _BUILTINS = (
             "task.final_failed.v1",
             "后台任务最终失败",
             lambda payload: (
-                f"任务 {payload['task_name']} 已在第 3 次尝试后终止，"
+                f"任务 {payload['task_name']} 已在第 {payload['attempt']} 次尝试后终止，"
                 f"错误码：{payload['error_code']}。"
             ),
         ),

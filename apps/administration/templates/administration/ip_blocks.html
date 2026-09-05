@@ -95,6 +95,7 @@
           <p>{% if keyword %}没有找到匹配项，可以调整搜索条件。{% else %}新增封禁后会在这里显示掩码地址和创建时间。{% endif %}</p>
         </div>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=block_page pagination_query=pagination_query pagination_no_hx=True pagination_label="IP 封禁分页" %}
     </section>
 
     {% if detail %}

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from django.core.paginator import Paginator
+
+from apps.core.pagination import PageSlice
 from apps.operations.models import BackupRecord
 
 
@@ -23,13 +26,24 @@ class BackupRecordItem:
     restore_verified: bool = False
 
 
-def backup_records(*, is_admin: bool, limit: int = 100) -> tuple[BackupRecordItem, ...]:
+def backup_records(
+    *,
+    is_admin: bool,
+    limit: int = 100,
+    page: int | None = None,
+    page_size: int = 20,
+) -> tuple[BackupRecordItem, ...] | PageSlice[BackupRecordItem]:
     if not is_admin:
         raise PermissionError("Backup record access denied")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
         raise ValueError("Backup record limit is invalid")
-    return tuple(
-        BackupRecordItem(
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Backup record page is invalid")
+
+    def item(record: BackupRecord) -> BackupRecordItem:
+        return BackupRecordItem(
             backup_id=record.id,
             week_id=record.week_id,
             destination=record.destination,
@@ -43,5 +57,18 @@ def backup_records(*, is_admin: bool, limit: int = 100) -> tuple[BackupRecordIte
             media_file_count=record.media_file_count,
             error_code=record.error_code,
         )
-        for record in BackupRecord.objects.order_by("-started_at", "-id")[:limit]
+
+    ordered = BackupRecord.objects.order_by("-started_at", "-id")
+    if page is None:
+        return tuple(item(record) for record in ordered[:limit])
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(item(record) for record in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )

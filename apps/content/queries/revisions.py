@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db.models import Q
 
 from apps.accounts.public import is_active_author
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice
 from apps.core.time.clock import Clock, SystemClock
 
 from ..block_changes import BlockChangeSummary, project_article_block_changes
@@ -33,7 +35,9 @@ def revision_timeline(
     actor_id,
     article_id: str,
     clock: Clock | None = None,
-) -> tuple[RevisionTimelineItem, ...]:
+    page: int | None = None,
+    page_size: int = 20,
+) -> tuple[RevisionTimelineItem, ...] | PageSlice[RevisionTimelineItem]:
     try:
         actor = UUID(str(actor_id))
         identity = normalize_ulid(article_id)
@@ -50,8 +54,14 @@ def revision_timeline(
         )
     except Article.DoesNotExist:
         raise ArticleNotFound from None
-    return tuple(
-        RevisionTimelineItem(
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("revision page is invalid")
+    ordered = ArticleRevision.objects.filter(article=article).order_by("-sequence")
+
+    def item(revision: ArticleRevision) -> RevisionTimelineItem:
+        return RevisionTimelineItem(
             revision.id,
             revision.sequence,
             revision.created_at,
@@ -63,9 +73,19 @@ def revision_timeline(
             revision.id == article.published_revision_id,
             revision.id == article.scheduled_revision_id,
         )
-        for revision in ArticleRevision.objects.filter(article=article).order_by(
-            "-sequence"
-        )
+
+    if page is None:
+        return tuple(item(revision) for revision in ordered)
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(item(revision) for revision in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )
 
 

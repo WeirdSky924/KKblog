@@ -63,4 +63,4 @@ COPY manage.py ./manage.py
 COPY --from=frontend --chown=kaj:kaj /build/static/dist ./static/dist
 USER 10001:10001
 EXPOSE 8000
-CMD ["gunicorn", "--bind=0.0.0.0:8000", "--no-control-socket", "config.wsgi:application"]
+CMD ["gunicorn", "--bind=0.0.0.0:8000", "--timeout=120", "--no-control-socket", "config.wsgi:application"]

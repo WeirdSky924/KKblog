@@ -39,6 +39,13 @@ from ..presentation.feedback import learning_batch_feedback
 logger = logging.getLogger("kaj.administration.learning")
 
 
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
 def _meta(request: HttpRequest) -> dict[str, str]:
     return {
         "trace_code": getattr(request, "trace_code", ""),
@@ -53,6 +60,8 @@ def _filter_query(request: HttpRequest) -> str:
         "dialog",
         "document_id",
         "appeal_id",
+        "access_page",
+        "appeal_page",
         "batch_action",
         "selected",
         "batch_type",
@@ -121,7 +130,7 @@ def _render(
         else admin_learning_appeal_page(
             actor_id=request.account_id,
             state="PENDING",
-            page=1,
+            page=_page_number(request.GET.get("appeal_page")),
             page_size=20,
         )
     )
@@ -143,6 +152,16 @@ def _render(
             "appeal_form": appeal_form,
             "document_detail": document_detail,
             "document_html": document_html,
+            "document_access_pagination_query": (
+                urlencode(
+                    {
+                        "dialog": "document",
+                        "document_id": document_detail.item.document_id,
+                    }
+                )
+                if document_detail is not None
+                else ""
+            ),
             "page_error": page_error,
             "saved": effective_saved,
             "batch_feedback": learning_batch_feedback(
@@ -150,6 +169,7 @@ def _render(
                 saved=effective_saved,
             ),
             "filter_query": _filter_query(request),
+            "appeal_pagination_query": _filter_query(request),
         },
         status=status,
     )
@@ -167,6 +187,8 @@ def _read_document(request: HttpRequest, document_id):
     detail = admin_learning_document_detail(
         actor_id=request.account_id,
         document_id=identity,
+        page=_page_number(request.GET.get("access_page")),
+        page_size=20,
     )
     text = read_knowledge_document_text(
         actor_id=request.account_id,

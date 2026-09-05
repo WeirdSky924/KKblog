@@ -22,16 +22,23 @@ def runtime_errors(request: HttpRequest) -> HttpResponse:
     trace_code = request.GET.get("trace", "").strip()
     error = ""
     try:
-        rows = search_runtime_errors(
+        page_number = max(1, int(request.GET.get("page", "1")))
+    except (TypeError, ValueError):
+        page_number = 1
+        error = "分页条件无效，请检查后重试。"
+    try:
+        error_page = search_runtime_errors(
             trace_code=trace_code,
             error_code=request.GET.get("error_code", ""),
             keyword=request.GET.get("q", ""),
             start=_date(request.GET.get("start", "")),
             end=_date(request.GET.get("end", "")),
             is_admin=True,
+            page=page_number,
+            page_size=20,
         )
     except ValueError:
-        rows = []
+        error_page = search_runtime_errors(is_admin=True, page=1, page_size=20)
         error = "日期范围无效，请检查后重试。"
 
     detail = None
@@ -45,7 +52,9 @@ def runtime_errors(request: HttpRequest) -> HttpResponse:
         request,
         "operations/errors.html",
         {
-            "rows": rows,
+            "rows": error_page.items,
+            "error_page": error_page,
+            "pagination_query": _pagination_query(request),
             "detail": detail,
             "detail_missing": detail_missing,
             "error": error,
@@ -53,3 +62,9 @@ def runtime_errors(request: HttpRequest) -> HttpResponse:
         },
         status=422 if error else 200,
     )
+
+
+def _pagination_query(request):
+    values = request.GET.copy()
+    values.pop("page", None)
+    return values.urlencode()

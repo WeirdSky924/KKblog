@@ -68,6 +68,7 @@
     {% else %}
       <div id="section-list" class="admin-queue__empty"><h2>当前没有文章分区</h2><p>使用上方表单建立首个分区；文章发布前必须选择分区。</p></div>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=section_page pagination_query=pagination_query pagination_no_hx=True pagination_label="分区分页" %}
 
     <aside class="admin-queue__detail" aria-labelledby="unknown-section-title">
       <header><p>删除语义</p><h2 id="unknown-section-title">未知分区不是可管理分区</h2></header>

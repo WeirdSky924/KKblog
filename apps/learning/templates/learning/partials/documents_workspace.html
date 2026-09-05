@@ -117,13 +117,7 @@
           </article>
         {% endfor %}
       </div>
-      {% if knowledge_page.total_pages > 1 %}
-        <nav class="knowledge-pagination" aria-label="知识文档分页">
-          {% if knowledge_page.has_previous %}<a href="?page={{ knowledge_page.page_number|add:'-1' }}">上一页</a>{% else %}<span aria-disabled="true">上一页</span>{% endif %}
-          <span>第 {{ knowledge_page.page_number }} / {{ knowledge_page.total_pages }} 页</span>
-          {% if knowledge_page.has_next %}<a href="?page={{ knowledge_page.page_number|add:'1' }}">下一页</a>{% else %}<span aria-disabled="true">下一页</span>{% endif %}
-        </nav>
-      {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=knowledge_page pagination_target="#knowledge-workspace" pagination_no_hx=True pagination_label="知识文档分页" %}
     {% else %}
       <div class="knowledge-empty"><i data-lucide="file-text"></i><h3>暂无知识文档</h3></div>
     {% endif %}
@@ -135,7 +129,7 @@
         <header><div><p>知识文档</p><h2 id="knowledge-detail-title">{{ dialog_document.title|default:"文档详情" }}</h2></div><button class="icon-button" type="button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
         <dl class="knowledge-detail-facts"><div><dt>状态</dt><dd>{% if dialog_document.state == "REVIEW_PENDING" %}等待审核{% elif dialog_document.state == "REVIEWING" %}审核中{% elif dialog_document.state == "APPROVED" %}已通过{% elif dialog_document.state == "REJECTED" %}未通过{% elif dialog_document.state == "REVIEW_FAILED" %}审核失败{% else %}不可用{% endif %}</dd></div><div><dt>文件名</dt><dd>{{ dialog_document.original_name }}</dd></div><div><dt>字符</dt><dd>{{ dialog_document.character_count }}</dd></div></dl>
         {% if dialog_content_html %}<div class="article-prose knowledge-source">{{ dialog_content_html|safe }}</div>{% else %}<p>文档内容当前不可读取。</p>{% endif %}
-        {% if dialog_access_history.items %}<section><h3>管理员访问记录</h3><ol class="knowledge-access-list">{% for access in dialog_access_history.items %}<li><time datetime="{{ access.accessed_at|date:'c' }}">{{ access.accessed_at|date:"Y-m-d H:i" }}</time><span>{{ access.purpose }}</span></li>{% endfor %}</ol></section>{% endif %}
+        {% if dialog_access_history.items %}<section><h3>管理员访问记录</h3><ol class="knowledge-access-list">{% for access in dialog_access_history.items %}<li><time datetime="{{ access.accessed_at|date:'c' }}">{{ access.accessed_at|date:"Y-m-d H:i" }}</time><span>{{ access.purpose }}</span></li>{% endfor %}</ol>{% include "components/navigation/pagination.html" with index_page=dialog_access_history pagination_query=dialog_access_pagination_query pagination_page_parameter="access_page" pagination_no_hx=True pagination_label="访问记录分页" %}</section>{% endif %}
         <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
       </div>
     </dialog>
@@ -148,9 +142,9 @@
         </header>
         <div class="knowledge-dialog__scroll">
           <p class="knowledge-history__intro">本页只展示这份文档创建过的题库记录，其他文档的生成状态不会混入。</p>
-          {% if dialog_history %}
+          {% if dialog_history.items %}
             <section class="knowledge-generations knowledge-generations--dialog" aria-label="题库生成记录">
-              {% for series in dialog_history %}
+              {% for series in dialog_history.items %}
                 <article class="knowledge-generation knowledge-generation--{{ series.state|lower }}">
                   <header>
                     <div>
@@ -191,6 +185,7 @@
           {% else %}
             <div class="knowledge-history__empty"><i data-lucide="history"></i><h3>暂无生成记录</h3><p>在这份文档上生成题库后，记录会显示在这里。</p></div>
           {% endif %}
+          {% include "components/navigation/pagination.html" with index_page=dialog_history pagination_query=dialog_history_pagination_query pagination_page_parameter="history_page" pagination_no_hx=True pagination_label="题库生成历史分页" %}
         </div>
         <div class="knowledge-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
       </div>

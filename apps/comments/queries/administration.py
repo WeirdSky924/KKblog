@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q
 
 from apps.core.errors.redaction import DEFAULT_REDACTION_POLICY
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice
 
 from ..models import Comment, DiscussionThread
 from ..ports import CommentAccountPolicy, default_comment_account_policy
@@ -62,6 +64,8 @@ class AdminCommentThreadItem:
 class AdminCommentWorkspace:
     buffered_items: tuple[AdminCommentItem, ...]
     threads: tuple[AdminCommentThreadItem, ...]
+    buffered_page: PageSlice[AdminCommentItem] | None = None
+    thread_page: PageSlice[AdminCommentThreadItem] | None = None
 
 
 def _require_administrator(
@@ -98,6 +102,11 @@ def admin_comment_workspace(
     actor_id,
     buffered_limit: int = 100,
     thread_limit: int = 200,
+    buffered_page: int | None = None,
+    thread_page: int | None = None,
+    page_size: int = 20,
+    include_buffered: bool = True,
+    include_threads: bool = True,
     account_policy: CommentAccountPolicy | None = None,
 ) -> AdminCommentWorkspace:
     accounts = account_policy or default_comment_account_policy()
@@ -109,12 +118,43 @@ def admin_comment_workspace(
         or not 1 <= thread_limit <= 500
     ):
         raise ValueError("Invalid administrator comment query limit")
-    buffered = (
+    if (buffered_page is not None or thread_page is not None) and (
+        isinstance(page_size, bool) or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid administrator comment page size")
+    if buffered_page is not None and (
+        isinstance(buffered_page, bool) or buffered_page < 1
+    ):
+        raise ValueError("Invalid buffered comment page")
+    if thread_page is not None and (isinstance(thread_page, bool) or thread_page < 1):
+        raise ValueError("Invalid comment thread page")
+    if type(include_buffered) is not bool or type(include_threads) is not bool:
+        raise ValueError("Invalid administrator comment collection flags")
+    buffered_ordered = (
         Comment.objects.select_related("thread")
         .filter(state=Comment.State.BUFFERED)
-        .order_by("visible_at", "id")[:buffered_limit]
+        .order_by("visible_at", "id")
     )
-    threads = DiscussionThread.objects.annotate(
+    if not include_buffered:
+        buffered = ()
+        buffered_slice = None
+    elif buffered_page is None:
+        buffered = tuple(buffered_ordered[:buffered_limit])
+        buffered_slice = None
+    else:
+        paginator = Paginator(buffered_ordered, page_size)
+        selected = paginator.get_page(buffered_page)
+        buffered = tuple(selected.object_list)
+        buffered_slice = PageSlice(
+            items=tuple(_item(comment) for comment in buffered),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+    threads_ordered = DiscussionThread.objects.annotate(
         buffered_count=Count(
             "comments", filter=Q(comments__state=Comment.State.BUFFERED)
         ),
@@ -125,10 +165,47 @@ def admin_comment_workspace(
             "comments", filter=Q(comments__state=Comment.State.DELETED)
         ),
         latest_at=Max("comments__created_at"),
-    ).order_by("-latest_at", "target_type", "target_id")[:thread_limit]
-    return AdminCommentWorkspace(
-        buffered_items=tuple(_item(comment) for comment in buffered),
-        threads=tuple(
+    ).order_by("-latest_at", "target_type", "target_id")
+    if not include_threads:
+        threads = ()
+        thread_slice = None
+    elif thread_page is None:
+        threads = tuple(threads_ordered[:thread_limit])
+        thread_slice = None
+    else:
+        paginator = Paginator(threads_ordered, page_size)
+        selected = paginator.get_page(thread_page)
+        threads = tuple(selected.object_list)
+        thread_slice = PageSlice(
+            items=tuple(
+                AdminCommentThreadItem(
+                    target_type=row.target_type,
+                    target_id=row.target_id,
+                    owner_id=row.owner_id,
+                    comments_enabled=row.comments_enabled,
+                    buffered_count=row.buffered_count,
+                    visible_count=row.visible_count,
+                    deleted_count=row.deleted_count,
+                    latest_at=row.latest_at,
+                )
+                for row in threads
+            ),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+    buffered_items = (
+        buffered_slice.items
+        if buffered_slice is not None
+        else tuple(_item(comment) for comment in buffered)
+    )
+    thread_items = (
+        thread_slice.items
+        if thread_slice is not None
+        else tuple(
             AdminCommentThreadItem(
                 target_type=row.target_type,
                 target_id=row.target_id,
@@ -140,7 +217,13 @@ def admin_comment_workspace(
                 latest_at=row.latest_at,
             )
             for row in threads
-        ),
+        )
+    )
+    return AdminCommentWorkspace(
+        buffered_items=buffered_items,
+        threads=thread_items,
+        buffered_page=buffered_slice,
+        thread_page=thread_slice,
     )
 
 
@@ -167,13 +250,19 @@ def admin_comments_for_target(
     target_type: str,
     target_id: str,
     limit: int = 300,
+    page: int | None = None,
+    page_size: int = 20,
     account_policy: CommentAccountPolicy | None = None,
-) -> tuple[AdminCommentItem, ...]:
+) -> tuple[AdminCommentItem, ...] | PageSlice[AdminCommentItem]:
     accounts = account_policy or default_comment_account_policy()
     _require_administrator(actor_id, account_policy=accounts)
     normalized_type, normalized_id = _target(target_type, target_id)
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator comment query limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid administrator comment page")
     thread = DiscussionThread.objects.filter(
         target_type=normalized_type,
         target_id=normalized_id,
@@ -183,9 +272,21 @@ def admin_comments_for_target(
     comments = (
         Comment.objects.select_related("thread")
         .filter(thread=thread)
-        .order_by("created_at", "id")[:limit]
+        .order_by("created_at", "id")
     )
-    return tuple(_item(comment) for comment in comments)
+    if page is None:
+        return tuple(_item(comment) for comment in comments[:limit])
+    paginator = Paginator(comments, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(_item(comment) for comment in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def admin_comment_detail(

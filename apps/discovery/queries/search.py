@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
+from apps.core.pagination import page_window
+
 from ..profile_identity import (
     ProfileIdentity,
     search_profile_identity_page,
 )
-from .home import page_window
 
 
 @dataclass(frozen=True, slots=True)

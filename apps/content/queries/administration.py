@@ -2,10 +2,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db.models import Case, Count, IntegerField, Q, When
+from django.utils import timezone
 
 from apps.accounts.public import is_administrator
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice, page_window
 
 from ..models import Article, Section, Tag, TagAssociationHistory, TagRestoreConflict
 from .classification import section_cover_asset_ids
@@ -30,6 +33,21 @@ class AdminArticleItem:
     can_hide: bool
     can_delete: bool
     can_restore_deleted: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AdminArticlePage:
+    items: tuple[AdminArticleItem, ...]
+    page_number: int
+    page_size: int
+    total_items: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +98,8 @@ class AdminTagDetail:
     open_conflicts: tuple[AdminTagRestoreConflictItem, ...]
     history_truncated: bool
     conflicts_truncated: bool
+    history_page: PageSlice[AdminTagAssociationHistoryItem] | None = None
+    conflict_page: PageSlice[AdminTagRestoreConflictItem] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +111,37 @@ class AdminSectionItem:
     affected_revision_count: int
     created_at: datetime
     updated_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class AdminTagPage:
+    items: tuple[AdminTagItem, ...]
+    state: str
+    page_number: int
+    page_size: int
+    total_items: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
+
+
+@dataclass(frozen=True, slots=True)
+class AdminSectionPage:
+    items: tuple[AdminSectionItem, ...]
+    page_number: int
+    page_size: int
+    total_items: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 def _keyword(value: str) -> str:
@@ -126,7 +177,11 @@ def _item(article: Article) -> AdminArticleItem | None:
         has_published_revision=article.published_revision_id is not None,
         can_hide=published,
         can_delete=active,
-        can_restore_deleted=not active,
+        can_restore_deleted=bool(
+            not active
+            and article.purge_after is not None
+            and article.purge_after > timezone.now()
+        ),
     )
 
 
@@ -168,14 +223,20 @@ def admin_article_titles(
 
 
 def admin_article_page(
-    *, actor_id, query: str = "", state: str = "", limit: int = 200
-) -> tuple[AdminArticleItem, ...]:
+    *,
+    actor_id,
+    query: str = "",
+    state: str = "",
+    page: int | None = None,
+    page_size: int = 20,
+    limit: int | None = None,
+) -> AdminArticlePage | tuple[AdminArticleItem, ...]:
     if not is_administrator(actor_id):
         raise PermissionError("Administrator article access denied")
     keyword = _keyword(query)
     if state and state not in ADMIN_ARTICLE_STATES:
         raise ValueError("Invalid administrator article state")
-    if isinstance(limit, bool) or not 1 <= limit <= 500:
+    if limit is not None and (isinstance(limit, bool) or not 1 <= limit <= 500):
         raise ValueError("Invalid administrator article limit")
 
     queryset = Article.objects.select_related(
@@ -197,9 +258,29 @@ def admin_article_page(
             publication_state=state,
         )
 
-    rows = queryset.order_by("-updated_at", "-id")[:limit]
-    items = [item for article in rows if (item := _item(article)) is not None]
-    return tuple(items)
+    ordered = queryset.order_by("-updated_at", "-id")
+    if page is None:
+        bounded = ordered[: limit or 200]
+        return tuple(
+            item for article in bounded if (item := _item(article)) is not None
+        )
+    if isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50):
+        raise ValueError("Invalid administrator article page")
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return AdminArticlePage(
+        items=tuple(
+            item
+            for article in selected.object_list
+            if (item := _item(article)) is not None
+        ),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def _require_classification_administrator(actor_id) -> None:
@@ -282,17 +363,22 @@ def _tag_item(tag: Tag) -> AdminTagItem:
 
 
 def admin_tag_page(
-    *, actor_id, state: str = "", limit: int = 300
-) -> tuple[AdminTagItem, ...]:
+    *,
+    actor_id,
+    state: str = "",
+    page: int | None = None,
+    page_size: int = 20,
+    limit: int | None = None,
+) -> AdminTagPage | tuple[AdminTagItem, ...]:
     _require_classification_administrator(actor_id)
     if state and state not in ADMIN_TAG_STATES:
         raise ValueError("Invalid administrator tag state")
-    if isinstance(limit, bool) or not 1 <= limit <= 500:
+    if limit is not None and (isinstance(limit, bool) or not 1 <= limit <= 500):
         raise ValueError("Invalid administrator tag limit")
     rows = _visible_admin_tag_queryset()
     if state:
         rows = rows.filter(state=state)
-    rows = rows.annotate(
+    ordered = rows.annotate(
         state_order=Case(
             When(state=Tag.State.PENDING, then=0),
             When(state=Tag.State.ACTIVE, then=1),
@@ -300,8 +386,23 @@ def admin_tag_page(
             default=3,
             output_field=IntegerField(),
         )
-    ).order_by("state_order", "normalized_name", "id")[:limit]
-    return tuple(_tag_item(tag) for tag in rows)
+    ).order_by("state_order", "normalized_name", "id")
+    if page is None:
+        return tuple(_tag_item(tag) for tag in ordered[: limit or 300])
+    if isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50):
+        raise ValueError("Invalid administrator tag page")
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return AdminTagPage(
+        items=tuple(_tag_item(tag) for tag in selected.object_list),
+        state=state,
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def admin_pending_tag_review_count(*, actor_id) -> int:
@@ -337,22 +438,74 @@ def _article_titles(article_ids: tuple[str, ...]) -> dict[str, str]:
     }
 
 
-def admin_tag_detail(*, actor_id, tag_id, limit: int = 200) -> AdminTagDetail:
+def admin_tag_detail(
+    *,
+    actor_id,
+    tag_id,
+    limit: int = 200,
+    history_page: int | None = None,
+    conflict_page: int | None = None,
+    page_size: int = 20,
+) -> AdminTagDetail:
     tag = admin_tag_item(actor_id=actor_id, tag_id=tag_id)
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator tag detail limit")
-    histories = tuple(
-        TagAssociationHistory.objects.filter(tag_id=tag.id).order_by(
-            "-removed_at", "-id"
-        )[: limit + 1]
+    if (history_page is not None or conflict_page is not None) and (
+        isinstance(page_size, bool) or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid administrator tag detail page size")
+    if history_page is not None and (
+        isinstance(history_page, bool) or history_page < 1
+    ):
+        raise ValueError("Invalid tag association history page")
+    if conflict_page is not None and (
+        isinstance(conflict_page, bool) or conflict_page < 1
+    ):
+        raise ValueError("Invalid tag conflict page")
+    history_queryset = TagAssociationHistory.objects.filter(tag_id=tag.id).order_by(
+        "-removed_at", "-id"
     )
-    conflicts = tuple(
-        TagRestoreConflict.objects.filter(
-            tag_id=tag.id, resolved_at__isnull=True
-        ).order_by("-created_at", "-id")[: limit + 1]
-    )
-    visible_histories = histories[:limit]
-    visible_conflicts = conflicts[:limit]
+    conflict_queryset = TagRestoreConflict.objects.filter(
+        tag_id=tag.id, resolved_at__isnull=True
+    ).order_by("-created_at", "-id")
+    if history_page is None:
+        history_rows = tuple(history_queryset[: limit + 1])
+        visible_histories = history_rows[:limit]
+        history_slice = None
+        history_truncated = len(history_rows) > limit
+    else:
+        paginator = Paginator(history_queryset, page_size)
+        selected = paginator.get_page(history_page)
+        visible_histories = tuple(selected.object_list)
+        history_slice = PageSlice(
+            items=(),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+        history_truncated = False
+    if conflict_page is None:
+        conflict_rows = tuple(conflict_queryset[: limit + 1])
+        visible_conflicts = conflict_rows[:limit]
+        conflict_slice = None
+        conflicts_truncated = len(conflict_rows) > limit
+    else:
+        paginator = Paginator(conflict_queryset, page_size)
+        selected = paginator.get_page(conflict_page)
+        visible_conflicts = tuple(selected.object_list)
+        conflict_slice = PageSlice(
+            items=(),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+        conflicts_truncated = False
     titles = _article_titles(
         tuple(
             dict.fromkeys(
@@ -360,28 +513,52 @@ def admin_tag_detail(*, actor_id, tag_id, limit: int = 200) -> AdminTagDetail:
             )
         )
     )
+    history_items = tuple(
+        AdminTagAssociationHistoryItem(
+            article_id=item.article_id,
+            article_title=titles.get(item.article_id, "文章已永久删除"),
+            removed_at=item.removed_at,
+            restored_at=item.restored_at,
+        )
+        for item in visible_histories
+    )
+    conflict_items = tuple(
+        AdminTagRestoreConflictItem(
+            article_id=item.article_id,
+            article_title=titles.get(item.article_id, "文章已永久删除"),
+            reason=item.reason,
+            created_at=item.created_at,
+        )
+        for item in visible_conflicts
+    )
+    if history_slice is not None:
+        history_slice = PageSlice(
+            items=history_items,
+            page_number=history_slice.page_number,
+            page_size=history_slice.page_size,
+            total_items=history_slice.total_items,
+            total_pages=history_slice.total_pages,
+            has_previous=history_slice.has_previous,
+            has_next=history_slice.has_next,
+        )
+    if conflict_slice is not None:
+        conflict_slice = PageSlice(
+            items=conflict_items,
+            page_number=conflict_slice.page_number,
+            page_size=conflict_slice.page_size,
+            total_items=conflict_slice.total_items,
+            total_pages=conflict_slice.total_pages,
+            has_previous=conflict_slice.has_previous,
+            has_next=conflict_slice.has_next,
+        )
     return AdminTagDetail(
         tag=tag,
-        association_history=tuple(
-            AdminTagAssociationHistoryItem(
-                article_id=item.article_id,
-                article_title=titles.get(item.article_id, "文章已永久删除"),
-                removed_at=item.removed_at,
-                restored_at=item.restored_at,
-            )
-            for item in visible_histories
-        ),
-        open_conflicts=tuple(
-            AdminTagRestoreConflictItem(
-                article_id=item.article_id,
-                article_title=titles.get(item.article_id, "文章已永久删除"),
-                reason=item.reason,
-                created_at=item.created_at,
-            )
-            for item in visible_conflicts
-        ),
-        history_truncated=len(histories) > limit,
-        conflicts_truncated=len(conflicts) > limit,
+        association_history=history_items,
+        open_conflicts=conflict_items,
+        history_truncated=history_truncated,
+        conflicts_truncated=conflicts_truncated,
+        history_page=history_slice,
+        conflict_page=conflict_slice,
     )
 
 
@@ -406,13 +583,36 @@ def _section_item(
     )
 
 
-def admin_section_page(*, actor_id, limit: int = 300) -> tuple[AdminSectionItem, ...]:
+def admin_section_page(
+    *, actor_id, page: int | None = None, page_size: int = 20, limit: int | None = None
+) -> AdminSectionPage | tuple[AdminSectionItem, ...]:
     _require_classification_administrator(actor_id)
-    if isinstance(limit, bool) or not 1 <= limit <= 500:
+    if limit is not None and (isinstance(limit, bool) or not 1 <= limit <= 500):
         raise ValueError("Invalid administrator section limit")
-    rows = tuple(_admin_section_queryset().order_by("normalized_name", "id")[:limit])
+    ordered = _admin_section_queryset().order_by("normalized_name", "id")
+    if page is None:
+        rows = tuple(ordered[: limit or 300])
+        cover_ids = section_cover_asset_ids(tuple(str(section.id) for section in rows))
+        return tuple(
+            _section_item(section, cover_ids[str(section.id)]) for section in rows
+        )
+    if isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50):
+        raise ValueError("Invalid administrator section page")
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    rows = tuple(selected.object_list)
     cover_ids = section_cover_asset_ids(tuple(str(section.id) for section in rows))
-    return tuple(_section_item(section, cover_ids[str(section.id)]) for section in rows)
+    return AdminSectionPage(
+        items=tuple(
+            _section_item(section, cover_ids[str(section.id)]) for section in rows
+        ),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def admin_section_item(*, actor_id, section_id) -> AdminSectionItem:
@@ -432,11 +632,14 @@ __all__ = [
     "ADMIN_ARTICLE_STATES",
     "ADMIN_TAG_STATES",
     "AdminArticleItem",
+    "AdminArticlePage",
     "AdminArticleTitle",
     "AdminSectionItem",
+    "AdminSectionPage",
     "AdminTagAssociationHistoryItem",
     "AdminTagDetail",
     "AdminTagItem",
+    "AdminTagPage",
     "AdminTagRestoreConflictItem",
     "admin_article_item",
     "admin_article_page",

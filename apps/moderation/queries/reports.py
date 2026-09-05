@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db.models import Q
 
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice
 
 from ..models import Report, ReportAppeal, ReportReason
 from ..ports import ModerationAccountPolicy, default_moderation_account_policy
@@ -95,19 +97,36 @@ def admin_report_list(
     actor_id,
     state: str = "",
     limit: int = 200,
+    page: int | None = None,
+    page_size: int = 20,
     account_policy: ModerationAccountPolicy | None = None,
-) -> tuple[AdminReportListItem, ...]:
+) -> tuple[AdminReportListItem, ...] | PageSlice[AdminReportListItem]:
     accounts = account_policy or default_moderation_account_policy()
     _actor(actor_id, account_policy=accounts)
     if state and state not in Report.State.values:
         raise ValueError("Invalid administrator report state")
     if isinstance(limit, bool) or not 1 <= limit <= 500:
         raise ValueError("Invalid administrator report limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid administrator report page")
     queryset = Report.objects.select_related("appeal")
     if state:
         queryset = queryset.filter(state=state)
-    return tuple(
-        _list_item(report) for report in queryset.order_by("-created_at", "-id")[:limit]
+    ordered = queryset.order_by("-created_at", "-id")
+    if page is None:
+        return tuple(_list_item(report) for report in ordered[:limit])
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(_list_item(report) for report in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )
 
 

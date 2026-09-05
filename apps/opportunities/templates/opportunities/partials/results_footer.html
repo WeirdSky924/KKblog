@@ -1,27 +1,6 @@
 {% if page_data %}
   <footer class="opportunity-public__results-footer">
     {% include "opportunities/partials/pagination.html" %}
-    <form
-      class="page-size-control"
-      action="{% url 'opportunities:index' %}"
-      method="get"
-      hx-get="{% url 'opportunities:index' %}"
-      hx-target="#opportunity-workspace"
-      hx-swap="outerHTML"
-      hx-push-url="true"
-      hx-trigger="change"
-      hx-sync="#opportunity-workspace:replace"
-      hx-indicator="#opportunity-filter-loading"
-    >
-      {% for name, value in opportunity_page_size_fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-      <label for="opportunity-page-size">每页</label>
-      <select id="opportunity-page-size" name="per_page">
-        {% for value, label in opportunity_form.fields.per_page.choices %}
-          <option value="{{ value }}"{% if value == page_data.page_size %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <noscript><button class="button button--secondary" type="submit">应用</button></noscript>
-    </form>
     <p>第 {{ page_data.page_number }} / {{ page_data.total_pages }} 页</p>
   </footer>
 {% endif %}

@@ -50,7 +50,8 @@ def _handle(
     error_code = envelope.payload["error_code"]
     if (
         isinstance(attempt, bool)
-        or attempt != 3
+        or not isinstance(attempt, int)
+        or not 1 <= attempt <= 3
         or not isinstance(error_code, str)
         or not _SAFE_CODE.fullmatch(error_code)
     ):

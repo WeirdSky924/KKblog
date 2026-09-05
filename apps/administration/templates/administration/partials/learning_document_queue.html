@@ -6,11 +6,11 @@
   <form method="get" class="learning-admin__batch-form">
     <input type="hidden" name="batch_type" value="DOCUMENT">
     {% for document in document_page.items %}
-      <label class="learning-admin__row">
-        <input type="checkbox" name="selected" value="{{ document.document_id }}:{{ document.row_version }}">
-        <span class="learning-admin__row-main"><strong>{{ document.title|default:document.original_name|default:"未命名文档" }}</strong><small>{{ document.owner_display_name }} · {% if document.state == "REVIEW_PENDING" %}等待审核{% elif document.state == "REVIEWING" %}审核中{% elif document.state == "APPROVED" %}已通过{% elif document.state == "REJECTED" %}已驳回{% elif document.state == "REVIEW_FAILED" %}审核失败{% elif document.state == "DELETE_PENDING" %}待删除（冷静期）{% elif document.state == "CONTENT_PURGED" %}内容已清理{% else %}{{ document.state }}{% endif %}{% if document.admin_hidden %} · 管理员隐藏{% endif %}</small></span>
-        <span class="learning-admin__row-meta"><span class="learning-admin__row-meta-text">{{ document.last_reason_code|default:"无原因码" }} · v{{ document.row_version }}</span><a href="?dialog=document&amp;document_id={{ document.document_id }}">查看原文</a></span>
-      </label>
+      <div class="learning-admin__row">
+        <span class="learning-admin__row-select"><input id="learning-document-select-{{ document.document_id }}" type="checkbox" name="selected" value="{{ document.document_id }}:{{ document.row_version }}"><span class="visually-hidden">选择 {{ document.title|default:document.original_name|default:"未命名文档" }}</span></span>
+        <label class="learning-admin__row-main" for="learning-document-select-{{ document.document_id }}"><strong>{{ document.title|default:document.original_name|default:"未命名文档" }}</strong><small>{{ document.owner_display_name }} · {% if document.state == "REVIEW_PENDING" %}等待审核{% elif document.state == "REVIEWING" %}审核中{% elif document.state == "APPROVED" %}已通过{% elif document.state == "REJECTED" %}已驳回{% elif document.state == "REVIEW_FAILED" %}审核失败{% elif document.state == "DELETE_PENDING" %}待删除（冷静期）{% elif document.state == "CONTENT_PURGED" %}内容已清理{% else %}{{ document.state }}{% endif %}{% if document.admin_hidden %} · 管理员隐藏{% endif %}</small></label>
+        <span class="learning-admin__row-meta"><span class="learning-admin__row-meta-text">{{ document.last_reason_code|default:"无原因码" }} · v{{ document.row_version }}</span><a href="?dialog=document&amp;document_id={{ document.document_id }}">查看原文</a>{% if document.state == "DELETE_PENDING" and document.deletion_actor == "ADMINISTRATOR" %}<a class="button button--secondary" href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}batch_type=DOCUMENT&amp;batch_action=RESTORE&amp;selected={{ document.document_id }}:{{ document.row_version }}">恢复</a>{% endif %}</span>
+      </div>
     {% empty %}<p class="learning-admin__empty">当前没有匹配文档。</p>{% endfor %}
     <div class="learning-admin__batch-actions">
       <button class="button button--secondary" type="submit" name="batch_action" value="HIDE">隐藏所选</button>
@@ -18,11 +18,5 @@
       <button class="button button--danger" type="submit" name="batch_action" value="DELETE">进入删除流程</button>
     </div>
   </form>
-  {% if document_page.total_pages > 1 %}
-    <nav class="knowledge-pagination" aria-label="文档分页">
-      {% if document_page.has_previous %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ document_page.page_number|add:"-1" }}" hx-get="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ document_page.page_number|add:"-1" }}" hx-target="#learning-document-queue" hx-swap="outerHTML" hx-push-url="true">上一页</a>{% endif %}
-      <span>第 {{ document_page.page_number }} / {{ document_page.total_pages }} 页</span>
-      {% if document_page.has_next %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ document_page.page_number|add:"1" }}" hx-get="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ document_page.page_number|add:"1" }}" hx-target="#learning-document-queue" hx-swap="outerHTML" hx-push-url="true">下一页</a>{% endif %}
-    </nav>
-  {% endif %}
+  {% include "components/navigation/pagination.html" with index_page=document_page pagination_query=filter_query pagination_target="#learning-document-queue" pagination_label="文档分页" %}
 </section>

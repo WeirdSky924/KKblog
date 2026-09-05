@@ -93,6 +93,7 @@
           <p>{% if selected_state %}切换状态筛选查看其他记录。{% else %}可以先生成一批邀请码。{% endif %}</p>
         </div>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=invite_page pagination_query=pagination_query pagination_no_hx=True pagination_label="邀请码分页" %}
     </section>
 
     {% if detail %}

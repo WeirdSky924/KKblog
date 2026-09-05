@@ -548,6 +548,30 @@
   border-block-start: 1px solid var(--line);
 }
 
+.pagination-bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pagination-bar > .pagination {
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.pagination-bar > .page-size-control {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+.article-index__footer > .pagination-bar {
+  grid-column: 1 / -1;
+}
+
 .pagination,
 .pagination ol,
 .page-size-control {
@@ -1175,6 +1199,10 @@
 
   .article-index__footer {
     grid-template-columns: 1fr;
+  }
+
+  .pagination-bar {
+    width: 100%;
   }
 
   .pagination {

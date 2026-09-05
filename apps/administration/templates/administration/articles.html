@@ -44,7 +44,13 @@
                   {% if row.article.has_published_revision %}<a id="article-view-published-{{ row.article.id }}" href="?detail={{ row.article.id }}&amp;revision=published#article-preview-dialog" hx-get="{{ article_preview_url }}?revision=published" hx-target="#article-preview-content" hx-swap="innerHTML" data-dialog-trigger data-dialog-return-hash="article-list" data-article-preview-trigger aria-controls="article-preview-dialog">查看发布历史</a>{% endif %}
                   {% if row.can_hide %}<a id="article-hide-{{ row.article.id }}" href="?confirm_action=hide&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">隐藏</a>{% endif %}
                   {% if row.can_delete %}<a id="article-delete-{{ row.article.id }}" href="?confirm_action=delete&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">删除</a>{% endif %}
-                  {% if row.can_restore %}<a id="article-restore-{{ row.article.id }}" href="?confirm_action=restore&amp;case_id={{ row.case.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">恢复</a>{% endif %}
+                  {% if row.can_restore %}
+                    {% if row.case and row.case.state == "ACTIVE" %}
+                      <a id="article-restore-{{ row.article.id }}" href="?confirm_action=restore&amp;case_id={{ row.case.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">恢复</a>
+                    {% else %}
+                      <a id="article-restore-direct-{{ row.article.id }}" href="?confirm_action=restore-direct&amp;article_id={{ row.article.id }}#article-list" data-dialog-trigger data-dialog-return-hash="article-list" aria-controls="article-action-dialog">恢复</a>
+                    {% endif %}
+                  {% endif %}
                   {% if row.can_review_appeal %}
                     <a href="?case_detail={{ row.case.id }}#article-case-detail">查看申诉详情</a>
                   {% endif %}
@@ -57,6 +63,7 @@
     {% else %}
       <div class="admin-queue__empty" id="article-list"><h2>没有匹配文章</h2><p>调整标题、作者或状态条件后重新搜索。</p><a href="{% url 'admin:articles' %}">清除筛选</a></div>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=article_page pagination_query=pagination_query pagination_no_hx=True pagination_label="文章管理分页" %}
 
     {% if selected_case %}
       <section id="article-case-detail" class="admin-queue__detail" aria-labelledby="article-case-detail-title">

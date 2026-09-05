@@ -17,6 +17,7 @@ from apps.content.public import (
     visible_article_page,
     visible_filter_tags,
 )
+from apps.core.pagination import page_window
 from apps.core.time import to_shanghai
 from apps.discovery.cache import default_discovery_cache, list_query_hash
 
@@ -118,19 +119,6 @@ def _public_cached_source(*, kind: str, parameters: dict[str, object], loader):
         except RedisError:
             pass
     return source
-
-
-def page_window(current: int, total: int) -> tuple[int | None, ...]:
-    visible = {1, total, *(range(max(1, current - 2), min(total, current + 2) + 1))}
-    ordered = sorted(number for number in visible if 1 <= number <= total)
-    result: list[int | None] = []
-    previous = 0
-    for number in ordered:
-        if previous and number - previous > 1:
-            result.append(None)
-        result.append(number)
-        previous = number
-    return tuple(result)
 
 
 def home_article_page(

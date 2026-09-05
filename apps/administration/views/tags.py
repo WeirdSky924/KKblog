@@ -35,6 +35,13 @@ def _meta(request: HttpRequest) -> dict[str, str]:
     }
 
 
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
 def _tag(request: HttpRequest, tag_id: str):
     try:
         return admin_tag_item(actor_id=request.account_id, tag_id=tag_id)
@@ -133,11 +140,18 @@ def _render(
         state = ""
         status = 422
     try:
-        items = admin_tag_page(actor_id=request.account_id, state=state)
+        tag_page = admin_tag_page(
+            actor_id=request.account_id,
+            state=state,
+            page=filter_form.cleaned_data.get("page") or 1,
+            page_size=20,
+        )
     except PermissionError:
         raise PermissionDenied from None
     except ValueError as exc:
-        items = ()
+        tag_page = admin_tag_page(
+            actor_id=request.account_id, state="", page=1, page_size=20
+        )
         page_error = str(exc)
         status = 422
 
@@ -148,13 +162,16 @@ def _render(
             detail = admin_tag_detail(
                 actor_id=request.account_id,
                 tag_id=detail_id,
+                history_page=_page_number(request.GET.get("history_page")),
+                conflict_page=_page_number(request.GET.get("conflict_page")),
+                page_size=20,
             )
         except (LookupError, PermissionError):
             raise Http404 from None
 
     account_ids = [
         account_id
-        for item in items
+        for item in tag_page.items
         for account_id in (item.proposed_by_id, item.reviewed_by_id)
         if account_id is not None
     ]
@@ -187,7 +204,7 @@ def _render(
                 else "尚未审核"
             ),
         }
-        for item in items
+        for item in tag_page.items
     )
     detail_proposer_label = ""
     detail_reviewer_label = ""
@@ -207,6 +224,8 @@ def _render(
         "administration/tags.html",
         {
             "rows": rows,
+            "tag_page": tag_page,
+            "pagination_query": urlencode({"state": state}),
             "filter_form": filter_form,
             "create_form": create_form or TagCreateForm(),
             "detail": detail,
@@ -226,6 +245,26 @@ def _render(
             "page_error": page_error,
             "saved": request.GET.get("saved", ""),
             "restored_conflicts": feedback_count(request.GET, "conflicts"),
+            "tag_history_pagination_query": urlencode(
+                {
+                    key: value
+                    for key, value in {
+                        "state": state,
+                        "detail": detail_id,
+                    }.items()
+                    if value
+                }
+            ),
+            "tag_conflict_pagination_query": urlencode(
+                {
+                    key: value
+                    for key, value in {
+                        "state": state,
+                        "detail": detail_id,
+                    }.items()
+                    if value
+                }
+            ),
         },
         status=status,
     )

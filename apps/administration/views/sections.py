@@ -7,6 +7,7 @@ from apps.accounts.public import is_administrator
 from apps.administration.forms.classification import (
     SectionCreateForm,
     SectionDeleteConfirmationForm,
+    SectionPageForm,
     SectionRenameConfirmationForm,
     SectionUpdateConfirmationForm,
 )
@@ -133,19 +134,30 @@ def _render(
     confirmation_form=None,
     page_error: str = "",
 ) -> HttpResponse:
+    page_form = SectionPageForm(request.GET)
+    if page_form.is_valid():
+        page_number = page_form.cleaned_data.get("page") or 1
+    else:
+        page_number = 1
     try:
-        items = admin_section_page(actor_id=request.account_id)
+        section_page = admin_section_page(
+            actor_id=request.account_id, page=page_number, page_size=20
+        )
     except PermissionError:
         raise PermissionDenied from None
     except ValueError as exc:
-        items = ()
+        section_page = admin_section_page(
+            actor_id=request.account_id, page=1, page_size=20
+        )
         page_error = str(exc)
         status = 422
     response = render(
         request,
         "administration/sections.html",
         {
-            "items": items,
+            "items": section_page.items,
+            "section_page": section_page,
+            "pagination_query": "",
             "create_form": create_form or SectionCreateForm(),
             "confirmation_kind": confirmation_kind,
             "confirmation_form": confirmation_form,

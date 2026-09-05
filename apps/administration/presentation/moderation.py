@@ -64,7 +64,11 @@ def admin_article_rows(
                 can_delete=article.can_delete
                 and not effective_case
                 and not own_article,
-                can_restore=bool(case is not None and case.state == "ACTIVE"),
+                can_restore=bool(case is not None and case.state == "ACTIVE")
+                or bool(
+                    article.can_restore_deleted
+                    and (case is None or case.state == "RESTORED")
+                ),
                 can_review_appeal=bool(
                     case is not None
                     and case.state == "APPEALED"

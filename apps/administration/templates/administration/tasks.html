@@ -158,6 +158,7 @@
       {% else %}
         <p class="admin-operations__empty">当前条件下没有任务记录。</p>
       {% endif %}
+      {% include "components/navigation/pagination.html" with index_page=task_page pagination_query=pagination_query pagination_no_hx=True pagination_label="任务记录分页" %}
     </section>
   </section>
 {% endblock %}

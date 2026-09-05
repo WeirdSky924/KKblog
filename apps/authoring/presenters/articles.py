@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from apps.content.public import AuthorArticlePage, author_article_page
+from apps.core.pagination import page_window
 from apps.core.time import to_shanghai
 from apps.core.time.clock import Clock
 
@@ -61,6 +62,10 @@ class ArticleWorkspace:
     total_pages: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 def _timing(item) -> tuple[str, datetime]:

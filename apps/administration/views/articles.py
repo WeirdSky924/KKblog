@@ -2,20 +2,24 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import is_administrator
 from apps.administration.forms.moderation import (
     AdminArticleFilterForm,
     ArticleActionConfirmationForm,
     ArticleAppealReviewConfirmationForm,
+    ArticleDirectRestoreConfirmationForm,
     ArticleRestoreConfirmationForm,
 )
 from apps.administration.presentation.moderation import admin_article_rows
 from apps.administration.views.article_preview import article_preview_context
 from apps.content.public import (
+    ArticleDeletionError,
     ArticleNotFound,
     admin_article_item,
     admin_article_page,
+    restore_deleted_article,
 )
 from apps.media.public import MediaTargetType, target_binding_snapshot
 from apps.moderation.public import (
@@ -50,6 +54,17 @@ def _target(request: HttpRequest, kind: str, identity: str):
         if kind == "hide" and not item.can_hide:
             raise Http404
         if kind == "delete" and not item.can_delete:
+            raise Http404
+        return {"article": item, "case": None}
+    if kind == "restore-direct":
+        try:
+            item = admin_article_item(
+                actor_id=request.account_id,
+                article_id=identity,
+            )
+        except (LookupError, PermissionError):
+            raise Http404 from None
+        if not item.can_restore_deleted:
             raise Http404
         return {"article": item, "case": None}
     try:
@@ -89,6 +104,15 @@ def _confirmation(request: HttpRequest):
             initial={
                 "case_id": target["case"].id,
                 "confirm": "article_restore",
+            }
+        )
+    elif kind == "restore-direct":
+        target = _target(request, kind, request.GET.get("article_id", ""))
+        form = ArticleDirectRestoreConfirmationForm(
+            initial={
+                "article_id": target["article"].id,
+                "expected_row_version": target["article"].row_version,
+                "confirm": "article_direct_restore",
             }
         )
     elif kind in {"appeal-granted", "appeal-rejected"}:
@@ -141,6 +165,15 @@ def _dialog(kind: str, target, form) -> dict[str, object]:
             "label": "确认恢复",
             "field": None,
         }
+    if kind == "restore-direct":
+        return base | {
+            "title": "确认恢复这篇文章？",
+            "description": f"《{title}》仍在删除冷静期内，将恢复到删除前的状态。",
+            "details": "恢复会永久审计并通知作者；冷静期结束后将无法恢复。",
+            "action": "article_direct_restore",
+            "label": "确认恢复",
+            "field": None,
+        }
     outcome = "准许" if kind == "appeal-granted" else "驳回"
     return base | {
         "title": f"确认{outcome}文章申诉？",
@@ -183,16 +216,24 @@ def _render(
         query = state = ""
         status = 422
     try:
-        items = admin_article_page(
+        article_page = admin_article_page(
             actor_id=request.account_id,
             query=query,
             state=state,
+            page=filter_form.cleaned_data.get("page") or 1,
+            page_size=20,
         )
-        cases = article_case_list(actor_id=request.account_id, limit=200)
+        cases = article_case_list(
+            actor_id=request.account_id,
+            article_ids=tuple(article.id for article in article_page.items),
+            limit=200,
+        )
     except PermissionError:
         raise PermissionDenied from None
     except ValueError as exc:
-        items = ()
+        article_page = admin_article_page(
+            actor_id=request.account_id, query="", state="", page=1, page_size=20
+        )
         cases = ()
         page_error = str(exc)
         status = 422
@@ -242,10 +283,12 @@ def _render(
         "administration/articles.html",
         {
             "rows": admin_article_rows(
-                articles=items,
+                articles=article_page.items,
                 cases=cases,
                 actor_id=request.account_id,
             ),
+            "article_page": article_page,
+            "pagination_query": urlencode({"q": query, "state": state}),
             "filter_form": filter_form,
             **preview,
             "preview_dialog_open": bool(preview),
@@ -348,6 +391,38 @@ def _post(request: HttpRequest) -> HttpResponse:
         except ArticleCaseError as exc:
             return _service_error(
                 request, kind="restore", target=target, form=form, exc=exc
+            )
+        saved = "restored"
+    elif action == "article_direct_restore":
+        form = ArticleDirectRestoreConfirmationForm(request.POST)
+        if not form.is_valid():
+            return _invalid_confirmation(
+                request,
+                kind="restore-direct",
+                identity=request.POST.get("article_id", ""),
+                form=form,
+                message="请重新确认文章恢复。",
+            )
+        target = _target(request, "restore-direct", form.cleaned_data["article_id"])
+        try:
+            restore_deleted_article(
+                actor_id=request.account_id,
+                article_id=form.cleaned_data["article_id"],
+                expected_row_version=form.cleaned_data["expected_row_version"],
+                trace_code=getattr(request, "trace_code", ""),
+                client_ip=request.client_ip,
+            )
+        except ArticleDeletionError as exc:
+            form.add_error(None, exc.safe_message)
+            status = 409 if exc.code == "content.edit_conflict.v1" else 422
+            if exc.code == "content.article_restore_not_allowed.v1":
+                status = 403
+            return _render(
+                request,
+                status=status,
+                confirmation_kind="restore-direct",
+                confirmation_target=target,
+                confirmation_form=form,
             )
         saved = "restored"
     elif action == "article_appeal_review":

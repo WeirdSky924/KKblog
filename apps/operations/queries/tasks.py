@@ -2,6 +2,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
+from django.core.paginator import Paginator
+
+from apps.core.pagination import PageSlice
 from apps.operations.models import TaskRun, TaskRunStatus
 
 TASK_RUN_STATUSES = tuple(TaskRunStatus.values)
@@ -55,18 +58,40 @@ def task_run_records(
     status: str = "",
     is_admin: bool,
     limit: int = 200,
+    page: int | None = None,
+    page_size: int = 20,
     metadata_provider: TaskRunMetadataProvider | None = None,
-) -> tuple[TaskRunItem, ...]:
+) -> tuple[TaskRunItem, ...] | PageSlice[TaskRunItem]:
     if not is_admin:
         raise PermissionError("Task-run access denied")
     if status and status not in TASK_RUN_STATUSES:
         raise ValueError("Invalid task-run status")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
         raise ValueError("Invalid task-run limit")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid task-run page")
     rows = TaskRun.objects.all()
     if status:
         rows = rows.filter(status=status)
-    task_rows = tuple(rows.order_by("-scheduled_at", "run_id")[:limit])
+    ordered = rows.order_by("-scheduled_at", "run_id")
+    if page is None:
+        task_rows = tuple(ordered[:limit])
+        total_items = total_pages = None
+        selected_page = 1
+        selected_size = len(task_rows) or page_size
+        has_previous = has_next = False
+    else:
+        paginator = Paginator(ordered, page_size)
+        selected = paginator.get_page(page)
+        task_rows = tuple(selected.object_list)
+        total_items = paginator.count
+        total_pages = paginator.num_pages
+        selected_page = selected.number
+        selected_size = page_size
+        has_previous = selected.has_previous()
+        has_next = selected.has_next()
     run_ids = tuple(row.run_id for row in task_rows)
     if metadata_provider is not None and not callable(metadata_provider):
         raise TypeError("metadata_provider must be callable")
@@ -75,7 +100,7 @@ def task_run_records(
     )
     if not isinstance(metadata, Mapping):
         raise TypeError("metadata_provider must return a mapping")
-    return tuple(
+    items = tuple(
         TaskRunItem(
             run_id=row.run_id,
             task_name=row.task_name,
@@ -103,6 +128,17 @@ def task_run_records(
             invocation_total_tokens=agent_metadata.invocation_total_tokens,
         )
         for row in task_rows
+    )
+    if page is None:
+        return items
+    return PageSlice(
+        items=items,
+        page_number=selected_page,
+        page_size=selected_size,
+        total_items=total_items,
+        total_pages=total_pages,
+        has_previous=has_previous,
+        has_next=has_next,
     )
 
 

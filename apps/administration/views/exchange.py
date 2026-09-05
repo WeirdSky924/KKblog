@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 
 from apps.accounts.public import admin_author_choices, is_administrator
@@ -89,14 +90,33 @@ def _render(
 ) -> HttpResponse:
     if request_form is None or choices is None:
         request_form, choices = _request_form(request.account_id)
-    job_items = export_job_records(
+    try:
+        page_number = max(1, int(request.GET.get("page", "1")))
+    except (TypeError, ValueError):
+        page_number = 1
+        page_error = page_error or "分页条件无效。"
+        status = 422
+    export_page = export_job_records(
         actor_id=request.account_id,
         is_admin=True,
+        page=page_number,
+        page_size=20,
     )
     jobs = tuple(
-        {"item": item, "scope_label": _scope_label(item, choices)} for item in job_items
+        {"item": item, "scope_label": _scope_label(item, choices)}
+        for item in export_page.items
     )
-    backups = backup_records(is_admin=True)
+    try:
+        backup_page_number = max(1, int(request.GET.get("backup_page", "1")))
+    except (TypeError, ValueError):
+        backup_page_number = 1
+        page_error = page_error or "备份分页条件无效。"
+        status = 422
+    backup_page = backup_records(
+        is_admin=True,
+        page=backup_page_number,
+        page_size=20,
+    )
     confirm_id = confirmation_job_id or request.GET.get("confirm", "").strip()
     confirmation_job = None
     if confirm_id:
@@ -119,7 +139,17 @@ def _render(
         {
             "export_request_form": request_form,
             "export_jobs": jobs,
-            "backup_rows": backups,
+            "export_page": export_page,
+            "pagination_query": urlencode(
+                {"backup_page": request.GET.get("backup_page")}
+            )
+            if request.GET.get("backup_page")
+            else "",
+            "backup_rows": backup_page.items,
+            "backup_page": backup_page,
+            "backup_pagination_query": urlencode({"page": request.GET.get("page")})
+            if request.GET.get("page")
+            else "",
             "export_confirmation_job": confirmation_job,
             "export_cancellation_form": cancellation_form,
             "author_labels": choices["author_labels"],

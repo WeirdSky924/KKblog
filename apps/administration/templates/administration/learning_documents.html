@@ -23,13 +23,14 @@
       {% for appeal in appeal_page.items %}
         <article class="learning-admin__appeal-row"><div><strong>{{ appeal.target_type }} · {{ appeal.target_id }}</strong><small>{{ appeal.appellant_display_name }} · {{ appeal.created_at|date:"Y-m-d H:i" }}</small></div><a class="button button--secondary" href="?dialog=appeal&amp;appeal_id={{ appeal.appeal_id }}">查看申诉</a></article>
       {% empty %}<p class="learning-admin__empty">当前没有待处理申诉。</p>{% endfor %}
+      {% include "components/navigation/pagination.html" with index_page=appeal_page pagination_query=appeal_pagination_query pagination_page_parameter="appeal_page" pagination_no_hx=True pagination_label="申诉分页" %}
     </section>
   </section>
 
   {% if batch_preview %}
     <dialog id="learning-batch-dialog" class="confirm-dialog learning-admin__dialog learning-admin__batch-dialog" data-confirm-dialog data-auto-modal aria-labelledby="learning-batch-title">
       <div class="confirm-dialog__content learning-admin__batch-dialog-content">
-        <header class="learning-admin__batch-dialog-header"><div><p>明确勾选 · {% if batch_preview.action == "DELETE" %}进入删除流程{% elif batch_preview.action == "HIDE" %}隐藏{% else %}恢复{% endif %}</p><h2 id="learning-batch-title">确认批量处置 {{ batch_preview.total }} 项？</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
+        <header class="learning-admin__batch-dialog-header"><div><p>明确勾选 · {% if batch_preview.action == "DELETE" %}进入删除流程{% elif batch_preview.action == "HIDE" %}隐藏{% else %}恢复{% endif %}</p><h2 id="learning-batch-title">确认处置 {{ batch_preview.total }} 项？</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭"><i data-lucide="x"></i></button></header>
         <div class="learning-admin__batch-summary" aria-label="批量处置摘要"><div><span>已勾选</span><strong>{{ batch_preview.total }}</strong><small>项</small></div><div><span>可执行</span><strong>{{ batch_preview.executable }}</strong><small>项</small></div></div>
         <p class="learning-admin__batch-dialog-note">只处理以上明确勾选的对象，不会扩展到当前页或筛选结果；不可执行对象会逐项返回失败。</p>
         <form method="post" class="learning-admin__batch-dialog-form"><input type="hidden" name="action" value="learning_batch_execute">{% csrf_token %}{{ batch_form.target_type.as_hidden }}{{ batch_form.action.as_hidden }}{% for target in batch_preview.items %}<input type="hidden" name="targets" value="{{ target.target_id }}:{{ target.row_version }}">{% endfor %}<div class="learning-admin__batch-field">{{ batch_form.reason_code.label_tag }}{{ batch_form.reason_code }}{{ batch_form.reason_code.errors }}</div><label class="learning-admin__batch-confirm" for="{{ batch_form.confirm.id_for_label }}">{{ batch_form.confirm }}<span>我确认按以上对象执行本次批量处置。</span></label>{{ batch_form.confirm.errors }}{{ batch_form.non_field_errors }}<div class="learning-admin__dialog-actions"><button class="button button--secondary" type="button" data-dialog-cancel>取消</button><button class="button {% if batch_preview.action == "DELETE" %}button--danger{% else %}button--primary{% endif %}" type="submit">确认{% if batch_preview.action == "DELETE" %}进入删除流程{% else %}执行{% endif %}</button></div></form>
@@ -39,7 +40,7 @@
 
   {% if document_detail %}
     <dialog id="learning-document-dialog" class="confirm-dialog learning-admin__dialog" data-confirm-dialog data-auto-modal aria-labelledby="learning-document-title">
-      <div class="confirm-dialog__content"><header><div><p>逐条原文访问</p><h2 id="learning-document-title">{{ document_detail.item.title|default:document_detail.item.original_name|default:"知识文档" }}</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭">×</button></header><div class="article-prose learning-admin__source">{{ document_html|safe }}</div><h3>访问审计</h3><ul class="learning-admin__access-list">{% for item in document_detail.access_history %}<li>{{ item.accessed_at|date:"Y-m-d H:i:s" }} · {{ item.actor_display_name }} · {{ item.purpose }}</li>{% empty %}<li>尚无访问记录。</li>{% endfor %}</ul></div>
+      <div class="confirm-dialog__content"><header><div><p>逐条原文访问</p><h2 id="learning-document-title">{{ document_detail.item.title|default:document_detail.item.original_name|default:"知识文档" }}</h2></div><button type="button" class="icon-button" data-dialog-cancel aria-label="关闭">×</button></header><div class="article-prose learning-admin__source">{{ document_html|safe }}</div><h3>访问审计</h3><ul class="learning-admin__access-list">{% for item in document_detail.access_page.items %}<li>{{ item.accessed_at|date:"Y-m-d H:i:s" }} · {{ item.actor_display_name }} · {{ item.purpose }}</li>{% empty %}<li>尚无访问记录。</li>{% endfor %}</ul>{% include "components/navigation/pagination.html" with index_page=document_detail.access_page pagination_query=document_access_pagination_query pagination_page_parameter="access_page" pagination_no_hx=True pagination_label="访问审计分页" %}</div>
     </dialog>
   {% endif %}
 

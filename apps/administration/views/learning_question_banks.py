@@ -24,6 +24,13 @@ from ..forms.learning import (
 from .learning_documents import _meta
 
 
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
 def _render(
     request: HttpRequest,
     *,
@@ -36,7 +43,11 @@ def _render(
     api_form=None,
     generation_reset_form=None,
 ) -> HttpResponse:
-    quota = admin_learning_quota_snapshot(actor_id=request.account_id)
+    quota = admin_learning_quota_snapshot(
+        actor_id=request.account_id,
+        page=_page_number(request.GET.get("page")),
+        page_size=20,
+    )
     api_configuration = question_bank_api_configuration()
     response = render(
         request,

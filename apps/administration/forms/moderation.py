@@ -28,6 +28,7 @@ class AdminArticleFilterForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": "输入关键词"}),
     )
     state = forms.ChoiceField(label="文章状态", required=False, choices=ARTICLE_STATES)
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
 
 
 class ArticleActionConfirmationForm(forms.Form):
@@ -52,6 +53,15 @@ class ArticleRestoreConfirmationForm(forms.Form):
     case_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
     confirm = forms.ChoiceField(
         choices=(("article_restore", "确认恢复"),),
+        widget=forms.HiddenInput,
+    )
+
+
+class ArticleDirectRestoreConfirmationForm(forms.Form):
+    article_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
+    expected_row_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("article_direct_restore", "确认恢复"),),
         widget=forms.HiddenInput,
     )
 
@@ -91,6 +101,7 @@ class CommentDeletionConfirmationForm(forms.Form):
 
 class AdminReportFilterForm(forms.Form):
     state = forms.ChoiceField(label="案件状态", required=False, choices=REPORT_STATES)
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
 
 
 class ReportReviewConfirmationForm(forms.Form):
@@ -122,6 +133,7 @@ __all__ = [
     "AdminArticleFilterForm",
     "AdminReportFilterForm",
     "ArticleActionConfirmationForm",
+    "ArticleDirectRestoreConfirmationForm",
     "ArticleAppealReviewConfirmationForm",
     "ArticleRestoreConfirmationForm",
     "CommentDeletionConfirmationForm",

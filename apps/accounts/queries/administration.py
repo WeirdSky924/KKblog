@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Prefetch, Q
 
 from apps.accounts.models import Account, RoleAssignment
+from apps.core.pagination import page_window
 
 ADMIN_ACCOUNT_STATUSES = (Account.Status.ACTIVE, Account.Status.DISABLED)
 ADMIN_ACCOUNT_PAGE_SIZES = frozenset({20, 50, 100})
@@ -49,6 +50,10 @@ class AdminAccountPage:
     total_pages: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q
+
+from apps.core.pagination import PageSlice
 
 from ..models import Comment, DiscussionThread
 from ..targets import DiscussionTargetType
@@ -41,6 +44,8 @@ class OwnerCommentArticle:
 class OwnerCommentWorkspace:
     buffered_items: tuple[OwnerBufferedComment, ...]
     articles: tuple[OwnerCommentArticle, ...]
+    buffered_page: PageSlice[OwnerBufferedComment] | None = None
+    article_page: PageSlice[OwnerCommentArticle] | None = None
 
 
 def _actor_id(value) -> UUID:
@@ -59,7 +64,13 @@ def _author_label(comment: Comment, actor_id: UUID) -> str:
 
 
 def owner_comment_workspace(
-    *, actor_id, buffered_limit: int = 50, article_limit: int = 100
+    *,
+    actor_id,
+    buffered_limit: int = 50,
+    article_limit: int = 100,
+    buffered_page: int | None = None,
+    article_page: int | None = None,
+    page_size: int = 20,
 ) -> OwnerCommentWorkspace:
     actor = _actor_id(actor_id)
     if (
@@ -69,16 +80,55 @@ def owner_comment_workspace(
         or article_limit not in {20, 50, 100}
     ):
         raise ValueError("comment workspace limits are invalid")
+    if (buffered_page is not None or article_page is not None) and (
+        isinstance(page_size, bool) or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("comment workspace page size is invalid")
+    if buffered_page is not None and (
+        isinstance(buffered_page, bool) or buffered_page < 1
+    ):
+        raise ValueError("buffered comment page is invalid")
+    if article_page is not None and (
+        isinstance(article_page, bool) or article_page < 1
+    ):
+        raise ValueError("comment article page is invalid")
     threads = DiscussionThread.objects.filter(
         owner_id=actor,
         target_type=DiscussionTargetType.ARTICLE,
     )
-    buffered = (
+    buffered_ordered = (
         Comment.objects.select_related("thread")
         .filter(thread__in=threads, state=Comment.State.BUFFERED)
-        .order_by("visible_at", "id")[:buffered_limit]
+        .order_by("visible_at", "id")
     )
-    groups = threads.annotate(
+    if buffered_page is None:
+        buffered = tuple(buffered_ordered[:buffered_limit])
+        buffered_slice = None
+    else:
+        paginator = Paginator(buffered_ordered, page_size)
+        selected = paginator.get_page(buffered_page)
+        buffered = tuple(selected.object_list)
+        buffered_slice = PageSlice(
+            items=tuple(
+                OwnerBufferedComment(
+                    comment_id=row.id,
+                    article_id=row.thread.target_id,
+                    author_label=_author_label(row, actor),
+                    body=row.body,
+                    created_at=row.created_at,
+                    visible_at=row.visible_at,
+                    is_reply=row.parent_id is not None,
+                )
+                for row in buffered
+            ),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+    groups_ordered = threads.annotate(
         buffered_count=Count(
             "comments", filter=Q(comments__state=Comment.State.BUFFERED)
         ),
@@ -89,9 +139,37 @@ def owner_comment_workspace(
             "comments", filter=Q(comments__state=Comment.State.DELETED)
         ),
         latest_at=Max("comments__created_at"),
-    ).order_by("-latest_at", "target_id")[:article_limit]
-    return OwnerCommentWorkspace(
-        buffered_items=tuple(
+    ).order_by("-latest_at", "target_id")
+    if article_page is None:
+        groups = tuple(groups_ordered[:article_limit])
+        article_slice = None
+    else:
+        paginator = Paginator(groups_ordered, page_size)
+        selected = paginator.get_page(article_page)
+        groups = tuple(selected.object_list)
+        article_slice = PageSlice(
+            items=tuple(
+                OwnerCommentArticle(
+                    article_id=row.target_id,
+                    comments_enabled=row.comments_enabled,
+                    buffered_count=row.buffered_count,
+                    visible_count=row.visible_count,
+                    deleted_count=row.deleted_count,
+                    latest_at=row.latest_at,
+                )
+                for row in groups
+            ),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
+    buffered_items = (
+        buffered_slice.items
+        if buffered_slice is not None
+        else tuple(
             OwnerBufferedComment(
                 comment_id=row.id,
                 article_id=row.thread.target_id,
@@ -102,8 +180,12 @@ def owner_comment_workspace(
                 is_reply=row.parent_id is not None,
             )
             for row in buffered
-        ),
-        articles=tuple(
+        )
+    )
+    article_items = (
+        article_slice.items
+        if article_slice is not None
+        else tuple(
             OwnerCommentArticle(
                 article_id=row.target_id,
                 comments_enabled=row.comments_enabled,
@@ -113,5 +195,11 @@ def owner_comment_workspace(
                 latest_at=row.latest_at,
             )
             for row in groups
-        ),
+        )
+    )
+    return OwnerCommentWorkspace(
+        buffered_items=buffered_items,
+        articles=article_items,
+        buffered_page=buffered_slice,
+        article_page=article_slice,
     )

@@ -36,6 +36,7 @@
     {% else %}
       <div class="admin-queue__empty"><h2>当前没有匹配举报</h2><p>切换案件状态查看其他记录。</p><a href="{% url 'admin:reports' %}">清除筛选</a></div>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=report_page pagination_query=pagination_query pagination_no_hx=True pagination_label="举报分页" %}
 
     {% if detail %}
       <section id="report-detail" class="admin-queue__detail" aria-labelledby="report-detail-title">

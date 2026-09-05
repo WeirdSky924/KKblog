@@ -3,12 +3,14 @@ from datetime import datetime
 from uuid import UUID
 
 from django.core import signing
+from django.core.paginator import Paginator
 from django.db.models import Count, IntegerField, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.core.ids import normalize_ulid
+from apps.core.pagination import PageSlice, page_window
 from apps.notifications.models import Notification, NotificationReceipt
 from apps.notifications.services.broadcast import BROADCAST_TEMPLATE_KEYS
 from apps.notifications.templates_registry import render_notification
@@ -97,6 +99,26 @@ class BroadcastDetail:
     recipient_page: int
     recipient_pages: int
 
+    @property
+    def page_number(self) -> int:
+        return self.recipient_page
+
+    @property
+    def total_pages(self) -> int:
+        return self.recipient_pages
+
+    @property
+    def has_previous(self) -> bool:
+        return self.recipient_page > 1
+
+    @property
+    def has_next(self) -> bool:
+        return self.recipient_page < self.recipient_pages
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.recipient_page, self.recipient_pages)
+
 
 def _recipient_id(value: UUID | str) -> UUID:
     try:
@@ -144,13 +166,37 @@ def _broadcast_summary(notification: Notification) -> BroadcastSummary:
     )
 
 
-def broadcast_list(*, is_admin: bool, limit: int = 50) -> tuple[BroadcastSummary, ...]:
+def broadcast_list(
+    *,
+    is_admin: bool,
+    limit: int = 50,
+    page: int | None = None,
+    page_size: int = 20,
+) -> tuple[BroadcastSummary, ...] | PageSlice[BroadcastSummary]:
     _require_broadcast_admin(is_admin)
     if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 200:
         raise ValueError("Invalid broadcast list limit")
-    return tuple(
-        _broadcast_summary(notification)
-        for notification in _broadcast_query().order_by("-created_at", "-id")[:limit]
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid broadcast page")
+    ordered = _broadcast_query().order_by("-created_at", "-id")
+    if page is None:
+        return tuple(
+            _broadcast_summary(notification) for notification in ordered[:limit]
+        )
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(
+            _broadcast_summary(notification) for notification in selected.object_list
+        ),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )
 
 

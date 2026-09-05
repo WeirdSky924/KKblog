@@ -1,6 +1,7 @@
 from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.authoring.operation_forms import (
     ArticleCommentsToggleForm,
@@ -28,8 +29,19 @@ def _method(request, allowed):
     return None
 
 
-def _workspace(actor_id):
-    return comment_workspace_page(actor_id=actor_id)
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
+def _workspace(actor_id, *, buffered_page=None, article_page=None):
+    return comment_workspace_page(
+        actor_id=actor_id,
+        buffered_page=buffered_page,
+        article_page=article_page,
+    )
 
 
 def _article_and_panel(*, actor_id, article_id: str, sort="earliest", cursor=None):
@@ -58,9 +70,14 @@ def comments_buffer(request):
             "authoring/comments.html",
             {
                 "comments_tab": "buffer",
-                "comment_workspace": _workspace(actor_id),
+                "comment_workspace": _workspace(
+                    actor_id,
+                    buffered_page=_page_number(request.GET.get("buffered_page")),
+                    article_page=1,
+                ),
                 "comment_deleted": request.GET.get("deleted") == "1",
                 "comment_confirm_id": request.GET.get("confirm", ""),
+                "buffered_pagination_query": "",
             },
         )
     )
@@ -88,13 +105,27 @@ def comments_articles(request):
             "authoring/comments.html",
             {
                 "comments_tab": "articles",
-                "comment_workspace": _workspace(actor_id),
+                "comment_workspace": _workspace(
+                    actor_id,
+                    buffered_page=1,
+                    article_page=_page_number(request.GET.get("article_page")),
+                ),
                 "managed_article": article,
                 "managed_comment_panel": panel,
                 "managed_comment_sort": request.GET.get("sort", "earliest"),
                 "comment_deleted": request.GET.get("deleted") == "1",
                 "comment_settings_saved": request.GET.get("settings") == "1",
                 "comment_confirm_id": request.GET.get("confirm", ""),
+                "comment_article_pagination_query": urlencode(
+                    {
+                        key: value
+                        for key, value in {
+                            "article": selected_id,
+                            "sort": request.GET.get("sort", "earliest"),
+                        }.items()
+                        if value
+                    }
+                ),
             },
         )
     )

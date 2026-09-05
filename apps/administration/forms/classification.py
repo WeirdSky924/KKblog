@@ -20,6 +20,7 @@ TAG_ACTIONS = (
 
 class AdminTagFilterForm(forms.Form):
     state = forms.ChoiceField(label="标签状态", required=False, choices=TAG_STATES)
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
 
 
 class TagCreateForm(forms.Form):
@@ -63,6 +64,10 @@ class SectionCreateForm(SectionCoverForm):
         max_length=100,
         widget=forms.TextInput(attrs={"placeholder": "新增文章分区"}),
     )
+
+
+class SectionPageForm(forms.Form):
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
 
 
 class SectionRenameConfirmationForm(forms.Form):

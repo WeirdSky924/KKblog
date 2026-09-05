@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from django.db.models import QuerySet
 
 from apps.accounts.public import is_active_account
+from apps.core.pagination import PageSlice, page_window
 from apps.learning.contracts import (
     LearningCommandError,
     QuestionBankVisibility,
@@ -72,6 +73,10 @@ class WrongQuestionPage:
     has_previous: bool
     has_next: bool
 
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
+
 
 @dataclass(frozen=True, slots=True)
 class WrongQuestionBankOption:
@@ -111,6 +116,10 @@ class QuizRecordPage:
     total_items: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 @dataclass(frozen=True, slots=True)
@@ -346,29 +355,51 @@ def quiz_record_page(
     )
 
 
-def pending_quiz_records(*, account_id) -> tuple[QuizRecordItem, ...]:
+def pending_quiz_records(
+    *, account_id, page: int | None = None, page_size: int = 20
+) -> tuple[QuizRecordItem, ...] | PageSlice[QuizRecordItem]:
     account_id = _owner(account_id)
-    return tuple(
-        QuizRecordItem(
-            item.id,
-            item.bank_id_snapshot,
-            item.bank_title,
-            item.source,
-            QuizAttemptSource(item.source).label,
-            item.status,
-            QuizAttemptStatus(item.status).label,
-            item.started_at,
-            item.submitted_at,
-            item.question_count,
-            item.objective_score,
-            item.objective_total,
-            item.short_answer_mastered,
-            item.short_answer_total,
-            item.row_version,
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise LearningCommandError(
+            "learning.quiz_pending_page_invalid.v1", "删除冷静期分页不合法。"
         )
-        for item in QuizAttempt.objects.filter(
-            account_id=account_id, status=QuizAttemptStatus.DELETE_PENDING
-        ).order_by("purge_after", "id")
+    ordered = QuizAttempt.objects.filter(
+        account_id=account_id, status=QuizAttemptStatus.DELETE_PENDING
+    ).order_by("purge_after", "id")
+
+    def item(value) -> QuizRecordItem:
+        return QuizRecordItem(
+            value.id,
+            value.bank_id_snapshot,
+            value.bank_title,
+            value.source,
+            QuizAttemptSource(value.source).label,
+            value.status,
+            QuizAttemptStatus(value.status).label,
+            value.started_at,
+            value.submitted_at,
+            value.question_count,
+            value.objective_score,
+            value.objective_total,
+            value.short_answer_mastered,
+            value.short_answer_total,
+            value.row_version,
+        )
+
+    if page is None:
+        return tuple(item(value) for value in ordered)
+    paginator = Paginator(ordered, page_size)
+    selected = paginator.get_page(page)
+    return PageSlice(
+        items=tuple(item(value) for value in selected.object_list),
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
     )
 
 

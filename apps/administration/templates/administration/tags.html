@@ -70,6 +70,7 @@
     {% else %}
       <div id="tag-list" class="admin-queue__empty"><h2>当前没有匹配标签</h2><p>可切换状态筛选，或在上方新增全站标签。</p><a href="{% url 'admin:tags' %}">清除筛选</a></div>
     {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=tag_page pagination_query=pagination_query pagination_no_hx=True pagination_label="标签分页" %}
 
     {% if detail %}
       <dialog
@@ -102,6 +103,7 @@
               {% for conflict in detail.open_conflicts %}<li><strong>{{ conflict.article_title }}</strong><code>{{ conflict.article_id }}</code><span>{% if conflict.reason == "MAX_TAGS" %}文章已有 10 个标签{% else %}{{ conflict.reason }}{% endif %} · {{ conflict.created_at|date:"Y-m-d H:i:s" }}</span></li>{% endfor %}
             </ul>
             {% if detail.conflicts_truncated %}<p>开放冲突较多，本页仅显示最近 200 条。</p>{% endif %}
+            {% include "components/navigation/pagination.html" with index_page=detail.conflict_page pagination_query=tag_conflict_pagination_query pagination_page_parameter="conflict_page" pagination_no_hx=True pagination_label="标签冲突分页" %}
           {% else %}<p>当前没有开放恢复冲突。</p>{% endif %}
         </section>
 
@@ -112,6 +114,7 @@
               {% for history in detail.association_history %}<li><strong>{{ history.article_title }}</strong><code>{{ history.article_id }}</code><span>移除 {{ history.removed_at|date:"Y-m-d H:i:s" }} · {% if history.restored_at %}恢复 {{ history.restored_at|date:"Y-m-d H:i:s" }}{% else %}尚未恢复{% endif %}</span></li>{% endfor %}
             </ul>
             {% if detail.history_truncated %}<p>关联历史较多，本页仅显示最近 200 条。</p>{% endif %}
+            {% include "components/navigation/pagination.html" with index_page=detail.history_page pagination_query=tag_history_pagination_query pagination_page_parameter="history_page" pagination_no_hx=True pagination_label="标签关联历史分页" %}
           {% else %}<p>这个标签还没有删除或恢复历史。</p>{% endif %}
         </section>
         <p><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></p>

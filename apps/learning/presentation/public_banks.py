@@ -74,6 +74,7 @@ def question_bank_list(request):
             "bank_page": page,
             "filter_form": form,
             "filter_options": options,
+            "question_bank_pagination_query": _page_query_without_page(request),
             "previous_query": (
                 _page_query(request, page.page_number - 1) if page.has_previous else ""
             ),
@@ -83,6 +84,14 @@ def question_bank_list(request):
         },
         status=status,
     )
+
+
+def _page_query_without_page(request):
+    values = request.GET.copy()
+    values.pop("page", None)
+    if not values.get("sort"):
+        values["sort"] = PublicQuestionBankSort.LATEST
+    return values.urlencode()
 
 
 @require_GET

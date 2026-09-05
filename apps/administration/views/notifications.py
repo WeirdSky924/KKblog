@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import is_administrator
 from apps.administration.forms.notifications import (
@@ -93,10 +94,14 @@ def _render(
 ) -> HttpResponse:
     selected_id = detail_id or request.GET.get("detail", "")
     try:
-        rows = broadcast_list(is_admin=True)
+        broadcast_page = broadcast_list(
+            is_admin=True,
+            page=_page(request.GET.get("page", "1")),
+            page_size=20,
+        )
         detail = _detail(request, selected_id)
     except ValueError:
-        rows = broadcast_list(is_admin=True)
+        broadcast_page = broadcast_list(is_admin=True, page=1, page_size=20)
         detail = None
         query_error = "收件回执筛选或页码无效，请重新选择。"
         status = 422
@@ -129,7 +134,15 @@ def _render(
         request,
         "administration/notifications.html",
         {
-            "broadcast_rows": rows,
+            "broadcast_rows": broadcast_page.items,
+            "broadcast_page": broadcast_page,
+            "broadcast_list_pagination_query": urlencode(
+                {
+                    key: value
+                    for key, value in request.GET.items()
+                    if key not in {"page", "detail", "recipient_state", "q"}
+                }
+            ),
             "broadcast_detail": detail,
             "broadcast_form": broadcast_form or BroadcastForm(),
             "broadcast_confirmation": broadcast_confirmation,
@@ -143,6 +156,9 @@ def _render(
             "selected_id": selected_id,
             "recipient_state": request.GET.get("recipient_state", ""),
             "recipient_keyword": request.GET.get("q", ""),
+            "broadcast_pagination_query": urlencode(
+                {key: value for key, value in request.GET.items() if key != "page"}
+            ),
             "query_error": query_error,
             "saved": request.GET.get("saved", ""),
         },

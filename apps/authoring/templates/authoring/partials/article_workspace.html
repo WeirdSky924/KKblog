@@ -2,7 +2,9 @@
 <div id="author-article-workspace" class="article-workspace" aria-live="polite">
   {% if request.GET.cancelled == "1" %}{% include "components/feedback/trigger.html" with key="author-schedule-cancelled" message="定时发布已取消，文章已回到草稿。" %}{% endif %}
   {% if article_deleted %}{% include "components/feedback/trigger.html" with key="author-article-deleted" message="文章已进入 7 天删除冷静期。" %}{% endif %}
+  {% if article_restored %}{% include "components/feedback/trigger.html" with key="author-article-restored" message="文章已恢复。" %}{% endif %}
   {% if article_delete_error %}<p class="author-editor-error" role="alert">{{ article_delete_error }}</p>{% endif %}
+  {% if article_restore_error %}<p class="author-editor-error" role="alert">{{ article_restore_error }}</p>{% endif %}
   <nav class="authoring-tabs" aria-label="文章状态">
     {% for tab in workspace.tabs %}
       <a
@@ -95,22 +97,31 @@
                 </button>
               </form>
             {% endif %}
-            {% if item.can_restore %}<span class="author-capability">可恢复</span>{% endif %}
+            {% if item.can_restore %}
+              <form
+                method="post"
+                action="{% url 'authoring:restore-article' article_id=item.article_id %}"
+                hx-post="{% url 'authoring:restore-article' article_id=item.article_id %}"
+                hx-target="#author-article-workspace"
+                hx-swap="outerHTML"
+                data-submit-once
+                data-confirm-form="文章将恢复到删除前的状态，确认恢复？"
+              >
+                {% csrf_token %}
+                <input type="hidden" name="expected_row_version" value="{{ item.row_version }}">
+                <input type="hidden" name="confirm" value="restore">
+                <input type="hidden" name="return_state" value="{{ workspace.selected_state }}">
+                <input type="hidden" name="return_page" value="{{ workspace.page_number }}">
+                <button class="button button--primary" type="submit">
+                  <i data-lucide="undo-2"></i><span>恢复</span>
+                </button>
+              </form>
+            {% endif %}
           </div>
         </article>
       {% endfor %}
     </div>
-    {% if workspace.total_pages > 1 %}
-      <nav class="authoring-pagination" aria-label="文章分页">
-        {% if workspace.has_previous %}
-          <a href="?state={{ workspace.selected_state }}&page={{ workspace.page_number|add:'-1' }}">上一页</a>
-        {% endif %}
-        <span>第 {{ workspace.page_number }} / {{ workspace.total_pages }} 页</span>
-        {% if workspace.has_next %}
-          <a href="?state={{ workspace.selected_state }}&page={{ workspace.page_number|add:'1' }}">下一页</a>
-        {% endif %}
-      </nav>
-    {% endif %}
+    {% include "components/navigation/pagination.html" with index_page=workspace pagination_query=pagination_query pagination_target="#author-article-workspace" pagination_no_hx=True pagination_label="文章分页" %}
   {% else %}
     <div class="authoring-empty">
       {% if workspace.selected_state == "PUBLISHED" %}

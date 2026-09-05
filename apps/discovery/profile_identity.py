@@ -26,6 +26,7 @@ class ProfileIdentitySearchPage(Protocol):
     total_pages: int
     has_previous: bool
     has_next: bool
+    page_window: tuple[int | None, ...]
 
 
 ProfileIdentityPageProvider = Callable[..., ProfileIdentitySearchPage]

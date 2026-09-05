@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import (
     AccountAdministrationQueryError,
@@ -136,11 +137,18 @@ def _render(
         state = ""
         status = 422
     try:
-        rows = admin_report_list(actor_id=request.account_id, state=state)
+        report_page = admin_report_list(
+            actor_id=request.account_id,
+            state=state,
+            page=filter_form.cleaned_data.get("page") or 1,
+            page_size=20,
+        )
     except PermissionError:
         raise PermissionDenied from None
     except ValueError as exc:
-        rows = ()
+        report_page = admin_report_list(
+            actor_id=request.account_id, state="", page=1, page_size=20
+        )
         page_error = str(exc)
         status = 422
 
@@ -178,7 +186,9 @@ def _render(
         request,
         "administration/reports.html",
         {
-            "rows": rows,
+            "rows": report_page.items,
+            "report_page": report_page,
+            "pagination_query": urlencode({"state": state}),
             "filter_form": filter_form,
             "detail": detail,
             "target_comment": target_comment,

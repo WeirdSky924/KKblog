@@ -590,6 +590,10 @@
   font-size: 0.8125rem;
 }
 
+.opportunity-public__results-footer > .pagination-bar {
+  grid-column: 1 / -1;
+}
+
 .opportunity-public__empty,
 .opportunity-public__error {
   display: grid;

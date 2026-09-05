@@ -1,26 +1,9 @@
-{% if index_page.total_pages > 1 %}
-  <nav class="pagination" aria-label="{{ pagination_label|default:'文章分页' }}">
-    <a
-      class="pagination__direction{% if not index_page.has_previous %} pagination__direction--disabled{% endif %}"
-      {% if index_page.has_previous %}href="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'-1' }}" hx-get="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'-1' }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true"{% else %}aria-disabled="true"{% endif %}
-    ><i data-lucide="chevron-left"></i><span>上一页</span></a>
-    <ol>
-      {% for number in index_page.page_window %}
-        <li>
-          {% if number %}
-            <a
-              href="?{{ pagination_query }}&amp;page={{ number }}"
-              {% if number == index_page.page_number %}aria-current="page"{% else %}hx-get="?{{ pagination_query }}&amp;page={{ number }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true"{% endif %}
-            >{{ number }}</a>
-          {% else %}
-            <span aria-hidden="true">…</span>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ol>
-    <a
-      class="pagination__direction{% if not index_page.has_next %} pagination__direction--disabled{% endif %}"
-      {% if index_page.has_next %}href="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'1' }}" hx-get="?{{ pagination_query }}&amp;page={{ index_page.page_number|add:'1' }}" hx-target="#article-index" hx-swap="outerHTML" hx-push-url="true"{% else %}aria-disabled="true"{% endif %}
-    ><span>下一页</span><i data-lucide="chevron-right"></i></a>
-  </nav>
+{% comment %}
+  Shared numbered pagination used by article_index and every other page-numbered
+  collection. Callers may pass either index_page or page_data.
+{% endcomment %}
+{% if index_page %}
+  {% with page=index_page %}{% include "components/navigation/pagination_inner.html" %}{% endwith %}
+{% elif page_data %}
+  {% with page=page_data %}{% include "components/navigation/pagination_inner.html" %}{% endwith %}
 {% endif %}

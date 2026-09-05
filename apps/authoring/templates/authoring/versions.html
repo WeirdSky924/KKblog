@@ -40,6 +40,7 @@
             <li class="author-version-empty"><h2>还没有历史版本</h2><p>首次保存云端草稿后会出现版本记录。</p></li>
           {% endfor %}
         </ol>
+        {% include "components/navigation/pagination.html" with index_page=version_page pagination_query=pagination_query pagination_no_hx=True pagination_label="版本分页" %}
 
         <section class="author-version-preview" aria-labelledby="version-preview-title">
           {% if restore_error %}<p class="author-publication__error" role="alert" tabindex="-1" data-error-focus>{{ restore_error }}</p>{% endif %}

@@ -26,28 +26,7 @@
       {% endfor %}
     </div>
     <footer class="article-index__footer">
-      {% include "components/navigation/pagination.html" with pagination_label="作者分页" %}
-      <form
-        class="page-size-control"
-        action="{{ index_action }}"
-        method="get"
-        hx-get="{{ index_action }}"
-        hx-target="#article-index"
-        hx-swap="outerHTML"
-        hx-push-url="true"
-        hx-trigger="change"
-        hx-sync="this:replace"
-      >
-        <input type="hidden" name="q" value="{{ search_query }}">
-        <input type="hidden" name="type" value="author">
-        <label for="author-page-size">每页</label>
-        <select id="author-page-size" name="per_page">
-          {% for value, label in pagination_form.fields.per_page.choices %}
-            <option value="{{ value }}"{% if value == index_page.page_size %} selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <noscript><button class="button button--secondary" type="submit">应用</button></noscript>
-      </form>
+      {% include "components/navigation/pagination.html" with pagination_label="作者分页" pagination_page_size_options=pagination_form.fields.per_page.choices pagination_page_size_value=index_page.page_size pagination_page_size_action=index_action pagination_page_size_target="#article-index" pagination_page_size_fields=pagination_page_size_fields pagination_page_size_hx=True pagination_page_size_sync="this:replace" pagination_page_size_id="author-page-size" %}
       <p class="article-index__page-state">第 {{ index_page.page_number }} / {{ index_page.total_pages }} 页</p>
     </footer>
   {% else %}

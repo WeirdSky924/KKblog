@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from apps.accounts.public import is_administrator
+from apps.core.pagination import PageSlice, page_window
 from apps.learning.contracts import (
     KnowledgeDocumentState,
     LearningAdminTargetType,
@@ -81,6 +82,10 @@ class AdminLearningDocumentPage:
     has_previous: bool
     has_next: bool
 
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
+
 
 @dataclass(frozen=True, slots=True)
 class AdminKnowledgeAccessItem:
@@ -95,6 +100,7 @@ class AdminKnowledgeAccessItem:
 class AdminLearningDocumentDetail:
     item: AdminLearningDocumentItem
     access_history: tuple[AdminKnowledgeAccessItem, ...]
+    access_page: PageSlice[AdminKnowledgeAccessItem] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +141,10 @@ class AdminQuestionBankPage:
     has_previous: bool
     has_next: bool
 
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
+
 
 @dataclass(frozen=True, slots=True)
 class AdminLearningAppealItem:
@@ -166,6 +176,10 @@ class AdminLearningAppealPage:
     has_previous: bool
     has_next: bool
 
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
+
 
 @dataclass(frozen=True, slots=True)
 class AdminLearningQuotaSite:
@@ -193,6 +207,7 @@ class AdminLearningQuotaOverrideItem:
 class AdminLearningQuotaSnapshot:
     site: AdminLearningQuotaSite
     overrides: tuple[AdminLearningQuotaOverrideItem, ...]
+    override_page: PageSlice[AdminLearningQuotaOverrideItem] | None = None
 
 
 def _document_item(document, appeal=None) -> AdminLearningDocumentItem:
@@ -273,7 +288,7 @@ def admin_learning_document_page(
 
 
 def admin_learning_document_detail(
-    *, actor_id, document_id
+    *, actor_id, document_id, page: int | None = None, page_size: int = 20
 ) -> AdminLearningDocumentDetail:
     _administrator(actor_id)
     try:
@@ -286,8 +301,20 @@ def admin_learning_document_detail(
         document_id=document.id,
         state=LearningAppealState.PENDING,
     ).first()
-    history = tuple(
-        AdminKnowledgeAccessItem(
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise LearningCommandError(
+            "learning.document_access_page_invalid.v1", "访问记录分页不合法。"
+        )
+    ordered = (
+        KnowledgeDocumentAccess.objects.filter(document_id=document.id)
+        .select_related("administrator_actor")
+        .order_by("-accessed_at", "-id")
+    )
+
+    def access_item(item) -> AdminKnowledgeAccessItem:
+        return AdminKnowledgeAccessItem(
             actor_id=item.administrator_actor_id,
             actor_display_name=(
                 item.administrator_actor.nickname
@@ -297,13 +324,27 @@ def admin_learning_document_detail(
             accessed_at=item.accessed_at,
             trace_code=item.trace_code,
         )
-        for item in KnowledgeDocumentAccess.objects.filter(document_id=document.id)
-        .select_related("administrator_actor")
-        .order_by("-accessed_at", "-id")[:100]
-    )
+
+    if page is None:
+        history = tuple(access_item(item) for item in ordered[:100])
+        access_page = None
+    else:
+        paginator = Paginator(ordered, page_size)
+        selected = paginator.get_page(page)
+        history = tuple(access_item(item) for item in selected.object_list)
+        access_page = PageSlice(
+            items=history,
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
     return AdminLearningDocumentDetail(
         item=_document_item(document, appeal),
         access_history=history,
+        access_page=access_page,
     )
 
 
@@ -509,7 +550,19 @@ def admin_learning_quota_snapshot(*, actor_id, page: int = 1, page_size: int = 2
         )
         for item in selected.object_list
     )
-    return AdminLearningQuotaSnapshot(site=site, overrides=overrides)
+    return AdminLearningQuotaSnapshot(
+        site=site,
+        overrides=overrides,
+        override_page=PageSlice(
+            items=overrides,
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        ),
+    )
 
 
 def admin_learning_account_quota_override(*, actor_id, account_id):

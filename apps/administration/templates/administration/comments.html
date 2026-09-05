@@ -19,7 +19,7 @@
 
     <div id="comment-workspace">
       {% if tab == "buffered" %}
-        {% if buffered_rows %}
+        {% if buffered_page.items %}
           <div class="admin-queue__cards">
             {% for row in buffered_rows %}
               <article class="admin-queue__comment">
@@ -33,11 +33,12 @@
               </article>
             {% endfor %}
           </div>
+          {% include "components/navigation/pagination.html" with index_page=buffered_page pagination_query=buffered_pagination_query pagination_page_parameter="buffered_page" pagination_no_hx=True pagination_label="缓冲评论分页" %}
         {% else %}
           <div class="admin-queue__empty"><h2>当前没有缓冲评论</h2><p>新评论进入十分钟缓冲期后会显示在这里。</p></div>
         {% endif %}
       {% else %}
-        {% if thread_rows %}
+        {% if thread_page.items %}
           <div class="admin-queue__table-wrap" tabindex="0" aria-label="评论内容分组列表">
             <table class="admin-queue__table">
               <thead><tr><th>内容</th><th>缓冲</th><th>公开</th><th>已删除</th><th>最近活动</th><th>操作</th></tr></thead>
@@ -48,6 +49,7 @@
               </tbody>
             </table>
           </div>
+          {% include "components/navigation/pagination.html" with index_page=thread_page pagination_query=thread_pagination_query pagination_page_parameter="thread_page" pagination_no_hx=True pagination_label="评论分组分页" %}
         {% else %}
           <div class="admin-queue__empty"><h2>当前没有评论分组</h2><p>文章或留言板建立评论线程后会显示在这里。</p></div>
         {% endif %}
@@ -56,8 +58,8 @@
 
     {% if selected_type %}
       <section id="target-comments" class="admin-queue__detail" aria-labelledby="target-comments-title">
-        <header><p>{{ selected_type }}</p><h2 id="target-comments-title">{{ selected_label }}</h2><p>共 {{ comment_rows|length }} 条评论，删除节点保留原位置。</p></header>
-        {% if comment_rows %}
+        <header><p>{{ selected_type }}</p><h2 id="target-comments-title">{{ selected_label }}</h2><p>共 {{ comment_page.total_items|default:"0" }} 条评论，删除节点保留原位置。</p></header>
+        {% if comment_page.items %}
           <div class="admin-queue__cards">
             {% for row in comment_rows %}
               <article class="admin-queue__comment">
@@ -71,6 +73,7 @@
               </article>
             {% endfor %}
           </div>
+          {% include "components/navigation/pagination.html" with index_page=comment_page pagination_query=comment_pagination_query pagination_page_parameter="target_page" pagination_no_hx=True pagination_label="指定内容评论分页" %}
         {% else %}<p>这个评论线程当前为空。</p>{% endif %}
       </section>
     {% endif %}

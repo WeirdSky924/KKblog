@@ -16,6 +16,7 @@ from apps.accounts.public import (
     public_account_identities,
     public_account_identity,
 )
+from apps.core.pagination import page_window
 from apps.learning.contracts import QuestionType
 from apps.learning.models import (
     Question,
@@ -95,6 +96,10 @@ class PublicQuestionBankPage:
     total_pages: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 @dataclass(frozen=True, slots=True)

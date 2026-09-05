@@ -14,17 +14,17 @@
           <p class="authoring-folio">05 / 05</p>
           <h1 id="author-comments-title">评论管理</h1>
         </div>
-        <span class="author-operation-count">{{ comment_workspace.articles|length }} 篇文章</span>
+        <span class="author-operation-count">{{ comment_workspace.article_page.total_items|default:"0" }} 篇文章</span>
       </header>
 
       <nav class="author-operation-tabs" aria-label="评论管理视图">
         <a href="{% url 'authoring:comments-buffer' %}"{% if comments_tab == "buffer" %} aria-current="page"{% endif %}>
           10 分钟缓冲
-          <span>{{ comment_workspace.buffered_items|length }}</span>
+          <span>{{ comment_workspace.buffered_page.total_items|default:"0" }}</span>
         </a>
         <a href="{% url 'authoring:comments-article' %}"{% if comments_tab == "articles" %} aria-current="page"{% endif %}>
           按文章
-          <span>{{ comment_workspace.articles|length }}</span>
+          <span>{{ comment_workspace.article_page.total_items|default:"0" }}</span>
         </a>
       </nav>
 
@@ -115,6 +115,7 @@
               <p>新评论进入 10 分钟缓冲后会显示在这里。</p>
             </div>
           {% endif %}
+          {% include "components/navigation/pagination.html" with index_page=comment_workspace.buffered_page pagination_query="" pagination_page_parameter="buffered_page" pagination_no_hx=True pagination_label="缓冲评论分页" %}
         </section>
       {% else %}
         <div id="managed-comments" class="author-comment-workspace">
@@ -139,6 +140,7 @@
               </div>
             {% endif %}
           </nav>
+          {% include "components/navigation/pagination.html" with index_page=comment_workspace.article_page pagination_query=comment_article_pagination_query pagination_page_parameter="article_page" pagination_no_hx=True pagination_label="评论文章分页" %}
 
           <section class="author-comment-detail" aria-labelledby="managed-article-title">
             {% if managed_article %}

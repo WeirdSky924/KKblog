@@ -6,6 +6,7 @@ from uuid import UUID
 from django.core.paginator import Paginator
 
 from apps.agents.public import agent_profile_available
+from apps.core.pagination import PageSlice, page_window
 from apps.learning.contracts import LearningCommandError
 from apps.learning.generation_schema import (
     QUESTION_GENERATION_PROFILE_KEY,
@@ -163,6 +164,10 @@ class OwnerKnowledgeDocumentPage:
     total_items: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 def question_generation_available() -> bool:
@@ -341,13 +346,23 @@ def _owner_question_bank_series_items(
 
 
 def owner_knowledge_document_question_bank_series(
-    *, owner_id: UUID, document_id: UUID
-) -> tuple[OwnerQuestionBankSeriesItem, ...]:
+    *,
+    owner_id: UUID,
+    document_id: UUID,
+    page: int | None = None,
+    page_size: int = 20,
+) -> tuple[OwnerQuestionBankSeriesItem, ...] | PageSlice[OwnerQuestionBankSeriesItem]:
     """Return generation history for one owned document, independent of list paging."""
     if not isinstance(owner_id, UUID) or not isinstance(document_id, UUID):
         raise LearningCommandError("learning.document_not_found.v1", "知识文档不存在。")
     if not KnowledgeDocument.objects.filter(pk=document_id, owner_id=owner_id).exists():
         raise LearningCommandError("learning.document_not_found.v1", "知识文档不存在。")
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise LearningCommandError(
+            "learning.generation_history_page_invalid.v1", "题库生成历史分页不合法。"
+        )
     series_rows = (
         QuestionBankSeries.objects.filter(
             owner_id=owner_id,
@@ -357,7 +372,20 @@ def owner_knowledge_document_question_bank_series(
         .prefetch_related("tag_assignments__tag", "banks__current_revision")
         .order_by("-created_at", "-id")
     )
-    return _owner_question_bank_series_items(series_rows)
+    if page is None:
+        return _owner_question_bank_series_items(series_rows)
+    paginator = Paginator(series_rows, page_size)
+    selected = paginator.get_page(page)
+    items = _owner_question_bank_series_items(selected.object_list)
+    return PageSlice(
+        items=items,
+        page_number=selected.number,
+        page_size=page_size,
+        total_items=paginator.count,
+        total_pages=paginator.num_pages,
+        has_previous=selected.has_previous(),
+        has_next=selected.has_next(),
+    )
 
 
 def owner_question_bank_metadata(

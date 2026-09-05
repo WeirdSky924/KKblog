@@ -2,6 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, Validat
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import (
     RestrictionError,
@@ -52,7 +53,20 @@ def _render(
     status=200,
 ) -> HttpResponse:
     keyword = request.GET.get("q", "")
-    rows = ip_block_list(is_admin=True, keyword=keyword)
+    try:
+        page = max(1, int(request.GET.get("page", "1")))
+    except (TypeError, ValueError):
+        page = 1
+        page_error = page_error or "分页条件无效。"
+        status = 422
+    try:
+        block_page = ip_block_list(
+            is_admin=True, keyword=keyword, page=page, page_size=20
+        )
+    except ValueError as exc:
+        block_page = ip_block_list(is_admin=True, keyword="", page=1, page_size=20)
+        page_error = str(exc)
+        status = 422
     detail = _detail(request.GET.get("detail", ""))
     confirm_unblock = _detail(request.GET.get("confirm", ""))
     if confirm_unblock is not None and confirm_unblock.unblocked_at is not None:
@@ -61,7 +75,9 @@ def _render(
         request,
         "administration/ip_blocks.html",
         {
-            "rows": rows,
+            "rows": block_page.items,
+            "block_page": block_page,
+            "pagination_query": urlencode({"q": keyword}),
             "keyword": keyword,
             "detail": detail,
             "block_form": block_form or IpBlockForm(auto_id=BLOCK_AUTO_ID),

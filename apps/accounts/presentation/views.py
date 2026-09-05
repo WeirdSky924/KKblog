@@ -98,6 +98,13 @@ def _client_ip(request: HttpRequest) -> str:
     return getattr(request, "client_ip", request.META.get("REMOTE_ADDR", "127.0.0.1"))
 
 
+def _page_number(value) -> int:
+    try:
+        return max(1, int(value)) if not isinstance(value, bool) else 1
+    except (TypeError, ValueError):
+        return 1
+
+
 def _render_registration(
     request,
     *,
@@ -692,19 +699,24 @@ def _render_sessions(
     confirm_all=False,
     status=200,
 ) -> HttpResponse:
+    session_page = session_list(
+        account_id=request.account_id,
+        current_session_id=request.login_session.id,
+        page=_page_number(request.GET.get("page")),
+        page_size=20,
+    )
     return render(
         request,
         "accounts/sessions.html",
         {
-            "sessions": session_list(
-                account_id=request.account_id,
-                current_session_id=request.login_session.id,
-            ),
+            "sessions": session_page.items,
+            "session_page": session_page,
             "revoke_form": revoke_form or RevokeSessionForm(),
             "all_form": all_form
             or RevokeAllSessionsForm(initial={"confirm": "all_devices"}),
             "confirm_all": confirm_all,
             "session_revoked": request.GET.get("revoked") == "1",
+            "session_pagination_query": "",
         },
         status=status,
     )

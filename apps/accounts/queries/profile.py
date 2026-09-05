@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.db.models import Case, IntegerField, Q, Value, When
 
 from apps.accounts.models import Account, RoleAssignment
+from apps.core.pagination import page_window
 
 _PUBLIC_AUTHOR_PAGE_SIZES = frozenset({10, 20, 50})
 
@@ -31,6 +32,10 @@ class PublicAuthorSearchPage:
     total_pages: int
     has_previous: bool
     has_next: bool
+
+    @property
+    def page_window(self) -> tuple[int | None, ...]:
+        return page_window(self.page_number, self.total_pages)
 
 
 class PublicAccountNotFound(LookupError):

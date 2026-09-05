@@ -273,7 +273,11 @@ def record_task_final_failure_alert(
 ) -> OperationalAlert:
     if not isinstance(run, TaskRun) or run.status != TaskRunStatus.FINAL_FAILED:
         raise AlertPersistenceError("Task run is not final failed")
-    if run.attempt != 3 or not run.last_error_code or trace_code != run.trace_code:
+    if (
+        not 1 <= run.attempt <= 3
+        or not run.last_error_code
+        or trace_code != run.trace_code
+    ):
         raise AlertPersistenceError("Task final failure fact is inconsistent")
     now = occurred_at
     runtime_error = _capture_task_runtime_error(
@@ -349,7 +353,7 @@ def _message(window: OperationalAlertEmailWindow) -> OperationalEmailMessage:
         )
     else:
         body = (
-            "后台任务已在三次尝试后最终失败。\n"
+            "后台任务已最终失败。\n"
             f"任务：{alert.task_name}\n"
             f"错误码：{alert.error_code}\n"
             f"追踪码：{alert.trace_code}\n"

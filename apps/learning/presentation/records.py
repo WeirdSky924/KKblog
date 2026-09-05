@@ -103,6 +103,7 @@ def _wrong_context(request, *, form=None, page_error="", saved=""):
         "page_error": page_error,
         "saved": saved,
         "wrong_mastery_choices": QuizMasteryStatus.choices,
+        "wrong_pagination_query": _pagination_query(request),
     }
 
 
@@ -117,9 +118,15 @@ def _record_context(request, *, form=None, page_error="", saved=""):
     except LearningCommandError as error:
         page = quiz_record_page(account_id=request.account_id)
         page_error = page_error or error.safe_message
+    pending_page = pending_quiz_records(
+        account_id=request.account_id,
+        page=_page_number(request.GET.get("pending_page")),
+        page_size=20,
+    )
     return {
         "record_page": page,
-        "pending_records": pending_quiz_records(account_id=request.account_id),
+        "pending_records": pending_page.items,
+        "pending_page": pending_page,
         "record_versions_json": json.dumps(
             {str(item.attempt_id): item.row_version for item in page.items},
             ensure_ascii=False,
@@ -127,7 +134,15 @@ def _record_context(request, *, form=None, page_error="", saved=""):
         "record_filter_form": form,
         "page_error": page_error,
         "saved": saved,
+        "record_pagination_query": _pagination_query(request),
+        "pending_pagination_query": "",
     }
+
+
+def _pagination_query(request):
+    values = request.GET.copy()
+    values.pop("page", None)
+    return urlencode(values, doseq=True)
 
 
 @require_http_methods(["GET", "POST"])

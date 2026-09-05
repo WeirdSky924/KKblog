@@ -156,6 +156,19 @@ def _pagination_query(request, page_size: int, *, tag_ids=None) -> str:
     return query.urlencode()
 
 
+def _pagination_page_size_fields(
+    request, *, tag_ids=None
+) -> tuple[tuple[str, str], ...]:
+    query = request.GET.copy()
+    query.pop("page", None)
+    query.pop("per_page", None)
+    if tag_ids is not None:
+        query.pop("tags", None)
+        for tag_id in tag_ids:
+            query.appendlist("tags", str(tag_id))
+    return tuple((name, value) for name in query for value in query.getlist(name))
+
+
 def _page_template(request, page_template: str) -> str:
     if is_htmx_fragment_request(request):
         return "discovery/partials/article_index.html"
@@ -180,6 +193,7 @@ def home(request):
     )
     index_page = None
     pagination_query = ""
+    pagination_page_size_fields: tuple[tuple[str, str], ...] = ()
     selected_tag_ids = tuple(request.GET.getlist("tags"))
     status = 200
     if form.is_valid():
@@ -195,6 +209,10 @@ def home(request):
             index_page.page_size,
             tag_ids=selected_tag_ids,
         )
+        pagination_page_size_fields = _pagination_page_size_fields(
+            request,
+            tag_ids=selected_tag_ids,
+        )
     else:
         status = 422
     context = {
@@ -202,6 +220,7 @@ def home(request):
         "pagination_form": form,
         "index_page": index_page,
         "pagination_query": pagination_query,
+        "pagination_page_size_fields": pagination_page_size_fields,
         "index_action": reverse("public:home"),
         "clear_filter_url": reverse("public:home"),
         "selected_tag_ids": selected_tag_ids,
@@ -246,6 +265,9 @@ def _collection_page(request, *, identity, loader, route_name, template):
         "pagination_query": (
             _pagination_query(request, collection.index_page.page_size) if valid else ""
         ),
+        "pagination_page_size_fields": (
+            _pagination_page_size_fields(request) if valid else ()
+        ),
         "index_action": reverse(route_name, kwargs=identity),
         "selected_tag_ids": (),
     }
@@ -279,6 +301,9 @@ def section(request, section_id):
         "index_page": collection.index_page,
         "pagination_query": (
             _pagination_query(request, collection.index_page.page_size) if valid else ""
+        ),
+        "pagination_page_size_fields": (
+            _pagination_page_size_fields(request) if valid else ()
         ),
         "index_action": section_url,
         "selected_tag_ids": (),
@@ -315,6 +340,7 @@ def search(request):
     form = SearchPageForm(request.GET if requested else None)
     index_page = None
     pagination_query = ""
+    pagination_page_size_fields: tuple[tuple[str, str], ...] = ()
     search_query = None
     search_type = SearchCategory.ARTICLE
     status = 200
@@ -335,6 +361,7 @@ def search(request):
                 page_size=form.cleaned_data["per_page"],
             )
         pagination_query = _pagination_query(request, index_page.page_size)
+        pagination_page_size_fields = _pagination_page_size_fields(request)
     elif requested:
         if request.GET.get("type") == SearchCategory.AUTHOR:
             search_type = SearchCategory.AUTHOR
@@ -343,6 +370,7 @@ def search(request):
         "pagination_form": form,
         "index_page": index_page,
         "pagination_query": pagination_query,
+        "pagination_page_size_fields": pagination_page_size_fields,
         "index_action": reverse("public:search"),
         "selected_tag_ids": (),
         "search_query": search_query,
@@ -681,6 +709,9 @@ def bookmarks(request):
             "pagination_query": _pagination_query(request, page.page_size)
             if valid
             else "",
+            "pagination_page_size_fields": (
+                _pagination_page_size_fields(request) if valid else ()
+            ),
         },
         status=200 if valid else 422,
     )
@@ -732,6 +763,11 @@ def public_profile(request, account_id):
                 )
                 if valid
                 else ""
+            ),
+            "pagination_page_size_fields": (
+                _pagination_page_size_fields(request, tag_ids=selected_tag_ids)
+                if valid
+                else ()
             ),
             "index_action": profile_url,
             "clear_filter_url": profile_url,

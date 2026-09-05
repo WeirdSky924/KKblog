@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
+from django.core.paginator import Paginator
 from django.db import connection
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models import Sum
@@ -18,6 +19,7 @@ from apps.agents.models import (
     AgentTokenLedger,
     AgentTokenReservation,
 )
+from apps.core.pagination import PageSlice
 from apps.operations.public import TaskRunMetadata
 
 from .services.common import require_administrator
@@ -133,6 +135,7 @@ class AgentPromptRevisionAdminItem:
 class AgentProfilePromptAdminDetail:
     profile: AgentProfileAdminItem
     revisions: tuple[AgentPromptRevisionAdminItem, ...]
+    revision_page: PageSlice[AgentPromptRevisionAdminItem] | None = None
 
 
 def agents_schema_ready() -> bool:
@@ -361,7 +364,12 @@ def agent_token_policy_admin_item(*, actor_id) -> AgentTokenPolicyAdminItem:
 
 
 def agent_profile_prompt_admin_detail(
-    *, actor_id, profile_id
+    *,
+    actor_id,
+    profile_id,
+    page: int | None = None,
+    page_size: int = 20,
+    revision_id=None,
 ) -> AgentProfilePromptAdminDetail:
     require_administrator(actor_id)
     try:
@@ -384,9 +392,48 @@ def agent_profile_prompt_admin_detail(
         ),
         row_version=profile.row_version,
     )
+    if page is not None and (
+        isinstance(page, bool) or page < 1 or page_size not in (10, 20, 50)
+    ):
+        raise ValueError("Invalid prompt revision page")
     revisions = AgentPromptRevision.objects.filter(profile=profile).order_by(
         "-sequence"
     )
+    if page is None:
+        selected_revisions = tuple(revisions)
+        revision_page = None
+    else:
+        paginator = Paginator(revisions, page_size)
+        selected = paginator.get_page(page)
+        selected_revisions = tuple(selected.object_list)
+        required_ids = {
+            str(value)
+            for value in (profile.current_prompt_id, revision_id)
+            if value is not None and value != ""
+        }
+        selected_ids = {str(row.id) for row in selected_revisions}
+        missing_ids = required_ids - selected_ids
+        if missing_ids:
+            required_revisions = tuple(revisions.filter(pk__in=missing_ids))
+            selected_revisions = (*selected_revisions, *required_revisions)
+        revision_page = PageSlice(
+            items=tuple(
+                AgentPromptRevisionAdminItem(
+                    revision_id=revision.id,
+                    sequence=revision.sequence,
+                    markdown_source=revision.markdown_source,
+                    created_at=revision.created_at,
+                    is_current=revision.id == profile.current_prompt_id,
+                )
+                for revision in selected.object_list
+            ),
+            page_number=selected.number,
+            page_size=page_size,
+            total_items=paginator.count,
+            total_pages=paginator.num_pages,
+            has_previous=selected.has_previous(),
+            has_next=selected.has_next(),
+        )
     return AgentProfilePromptAdminDetail(
         profile=item,
         revisions=tuple(
@@ -397,8 +444,9 @@ def agent_profile_prompt_admin_detail(
                 created_at=revision.created_at,
                 is_current=revision.id == profile.current_prompt_id,
             )
-            for revision in revisions
+            for revision in selected_revisions
         ),
+        revision_page=revision_page,
     )
 
 

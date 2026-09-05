@@ -98,7 +98,7 @@
           </section>
         </div>
         <section class="agent-prompt-history" aria-labelledby="agent-prompt-history-title">
-          <header><h3 id="agent-prompt-history-title">修订历史</h3><span>{{ prompt_detail.revisions|length }} 个版本</span></header>
+          <header><h3 id="agent-prompt-history-title">修订历史</h3><span>{{ prompt_detail.revision_page.total_items|default:"0" }} 个版本</span></header>
           {% if prompt_detail.revisions %}
             <ol>
               {% for revision in prompt_detail.revisions %}
@@ -109,6 +109,7 @@
               {% endfor %}
             </ol>
           {% else %}<p>尚未保存 Prompt。</p>{% endif %}
+          {% include "components/navigation/pagination.html" with index_page=prompt_detail.revision_page pagination_query=prompt_pagination_query pagination_page_parameter="prompt_page" pagination_no_hx=True pagination_label="Prompt 修订分页" %}
         </section>
         <div class="agent-dialog__actions"><button class="button button--secondary" type="button" data-dialog-cancel>关闭</button></div>
       </div>

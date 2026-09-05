@@ -35,6 +35,6 @@
         </section>
       {% empty %}<p class="quiz-empty">当前筛选下没有错题。</p>{% endfor %}
     </div>
-    {% if wrong_page.total_pages > 1 %}<nav class="records-pagination" aria-label="错题分页">{% if wrong_page.has_previous %}<a href="?mastery_status={{ wrong_page.mastery_status }}&page={{ wrong_page.page_number|add:'-1' }}">上一页</a>{% endif %}<span>{{ wrong_page.page_number }} / {{ wrong_page.total_pages }}</span>{% if wrong_page.has_next %}<a href="?mastery_status={{ wrong_page.mastery_status }}&page={{ wrong_page.page_number|add:'1' }}">下一页</a>{% endif %}</nav>{% endif %}
+    {% include "components/navigation/pagination.html" with index_page=wrong_page pagination_query=wrong_pagination_query pagination_no_hx=True pagination_label="错题分页" %}
   </section>
 {% endblock %}

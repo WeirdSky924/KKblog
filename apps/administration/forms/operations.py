@@ -19,6 +19,7 @@ EXPORT_SCOPES = (
 
 class TaskRunFilterForm(forms.Form):
     status = forms.ChoiceField(label="任务状态", required=False, choices=TASK_STATES)
+    page = forms.IntegerField(required=False, min_value=1, initial=1)
 
 
 class ExportRequestForm(forms.Form):

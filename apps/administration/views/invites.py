@@ -2,6 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from apps.accounts.public import (
     AccountAdministrationQueryError,
@@ -24,6 +25,13 @@ def _active_choices():
     return [
         (row.id, row.display_suffix) for row in invite_list(state="ACTIVE", limit=1000)
     ]
+
+
+def _page(value) -> int:
+    try:
+        return max(1, int(value or "1"))
+    except (TypeError, ValueError):
+        return 1
 
 
 def _detail(request: HttpRequest):
@@ -55,9 +63,11 @@ def _render(
 ) -> HttpResponse:
     state = request.GET.get("state", "")
     try:
-        rows = invite_list(state=state, limit=1000)
+        invite_page = invite_list(
+            state=state, page=_page(request.GET.get("page")), page_size=20
+        )
     except ValueError:
-        rows = []
+        invite_page = invite_list(state="", page=1, page_size=20)
         error = "筛选条件无效。"
         status = 422
     choices = _active_choices()
@@ -78,14 +88,16 @@ def _render(
         request,
         "administration/invites.html",
         {
-            "rows": rows,
+            "rows": invite_page.items,
+            "invite_page": invite_page,
+            "pagination_query": urlencode({"state": state}),
             "detail": detail,
             "issued": issued,
             "error": error,
             "saved": request.GET.get("saved", ""),
             "generation_form": generation_form or InviteGenerationForm(),
             "revoke_form": revoke_form or InviteRevocationForm(invite_choices=choices),
-            "has_revoke_choices": any(row.state == "ACTIVE" for row in rows),
+            "has_revoke_choices": bool(choices),
             "revoke_confirmation": revoke_confirmation,
             "revocation_dialog_open": revoke_confirmation is not None,
             "revocation_title": (
