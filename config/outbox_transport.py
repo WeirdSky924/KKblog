@@ -69,6 +69,8 @@ _DOMAIN_NOTIFICATION_EVENTS = (
             "exchange.import_title_warning.v1",
             "exchange.export_completed.v1",
             "exchange.export_author_content.v1",
+            "learning.document_administration_changed.v1",
+            "learning.question_bank_administration_changed.v1",
         }
     )
     | _ARTICLE_MODERATION_EVENTS
