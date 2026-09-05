@@ -1,14 +1,15 @@
 # Kaj 空间下一轮更新公告（持续记录）
 
-状态：Labs 迭代中，尚未形成下一次正式发布候选。
+状态：本轮内容已于 2026-09-05 正式发布；后续 Labs 修改从新的正式基线继续记录。
 
 ## 发布基线
 
-- 当前正式版本：`82df3ccf689a6e48633b9b28ae19ef840266f195`。
-- 当前正式应用镜像：`kaj-blog-web:82df3ccf689a`。
+- 当前正式版本：`87621e82180242ec6b04aeb61e474d6774064daa`。
+- 当前正式应用镜像：`kaj-blog-web:87621e821802`。
 - Labs worktree：`/home/code/.codex-worktrees/personal-blog/labs-test-environment`。
 - Labs 分支：`codex/labs-next-iteration`。
-- Labs 与正式环境共用同一 Git 基线；本轮新增内容只在 Labs 验证，不自动视为正式发布。
+- Labs 与正式环境从本次 Git 基线继续迭代；本轮新增内容已经完成验证并正式发布。
+- 本次正式发布公告：[2026-09-05 Labs 全量增量更新公告](../2026-09-05-labs-full-increment/announcement.md)。
 - 上一轮正式公告：[2026-09-02 正式增量更新公告](../2026-09-02-production-increment/announcement.md)。
 
 ## 已继承的正式能力
