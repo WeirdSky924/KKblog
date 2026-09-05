@@ -30,6 +30,7 @@ JOB_FILTER_PARAMETERS = (
     "bookmarked",
 )
 SOURCE_FILTER_PARAMETERS = ("source_q", "source_types")
+DEFAULT_FILTERS_PARAMETER = "defaults"
 BOOKMARKS_RESET_PARAMETERS = (
     *JOB_FILTER_PARAMETERS,
     *SOURCE_FILTER_PARAMETERS,
@@ -74,7 +75,7 @@ def _pagination_query(request, view):
 
 
 def _preserved_fields(request, view):
-    excluded = {"view", "per_page"}
+    excluded = {"view", "per_page", DEFAULT_FILTERS_PARAMETER}
     excluded.update(
         JOB_FILTER_PARAMETERS
         if view in {"jobs", "bookmarks"}
@@ -115,6 +116,13 @@ def _default_query(filters):
     return query
 
 
+def _default_mode_query():
+    query = QueryDict(mutable=True)
+    query["view"] = "jobs"
+    query[DEFAULT_FILTERS_PARAMETER] = "1"
+    return query
+
+
 def _active_filter_count(values):
     if values["view"] == "sources":
         return len(values["source_types"]) + int(bool(values["source_q"]))
@@ -138,8 +146,26 @@ def _active_filter_count(values):
 def _context(request):
     actor_id = _actor(request)
     filters = public_opportunity_filters()
+    default_filters = (
+        request.GET.get(DEFAULT_FILTERS_PARAMETER) == "1"
+        and request.GET.get("view", "jobs") == "jobs"
+    )
+    form_data = request.GET.copy()
+    if default_filters:
+        defaults = _default_query(filters)
+        for name in (
+            "cities",
+            "statuses",
+            "companies",
+            "recruitment_types",
+            "categories",
+            "cohorts",
+        ):
+            if name not in form_data and name in defaults:
+                form_data.setlist(name, defaults.getlist(name))
+        form_data.pop(DEFAULT_FILTERS_PARAMETER, None)
     form = OpportunityPageForm(
-        request.GET,
+        form_data,
         filters=filters,
         authenticated=actor_id is not None,
     )
@@ -185,6 +211,7 @@ def _context(request):
         if view in {"jobs", "bookmarks"}
         else (*SOURCE_FILTER_PARAMETERS, "source_page")
     )
+    clear_parameters = (*clear_parameters, DEFAULT_FILTERS_PARAMETER)
     return {
         "opportunity_form": form,
         "opportunity_filters": filters,
@@ -213,7 +240,7 @@ def _context(request):
 @require_GET
 def opportunities(request):
     if not request.GET:
-        query = _default_query(public_opportunity_filters()).urlencode()
+        query = _default_mode_query().urlencode()
         return redirect(f"{reverse('opportunities:index')}?{query}")
     if request.GET.get("view") == "bookmarks" and _actor(request) is None:
         return redirect(_login_url(_query_url(request.GET, view="bookmarks")))
