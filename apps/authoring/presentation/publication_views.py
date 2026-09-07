@@ -319,11 +319,7 @@ def _versions_context(
             except ArticleNotFound:
                 raise Http404 from None
             row = next(
-                (
-                    item
-                    for item in version_rows(full_timeline)
-                    if item.revision_id == selected_id
-                ),
+                (item for item in version_rows(full_timeline) if item.revision_id == selected_id),
                 None,
             )
             if row is None:
@@ -349,7 +345,9 @@ def _versions_context(
         "article": article,
         "versions": rows,
         "version_page": timeline,
-        "pagination_query": urlencode({"revision": selected_id}) if selected_id else "",
+        "pagination_query": urlencode({"revision": selected_id})
+        if selected_id
+        else "",
         "selected_version": selected,
         "restore_form": restore_form,
         "restore_error": restore_error,

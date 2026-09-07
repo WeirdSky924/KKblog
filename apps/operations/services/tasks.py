@@ -182,9 +182,17 @@ def retry_delay_seconds(attempt: int, *, jitter: Jitter | None = None) -> int:
 
 
 def _retry_after(run: TaskRun, now) -> int:
-    if run.available_at <= now:
+    # A duplicate delivery of a running task must wait for its lease.  Using
+    # available_at here (the original schedule time) turns every duplicate
+    # into a one-second retry storm and can starve the whole solo worker.
+    deadline = (
+        run.lease_expires_at
+        if run.status == TaskRunStatus.RUNNING
+        else run.available_at
+    )
+    if deadline is None or deadline <= now:
         return 0
-    return max(1, ceil((run.available_at - now).total_seconds()))
+    return max(1, ceil((deadline - now).total_seconds()))
 
 
 def _task_claim(run: TaskRun) -> TaskClaim:

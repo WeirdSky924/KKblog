@@ -120,8 +120,8 @@ class FilesystemMediaStorage:
 
     def commit(self, staged: StagedMedia, storage_key: str) -> None:
         source = self._staged_path(staged)
-        target = self._path(storage_key, create_parent=True)
         try:
+            target = self._path(storage_key, create_parent=True)
             os.replace(source, target)
         except OSError as exc:
             raise StorageWriteError("媒体文件提交失败") from exc

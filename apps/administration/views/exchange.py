@@ -147,7 +147,9 @@ def _render(
             else "",
             "backup_rows": backup_page.items,
             "backup_page": backup_page,
-            "backup_pagination_query": urlencode({"page": request.GET.get("page")})
+            "backup_pagination_query": urlencode(
+                {"page": request.GET.get("page")}
+            )
             if request.GET.get("page")
             else "",
             "export_confirmation_job": confirmation_job,

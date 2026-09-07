@@ -30,7 +30,7 @@ from apps.media.public import (
     stage_upload,
     stream_authorized_text,
 )
-from apps.media.storage import FilesystemMediaStorage
+from apps.media.storage import FilesystemMediaStorage, StorageWriteError
 from apps.media.targets import TargetAccessRegistry
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -122,6 +122,65 @@ def test_knowledge_upload_adapter_requires_current_attachment_capability(
     assert asset.original_name == "notes.md"
     assert "notes" not in asset.storage_key
     assert (isolated_media_root / asset.storage_key).is_file()
+
+
+def test_knowledge_upload_storage_failure_returns_safe_retryable_partial(
+    client,
+    monkeypatch,
+    isolated_media_root: Path,
+) -> None:
+    owner = _account("knowledge-storage-failure", attachment_capability=True)
+    _authenticate(client, owner)
+
+    def fail_stage_upload(**kwargs):
+        del kwargs
+        raise StorageWriteError("private filesystem detail")
+
+    monkeypatch.setattr(
+        "apps.media.presentation.upload_views.stage_upload", fail_stage_upload
+    )
+    response = client.post(
+        reverse("media:upload", kwargs={"adapter": "knowledge-document"}),
+        {"file": SimpleUploadedFile("notes.md", b"# Notes\n", "text/markdown")},
+    )
+
+    body = response.content.decode("utf-8")
+    assert response.status_code == 503
+    assert response.headers["Cache-Control"] == "no-store"
+    assert 'data-media-upload-result="error"' in body
+    assert "知识文档暂时无法保存，请稍后重试。" in body
+    assert "图片上传未完成" not in body
+    assert "private filesystem detail" not in body
+    assert not MediaAsset.objects.exists()
+
+
+def test_knowledge_upload_frontend_uses_document_label() -> None:
+    project_root = Path(__file__).resolve().parents[3]
+    upload_script = (project_root / "static/src/media-upload.js").read_text(
+        encoding="utf-8"
+    )
+    assert 'mediaLabel === "知识文档"' in upload_script
+    assert '? "知识文档"' in upload_script
+
+
+def test_storage_commit_wraps_parent_write_failure(
+    isolated_media_root: Path,
+    monkeypatch,
+) -> None:
+    owner = _account("knowledge-storage-commit", attachment_capability=True)
+    storage = FilesystemMediaStorage(isolated_media_root)
+    staged = storage.stage([b"# Notes\n"], max_bytes=1024)
+
+    def fail_path(*args, **kwargs):
+        del args, kwargs
+        raise PermissionError("private filesystem detail")
+
+    monkeypatch.setattr(storage, "_path", fail_path)
+    with pytest.raises(StorageWriteError):
+        storage.commit(
+            staged,
+            f"users/{owner.id}/knowledge-documents/{staged.token}.md",
+        )
 
 
 @pytest.mark.parametrize(

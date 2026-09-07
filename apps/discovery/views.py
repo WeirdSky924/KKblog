@@ -156,9 +156,7 @@ def _pagination_query(request, page_size: int, *, tag_ids=None) -> str:
     return query.urlencode()
 
 
-def _pagination_page_size_fields(
-    request, *, tag_ids=None
-) -> tuple[tuple[str, str], ...]:
+def _pagination_page_size_fields(request, *, tag_ids=None) -> tuple[tuple[str, str], ...]:
     query = request.GET.copy()
     query.pop("page", None)
     query.pop("per_page", None)
@@ -166,7 +164,11 @@ def _pagination_page_size_fields(
         query.pop("tags", None)
         for tag_id in tag_ids:
             query.appendlist("tags", str(tag_id))
-    return tuple((name, value) for name in query for value in query.getlist(name))
+    return tuple(
+        (name, value)
+        for name in query
+        for value in query.getlist(name)
+    )
 
 
 def _page_template(request, page_template: str) -> str:

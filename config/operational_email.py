@@ -1,9 +1,30 @@
+import ipaddress
+
 from django.conf import settings
 from django.core.mail import send_mail
 
 from apps.operations.services.alerts import OperationalEmailMessage
 
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+_PRIVATE_MAILPIT_NETWORKS = tuple(
+    ipaddress.ip_network(network)
+    for network in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")
+)
+
+
+def _mailpit_host_allowed(host: object) -> bool:
+    if not isinstance(host, str):
+        return False
+    if host in _LOOPBACK_HOSTS or host == "mailpit":
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    # Labs connects to the isolated Mailpit container through its RFC1918
+    # bridge address.  The provider is test-only and still requires the fixed
+    # test sender/recipient below, so arbitrary public SMTP hosts remain out.
+    return any(address in network for network in _PRIVATE_MAILPIT_NETWORKS)
 
 
 class OperationalEmailConfigurationError(RuntimeError):
@@ -25,7 +46,7 @@ def _validate_mailpit() -> None:
         raise _configuration_error("ADMIN_EMAIL")
     if settings.DEFAULT_FROM_EMAIL != "no-reply@kaj.test":
         raise _configuration_error("DEFAULT_FROM_EMAIL")
-    if settings.EMAIL_HOST not in _LOOPBACK_HOSTS:
+    if not _mailpit_host_allowed(settings.EMAIL_HOST):
         raise _configuration_error("EMAIL_HOST")
     if (
         not isinstance(settings.EMAIL_PORT, int)

@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from apps.agents.models import (
     AgentSitePolicy,
     AgentTokenLedger,
 )
+from apps.agents.providers.http import ProviderTransportError
 from apps.agents.public import (
     EndpointDraft,
     ProfileDraft,
@@ -40,6 +42,7 @@ from apps.learning.public import (
     create_question_bank_generation_request,
     dispatch_pending_question_bank_generations,
     execute_question_bank_generation,
+    mark_question_bank_generation_final_failed,
     release_learning_model_run,
     reserve_learning_model_run,
 )
@@ -48,7 +51,7 @@ from apps.operations.public import RetryableTaskError, TaskFinalFailed
 
 from .test_account_documents_backend import _administrator, _approved
 from .test_documents_lifecycle import _account
-from .test_review_runtime import _gateway
+from .test_review_runtime import _gateway, _openai_response, _scripted_gateway
 
 pytestmark = pytest.mark.django_db(transaction=True)
 NOW = datetime(2026, 8, 17, 10, 0, tzinfo=UTC)
@@ -445,6 +448,166 @@ def test_generation_runtime_publishes_complete_bank_and_snapshots_invocation(
         .exists()
     )
     assert json.loads(json.dumps(_publication_value())) == _publication_value()
+
+
+def test_generation_retry_resumes_after_last_successful_batch(
+    isolated_media_root,
+) -> None:
+    administrator, _ = _configured_generation_profile()
+    _configure_limit(4, administrator=administrator)
+    owner = _account("generation-batch-resume")
+    content = "\n\n".join(
+        f"## Knowledge point {index}\n\nDetails for point {index}."
+        for index in range(1, 31)
+    )
+    document, _, storage = _approved(
+        isolated_media_root,
+        owner,
+        key="document:generation-batch-resume",
+        content=content,
+    )
+    request = create_question_bank_generation_request(
+        owner_id=owner.id,
+        document_id=document.document_id,
+        base_title="分批恢复",
+        description="",
+        question_types=GenerationQuestionTypes(single_choice=True),
+        idempotency_key="generation:batch-resume",
+        dispatcher=lambda _series_id: None,
+        now=NOW,
+    )
+    task_run_id = new_ulid()
+
+    def response_for_batch(raw_request):
+        source_text = raw_request.body.decode("utf-8")
+        source_id = re.search(r"src-\d{4}", source_text).group(0)
+        value = _compressed_publication_value()
+        for point in value["knowledge_points"]:
+            point["source_unit_ids"] = [source_id]
+        value["volumes"][0]["questions"][0]["stem_markdown"] = (
+            f"{source_id} 对应的变量绑定是什么？"
+        )
+        return _openai_response(value)
+
+    first_gateway, first_transport = _scripted_gateway(
+        [
+            response_for_batch,
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+        ]
+    )
+    with pytest.raises(RetryableTaskError) as failed:
+        execute_question_bank_generation(
+            series_id=request.series_id,
+            task_run_id=task_run_id,
+            gateway=first_gateway,
+            renew_lease=lambda: None,
+            storage=storage,
+            now=NOW,
+        )
+    assert failed.value.error_code == "agents.request_timeout.v1"
+    assert first_transport.call_count == 4
+    batch_model = apps.get_model("learning", "QuestionBankGenerationBatch")
+    batches = list(
+        batch_model.objects.filter(series_id=request.series_id).order_by("batch_number")
+    )
+    assert len(batches) == 2
+    assert [batch.state for batch in batches] == ["SUCCEEDED", "PENDING"]
+
+    second_gateway, second_transport = _scripted_gateway([response_for_batch])
+    result = execute_question_bank_generation(
+        series_id=request.series_id,
+        task_run_id=task_run_id,
+        gateway=second_gateway,
+        renew_lease=lambda: None,
+        storage=storage,
+        now=NOW + timedelta(minutes=1),
+    )
+
+    assert result.state == QuestionBankSeriesState.PUBLISHED
+    assert second_transport.call_count == 1
+    batches = list(
+        batch_model.objects.filter(series_id=request.series_id).order_by("batch_number")
+    )
+    assert [batch.state for batch in batches] == ["SUCCEEDED", "SUCCEEDED"]
+    series = apps.get_model("learning", "QuestionBankSeries").objects.get(
+        pk=request.series_id
+    )
+    assert series.attempt_count == 2
+    assert series.banks.count() == 1
+
+
+def test_final_generation_failure_discards_successful_batch_checkpoints(
+    isolated_media_root,
+) -> None:
+    administrator, _ = _configured_generation_profile()
+    _configure_limit(4, administrator=administrator)
+    owner = _account("generation-batch-final-failure")
+    content = "\n\n".join(
+        f"## Knowledge point {index}\n\nDetails for point {index}."
+        for index in range(1, 31)
+    )
+    document, _, storage = _approved(
+        isolated_media_root,
+        owner,
+        key="document:generation-batch-final-failure",
+        content=content,
+    )
+    request = create_question_bank_generation_request(
+        owner_id=owner.id,
+        document_id=document.document_id,
+        base_title="分批最终失败",
+        description="",
+        question_types=GenerationQuestionTypes(single_choice=True),
+        idempotency_key="generation:batch-final-failure",
+        dispatcher=lambda _series_id: None,
+        now=NOW,
+    )
+
+    def response_for_batch(raw_request):
+        source_text = raw_request.body.decode("utf-8")
+        source_id = re.search(r"src-\d{4}", source_text).group(0)
+        value = _compressed_publication_value()
+        for point in value["knowledge_points"]:
+            point["source_unit_ids"] = [source_id]
+        return _openai_response(value)
+
+    gateway, _ = _scripted_gateway(
+        [
+            response_for_batch,
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+            ProviderTransportError("agents.request_timeout.v1", retryable=True),
+        ]
+    )
+    with pytest.raises(RetryableTaskError):
+        execute_question_bank_generation(
+            series_id=request.series_id,
+            task_run_id=new_ulid(),
+            gateway=gateway,
+            renew_lease=lambda: None,
+            storage=storage,
+            now=NOW,
+        )
+
+    batch_model = apps.get_model("learning", "QuestionBankGenerationBatch")
+    assert (
+        batch_model.objects.filter(
+            series_id=request.series_id,
+            state="SUCCEEDED",
+        ).count()
+        == 1
+    )
+
+    terminal = mark_question_bank_generation_final_failed(
+        series_id=request.series_id,
+        safe_error_code="agents.request_timeout.v1",
+        completed_at=NOW + timedelta(minutes=1),
+    )
+
+    assert terminal.state == QuestionBankSeriesState.GENERATION_FAILED
+    assert not batch_model.objects.filter(series_id=request.series_id).exists()
 
 
 def test_admin_profile_changes_after_request_do_not_drift_generation_snapshot(

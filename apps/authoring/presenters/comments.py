@@ -57,31 +57,31 @@ def _page(actor_id, source: OwnerCommentWorkspace) -> CommentWorkspacePage:
     article_ids.update(item.article_id for item in source.articles)
     titles = _article_titles(actor_id, article_ids)
     buffered_items = tuple(
-        BufferedCommentCard(
-            comment_id=item.comment_id,
-            article_id=item.article_id,
-            article_title=titles[item.article_id],
-            author_label=item.author_label,
-            body=item.body,
-            visible_at=to_shanghai(item.visible_at),
-            is_reply=item.is_reply,
+            BufferedCommentCard(
+                comment_id=item.comment_id,
+                article_id=item.article_id,
+                article_title=titles[item.article_id],
+                author_label=item.author_label,
+                body=item.body,
+                visible_at=to_shanghai(item.visible_at),
+                is_reply=item.is_reply,
+            )
+            for item in source.buffered_items
+            if item.article_id in titles
         )
-        for item in source.buffered_items
-        if item.article_id in titles
-    )
     articles = tuple(
-        CommentArticleRow(
-            article_id=item.article_id,
-            title=titles[item.article_id],
-            comments_enabled=item.comments_enabled,
-            buffered_count=item.buffered_count,
-            visible_count=item.visible_count,
-            deleted_count=item.deleted_count,
-            latest_at=to_shanghai(item.latest_at) if item.latest_at else None,
+            CommentArticleRow(
+                article_id=item.article_id,
+                title=titles[item.article_id],
+                comments_enabled=item.comments_enabled,
+                buffered_count=item.buffered_count,
+                visible_count=item.visible_count,
+                deleted_count=item.deleted_count,
+                latest_at=to_shanghai(item.latest_at) if item.latest_at else None,
+            )
+            for item in source.articles
+            if item.article_id in titles
         )
-        for item in source.articles
-        if item.article_id in titles
-    )
 
     def mapped_page(source_page, items):
         if source_page is None:

@@ -64,7 +64,8 @@ def review_document_task(self, review_run_id: str) -> dict[str, str]:
             business_object=business_object,
             idempotency_key=business_object,
             heartbeat_service=_execute_review_service,
-            lease_seconds=3_600,
+            # The gateway may perform up to three 30-minute provider attempts.
+            lease_seconds=7_200,
         )
     except TaskFinalFailed as error:
         mark_knowledge_review_final_failed(

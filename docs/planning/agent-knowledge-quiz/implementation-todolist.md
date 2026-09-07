@@ -69,7 +69,7 @@
 
 依赖：T01。
 
-结果：新增 Endpoint、管理员逐 Endpoint 可编辑的显式运行参数、profile、Prompt revision、当前指针和 invocation 配置快照；同时建立全站/Endpoint 每日 token policy、ledger、reservation 与 adjustment 事实。实现 context 131072（4096..2000000）、output 8192（256..131072）、per-run 500000（10000..5000000）、timeout 120s（10..600）、concurrency 1（1..5）、site daily 5,000,000、Endpoint daily 2,000,000 的默认/范围/交叉约束、row version、启停、审计 schema 和迁移，不按模型名或连通性检查自动回写参数。
+结果：新增 Endpoint、管理员逐 Endpoint 可编辑的显式运行参数、profile、Prompt revision、当前指针和 invocation 配置快照；同时建立全站/Endpoint 每日 token policy、ledger、reservation 与 adjustment 事实。实现 context 131072（4096..2000000）、output 8192（256..131072）、per-run 500000（10000..5000000）、timeout 120s（10..1800）、concurrency 1（1..5）、site daily 5,000,000、Endpoint daily 2,000,000 的默认/范围/交叉约束、row version、启停、审计 schema 和迁移，不按模型名或连通性检查自动回写参数。
 
 验证：隔离 PostgreSQL migration/rollback 方案、运行参数与每日预算默认/范围/交叉校验、ledger/reservation/adjustment 唯一约束、配置与 invocation 快照、连通检查不回写、并发 Prompt 保存 409、一个 profile 一个当前 Prompt、历史不可变、秘密字段不存在或不可回显、管理员权限读写。
 
@@ -192,6 +192,8 @@
 结果：从本人 APPROVED 文档创建生成请求，原子占用每日生成/题库容量/并发模型配额并预留双层 token，固化允许题型、管理员单卷上限、文档、Prompt、模型和 schema 版本；AGENT 先建立全量知识点清单，再逐点生成并选择题型。先尝试综合题单卷全覆盖，容量不足时按重要度生成第一卷和至多一个第二卷；原子发布完整卷、标签和 coverage 结果，不覆盖同源旧题库。完整、部分覆盖和最终失败在终态事务通过现有 Outbox 幂等通知用户，系统最终失败额外通知管理员。
 
 补充实现（2026-08-24，开发阶段原地升级）：生成仍按安全大小和源结构拆成有序 `src-####` 源知识单元并进行有界批次调用，但源单元不再等同于知识点或题目。AGENT 自行判断每批知识点数量，并为每个知识点返回 `source_unit_ids` 证据引用；每道题的 `knowledge_point_ids[0]` 是主要考查点，后续 ID 是辅助考点，题目数量只是上限。服务端逐批验证内部引用、跨批次合并、重新编号和最多两卷组卷，空批次允许存在但整份文档没有可发布题目时仍失败。模型不知道输入是否预先有序，只能把检测到的结构作为降低理解成本的线索。
+
+补充实现（2026-09-07，本轮 Labs）：Endpoint 请求超时硬上限调整为 `1800` 秒（30 分钟），Provider 读取超时与管理端参数共用该上限。生成运行建立固定的源单元批次计划，并在每批通过统一 schema/语义校验后保存 checkpoint；重试沿用同一计划并跳过已成功批次，从第一个未完成批次继续。只有全部批次完成才合并、去重、组卷和发布；若运行最终失败，则在失败终态事务中清理成功批次，不能留下可误用的半成品。当前仍按单 Worker 串行执行，未开启无界并发；每批独立申请并释放模型运行额度。
 
 验证：所有题型组合、至少一个 Switch、业务/并发/token 配额不足时零外呼、单卷全覆盖、综合题压缩、两卷边界、第二卷后遗漏提醒与通知计数、非容量错误不降级、同文档多次生成互不覆盖、标签优先复用、非法/半卷输出不落公开事实、幂等、重试、崩溃恢复和预算上限。
 

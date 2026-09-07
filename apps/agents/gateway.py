@@ -11,7 +11,10 @@ from hashlib import sha256
 from django.conf import settings
 from django.utils import timezone
 
-from apps.agents.contracts import AgentCommandError
+from apps.agents.contracts import (
+    MAX_REQUEST_TIMEOUT_SECONDS,
+    AgentCommandError,
+)
 from apps.agents.credentials import AgentCredentialError, decrypt_api_key
 from apps.agents.models import AgentEndpoint, AgentInvocation
 from apps.agents.providers.adapters import (
@@ -352,7 +355,7 @@ class AgentGateway:
             not isinstance(probe, EndpointProbeInput)
             or probe.protocol not in AgentEndpoint.Protocol.values
             or isinstance(probe.timeout_seconds, bool)
-            or not 10 <= probe.timeout_seconds <= 600
+            or not 10 <= probe.timeout_seconds <= MAX_REQUEST_TIMEOUT_SECONDS
             or isinstance(probe.token_budget, bool)
             or not 256 <= probe.token_budget <= 10_000
         ):

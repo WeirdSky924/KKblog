@@ -1,7 +1,7 @@
 import json
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import sha256
 from uuid import UUID
@@ -35,6 +35,7 @@ from apps.learning.generation_schema import question_bank_publication_draft
 from apps.learning.models import (
     KnowledgeDocument,
     LearningModelRunReservation,
+    QuestionBankGenerationBatch,
     QuestionBankSeries,
     QuestionBankTag,
 )
@@ -56,6 +57,12 @@ _RETRYABLE_OUTPUT_ERRORS = frozenset(
     {
         "agents.response_schema_invalid.v1",
         "agents.response_semantics_invalid.v1",
+    }
+)
+_NON_RETRYABLE_GENERATION_ERRORS = frozenset(
+    {
+        "learning.generation_batch_plan_invalid.v1",
+        "learning.generation_batch_result_invalid.v1",
     }
 )
 
@@ -289,6 +296,243 @@ def _publication_output_validator(
     return validate
 
 
+def _publication_payload(
+    publication: QuestionBankPublicationDraft,
+) -> tuple[dict[str, object], str]:
+    """Serialize one already-validated batch result canonically for checkpointing."""
+
+    try:
+        encoded = json.dumps(
+            asdict(publication),
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        payload = json.loads(encoded)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        raise LearningCommandError(
+            "learning.generation_batch_result_invalid.v1",
+            "题库生成批次结果无法安全保存。",
+        ) from None
+    return payload, sha256(encoded).hexdigest()
+
+
+def _batch_plan(
+    source_units: tuple[SourceKnowledgeUnit, ...],
+) -> tuple[tuple[SourceKnowledgeUnit, ...], ...]:
+    try:
+        batches = batch_source_knowledge_units(source_units)
+    except (TypeError, ValueError):
+        raise LearningCommandError(
+            "learning.generation_batch_plan_invalid.v1",
+            "题库生成批次无法安全规划。",
+        ) from None
+    if not batches or len(batches) > 4_000:
+        raise LearningCommandError(
+            "learning.generation_batch_plan_invalid.v1",
+            "题库生成批次数量不合法。",
+        )
+    return batches
+
+
+def _ensure_batch_plan(
+    *,
+    series_id: UUID,
+    batches: tuple[tuple[SourceKnowledgeUnit, ...], ...],
+) -> tuple[QuestionBankGenerationBatch, ...]:
+    """Create the immutable source plan once and verify it on every retry."""
+
+    expected = tuple(
+        (
+            tuple(unit.logical_id for unit in batch),
+            tuple(sha256(unit.content.encode("utf-8")).hexdigest() for unit in batch),
+        )
+        for batch in batches
+    )
+    with transaction.atomic():
+        rows = list(
+            QuestionBankGenerationBatch.objects.select_for_update()
+            .filter(series_id=series_id)
+            .order_by("batch_number")
+        )
+        if not rows:
+            QuestionBankGenerationBatch.objects.bulk_create(
+                [
+                    QuestionBankGenerationBatch(
+                        series_id=series_id,
+                        batch_number=index,
+                        source_unit_ids=list(source_ids),
+                        source_unit_digests=list(source_digests),
+                    )
+                    for index, (source_ids, source_digests) in enumerate(
+                        expected, start=1
+                    )
+                ],
+                ignore_conflicts=True,
+            )
+            rows = list(
+                QuestionBankGenerationBatch.objects.select_for_update()
+                .filter(series_id=series_id)
+                .order_by("batch_number")
+            )
+        if len(rows) != len(expected):
+            raise LearningCommandError(
+                "learning.generation_batch_plan_invalid.v1",
+                "题库生成批次计划与当前知识文档不一致。",
+            )
+        for index, (row, (source_ids, source_digests)) in enumerate(
+            zip(rows, expected, strict=True), start=1
+        ):
+            if (
+                row.batch_number != index
+                or tuple(row.source_unit_ids or ()) != source_ids
+                or tuple(row.source_unit_digests or ()) != source_digests
+            ):
+                raise LearningCommandError(
+                    "learning.generation_batch_plan_invalid.v1",
+                    "题库生成批次计划与当前知识文档不一致。",
+                )
+    return tuple(rows)
+
+
+def _mark_batch_started(
+    *, batch_id, attempt: int, invocation_id: str, now: datetime
+) -> None:
+    with transaction.atomic():
+        row = (
+            QuestionBankGenerationBatch.objects.select_for_update()
+            .filter(pk=batch_id)
+            .first()
+        )
+        if row is None:
+            raise LearningCommandError(
+                "learning.generation_batch_plan_invalid.v1",
+                "题库生成批次不存在。",
+            )
+        if row.state == QuestionBankGenerationBatch.State.SUCCEEDED:
+            return
+        row.state = QuestionBankGenerationBatch.State.RUNNING
+        row.attempt_count = max(row.attempt_count, attempt)
+        row.latest_invocation_id = invocation_id
+        row.last_error_code = ""
+        row.started_at = now
+        row.completed_at = None
+        row.publication = None
+        row.publication_sha256 = ""
+        row.save(
+            update_fields=(
+                "state",
+                "attempt_count",
+                "latest_invocation_id",
+                "last_error_code",
+                "started_at",
+                "completed_at",
+                "publication",
+                "publication_sha256",
+                "updated_at",
+            )
+        )
+
+
+def _mark_batch_failed(*, batch_id, error_code: str, now: datetime) -> None:
+    QuestionBankGenerationBatch.objects.filter(
+        pk=batch_id,
+        state=QuestionBankGenerationBatch.State.RUNNING,
+    ).update(
+        state=QuestionBankGenerationBatch.State.PENDING,
+        last_error_code=error_code,
+        completed_at=None,
+        publication=None,
+        publication_sha256="",
+        updated_at=now,
+    )
+
+
+def _mark_batch_succeeded(
+    *,
+    batch_id,
+    publication: QuestionBankPublicationDraft,
+    reservation_id,
+    now: datetime,
+) -> None:
+    payload, digest = _publication_payload(publication)
+    with transaction.atomic():
+        row = QuestionBankGenerationBatch.objects.select_for_update().get(pk=batch_id)
+        if row.state == QuestionBankGenerationBatch.State.SUCCEEDED:
+            if row.publication_sha256 != digest:
+                raise LearningCommandError(
+                    "learning.generation_batch_result_invalid.v1",
+                    "题库生成批次结果发生冲突。",
+                )
+            # Commit the checkpoint and release its model-run reservation as
+            # one database transaction.  A worker crash cannot leave a
+            # successful batch consuming the account's concurrency slot.
+            release_learning_model_run(reservation_id=reservation_id)
+            return
+        if row.state not in {
+            QuestionBankGenerationBatch.State.PENDING,
+            QuestionBankGenerationBatch.State.RUNNING,
+        }:
+            raise LearningCommandError(
+                "learning.generation_batch_result_invalid.v1",
+                "题库生成批次状态不合法。",
+            )
+        row.state = QuestionBankGenerationBatch.State.SUCCEEDED
+        row.publication = payload
+        row.publication_sha256 = digest
+        row.last_error_code = ""
+        row.completed_at = now
+        row.save(
+            update_fields=(
+                "state",
+                "publication",
+                "publication_sha256",
+                "last_error_code",
+                "completed_at",
+                "updated_at",
+            )
+        )
+        # Keep the durable checkpoint and its quota release atomic.  If this
+        # transaction rolls back, the batch remains retryable and the provider
+        # result is deliberately requested again rather than published twice.
+        release_learning_model_run(reservation_id=reservation_id)
+
+
+def _load_batch_publication(
+    *,
+    row: QuestionBankGenerationBatch,
+    allowed_types: tuple[str, ...],
+    maximum_questions: int,
+) -> QuestionBankPublicationDraft:
+    if row.state != QuestionBankGenerationBatch.State.SUCCEEDED or not isinstance(
+        row.publication, Mapping
+    ):
+        raise LearningCommandError(
+            "learning.generation_batch_result_invalid.v1",
+            "题库生成批次结果尚未完成。",
+        )
+    try:
+        publication = question_bank_publication_draft(row.publication)
+        _publication_output_validator(
+            allowed_types=allowed_types,
+            maximum_questions=maximum_questions,
+            expected_source_unit_ids=tuple(row.source_unit_ids or ()),
+        )(row.publication)
+        _payload, digest = _publication_payload(publication)
+    except (LearningCommandError, SchemaValidationError, TypeError, ValueError):
+        raise LearningCommandError(
+            "learning.generation_batch_result_invalid.v1",
+            "题库生成批次结果无法通过完整校验。",
+        ) from None
+    if row.publication_sha256 != digest:
+        raise LearningCommandError(
+            "learning.generation_batch_result_invalid.v1",
+            "题库生成批次结果摘要不匹配。",
+        )
+    return publication
+
+
 def _source_batch_material(units: tuple[SourceKnowledgeUnit, ...]) -> str:
     entries = [
         {
@@ -482,6 +726,7 @@ def execute_question_bank_generation(
                 result_ref=f"question-generation:{identity}:source"
             ) from None
         raise
+    batches = _batch_plan(source_units)
     claim = _claim_generation_attempt(
         series_id=identity,
         task_run_id=stable_task_run_id,
@@ -489,22 +734,44 @@ def execute_question_bank_generation(
         estimated_input_tokens=estimated_tokens,
         now=current,
     )
-    renew_lease()
     reservation = None
     try:
-        reservation = reserve_learning_model_run(
-            account_id=claim.owner_id,
-            kind=LearningModelRunKind.GENERATION,
-            owner_ref=f"{identity}:{claim.attempt}",
-            idempotency_key=f"generation-runtime:{identity}:{claim.attempt}",
-            lease_expires_at=current + timedelta(hours=1),
-            now=current,
-        )
-        batches = batch_source_knowledge_units(source_units)
+        # Keep plan creation inside the tracked error boundary.  A malformed
+        # or conflicting immutable plan must follow the same final-failure
+        # path as any other generation error instead of leaving the series in
+        # GENERATING with no TaskRun outcome.
+        batch_rows = _ensure_batch_plan(series_id=identity, batches=batches)
+        renew_lease()
         publications: list[QuestionBankPublicationDraft] = []
         last_invocation_id: str | None = None
-        for batch_index, batch in enumerate(batches):
-            if claim.attempt == 1 and batch_index == 0:
+        for batch_index, (batch, batch_row) in enumerate(
+            zip(batches, batch_rows, strict=True), start=1
+        ):
+            if batch_row.state == QuestionBankGenerationBatch.State.SUCCEEDED:
+                publications.append(
+                    _load_batch_publication(
+                        row=batch_row,
+                        allowed_types=claim.allowed_question_types,
+                        maximum_questions=claim.max_questions_per_volume * 2,
+                    )
+                )
+                last_invocation_id = (
+                    batch_row.latest_invocation_id or last_invocation_id
+                )
+                continue
+            source_ids = tuple(unit.logical_id for unit in batch)
+            question_upper_bound = claim.max_questions_per_volume * 2
+            reservation = reserve_learning_model_run(
+                account_id=claim.owner_id,
+                kind=LearningModelRunKind.GENERATION,
+                owner_ref=f"{identity}:{claim.attempt}:{batch_index}",
+                idempotency_key=(
+                    f"generation-runtime:{identity}:{claim.attempt}:{batch_index}"
+                ),
+                lease_expires_at=current + timedelta(hours=2),
+                now=current,
+            )
+            if claim.attempt == 1 and batch_index == 1:
                 invocation = bind_agent_invocation_task_run(
                     invocation_id=claim.snapshot_invocation_id,
                     task_run_id=stable_task_run_id,
@@ -513,9 +780,9 @@ def execute_question_bank_generation(
                 invocation = create_agent_invocation_from_snapshot(
                     source_invocation_id=claim.snapshot_invocation_id,
                     caller_type="question_generation",
-                    caller_id=f"{identity}:{claim.attempt}:{batch_index + 1}",
+                    caller_id=f"{identity}:{claim.attempt}:{batch_index}",
                     idempotency_key=(
-                        f"generation:{identity}:{claim.attempt}:{batch_index + 1}"
+                        f"generation:{identity}:{claim.attempt}:{batch_index}"
                     ),
                     task_run_id=stable_task_run_id,
                 )
@@ -525,43 +792,61 @@ def execute_question_bank_generation(
                 invocation_id=invocation.id,
                 reservation_id=reservation.reservation_id,
             )
-            source_ids = tuple(unit.logical_id for unit in batch)
-            question_upper_bound = claim.max_questions_per_volume * 2
-            generated = invoke_structured(
-                gateway=gateway,
+            _mark_batch_started(
+                batch_id=batch_row.id,
+                attempt=claim.attempt,
                 invocation_id=invocation.id,
-                input_blocks=(_source_batch_material(batch),),
-                prompt_variables={
-                    "knowledge_points": (
-                        "这些是当前批次可引用的源条目 ID 白名单。它们只是证据片段，"
-                        "不是预设知识点或题目；请自行判断知识点和题目数量，可以合并或拆分。"
-                        "每个 knowledge_point 的 source_unit_ids 只能引用这些 ID："
-                        + ",".join(source_ids)
-                    ),
-                    "question_types": ",".join(claim.allowed_question_types),
-                    "question_limit": str(question_upper_bound),
-                    "tag_candidates": _tag_candidates(),
-                },
-                output_validator=_publication_output_validator(
-                    allowed_types=claim.allowed_question_types,
-                    maximum_questions=question_upper_bound,
-                    expected_source_unit_ids=source_ids,
-                ),
                 now=current,
-                lease_seconds=3_600,
             )
-            publications.append(
-                question_bank_publication_draft(generated.validated_output.value)
-            )
+            try:
+                generated = invoke_structured(
+                    gateway=gateway,
+                    invocation_id=invocation.id,
+                    input_blocks=(_source_batch_material(batch),),
+                    prompt_variables={
+                        "knowledge_points": (
+                            "这些是当前批次可引用的源条目 ID 白名单。它们只是证据片段，"
+                            "不是预设知识点或题目；请自行判断知识点和题目数量，可以合并或拆分。"
+                            "每个 knowledge_point 的 source_unit_ids 只能引用这些 ID："
+                            + ",".join(source_ids)
+                        ),
+                        "question_types": ",".join(claim.allowed_question_types),
+                        "question_limit": str(question_upper_bound),
+                        "tag_candidates": _tag_candidates(),
+                    },
+                    output_validator=_publication_output_validator(
+                        allowed_types=claim.allowed_question_types,
+                        maximum_questions=question_upper_bound,
+                        expected_source_unit_ids=source_ids,
+                    ),
+                    now=current,
+                    lease_seconds=3_600,
+                )
+                batch_publication = question_bank_publication_draft(
+                    generated.validated_output.value
+                )
+                _mark_batch_succeeded(
+                    batch_id=batch_row.id,
+                    publication=batch_publication,
+                    reservation_id=reservation.reservation_id,
+                    now=current,
+                )
+            except (AgentCommandError, GatewayError, LearningCommandError) as error:
+                _mark_batch_failed(
+                    batch_id=batch_row.id,
+                    error_code=error.code,
+                    now=current,
+                )
+                raise
+            publications.append(batch_publication)
             last_invocation_id = generated.invocation_id
+            reservation = None
             renew_lease()
         publication = _merge_publications(
             publications=tuple(publications),
             units=source_units,
             maximum_questions_per_volume=claim.max_questions_per_volume,
         )
-        release_learning_model_run(reservation_id=reservation.reservation_id)
-        reservation = None
         published = publish_question_bank_generation(
             owner_id=claim.owner_id,
             series_id=identity,
@@ -587,6 +872,8 @@ def execute_question_bank_generation(
             raise TaskCancelled(
                 result_ref=f"question-generation:{identity}:source"
             ) from None
+        if error.code in _NON_RETRYABLE_GENERATION_ERRORS:
+            raise TaskFinalFailed(error_code=error.code) from None
         if (
             isinstance(error, GatewayError)
             and not error.retryable
@@ -637,6 +924,13 @@ def mark_question_bank_generation_final_failed(
         return _result(candidate)
     if candidate.state == QuestionBankSeriesState.GENERATION_FAILED:
         _release_active(candidate)
+        # A final failure never publishes a partial bank.  Checkpoints contain
+        # validated provider output and source references, so remove every
+        # leftover batch rather than retaining an unusable partial result.  The
+        # row is already terminal, but keep cleanup transactional for a
+        # repeated final-failure delivery as well.
+        with transaction.atomic():
+            QuestionBankGenerationBatch.objects.filter(series_id=identity).delete()
         return _result(candidate)
     _release_active(candidate)
     with transaction.atomic():
@@ -661,6 +955,7 @@ def mark_question_bank_generation_final_failed(
         series.failure_purge_after = current + timedelta(days=30)
         series.row_version += 1
         series.save()
+        QuestionBankGenerationBatch.objects.filter(series_id=series.id).delete()
         enqueue_event(
             GENERATION_FAILED,
             aggregate_type="question_bank_series",

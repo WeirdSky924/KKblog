@@ -27,11 +27,7 @@ def task_runs(request: HttpRequest) -> HttpResponse:
     else:
         selected_status = ""
         task_page = task_run_records(
-            status="",
-            is_admin=True,
-            metadata_provider=task_run_metadata,
-            page=1,
-            page_size=20,
+            status="", is_admin=True, metadata_provider=task_run_metadata, page=1, page_size=20
         )
         status = 422
     monitoring = current_monitoring_status(is_admin=True)

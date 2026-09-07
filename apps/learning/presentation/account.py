@@ -298,6 +298,10 @@ def _context(
         "knowledge_has_active_generation": any(
             item.has_active_generation for item in page.items
         ),
+        "knowledge_has_active_work": any(
+            item.has_active_generation or item.state in {"REVIEW_PENDING", "REVIEWING"}
+            for item in page.items
+        ),
         "knowledge_generation_available": question_generation_available(),
     }
     context.update(_dialog_context(request, owner_id=owner_id))

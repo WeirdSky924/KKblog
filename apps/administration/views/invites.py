@@ -63,9 +63,7 @@ def _render(
 ) -> HttpResponse:
     state = request.GET.get("state", "")
     try:
-        invite_page = invite_list(
-            state=state, page=_page(request.GET.get("page")), page_size=20
-        )
+        invite_page = invite_list(state=state, page=_page(request.GET.get("page")), page_size=20)
     except ValueError:
         invite_page = invite_list(state="", page=1, page_size=20)
         error = "筛选条件无效。"

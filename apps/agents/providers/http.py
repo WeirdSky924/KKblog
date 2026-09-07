@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from math import ceil
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
+from apps.agents.contracts import MAX_REQUEST_TIMEOUT_SECONDS
+
 MAX_PROVIDER_REQUEST_BYTES = 4 * 1024 * 1024
 MAX_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024
 MAX_PROVIDER_REDIRECTS = 2
@@ -323,7 +325,7 @@ class SafeProviderHttpClient:
         if (
             isinstance(timeout_seconds, bool)
             or not isinstance(timeout_seconds, int)
-            or not 1 <= timeout_seconds <= 600
+            or not 1 <= timeout_seconds <= MAX_REQUEST_TIMEOUT_SECONDS
             or isinstance(max_response_bytes, bool)
             or not isinstance(max_response_bytes, int)
             or not 1 <= max_response_bytes <= MAX_PROVIDER_RESPONSE_BYTES
@@ -366,7 +368,9 @@ class SafeProviderHttpClient:
                         port=resolved.port,
                         target=resolved.target,
                         connect_timeout_seconds=max(1, min(10, ceil(remaining))),
-                        read_timeout_seconds=max(1, min(600, ceil(remaining))),
+                        read_timeout_seconds=max(
+                            1, min(MAX_REQUEST_TIMEOUT_SECONDS, ceil(remaining))
+                        ),
                         max_response_bytes=max_response_bytes,
                         headers=safe_headers,
                         body=body,

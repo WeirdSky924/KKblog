@@ -123,6 +123,7 @@ def test_upload_statement_error_preserves_asset_then_submit_updates_workspace(
     assert submitted.headers["HX-Replace-Url"] == reverse("learning:documents")
     assert document.state == "REVIEW_PENDING"
     assert "等待审核" in submitted.content.decode("utf-8")
+    assert 'hx-trigger="every 8s"' in submitted.content.decode("utf-8")
     trigger = json.loads(submitted.headers["HX-Trigger-After-Swap"])
     assert trigger["kaj:feedback"]["level"] == "success"
     assert trigger["kaj:feedback"]["message"] == "知识文档已提交审核"

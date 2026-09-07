@@ -188,6 +188,30 @@ def test_two_workers_cannot_claim_the_same_idempotency_key() -> None:
 
 
 @pytest.mark.django_db(transaction=True)
+def test_duplicate_running_task_waits_for_lease_instead_of_retry_storm() -> None:
+    claimed = claim_task(
+        task_name=TASK_NAME,
+        business_object=PAYLOAD_ID,
+        idempotency_key=IDEMPOTENCY_KEY,
+        celery_id=_celery_id(),
+        lease_seconds=30,
+        clock=FrozenClock(BASE_TIME),
+    )
+    assert claimed.outcome == StartOutcome.CLAIMED
+
+    duplicate = claim_task(
+        task_name=TASK_NAME,
+        business_object=PAYLOAD_ID,
+        idempotency_key=IDEMPOTENCY_KEY,
+        celery_id=_celery_id(),
+        lease_seconds=30,
+        clock=FrozenClock(BASE_TIME + timedelta(seconds=1)),
+    )
+    assert duplicate.outcome == StartOutcome.BUSY
+    assert duplicate.retry_after_seconds == 29
+
+
+@pytest.mark.django_db(transaction=True)
 def test_outer_transaction_rollback_removes_claim() -> None:
     with pytest.raises(RuntimeError), transaction.atomic():
         claim_task(

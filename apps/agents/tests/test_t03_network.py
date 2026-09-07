@@ -181,10 +181,10 @@ def test_provider_read_timeout_honors_endpoint_budget_above_thirty_seconds() -> 
     client.post_json(
         "https://api.example.com/v1/chat/completions",
         {},
-        timeout_seconds=120,
+        timeout_seconds=1_800,
         max_response_bytes=1024,
     )
-    assert requests[0].read_timeout_seconds == 120
+    assert requests[0].read_timeout_seconds == 1_800
 
 
 def test_transport_request_repr_redacts_headers_and_body() -> None:

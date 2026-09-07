@@ -298,6 +298,16 @@ def execute_knowledge_review(
         )
         if reservation is not None:
             release_learning_model_run(reservation_id=reservation.reservation_id)
+        # A capability probe is tied to the exact Endpoint revision.  Once the
+        # endpoint changes, retrying the same invocation cannot make the stale
+        # probe valid; finalize immediately so the document does not remain in
+        # REVIEWING until a lease expires.  The owner can retry after the
+        # administrator runs a fresh schema capability check.
+        if (
+            isinstance(error, AgentCommandError)
+            and error.code == "agents.profile_capability_unverified.v1"
+        ):
+            raise TaskFinalFailed(error_code=code) from None
         if (
             isinstance(error, GatewayError)
             and not error.retryable

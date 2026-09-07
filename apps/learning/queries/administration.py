@@ -307,11 +307,9 @@ def admin_learning_document_detail(
         raise LearningCommandError(
             "learning.document_access_page_invalid.v1", "访问记录分页不合法。"
         )
-    ordered = (
-        KnowledgeDocumentAccess.objects.filter(document_id=document.id)
-        .select_related("administrator_actor")
-        .order_by("-accessed_at", "-id")
-    )
+    ordered = KnowledgeDocumentAccess.objects.filter(
+        document_id=document.id
+    ).select_related("administrator_actor").order_by("-accessed_at", "-id")
 
     def access_item(item) -> AdminKnowledgeAccessItem:
         return AdminKnowledgeAccessItem(

@@ -257,7 +257,7 @@ def test_runtime_defaults_and_cross_field_validation() -> None:
         ("per_run_token_limit", 9_999),
         ("per_run_token_limit", 5_000_001),
         ("request_timeout_seconds", 9),
-        ("request_timeout_seconds", 601),
+        ("request_timeout_seconds", 1_801),
         ("concurrency_limit", 0),
         ("concurrency_limit", 6),
         ("endpoint_daily_token_limit", 49_999),
@@ -271,6 +271,11 @@ def test_runtime_hard_ranges_are_enforced(field: str, value: int) -> None:
         EndpointRuntimeSettings(**values).validate(
             site_daily_token_limit=DEFAULT_SITE_DAILY_TOKEN_LIMIT
         )
+
+
+def test_runtime_timeout_accepts_thirty_minutes() -> None:
+    runtime = EndpointRuntimeSettings(request_timeout_seconds=1_800)
+    assert runtime.validate(site_daily_token_limit=DEFAULT_SITE_DAILY_TOKEN_LIMIT)
 
 
 def test_only_administrator_can_create_endpoint_and_no_secret_is_stored() -> None:

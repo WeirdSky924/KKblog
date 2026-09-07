@@ -157,7 +157,11 @@ def _render(
             "recipient_state": request.GET.get("recipient_state", ""),
             "recipient_keyword": request.GET.get("q", ""),
             "broadcast_pagination_query": urlencode(
-                {key: value for key, value in request.GET.items() if key != "page"}
+                {
+                    key: value
+                    for key, value in request.GET.items()
+                    if key != "page"
+                }
             ),
             "query_error": query_error,
             "saved": request.GET.get("saved", ""),

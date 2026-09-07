@@ -71,7 +71,7 @@ Prompt revision 仍由 `AgentPromptRevision` 不可变 owner 管理。
 - 调用方文档作为带边界的“不可信资料”；系统安全包裹、禁止执行资料内指令、schema 和工具禁用不能被管理员 Prompt 覆盖。
 - token 业务上限、全站/Endpoint 日上限、并发租约和有限重试共同约束费用；额度不足必须零外呼。Gateway 预留完整 per-run 上限，并按 `estimated_input + max_output` 的单次最坏值把外呼总数限制为最多三次且不超过 per-run；租约至少覆盖全部允许请求、退避和安全余量，避免正常慢调用被提前回收。
 - 模型输出依次经过字节上限、JSON 解析、注册 schema 和调用方领域校验。坏 schema 只允许一次受限修复请求，不能落为半成品业务事实。
-- 知识文档的 `estimated_tokens` 使用保守 UTF-8 文本估算，不把原始字节数直接当 token；Provider read timeout 遵守 Endpoint 的请求总预算（最大 600 秒），避免复杂题库生成被固定的 30 秒首字节窗口误杀。
+- 知识文档的 `estimated_tokens` 使用保守 UTF-8 文本估算，不把原始字节数直接当 token；Provider read timeout 遵守 Endpoint 的请求总预算（最大 1800 秒），避免复杂题库生成被固定的 30 秒首字节窗口误杀。
 - 成功调用的多次外呼按可信 usage 累加并结算；失败调用即使存在不完整 usage 也不计入每日 ledger。调用终态、`0` 结算和安全错误码在同一事务完成，终止时间使用终态时钟而不是开始时间。
 
 ## 依赖方向

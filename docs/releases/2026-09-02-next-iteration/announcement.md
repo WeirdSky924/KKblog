@@ -1,6 +1,6 @@
 # Kaj 空间下一轮更新公告（持续记录）
 
-状态：本轮内容已于 2026-09-05 正式发布；后续 Labs 修改从新的正式基线继续记录。
+状态：Labs 下一轮迭代中；正式基线已同步至 2026-09-05 合并增量发布。
 
 ## 发布基线
 
@@ -8,8 +8,8 @@
 - 当前正式应用镜像：`kaj-blog-web:87621e821802`。
 - Labs worktree：`/home/code/.codex-worktrees/personal-blog/labs-test-environment`。
 - Labs 分支：`codex/labs-next-iteration`。
-- Labs 与正式环境从本次 Git 基线继续迭代；本轮新增内容已经完成验证并正式发布。
-- 本次正式发布公告：[2026-09-05 Labs 全量增量更新公告](../2026-09-05-labs-full-increment/announcement.md)。
+- Labs 分支从正式版本的祖先继续迭代；当前未提交的 Labs 修改尚未视为正式发布。
+- 9 月 5 日合并发布公告：[2026-09-05 合并增量更新公告](../2026-09-05-production-increment/announcement.md)。
 - 上一轮正式公告：[2026-09-02 正式增量更新公告](../2026-09-02-production-increment/announcement.md)。
 
 ## 已继承的正式能力
@@ -55,6 +55,21 @@
 - 作者文章列表的“删除冷静期”状态现在为可恢复文章显示明确的“恢复”按钮，提交时携带行版本并复用 `restore_deleted_article` 的权限、期限和并发校验；成功后回到恢复前的发布状态列表，过期、冲突和无权操作分别返回对应状态。
 - 管理员文章列表对没有管理案件的作者主动删除文章提供直接恢复确认，对已有管理案件的文章继续走案件恢复流程；知识文档和题库管理队列对管理员删除的冷静期对象提供单项恢复入口，复用既有批量预检、审计和通知服务。
 - 验证：作者恢复视图、管理员恢复确认、作者/管理员模板烟测通过；Ruff、Python compileall、Django check 和 `git diff --check` 通过；Labs `/author/articles/` 未登录返回 `302`，恢复端点未登录返回 `302`，管理员入口继续按权限返回 `403`；未执行迁移、生产状态修复或 Git 交付。文章删除恢复 pytest 因既有 SQLite `ALTER TABLE ... ADD CONSTRAINT` 迁移错误无法启动，需在 PostgreSQL 隔离环境补跑。
+
+本轮完成 Labs 基线与发布记录整理：
+
+- 复核 `kaj-labs.service` 工作目录为 `/home/code/.codex-worktrees/personal-blog/labs-test-environment`，服务保持 `active/running`；`https://labs.kajspace.cn/health/live` 返回 `200`。
+- Labs 分支 `codex/labs-next-iteration` 的 Git HEAD 已从 `82df3cc` 对齐到正式远端 `origin/main=02ea58b4eaa0b7d1c2728231c292f6e0a8df8a97`；旧 HEAD 由本地回溯引用 `refs/codex/backups/labs-next-iteration-before-formal-baseline` 保留，未推送。
+- 将 9 月 5 日两阶段记录合并为 `docs/releases/2026-09-05-production-increment/`，旧阶段目录改为 README 指向唯一正式记录，避免后续公告分叉。
+- 现有 Labs 未提交代码、模板、测试和文档修改均保留；本轮没有迁移、状态修复、来源抓取、生产部署或 Git 提交/推送。
+- 验证：合并目录文件与正式文档逐项核对，`git diff --check -- docs/releases` 通过；后续切片继续追加到本公告，并在正式候选形成前逐项核对。
+
+本轮修复正式环境知识文档上传失败与错误提示：
+
+- 媒体存储在创建最终目录或执行原子提交时遇到文件系统写入错误，现在由上传端点返回可重试的 `503` 安全分片，不再升级为无上下文的 `500`；内部异常细节不会返回给用户。
+- 前端上传模块新增“知识文档”类型识别，校验失败、网络失败和服务端存储失败均不再回退显示“图片上传未完成”。
+- 验证：隔离 PostgreSQL/Redis/Mailpit 的 `apps/media/tests/test_med009_knowledge_documents.py` 为 `17 passed`；Labs 真实端点带作者权限上传 Markdown 返回 `201`，资产读回 `ACTIVE`、文件存在，响应包含知识文档成功文案且不包含图片回退文案；测试会话和临时文件已清理，保留的数据库行仅为既有删除生命周期历史记录。
+- Labs `kaj-labs.service`、Worker、Beat 保持 `active/running`，`/health/live` 和 `/health/ready` 均返回 `200`；已生成新的 `static/dist/app.js` 并更新模板缓存版本。未执行生产目录权限修复、生产状态清理、迁移、提交或推送；正式部署时需同时核对媒体目录归属为 Web/Worker 运行用户可写。
 
 ## 质量与发布状态
 

@@ -40,6 +40,7 @@ from .test_question_generation_runtime import (
     NOW,
     _configure_limit,
     _configured_generation_profile,
+    _mark_schema_capability,
     _publication_value,
     _request,
 )
@@ -135,16 +136,21 @@ def test_provider_transient_failures_recover_without_task_level_retry(
     assert transport.call_count == 3
 
 
-def test_three_configuration_failures_finalize_generation_and_notify(
+def test_nonretryable_configuration_failure_finalizes_generation_and_notify(
     isolated_media_root,
 ) -> None:
     administrator, profile = _configured_generation_profile()
     _configure_limit(4, administrator=administrator)
     endpoint = profile.endpoint
     endpoint.authentication_mode = "SECRET_ALIAS"
-    endpoint.secret_alias = "missing-generation-key"
+    endpoint.secret_alias = "MISSING_GENERATION_KEY"
     endpoint.row_version += 1
     endpoint.save()
+    # Capability checks are bound to the endpoint row version.  Recreate the
+    # check after this intentional authentication change so the test reaches
+    # the missing-secret failure in the generation worker rather than stopping
+    # at the preflight capability gate.
+    _mark_schema_capability(administrator, endpoint, profile.schema_key)
     owner = _account("generation-final-owner")
     request, _, storage = _request(
         isolated_media_root,
@@ -167,15 +173,7 @@ def test_three_configuration_failures_finalize_generation_and_notify(
         return f"question-generation:{request.series_id}:done"
 
     service.business_object = f"question-generation:{request.series_id}"
-    for moment, countdown in (
-        (NOW, 60),
-        (NOW + timedelta(seconds=60), 300),
-    ):
-        service.moment = moment
-        with pytest.raises(TaskRetryScheduled) as retry:
-            _tracked(service, moment=moment)
-        assert retry.value.countdown == countdown
-    service.moment = NOW + timedelta(seconds=360)
+    service.moment = NOW
     with pytest.raises(TaskFinalFailed) as final:
         _tracked(service, moment=service.moment)
 
@@ -190,8 +188,9 @@ def test_three_configuration_failures_finalize_generation_and_notify(
     task_run = TaskRun.objects.get(task_name=QUESTION_GENERATION_TASK_NAME)
     assert terminal.state == QuestionBankSeriesState.GENERATION_FAILED
     assert series.state == QuestionBankSeriesState.GENERATION_FAILED
-    assert series.attempt_count == 3
-    assert task_run.attempt == 3 and task_run.status == "final_failed"
+    assert final.value.error_code == "agents.secret_unavailable.v1"
+    assert series.attempt_count == 1
+    assert task_run.attempt == 1 and task_run.status == "final_failed"
     assert transport.call_count == 0
     assert series.failure_purge_after == service.moment + timedelta(days=30)
 

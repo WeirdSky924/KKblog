@@ -8,6 +8,7 @@ from .banks import (
     QuestionBankSeries,
 )
 from .documents import KnowledgeDocument
+from .generation import QuestionBankGenerationBatch
 from .questions import Question
 from .quiz import QuizAttempt, QuizResponse, WrongQuestion
 from .quotas import (
@@ -22,6 +23,7 @@ from .tags import QuestionBankTag, QuestionBankTagAssignment
 
 __all__ = [
     "KnowledgeDocument",
+    "QuestionBankGenerationBatch",
     "KnowledgeDocumentAccess",
     "QuestionBankApiConfiguration",
     "KnowledgeReviewRun",

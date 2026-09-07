@@ -56,7 +56,9 @@ def check_endpoint_task(self, check_id: str) -> dict[str, str]:
             business_object=business_object,
             idempotency_key=business_object,
             service=_execute_check_service,
-            lease_seconds=3_600,
+            # One provider probe is bounded by the endpoint timeout.  Keep a
+            # full retry window available after the timeout ceiling grows.
+            lease_seconds=7_200,
         )
     except TaskFinalFailed as error:
         mark_agent_endpoint_check_final_failed(

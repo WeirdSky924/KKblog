@@ -9,7 +9,7 @@ from django.urls import reverse
 from apps.media.errors import MediaUploadError
 from apps.media.models import MediaPurpose
 from apps.media.services.uploads import stage_upload
-from apps.media.storage import FilesystemMediaStorage
+from apps.media.storage import FilesystemMediaStorage, StorageWriteError
 from apps.media.upload_adapters import default_media_upload_adapters
 from apps.operations.public import (
     require_image_creation_capacity,
@@ -98,6 +98,28 @@ def _render_upload(
                 "is_hero": is_hero,
             },
             status=422,
+        )
+    except StorageWriteError:
+        if is_knowledge_document:
+            storage_message = "知识文档暂时无法保存，请稍后重试。"
+        elif is_attachment:
+            storage_message = "附件暂时无法保存，请稍后重试。"
+        elif is_hero:
+            storage_message = "主视觉媒体暂时无法保存，请稍后重试。"
+        else:
+            storage_message = "图片暂时无法保存，请稍后重试。"
+        response = render(
+            request,
+            "media/partials/upload_result.html",
+            {
+                "upload_error": storage_message,
+                "original_name": uploaded.name,
+                "input_name": input_name,
+                "is_attachment": is_attachment,
+                "is_knowledge_document": is_knowledge_document,
+                "is_hero": is_hero,
+            },
+            status=503,
         )
     else:
         response = render(

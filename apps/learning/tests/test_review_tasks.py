@@ -95,6 +95,38 @@ def test_celery_entry_executes_tracked_review(
     assert transport.call_count == 1
 
 
+def test_stale_endpoint_capability_fails_review_immediately(
+    isolated_media_root,
+):
+    profile = _configured_profile()
+    owner = _account("review-stale-capability", author=True)
+    submitted, _, _ = _submitted(isolated_media_root, owner)
+
+    # Editing any endpoint runtime setting invalidates the prior strict schema
+    # probe.  The worker must surface that configuration problem immediately;
+    # waiting for the one-hour review lease would strand the document.
+    endpoint = profile.endpoint
+    endpoint.row_version += 1
+    endpoint.save(update_fields=("row_version", "updated_at"))
+
+    with pytest.raises(RuntimeError) as failed:
+        review_document_task.apply(
+            args=(str(submitted.review_run_id),),
+            task_id=str(uuid4()),
+        ).get()
+
+    # Celery's eager trace serializes the task exception back as RuntimeError;
+    # the durable TaskRun and review records remain the source of truth.
+    assert str(failed.value) == "agents.profile_capability_unverified.v1"
+    document = review_runtime.KnowledgeDocument.objects.get(pk=submitted.document_id)
+    run = review_runtime.KnowledgeReviewRun.objects.get(pk=submitted.review_run_id)
+    task_run = TaskRun.objects.get(task_name=REVIEW_DOCUMENT_TASK_NAME)
+    assert document.state == KnowledgeDocumentState.REVIEW_FAILED
+    assert run.state == "FAILED"
+    assert run.last_error_code == "agents.profile_capability_unverified.v1"
+    assert task_run.status == "final_failed"
+
+
 def test_three_agent_configuration_failures_finalize_review_and_notify(
     isolated_media_root,
 ) -> None:

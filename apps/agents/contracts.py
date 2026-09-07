@@ -16,7 +16,10 @@ MAX_PER_RUN_TOKEN_LIMIT = 5_000_000
 
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 120
 MIN_REQUEST_TIMEOUT_SECONDS = 10
-MAX_REQUEST_TIMEOUT_SECONDS = 600
+# A structured generation request can legitimately take several minutes when
+# the provider is reasoning over a large knowledge document.  The transport,
+# endpoint form, and persisted endpoint constraint all share this ceiling.
+MAX_REQUEST_TIMEOUT_SECONDS = 1_800
 
 DEFAULT_CONCURRENCY_LIMIT = 1
 MIN_CONCURRENCY_LIMIT = 1

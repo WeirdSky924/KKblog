@@ -188,9 +188,7 @@ def broadcast_list(
     paginator = Paginator(ordered, page_size)
     selected = paginator.get_page(page)
     return PageSlice(
-        items=tuple(
-            _broadcast_summary(notification) for notification in selected.object_list
-        ),
+        items=tuple(_broadcast_summary(notification) for notification in selected.object_list),
         page_number=selected.number,
         page_size=page_size,
         total_items=paginator.count,

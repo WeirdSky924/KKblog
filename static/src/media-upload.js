@@ -49,9 +49,11 @@ export function uploadMediaFile({
   const label =
     mediaLabel === "附件"
       ? "附件"
-      : mediaLabel === "主视觉媒体"
-        ? "主视觉媒体"
-        : "图片";
+      : mediaLabel === "知识文档"
+        ? "知识文档"
+        : mediaLabel === "主视觉媒体"
+          ? "主视觉媒体"
+          : "图片";
   if (!(file instanceof File)) {
     return Promise.reject(
       new MediaUploadRequestError("invalid_file", `没有可上传的${label}。`),

@@ -28,12 +28,8 @@
         </a>
       </nav>
 
-      {% if comment_deleted %}
-        {% include "components/feedback/trigger.html" with key="author-comment-deleted" message="评论已删除，原位置会显示删除占位。" %}
-      {% endif %}
-      {% if comment_settings_saved %}
-        {% include "components/feedback/trigger.html" with key="author-comment-settings" message="评论设置已保存。" %}
-      {% endif %}
+      {% if comment_deleted %}{% include "components/feedback/trigger.html" with key="author-comment-deleted" message="评论已删除，原位置会显示删除占位。" %}{% endif %}
+      {% if comment_settings_saved %}{% include "components/feedback/trigger.html" with key="author-comment-settings" message="评论设置已保存。" %}{% endif %}
 
       {% if comments_tab == "buffer" %}
         <section id="managed-comments" class="author-buffer-workspace" aria-labelledby="buffer-title">

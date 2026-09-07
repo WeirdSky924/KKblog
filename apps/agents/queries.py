@@ -364,12 +364,7 @@ def agent_token_policy_admin_item(*, actor_id) -> AgentTokenPolicyAdminItem:
 
 
 def agent_profile_prompt_admin_detail(
-    *,
-    actor_id,
-    profile_id,
-    page: int | None = None,
-    page_size: int = 20,
-    revision_id=None,
+    *, actor_id, profile_id, page: int | None = None, page_size: int = 20, revision_id=None
 ) -> AgentProfilePromptAdminDetail:
     require_administrator(actor_id)
     try:

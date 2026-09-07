@@ -224,7 +224,9 @@ def _render(
         {
             "presentation": presentation,
             "filter_form": filter_form,
-            "pagination_query": urlencode({"q": keyword, "status": selected_status}),
+            "pagination_query": urlencode(
+                {"q": keyword, "status": selected_status}
+            ),
             "confirmation_kind": confirmation_kind,
             "confirmation_target": confirmation_target,
             "confirmation_form": confirmation_form,

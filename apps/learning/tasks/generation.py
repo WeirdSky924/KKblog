@@ -64,7 +64,9 @@ def generate_question_bank_task(self, series_id: str) -> dict[str, str]:
             business_object=business_object,
             idempotency_key=business_object,
             heartbeat_service=_execute_generation_service,
-            lease_seconds=3_600,
+            # Each batch can consume three provider attempts at the 30-minute
+            # endpoint ceiling; the lease is renewed between batches.
+            lease_seconds=7_200,
         )
     except TaskFinalFailed as error:
         mark_question_bank_generation_final_failed(

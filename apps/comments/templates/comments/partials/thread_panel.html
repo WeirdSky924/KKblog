@@ -17,9 +17,7 @@
     </span>
   </header>
 
-  {% if comment_feedback %}
-    {% include "components/feedback/trigger.html" with key="comment-action" message=comment_feedback %}
-  {% endif %}
+  {% if comment_feedback %}{% include "components/feedback/trigger.html" with key="comment-action" message=comment_feedback %}{% endif %}
 
   {% if comment_system_error %}
     <div class="error-inline" role="alert" data-error-focus tabindex="-1">
