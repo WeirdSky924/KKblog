@@ -60,6 +60,7 @@ class Account(models.Model):
     )
     theme = models.CharField(max_length=16, choices=Theme.choices, default=Theme.LIGHT)
     auto_republish_enabled = models.BooleanField(default=False)
+    article_explanation_auto_accept = models.BooleanField(default=False)
     attachment_upload_enabled = models.BooleanField(default=False)
     avatar_asset_id = models.CharField(max_length=26, null=True, blank=True)
     nickname_changed_at = models.DateTimeField(null=True, blank=True)

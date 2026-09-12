@@ -43,6 +43,7 @@ from apps.agents.schemas import (
     structured_schema,
 )
 from apps.agents.services.runtime import (
+    cancel_invocation,
     finalize_invocation,
     finish_invocation_attempt,
     load_invocation_for_gateway,
@@ -218,16 +219,22 @@ def _variables(
         "question_types": "[configured by the caller]",
         "question_limit": "[configured by the caller]",
         "tag_candidates": "[bounded candidates supplied by the caller]",
+        "article_title": "[article title supplied by the caller]",
+        "article_summary": "[article summary supplied by the caller]",
+        "article_tags": "[article tags supplied by the caller]",
+        "section_heading": "[article heading supplied by the caller]",
+        "selected_text": "[selected text supplied by the caller]",
     }
     if values is None:
         return result
     if not isinstance(values, Mapping) or len(values) > len(result):
         raise GatewayError("agents.prompt_variables_invalid.v1")
     for key, value in values.items():
+        maximum = 10_000 if key == "selected_text" else 500
         if (
             key not in result
             or not isinstance(value, str)
-            or not 1 <= len(value) <= 500
+            or not 1 <= len(value) <= maximum
             or "\x00" in value
         ):
             raise GatewayError("agents.prompt_variables_invalid.v1")
@@ -471,6 +478,7 @@ class AgentGateway:
         input_blocks,
         prompt_variables: Mapping[str, object] | None = None,
         output_validator: Callable[[Mapping[str, object]], None] | None = None,
+        cancel_check: Callable[[], bool] | None = None,
         now=None,
         lease_seconds: int = 300,
     ) -> GatewayResult:
@@ -480,6 +488,7 @@ class AgentGateway:
             or isinstance(lease_seconds, bool)
             or not 30 <= lease_seconds <= 3600
             or (output_validator is not None and not callable(output_validator))
+            or (cancel_check is not None and not callable(cancel_check))
         ):
             raise GatewayError("agents.invocation_invalid.v1")
         blocks = _validated_blocks(input_blocks)
@@ -525,6 +534,10 @@ class AgentGateway:
         except AgentCommandError as error:
             raise _command_error(error) from None
 
+        if cancel_check is not None and cancel_check():
+            cancel_invocation(invocation_id=invocation.id, completed_at=current)
+            raise GatewayError("agents.invocation_cancelled.v1")
+
         return self._call_provider(
             invocation=invocation,
             reservation=reservation,
@@ -535,6 +548,7 @@ class AgentGateway:
             started_at=current,
             max_attempts=max_attempts,
             output_validator=output_validator,
+            cancel_check=cancel_check,
         )
 
     def _call_provider(
@@ -549,6 +563,7 @@ class AgentGateway:
         started_at,
         max_attempts,
         output_validator,
+        cancel_check,
     ) -> GatewayResult:
         strategy = _strategy_for(invocation.endpoint_protocol_snapshot, schema)
         attempts = 0
@@ -558,6 +573,12 @@ class AgentGateway:
         usage = [0, 0, 0]
         last_error = GatewayError("agents.provider_failed.v1")
         while attempts < max_attempts:
+            if cancel_check is not None and cancel_check():
+                cancel_invocation(
+                    invocation_id=invocation.id,
+                    completed_at=self._clock(),
+                )
+                raise GatewayError("agents.invocation_cancelled.v1")
             if attempts:
                 self._sleeper(_RETRY_DELAYS[attempts])
             attempts += 1
@@ -599,6 +620,12 @@ class AgentGateway:
                     timeout_seconds=invocation.request_timeout_seconds_snapshot,
                     max_response_bytes=self._response_limit(invocation),
                 )
+                if cancel_check is not None and cancel_check():
+                    cancel_invocation(
+                        invocation_id=invocation.id,
+                        completed_at=self._clock(),
+                    )
+                    raise GatewayError("agents.invocation_cancelled.v1")
                 if parsed.usage is None:
                     usage_trusted = False
                 else:

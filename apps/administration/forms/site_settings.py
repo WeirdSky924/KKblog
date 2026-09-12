@@ -155,8 +155,37 @@ class GuestbookSettingsForm(forms.Form):
     post_login_required = forms.BooleanField(label="留言需要登录", required=False)
 
 
+class ArticleExplanationSettingsForm(forms.Form):
+    daily_limit = forms.IntegerField(
+        label="每用户每日解释次数",
+        min_value=1,
+        max_value=1_000,
+        help_text="达到上限后不调用 AGENT，只在解释面板提示原因。",
+    )
+    minute_limit = forms.IntegerField(
+        label="每用户每分钟解释次数",
+        min_value=1,
+        max_value=60,
+        help_text="按账户滚动 60 秒窗口限制，避免短时间重复请求。",
+    )
+    selection_limit = forms.IntegerField(
+        label="单次选区最大字符数",
+        min_value=1,
+        max_value=10_000,
+        help_text="超出后截断，但仍继续请求，并在结果中说明原始与处理字数。",
+    )
+    history_limit = forms.IntegerField(
+        label="每账户本地历史条数",
+        min_value=1,
+        max_value=100,
+        help_text="只影响浏览器 localStorage，超过后从最早记录开始挤出。",
+    )
+    expected_version = forms.IntegerField(widget=forms.HiddenInput)
+
+
 __all__ = [
     "FriendLinkDeleteForm",
+    "ArticleExplanationSettingsForm",
     "FriendLinkForm",
     "GuestbookSettingsForm",
     "SiteConfigurationForm",

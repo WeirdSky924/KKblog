@@ -3,6 +3,18 @@ from django.db import models
 from apps.core.ids import new_uuid
 
 from ..site_contracts import (
+    DEFAULT_ARTICLE_EXPLANATION_DAILY_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+    MAX_ARTICLE_EXPLANATION_DAILY_LIMIT,
+    MAX_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+    MAX_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+    MAX_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+    MIN_ARTICLE_EXPLANATION_DAILY_LIMIT,
+    MIN_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+    MIN_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+    MIN_ARTICLE_EXPLANATION_SELECTION_LIMIT,
     SITE_MAX_ARTICLE_BODY_BYTES,
     SITE_MIN_ARTICLE_BODY_BYTES,
     STATIC_PAGE_FORMAT_CHOICES,
@@ -26,6 +38,18 @@ class SiteConfiguration(models.Model):
     hero_asset_id = models.CharField(max_length=26, null=True, blank=True)
     verification_email_template = models.TextField(blank=True, default="")
     backup_destination = models.CharField(max_length=16, default="local")
+    article_explanation_daily_limit = models.PositiveSmallIntegerField(
+        default=DEFAULT_ARTICLE_EXPLANATION_DAILY_LIMIT
+    )
+    article_explanation_minute_limit = models.PositiveSmallIntegerField(
+        default=DEFAULT_ARTICLE_EXPLANATION_MINUTE_LIMIT
+    )
+    article_explanation_selection_limit = models.PositiveSmallIntegerField(
+        default=DEFAULT_ARTICLE_EXPLANATION_SELECTION_LIMIT
+    )
+    article_explanation_history_limit = models.PositiveSmallIntegerField(
+        default=DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT
+    )
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
     updated_at = models.DateTimeField(auto_now=True, editable=False)
 
@@ -50,6 +74,34 @@ class SiteConfiguration(models.Model):
             models.CheckConstraint(
                 condition=models.Q(row_version__gte=1),
                 name="site_configuration_version_positive",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    article_explanation_daily_limit__gte=MIN_ARTICLE_EXPLANATION_DAILY_LIMIT,
+                    article_explanation_daily_limit__lte=MAX_ARTICLE_EXPLANATION_DAILY_LIMIT,
+                ),
+                name="site_configuration_explain_daily_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    article_explanation_minute_limit__gte=MIN_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+                    article_explanation_minute_limit__lte=MAX_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+                ),
+                name="site_configuration_explain_minute_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    article_explanation_selection_limit__gte=MIN_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+                    article_explanation_selection_limit__lte=MAX_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+                ),
+                name="site_configuration_explain_selection_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    article_explanation_history_limit__gte=MIN_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+                    article_explanation_history_limit__lte=MAX_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+                ),
+                name="site_configuration_explain_history_range",
             ),
         ]
 

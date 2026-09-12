@@ -4,6 +4,13 @@ from .article import (
     ArticleTocItem,
     article_detail_page,
 )
+from .article_explanation import (
+    ArticleExplanationContext,
+    ArticleExplanationSelectionError,
+    CleanArticleSelection,
+    clean_article_selection,
+    prepare_article_explanation_context,
+)
 from .bookmarks import (
     BookmarkPage,
     BookmarkPageItem,
@@ -35,8 +42,11 @@ from .view_counts import article_view_count, article_view_counts
 
 __all__ = [
     "ArticleDetailPage",
+    "ArticleExplanationContext",
+    "ArticleExplanationSelectionError",
     "ArticleAttachment",
     "ArticleTocItem",
+    "CleanArticleSelection",
     "BookmarkPage",
     "BookmarkPageItem",
     "ArticleCollectionPage",
@@ -50,6 +60,7 @@ __all__ = [
     "PublicProfileStats",
     "UnavailableBookmarkItem",
     "article_detail_page",
+    "clean_article_selection",
     "article_like_count",
     "article_like_counts",
     "article_view_count",
@@ -60,6 +71,7 @@ __all__ = [
     "home_article_page",
     "profile_article_page",
     "public_profile_stats",
+    "prepare_article_explanation_context",
     "search_article_page",
     "section_article_page",
     "tag_article_page",

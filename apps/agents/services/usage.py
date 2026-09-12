@@ -302,6 +302,33 @@ def settle_token_reservation(
     return reservation
 
 
+def release_token_reservation(*, reservation_id) -> AgentTokenReservation:
+    """Release an unused active reservation without charging token usage."""
+
+    with transaction.atomic():
+        try:
+            reservation = AgentTokenReservation.objects.select_for_update().get(
+                pk=reservation_id
+            )
+        except AgentTokenReservation.DoesNotExist:
+            raise AgentCommandError(
+                "agents.reservation_not_found.v1", "token 预留不存在。"
+            ) from None
+        if reservation.status == AgentTokenReservation.Status.ACTIVE:
+            reservation.status = AgentTokenReservation.Status.RELEASED
+            reservation.settled_tokens = 0
+            reservation.save(update_fields=("status", "settled_tokens", "updated_at"))
+        elif reservation.status not in {
+            AgentTokenReservation.Status.RELEASED,
+            AgentTokenReservation.Status.SETTLED,
+            AgentTokenReservation.Status.EXPIRED,
+        }:
+            raise AgentCommandError(
+                "agents.reservation_conflict.v1", "token 预留状态冲突。"
+            )
+    return reservation
+
+
 @dataclass(frozen=True, slots=True)
 class TokenReservationRecoveryResult:
     released_count: int
@@ -588,6 +615,7 @@ __all__ = [
     "recover_expired_token_reservations",
     "reserve_endpoint_check_tokens",
     "reserve_invocation_tokens",
+    "release_token_reservation",
     "reset_token_usage",
     "settle_token_reservation",
 ]

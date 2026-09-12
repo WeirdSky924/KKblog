@@ -48,6 +48,12 @@ from apps.accounts.queries.security_events import (
     security_event_detail,
     security_event_list,
 )
+from apps.accounts.services.article_explanation_preferences import (
+    ArticleExplanationPreferenceError,
+    ArticleExplanationPreferences,
+    article_explanation_preferences,
+    change_article_explanation_preferences,
+)
 from apps.accounts.services.author_preferences import (
     AuthorPreferenceError,
     AuthorPreferences,
@@ -161,6 +167,8 @@ __all__ = [
     "AttachmentCapabilityState",
     "AuthorPreferenceError",
     "AuthorPreferences",
+    "ArticleExplanationPreferenceError",
+    "ArticleExplanationPreferences",
     "AuthorArticleDecision",
     "DEFAULT_VERIFICATION_EMAIL_TEMPLATE",
     "EmailTemplateError",
@@ -175,6 +183,8 @@ __all__ = [
     "default_restriction_store",
     "author_preferences",
     "change_author_preferences",
+    "article_explanation_preferences",
+    "change_article_explanation_preferences",
     "delete_account",
     "generate_invite_codes",
     "invite_detail",

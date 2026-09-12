@@ -56,6 +56,29 @@
         </form>
       </section>
 
+      <section id="article-explanation-settings" class="site-settings-section{% if request.GET.focus == 'article-explanation-settings' %} site-settings-section--focus{% endif %}" aria-labelledby="article-explanation-settings-title">
+        <header>
+          <h2 id="article-explanation-settings-title">文章划词解释</h2>
+          <p>用户级限制在 AGENT 调用前执行；达到限制时不调用模型、不扣 token、不发送通知。</p>
+          {% if saved == "article-explanation" %}{% include "components/feedback/trigger.html" with key="article-explanation-settings" message="文章解释设置已保存。" %}{% endif %}
+        </header>
+        <form method="post" class="site-settings-form article-explanation-settings-form" data-submit-once>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="article_explanation">
+          {{ site_settings_forms.article_explanation.expected_version }}
+          <div class="site-settings-stack">
+            {% for field in site_settings_forms.article_explanation.visible_fields %}
+              <div class="site-settings-field">
+                {{ field.label_tag }}{{ field.errors }}{{ field }}
+                {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+          {{ site_settings_forms.article_explanation.non_field_errors }}
+          <button class="button button--primary" type="submit">保存文章解释设置</button>
+        </form>
+      </section>
+
       <section id="verification-email" class="site-settings-section verification-email-settings" aria-labelledby="verification-email-title">
         <header>
           <span>

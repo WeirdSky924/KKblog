@@ -18,6 +18,13 @@ from apps.operations.services.alerts import (
     is_operational_task,
     send_pending_operational_alert_emails,
 )
+from apps.operations.services.article_explanation_usage import (
+    ArticleExplanationRateLimitError,
+    ArticleExplanationUsageError,
+    ArticleExplanationUsageResult,
+    allow_article_explanation_retry,
+    reserve_article_explanation_usage,
+)
 from apps.operations.services.audit import (
     AuditRejected,
     AuditSchema,
@@ -74,6 +81,9 @@ __all__ = [
     "AuditSchema",
     "BackupRetryable",
     "BackupStorage",
+    "ArticleExplanationRateLimitError",
+    "ArticleExplanationUsageError",
+    "ArticleExplanationUsageResult",
     "PostgresDumpConfig",
     "PostgresDumpRunner",
     "RetryableTaskError",
@@ -114,6 +124,8 @@ __all__ = [
     "search_audit",
     "search_runtime_errors",
     "send_pending_operational_alert_emails",
+    "allow_article_explanation_retry",
+    "reserve_article_explanation_usage",
     "is_operational_task",
     "shanghai_backup_week",
     "task_run_records",

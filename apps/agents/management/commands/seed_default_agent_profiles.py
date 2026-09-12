@@ -11,7 +11,7 @@ from apps.core.observability.trace import new_trace_code
 
 
 class Command(BaseCommand):
-    help = "Create the built-in knowledge review and question generation AGENT profiles for an endpoint."
+    help = "Create the built-in knowledge review, question generation, and article explanation AGENT profiles for an endpoint."
 
     def add_arguments(self, parser):
         parser.add_argument("--endpoint-id", required=True)
@@ -36,7 +36,11 @@ class Command(BaseCommand):
                     draft=ProfileDraft(
                         key=key,
                         display_name=(
-                            "知识文档审核" if key == "knowledge-review" else "题库生成"
+                            "知识文档审核"
+                            if key == "knowledge-review"
+                            else "题库生成"
+                            if key == "question-generation"
+                            else "文章划词解释"
                         ),
                         purpose=purpose,
                         endpoint_id=endpoint.id,

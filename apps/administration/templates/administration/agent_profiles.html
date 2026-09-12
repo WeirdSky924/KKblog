@@ -39,7 +39,7 @@
                   </div>
                 </header>
                 <dl class="agent-item__facts">
-                  <div><dt>用途</dt><dd>{% if profile.purpose == "KNOWLEDGE_REVIEW" %}知识文档审核{% else %}题库生成{% endif %}</dd></div>
+                  <div><dt>用途</dt><dd>{% if profile.purpose == "KNOWLEDGE_REVIEW" %}知识文档审核{% elif profile.purpose == "QUESTION_GENERATION" %}题库生成{% else %}文章划词解释{% endif %}</dd></div>
                   <div><dt>Endpoint</dt><dd>{{ profile.endpoint_name }}</dd></div>
                   <div><dt>输出 schema</dt><dd>{{ profile.schema_key }}</dd></div>
                   <div><dt>当前 Prompt</dt><dd>{% if profile.current_prompt_sequence %}v{{ profile.current_prompt_sequence }}{% else %}尚未保存{% endif %}</dd></div>

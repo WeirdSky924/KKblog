@@ -51,6 +51,12 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem("reports", "举报与申诉", "admin:reports"),
             AdminNavigationItem("tags", "标签审核", "admin:tags"),
             AdminNavigationItem("sections", "文章分区", "admin:sections"),
+            AdminNavigationItem(
+                "article-explanation",
+                "文章解释设置",
+                "admin:site-settings",
+                "focus=article-explanation-settings",
+            ),
         ),
     ),
     AdminNavigationGroup(

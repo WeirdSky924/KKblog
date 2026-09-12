@@ -23,9 +23,11 @@ from .prompts import (
     switch_agent_prompt_revision,
     update_agent_profile,
 )
+from .runtime import cancel_invocation
 from .usage import (
     TokenReservationRecoveryResult,
     recover_expired_token_reservations,
+    release_token_reservation,
     reserve_endpoint_check_tokens,
     reserve_invocation_tokens,
     reset_token_usage,
@@ -37,6 +39,7 @@ __all__ = [
     "ProfileDraft",
     "TokenReservationRecoveryResult",
     "bind_agent_invocation_task_run",
+    "cancel_invocation",
     "create_agent_endpoint",
     "create_agent_invocation",
     "create_agent_invocation_from_snapshot",
@@ -47,6 +50,7 @@ __all__ = [
     "request_agent_endpoint_check",
     "reserve_endpoint_check_tokens",
     "reserve_invocation_tokens",
+    "release_token_reservation",
     "reset_token_usage",
     "restore_default_token_limits",
     "save_agent_prompt_revision",

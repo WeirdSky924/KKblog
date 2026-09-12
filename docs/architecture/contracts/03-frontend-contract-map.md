@@ -12,6 +12,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:search` | `discovery/search.html` | `search_visible_titles`, `search_public_author_page` | 文章/作者结果与页码 | 文章列表作者 ID/公开主页、作者公开主页、模糊、相关度+时间、权限过滤 |
 | `public:search-suggestions` | Header JSON | `search_visible_titles`, `search_public_authors` | 登录用户即时建议 | 未登录固定空结果、文章分区/标签、作者头像、最多五条、无缓存 |
 | `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count` | 评论区、收藏、点赞与阅读书签状态 | 作者头像/ID/公开主页、登录提醒、私人/草稿 404、TipTap JSON projection/Markdown 兼容目录 H2、恢复阅读位置 |
+| `article:explanation-create` / `article:explanation-status` | 文章阅读页划词解释面板 | `prepare_article_explanation_context`, `create_article_explanation_request`, `article_explanation_request` | JSON 任务状态与安全 Markdown HTML；前端 localStorage 历史 | 仅登录且文章公开可读；选区清理/长度截断；授权、限额、PENDING、SUCCEEDED、FAILED、CANCELLED；非 JSON/HTML 响应显示安全中文错误 |
 | `article:bookmark` | partial action | `toggle_bookmark` | 收藏按钮 | 登录要求、重复点击幂等 |
 | `article:like` | `discovery/partials/like_control.html` | `set_article_like` | 右侧浮动点赞按钮、详情/列表计数 | 登录要求、固定尺寸、重复点击幂等 |
 | `article:comment-pin` | `comments/partials/public_list.html` | `set_article_comment_pin` | 评论首屏重排、置顶状态 | 仅文章作者/管理员、仅公开顶层、无整页闪烁 |
@@ -136,6 +137,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `media_picker` | `media/partials/` | 编辑器、头像、评论、证据、设置 |
 | `pagination` / `cursor_loader` | `templates/components/navigation/` | 传统分页/无限加载分别复用 |
 | `admin_table_shell` | `administration/partials/` | 管理列表，不承载领域规则 |
+| `article_explanation_tools` | `static/src/article-explanation.js` + `discovery.css`/文章模板 | 登录文章页 | 账户命名空间 localStorage、选区按钮、授权 dialog、可拖动面板、内部滚动和停止/重试状态；不拥有 AGENT、限流或 Markdown 业务规则 |
 
 共享组件只接受展示 DTO 和 capability flags，不查询 ORM、不自行判断角色、不发起未知领域命令。
 

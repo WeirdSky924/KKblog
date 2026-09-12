@@ -1,6 +1,7 @@
 import json
 
 from django.core.exceptions import PermissionDenied
+from django.db import DatabaseError
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -12,12 +13,14 @@ from apps.accounts.public import (
 from apps.comments.public import GuestbookSettingsError, update_guestbook_settings
 from apps.core.http import is_htmx_fragment_request
 from apps.navigation.public import (
+    ArticleExplanationSettingsQueryError,
     SiteContentCommandError,
     SiteContentQueryError,
     admin_site_settings,
     create_friend_link,
     delete_friend_link,
     set_trusted_embed_source,
+    update_article_explanation_settings,
     update_friend_link,
     update_site_configuration,
     update_static_page,
@@ -128,10 +131,24 @@ def _render(
         )
         response.headers["Cache-Control"] = "no-store"
         return response
-    form_bundle = forms or build_site_settings_forms(
-        settings,
-        actor_id=request.account_id,
-    )
+    try:
+        form_bundle = forms or build_site_settings_forms(
+            settings,
+            actor_id=request.account_id,
+        )
+    except (ArticleExplanationSettingsQueryError, DatabaseError):
+        response = render(
+            request,
+            "administration/site_settings.html",
+            {
+                "settings_unavailable": True,
+                "page_error": "文章解释设置暂时不可用，请稍后重试。",
+                "trace_code": getattr(request, "trace_code", ""),
+            },
+            status=503,
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
     friend_entries = _friend_link_entries(settings, form_bundle)
     dialog = _friend_dialog(
         settings,
@@ -174,6 +191,7 @@ def _render(
         {
             "site_settings": settings,
             "site_settings_forms": form_bundle,
+            "article_explanation_settings": form_bundle.article_explanation,
             "static_page_entries": tuple(
                 (page, form_bundle.static_pages[page.page_type])
                 for page in settings.static_pages
@@ -290,6 +308,30 @@ def _post_configuration(request: HttpRequest) -> HttpResponse:
         )
     return redirect(
         f"{reverse('admin:site-settings')}?saved=configuration#site-configuration"
+    )
+
+
+def _post_article_explanation(request: HttpRequest) -> HttpResponse:
+    settings = admin_site_settings(actor_id=request.account_id)
+    forms = _bound(request, settings=settings, action="article_explanation")
+    form = forms.article_explanation
+    if not form.is_valid():
+        return _render(
+            request, status=422, forms=forms, page_error="请修正文章解释设置。"
+        )
+    try:
+        update_article_explanation_settings(
+            actor_id=request.account_id,
+            **form.cleaned_data,
+            **_meta(request),
+        )
+    except SiteContentCommandError as error:
+        form.add_error(None, error.safe_message)
+        return _render(
+            request, status=_status(error), forms=forms, page_error=error.safe_message
+        )
+    return redirect(
+        f"{reverse('admin:site-settings')}?saved=article-explanation#article-explanation-settings"
     )
 
 
@@ -509,6 +551,7 @@ def site_settings(request: HttpRequest) -> HttpResponse:
     action = request.POST.get("action", "")
     handlers = {
         "configuration": _post_configuration,
+        "article_explanation": _post_article_explanation,
         "verification_email": _post_verification_email,
         "static_page": _post_static_page,
         "friend_create": _post_friend_create,

@@ -71,6 +71,16 @@
 - 验证：隔离 PostgreSQL/Redis/Mailpit 的 `apps/media/tests/test_med009_knowledge_documents.py` 为 `17 passed`；Labs 真实端点带作者权限上传 Markdown 返回 `201`，资产读回 `ACTIVE`、文件存在，响应包含知识文档成功文案且不包含图片回退文案；测试会话和临时文件已清理，保留的数据库行仅为既有删除生命周期历史记录。
 - Labs `kaj-labs.service`、Worker、Beat 保持 `active/running`，`/health/live` 和 `/health/ready` 均返回 `200`；已生成新的 `static/dist/app.js` 并更新模板缓存版本。未执行生产目录权限修复、生产状态清理、迁移、提交或推送；正式部署时需同时核对媒体目录归属为 Web/Worker 运行用户可写。
 
+本轮完成文章阅读划词解释工具：
+
+- 登录用户在文章中选择文字后，可从阅读工具胶囊打开独立解释面板；工具栏和解释面板均支持打开/关闭、拖动、内部滚动、停止和仅对供应商失败显示的幂等重试。
+- 解释请求按文章、账户和请求记录隔离，使用文章标题、摘要、标签和当前一级标题作为上下文；图片、链接及其他非纯文本内容在调用前移除，结果只保存安全中文 Markdown，不执行代码或工具。
+- 新增管理员“内容与互动”解释配置（默认每日 50 次、每分钟 5 次、选区 1000 字、本地历史 30 条），个人设置支持按账户记忆是否自动接受该文章的首次授权；限额在 AGENT 调用前裁决，拒绝时不消耗模型额度、不发通知。
+- 解释任务复用现有 Endpoint、AGENT、Prompt、TaskRun、租约、取消、token reservation 和审计 owner；停止会同步取消未完成调用，晚到结果不会覆盖已停止请求。文档审核和题库生成保持非流式协议，本轮不启用流式输出。
+- 前端工具按钮改用可见的酒红色 Lucide `wrench` 图标，并支持工具按钮再次点击关闭阅读工具；并发解释请求的停止、状态轮询和重试互不覆盖。
+- 新增 accounts/agents/discovery/navigation/operations 兼容迁移，生产发布前需新鲜数据库备份后按依赖顺序执行迁移，并为已有站点配置、AGENT profile 和任务状态做只读读回；不迁移 Labs 测试账户、解释历史或模型调用数据。
+- 验证：前端构建、Node 前端回归、`git diff --check`、Labs live/ready 与桌面/窄屏主题读回通过；测试文件仅保留在 Labs 工作区供回归，不纳入交付提交。正式部署前仍需执行隔离 PostgreSQL 迁移计划、候选镜像构建、生产健康检查和历史错误状态核对。
+
 ## 质量与发布状态
 
 - Labs 服务必须保持 `active/running`，`https://labs.kajspace.cn/health/live` 返回 `200`。

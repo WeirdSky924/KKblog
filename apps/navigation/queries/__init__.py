@@ -1,3 +1,8 @@
+from .article_explanation import (
+    ArticleExplanationSettingsItem,
+    ArticleExplanationSettingsQueryError,
+    article_explanation_settings,
+)
 from .tree import (
     AdminNavigationNode,
     AdminNavigationTree,
@@ -11,6 +16,8 @@ __all__ = [
     "AdminNavigationNode",
     "AdminNavigationTree",
     "AdminSiteSettings",
+    "ArticleExplanationSettingsItem",
+    "ArticleExplanationSettingsQueryError",
     "FriendLinkItem",
     "NavigationTreeQueryError",
     "PublishedStaticPage",
@@ -20,6 +27,7 @@ __all__ = [
     "TrustedEmbedSourceItem",
     "admin_site_settings",
     "article_body_max_bytes",
+    "article_explanation_settings",
     "admin_navigation_tree",
     "invalidate_public_navigation_cache",
     "invalidate_public_site_configuration_cache",

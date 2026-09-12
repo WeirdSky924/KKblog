@@ -31,6 +31,11 @@
         href="{% url 'accounts:settings' %}?tab=theme"
         aria-selected="{% if active_tab == 'theme' %}true{% else %}false{% endif %}"
       >主题</a>
+      <a
+        role="tab"
+        href="{% url 'accounts:settings' %}?tab=reading"
+        aria-selected="{% if active_tab == 'reading' %}true{% else %}false{% endif %}"
+      >阅读</a>
       {% if is_author %}
         <a
           role="tab"
@@ -128,7 +133,28 @@
           <button class="button button--primary" type="submit">保存主题</button>
         </form>
       </section>
-    {% else %}
+    {% elif active_tab == "reading" %}
+      <section class="settings-section" role="tabpanel" aria-labelledby="reading-settings-title">
+        <div class="settings-section__heading">
+          <p class="account-kicker">阅读偏好</p>
+          <h2 id="reading-settings-title">文章划词解释</h2>
+          <p>控制在公开文章中首次使用划词解释时，是否自动接受本篇文章的解释服务。</p>
+        </div>
+        {% if article_explanation_preference_saved %}{% include "components/feedback/trigger.html" with key="account-article-explanation-saved" message="文章划词解释偏好已保存。" %}{% endif %}
+        <form method="post" data-submit-once data-live-submit="account-article-explanation" class="account-form settings-form">
+          {% csrf_token %}<input type="hidden" name="action" value="change_article_explanation_preference">
+          {{ article_explanation_preference_form.non_field_errors }}
+          <div class="settings-toggle settings-toggle--switch">
+            <div class="settings-toggle__content">
+              {% include "components/forms/switch.html" with field=article_explanation_preference_form.auto_accept only %}
+              <small>{{ article_explanation_preference_form.auto_accept.help_text }}</small>
+            </div>
+          </div>
+          {{ article_explanation_preference_form.auto_accept.errors }}
+          <button class="button button--primary" type="submit">保存阅读偏好</button>
+        </form>
+      </section>
+    {% elif active_tab == "authoring" %}
       <section class="settings-section" role="tabpanel" aria-labelledby="author-settings-title">
         <div class="settings-section__heading">
           <p class="account-kicker">发布偏好</p>

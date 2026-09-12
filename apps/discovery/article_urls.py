@@ -12,6 +12,10 @@ from apps.comments.views import (
 from apps.discovery.views import (
     article_bookmark,
     article_detail,
+    article_explanation_cancel,
+    article_explanation_create,
+    article_explanation_retry,
+    article_explanation_status,
     article_like,
     article_reading_bookmark,
 )
@@ -26,6 +30,26 @@ urlpatterns = [
         "<str:article_id>/reading-bookmark/",
         article_reading_bookmark,
         name="reading-bookmark",
+    ),
+    path(
+        "<str:article_id>/explanation/",
+        article_explanation_create,
+        name="explanation-create",
+    ),
+    path(
+        "<str:article_id>/explanation/<str:request_id>/",
+        article_explanation_status,
+        name="explanation-status",
+    ),
+    path(
+        "<str:article_id>/explanation/<str:request_id>/cancel/",
+        article_explanation_cancel,
+        name="explanation-cancel",
+    ),
+    path(
+        "<str:article_id>/explanation/<str:request_id>/retry/",
+        article_explanation_retry,
+        name="explanation-retry",
     ),
     path(
         "<str:article_id>/comments/",

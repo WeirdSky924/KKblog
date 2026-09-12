@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.db import DatabaseError, transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -12,7 +13,9 @@ from apps.content.public import (
     search_visible_titles,
 )
 from apps.core.http import is_htmx_fragment_request
+from apps.core.ids import new_ulid, normalize_ulid
 from apps.discovery.presentation.forms import (
+    ArticleExplanationRequestForm,
     ArticleLikeStateForm,
     BookmarkStateForm,
     HomePageForm,
@@ -28,31 +31,50 @@ from apps.discovery.profile_identity import (
     search_profile_identities,
 )
 from apps.discovery.queries import (
+    ArticleExplanationSelectionError,
     article_detail_page,
     article_like_count,
     author_search_page,
     bookmark_page,
     discovery_filters,
     home_article_page,
+    prepare_article_explanation_context,
     profile_article_page,
     search_article_page,
     section_article_page,
     tag_article_page,
 )
 from apps.discovery.services import (
+    ArticleExplanationRequestError,
     ArticleLikeCommandError,
     ArticleLikeUnavailableError,
     BookmarkCommandError,
     ReadingBookmarkCommandError,
     ReadingBookmarkUnavailableError,
+    article_explanation_request,
+    cancel_article_explanation,
+    create_article_explanation_request,
     is_article_liked,
     is_bookmarked,
     reading_bookmark_progress,
     record_article_view,
+    retry_article_explanation,
+    safe_explanation_html,
     save_reading_bookmark,
     set_article_like,
     set_bookmark,
 )
+from apps.navigation.queries import (
+    ArticleExplanationSettingsQueryError,
+    article_explanation_settings,
+)
+from apps.operations.public import (
+    ArticleExplanationRateLimitError,
+    ArticleExplanationUsageError,
+    reserve_article_explanation_usage,
+)
+
+from .tasks import dispatch_article_explanation
 
 
 def _actor_id(request):
@@ -156,7 +178,9 @@ def _pagination_query(request, page_size: int, *, tag_ids=None) -> str:
     return query.urlencode()
 
 
-def _pagination_page_size_fields(request, *, tag_ids=None) -> tuple[tuple[str, str], ...]:
+def _pagination_page_size_fields(
+    request, *, tag_ids=None
+) -> tuple[tuple[str, str], ...]:
     query = request.GET.copy()
     query.pop("page", None)
     query.pop("per_page", None)
@@ -164,11 +188,7 @@ def _pagination_page_size_fields(request, *, tag_ids=None) -> tuple[tuple[str, s
         query.pop("tags", None)
         for tag_id in tag_ids:
             query.appendlist("tags", str(tag_id))
-    return tuple(
-        (name, value)
-        for name in query
-        for value in query.getlist(name)
-    )
+    return tuple((name, value) for name in query for value in query.getlist(name))
 
 
 def _page_template(request, page_template: str) -> str:
@@ -479,11 +499,27 @@ def article_detail(request, article_id):
     except ArticleNotFound:
         raise Http404 from None
     view_count = record_article_view(article_id=page.article_id)
+    try:
+        explanation_history_limit = (
+            article_explanation_settings().history_limit if actor_id is not None else 30
+        )
+    except (ArticleExplanationSettingsQueryError, DatabaseError):
+        explanation_history_limit = 30
     response = render(
         request,
         "discovery/article_detail.html",
         {
             "article": page,
+            "article_explanation_enabled": (
+                actor_id is not None and page.visibility == "PUBLIC"
+            ),
+            "article_explanation_account_namespace": str(actor_id)
+            if actor_id is not None
+            else "",
+            "article_explanation_create_url": reverse(
+                "article:explanation-create", kwargs={"article_id": page.article_id}
+            ),
+            "article_explanation_history_limit": explanation_history_limit,
             "view_count": view_count,
             "permalink": request.build_absolute_uri(article_path),
             **_bookmark_control_context(
@@ -509,6 +545,236 @@ def article_detail(request, article_id):
     )
     response.headers["Cache-Control"] = "private, no-store"
     return response
+
+
+def _explanation_json_error(
+    *, message: str, code: str, status: int = 422, **extra
+) -> JsonResponse:
+    payload = {"ok": False, "status": "error", "code": code, "message": message}
+    payload.update(extra)
+    return _no_store(JsonResponse(payload, status=status))
+
+
+def _explanation_json_payload(snapshot) -> dict[str, object]:
+    return {
+        "ok": True,
+        "request_id": snapshot.request_id,
+        "article_id": snapshot.article_id,
+        "state": snapshot.state,
+        "status": snapshot.state.casefold(),
+        "result_markdown": snapshot.result_markdown,
+        "result_html": safe_explanation_html(snapshot.result_markdown)
+        if snapshot.result_markdown
+        else "",
+        "message": snapshot.safe_error_message,
+        "retryable": snapshot.retryable,
+        "original_char_count": snapshot.original_char_count,
+        "processed_char_count": snapshot.processed_char_count,
+        "was_truncated": snapshot.was_truncated,
+        "completed_at": snapshot.completed_at.isoformat()
+        if snapshot.completed_at is not None
+        else None,
+    }
+
+
+def _same_article(left: str, right: str) -> bool:
+    try:
+        return normalize_ulid(left) == normalize_ulid(right)
+    except (TypeError, ValueError):
+        return False
+
+
+@require_POST
+def article_explanation_create(request, article_id):
+    article_path = reverse("article:detail", kwargs={"article_id": article_id})
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(request, next_path=article_path)
+    form = ArticleExplanationRequestForm(request.POST)
+    if not form.is_valid():
+        message = next(
+            (str(error) for errors in form.errors.values() for error in errors),
+            "请先选择要解释的文字。",
+        )
+        return _explanation_json_error(
+            message=message,
+            code="discovery.article_explanation_selection_invalid.v1",
+        )
+    key = form.cleaned_data.get("idempotency_key") or new_ulid()
+    try:
+        context = prepare_article_explanation_context(
+            actor_id=actor_id,
+            article_id=article_id,
+            selected_html=form.cleaned_data.get("selected_html") or None,
+            selected_text=form.cleaned_data.get("selected_text") or None,
+            section_heading=form.cleaned_data.get("section_heading") or None,
+        )
+    except ArticleExplanationSelectionError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=422)
+    try:
+        usage = reserve_article_explanation_usage(
+            account_id=actor_id,
+            idempotency_key=key,
+        )
+    except ArticleExplanationRateLimitError as error:
+        return _explanation_json_error(
+            message=str(error),
+            code=error.code,
+            status=429,
+            status_name="rate_limited",
+            retry_after=error.retry_after,
+        )
+    except ArticleExplanationUsageError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=503)
+    try:
+        snapshot, created = create_article_explanation_request(
+            account_id=actor_id,
+            context=context,
+            usage=usage,
+            idempotency_key=key,
+        )
+    except ArticleExplanationRequestError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=409)
+    if created:
+        transaction.on_commit(
+            lambda request_id=snapshot.request_id: dispatch_article_explanation(
+                request_id
+            )
+        )
+    response = _no_store(
+        JsonResponse(
+            {
+                **_explanation_json_payload(snapshot),
+                "created": created,
+                "poll_url": reverse(
+                    "article:explanation-status",
+                    kwargs={
+                        "article_id": snapshot.article_id,
+                        "request_id": snapshot.request_id,
+                    },
+                ),
+            },
+            status=202 if created else 200,
+        )
+    )
+    return response
+
+
+@require_GET
+def article_explanation_status(request, article_id, request_id):
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(
+            request,
+            next_path=reverse("article:detail", kwargs={"article_id": article_id}),
+        )
+    try:
+        snapshot = article_explanation_request(
+            account_id=actor_id,
+            request_id=request_id,
+        )
+    except ArticleExplanationRequestError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=404)
+    if not _same_article(snapshot.article_id, article_id):
+        return _explanation_json_error(
+            message="文章解释请求不存在。",
+            code="discovery.article_explanation_request_not_found.v1",
+            status=404,
+        )
+    return _no_store(JsonResponse(_explanation_json_payload(snapshot)))
+
+
+@require_POST
+def article_explanation_cancel(request, article_id, request_id):
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(
+            request,
+            next_path=reverse("article:detail", kwargs={"article_id": article_id}),
+        )
+    try:
+        snapshot = article_explanation_request(
+            account_id=actor_id,
+            request_id=request_id,
+        )
+        if not _same_article(snapshot.article_id, article_id):
+            raise ArticleExplanationRequestError(
+                "文章解释请求不存在.",
+                code="discovery.article_explanation_request_not_found.v1",
+            )
+        cancel_article_explanation(account_id=actor_id, request_id=request_id)
+        snapshot = article_explanation_request(
+            account_id=actor_id,
+            request_id=request_id,
+        )
+    except ArticleExplanationRequestError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=404)
+    return _no_store(JsonResponse(_explanation_json_payload(snapshot)))
+
+
+@require_POST
+def article_explanation_retry(request, article_id, request_id):
+    actor_id = _actor_id(request)
+    if actor_id is None:
+        return _login_required_response(
+            request,
+            next_path=reverse("article:detail", kwargs={"article_id": article_id}),
+        )
+    try:
+        original = article_explanation_request(
+            account_id=actor_id,
+            request_id=request_id,
+        )
+        if not _same_article(original.article_id, article_id):
+            raise ArticleExplanationRequestError(
+                "文章解释请求不存在。",
+                code="discovery.article_explanation_request_not_found.v1",
+            )
+        context = prepare_article_explanation_context(
+            actor_id=actor_id,
+            article_id=article_id,
+            selected_text=original.selected_text,
+            section_heading=original.section_heading,
+        )
+        retry_key = request.POST.get("idempotency_key") or (
+            f"{original.idempotency_key}:retry:{new_ulid()}"
+        )
+        usage = reserve_article_explanation_usage(
+            account_id=actor_id,
+            idempotency_key=retry_key,
+            retry_of=original.idempotency_key,
+        )
+        snapshot, created = retry_article_explanation(
+            account_id=actor_id,
+            request_id=request_id,
+            context=context,
+            usage=usage,
+            idempotency_key=retry_key,
+        )
+    except ArticleExplanationRateLimitError as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=429)
+    except (
+        ArticleExplanationRequestError,
+        ArticleExplanationUsageError,
+        ArticleExplanationSelectionError,
+    ) as error:
+        return _explanation_json_error(message=str(error), code=error.code, status=409)
+    if created:
+        transaction.on_commit(
+            lambda request_id=snapshot.request_id: dispatch_article_explanation(
+                request_id
+            )
+        )
+    return _no_store(
+        JsonResponse(
+            {
+                **_explanation_json_payload(snapshot),
+                "created": created,
+                "replaces_request_id": request_id,
+            },
+            status=202 if created else 200,
+        )
+    )
 
 
 @require_POST

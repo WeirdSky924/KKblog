@@ -77,6 +77,10 @@ Outbox 长期不是业务审计。成功消息可按运维保留策略归档/清
 
 AGENT/learning 追加稳定码：`agents.endpoint_rejected`、`agents.quota_exhausted`、`agents.response_invalid`、`learning.document_duplicate`、`learning.review_conflict`、`learning.bank_not_public`、`learning.quiz_conflict`、`api_disabled`、`rate_limited`、`rate_limiter_unavailable`。Provider 异常、内部 URL、模型名和原始响应只能映射为安全码，不进入用户文案。
 
+文章划词解释追加稳定码：`discovery.article_explanation_login_required.v1`、`discovery.article_explanation_selection_invalid.v1`、`discovery.article_explanation_configuration_unavailable.v1`、`discovery.article_explanation_rate_limited.v1`、`discovery.article_explanation_cancelled.v1`、`discovery.article_explanation_request_not_found.v1`、`discovery.article_explanation_retry_unavailable.v1`、`agents.profile_unavailable.v1`。限额、授权、空选区和安全拒绝不调用 Provider、不给重试；Provider/网络/超时失败只在面板显示安全原因并允许幂等重试。HTML 登录页或非 JSON 响应由前端统一映射为安全中文文案，不泄露 `Unexpected token`、响应正文、Endpoint URL 或密钥。
+
+解释历史只存在浏览器账户命名空间 `localStorage`，不产生领域事件、不进入通知和服务端正文日志。服务端审计/运行记录只保留账户、文章 ID、状态、原因码、字数、TaskRun/Invocation 引用等最小元数据；选区和回答不写事件 payload。
+
 业务错误是稳定类，不用异常消息作为 UI 文案。错误码和中文文案分离，为未来本地化预留。普通用户不看到 endpoint、SQL、堆栈、模型名或内部枚举。
 
 ## Trace code

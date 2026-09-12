@@ -32,6 +32,16 @@ apps/discovery/
 
 每次进入详情页计一次，包括访客、登录用户和作者；不做时间窗口去重。计数写入使用原子增量，不能因页面刷新缓存覆盖。Umami 是独立全站分析，不替代产品浏览量。
 
+### 登录用户文章划词解释
+
+`apps/discovery` 的阅读页只负责公开文章可见性、选区入口和本地历史展示；Endpoint、AGENT/PROMPT 快照、调用审计、token reservation 由 `apps/agents`，TaskRun/租约/取消由 `apps/operations` 负责。解释能力使用 profile key `article-selection-explanation` 与 `article-selection-explanation.v1`，不复制 Gateway、限流、通知或 Markdown renderer。
+
+服务端每次从公开文章 query 重新组装受限 DTO：清理后的选区、标题、摘要、标签和当前一级标题。图片、图片 alt、链接目标、脚本和外部资源被移除；表格、LaTeX、代码只转为纯文本，不执行任何动作。默认选区上限 1000 字，截断仍请求并返回原始/实际字数；正文其余内容不发送。
+
+阅读页只对登录用户渲染右下角入口、可扩展胶囊和解释面板。面板是固定视口内、可由标题拖动且受视口边界约束的独立区域；中部 `.article-explanation-panel__body` 独立滚动，渲染历史后始终滚到最新记录。浏览器 `localStorage` 使用账户命名空间保存最多配置条数的历史，不作为 AGENT 上下文，也不写服务端正文历史。文章首次请求使用逐文章授权；账户自动接受偏好由 accounts 持有。
+
+请求状态区分 `PENDING/RUNNING/SUCCEEDED/FAILED/CANCELLED`。用户停止写入取消终态并丢弃晚到结果；只有 Provider/网络/超时失败允许一次安全重试。客户端对所有解释响应先按文本读取并验证 JSON，HTML 登录页、403、5xx 或空响应映射为安全中文文案，绝不把 JSON 解析异常、响应正文或内部 URL 展示给用户。本期不做流式输出。
+
 ## 收藏
 
 仅登录用户可收藏，列表仅本人可见。文章不可访问/删除后保留 bookmark 关系和最小文章 ID，显示“文章已丢失”与统一失效封面；用户自行删除。邮箱/昵称复用不会转移收藏。

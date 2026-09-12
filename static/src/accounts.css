@@ -462,6 +462,23 @@
   line-height: 1.6;
 }
 
+.settings-toggle--switch {
+  display: block;
+}
+
+.settings-toggle__content {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.settings-toggle--switch .switch-control {
+  width: fit-content;
+}
+
+.settings-toggle--switch small {
+  margin-inline-start: 3.25rem;
+}
+
 .settings-form fieldset {
   padding: 0;
   border: 0;

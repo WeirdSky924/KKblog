@@ -59,6 +59,21 @@ def register_navigation_audit_schemas() -> None:
     )
     register_audit_schema(
         AuditSchema(
+            "navigation.article_explanation_settings.update",
+            "site_configuration",
+            frozenset(
+                {
+                    "daily_limit",
+                    "minute_limit",
+                    "selection_limit",
+                    "history_limit",
+                    "row_version",
+                }
+            ),
+        )
+    )
+    register_audit_schema(
+        AuditSchema(
             "navigation.static_page.update",
             "static_page",
             frozenset(

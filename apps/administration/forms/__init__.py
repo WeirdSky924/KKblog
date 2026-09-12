@@ -28,6 +28,7 @@ __all__ = [
     "BroadcastVisibilityForm",
 ]
 from .site_settings import (
+    ArticleExplanationSettingsForm,
     FriendLinkDeleteForm,
     FriendLinkForm,
     GuestbookSettingsForm,
@@ -38,6 +39,7 @@ from .site_settings import (
 )
 
 __all__ = [
+    "ArticleExplanationSettingsForm",
     "FriendLinkDeleteForm",
     "FriendLinkForm",
     "GuestbookSettingsForm",

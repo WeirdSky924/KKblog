@@ -18,6 +18,11 @@
   background: var(--surface-panel);
 }
 
+.site-settings-section--focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 .site-settings-section > header {
   display: flex;
   align-items: baseline;

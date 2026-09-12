@@ -221,6 +221,7 @@ class AgentProfile(models.Model):
     class Purpose(models.TextChoices):
         KNOWLEDGE_REVIEW = "KNOWLEDGE_REVIEW", "Knowledge review"
         QUESTION_GENERATION = "QUESTION_GENERATION", "Question generation"
+        ARTICLE_EXPLANATION = "ARTICLE_EXPLANATION", "Article explanation"
 
     id = models.UUIDField(primary_key=True, default=new_uuid, editable=False)
     key = models.CharField(max_length=64, unique=True)
@@ -247,7 +248,13 @@ class AgentProfile(models.Model):
         ordering = ("display_name", "id")
         constraints = [
             models.CheckConstraint(
-                condition=Q(purpose__in=("KNOWLEDGE_REVIEW", "QUESTION_GENERATION")),
+                condition=Q(
+                    purpose__in=(
+                        "KNOWLEDGE_REVIEW",
+                        "QUESTION_GENERATION",
+                        "ARTICLE_EXPLANATION",
+                    )
+                ),
                 name="agent_profile_purpose_valid",
             ),
             models.CheckConstraint(

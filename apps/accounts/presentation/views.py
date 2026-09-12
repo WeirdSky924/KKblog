@@ -14,6 +14,7 @@ from apps.accounts.policies.registration import (
 )
 from apps.accounts.presentation.cookies import delete_session_cookie, set_session_cookie
 from apps.accounts.presentation.forms import (
+    ArticleExplanationPreferenceForm,
     AuthorPreferenceForm,
     ChangeEmailForm,
     ChangePasswordForm,
@@ -33,6 +34,11 @@ from apps.accounts.presentation.forms import (
 from apps.accounts.public import is_active_author
 from apps.accounts.queries.profile import public_account_identity
 from apps.accounts.queries.sessions import session_list
+from apps.accounts.services.article_explanation_preferences import (
+    ArticleExplanationPreferenceError,
+    article_explanation_preferences,
+    change_article_explanation_preferences,
+)
 from apps.accounts.services.authentication import (
     AuthenticationError,
     authenticate_code,
@@ -416,6 +422,7 @@ def _render_settings(
     profile_form=None,
     theme_form=None,
     author_preference_form=None,
+    article_explanation_preference_form=None,
     code_sent=False,
     active_tab=None,
     status=200,
@@ -423,7 +430,7 @@ def _render_settings(
     account = request.account
     selected_tab = active_tab or request.GET.get("tab", "profile")
     is_author = is_active_author(account.id)
-    allowed_tabs = {"profile", "credentials", "theme"}
+    allowed_tabs = {"profile", "credentials", "theme", "reading"}
     if is_author:
         allowed_tabs.add("authoring")
     if selected_tab not in allowed_tabs:
@@ -446,6 +453,16 @@ def _render_settings(
             )
         }
     )
+    article_explanation_preference_form = (
+        article_explanation_preference_form
+        or ArticleExplanationPreferenceForm(
+            initial={
+                "auto_accept": article_explanation_preferences(
+                    account_id=account.id
+                ).auto_accept
+            }
+        )
+    )
     submitted_avatar_id = profile_form["avatar_asset_id"].value() or None
     identity = public_account_identity(account.id)
     return render(
@@ -458,6 +475,7 @@ def _render_settings(
             "profile_form": profile_form,
             "theme_form": theme_form,
             "author_preference_form": author_preference_form,
+            "article_explanation_preference_form": article_explanation_preference_form,
             "is_author": is_author,
             "code_sent": code_sent,
             "account": account,
@@ -474,6 +492,9 @@ def _render_settings(
             "theme_saved": request.GET.get("theme_saved") == "1",
             "author_preference_saved": (
                 request.GET.get("author_preference_saved") == "1"
+            ),
+            "article_explanation_preference_saved": (
+                request.GET.get("article_explanation_preference_saved") == "1"
             ),
         },
         status=status,
@@ -574,6 +595,34 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             )
         return redirect(
             f"{reverse('accounts:settings')}?tab=authoring&author_preference_saved=1"
+        )
+    if action == "change_article_explanation_preference":
+        form = ArticleExplanationPreferenceForm(request.POST)
+        if not form.is_valid():
+            return _render_settings(
+                request,
+                article_explanation_preference_form=form,
+                active_tab="reading",
+                status=422,
+            )
+        try:
+            change_article_explanation_preferences(
+                account_id=request.account_id,
+                auto_accept=form.cleaned_data["auto_accept"],
+                client_ip=client_ip,
+                trace_code=trace_code,
+                audit_writer=record_profile_audit,
+            )
+        except ArticleExplanationPreferenceError as exc:
+            form.add_error(None, str(exc))
+            return _render_settings(
+                request,
+                article_explanation_preference_form=form,
+                active_tab="reading",
+                status=422,
+            )
+        return redirect(
+            f"{reverse('accounts:settings')}?tab=reading&article_explanation_preference_saved=1"
         )
     if action == "send_email_code":
         form = NewEmailCodeForm(request.POST)

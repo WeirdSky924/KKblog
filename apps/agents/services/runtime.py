@@ -1,7 +1,13 @@
 from django.db import transaction
+from django.utils import timezone
 
 from apps.agents.contracts import AgentCommandError, EndpointRuntimeSettings
-from apps.agents.models import AgentEndpoint, AgentInvocation, AgentInvocationAttempt
+from apps.agents.models import (
+    AgentEndpoint,
+    AgentInvocation,
+    AgentInvocationAttempt,
+    AgentTokenReservation,
+)
 
 from .common import (
     normalize_base_url,
@@ -10,7 +16,7 @@ from .common import (
     validate_secret_alias,
     visible_text,
 )
-from .usage import settle_token_reservation
+from .usage import release_token_reservation, settle_token_reservation
 
 
 def _invalid_snapshot() -> AgentCommandError:
@@ -135,6 +141,46 @@ def mark_invocation_running(
     return invocation
 
 
+def cancel_invocation(*, invocation_id, completed_at) -> bool:
+    """Cancel a pending/running invocation and release unused reservation."""
+
+    if not timezone.is_aware(completed_at):
+        raise AgentCommandError("agents.invocation_invalid.v1", "取消时间不合法。")
+    reservation_id = None
+    with transaction.atomic():
+        try:
+            invocation = AgentInvocation.objects.select_for_update().get(
+                pk=invocation_id
+            )
+        except AgentInvocation.DoesNotExist:
+            raise AgentCommandError(
+                "agents.invocation_not_found.v1", "AGENT 调用不存在。"
+            ) from None
+        if invocation.state == AgentInvocation.State.CANCELLED:
+            return True
+        if invocation.state in {
+            AgentInvocation.State.SUCCEEDED,
+            AgentInvocation.State.FAILED,
+            AgentInvocation.State.REFUSED,
+            AgentInvocation.State.INCOMPLETE,
+        }:
+            return False
+        reservation_id = (
+            AgentTokenReservation.objects.filter(invocation_id=invocation.id)
+            .values_list("id", flat=True)
+            .first()
+        )
+        invocation.state = AgentInvocation.State.CANCELLED
+        invocation.completed_at = completed_at
+        invocation.safe_error_code = "agents.invocation_cancelled.v1"
+        invocation.save(
+            update_fields=("state", "completed_at", "safe_error_code", "updated_at")
+        )
+        if reservation_id is not None:
+            release_token_reservation(reservation_id=reservation_id)
+    return True
+
+
 def finalize_invocation(
     *,
     invocation_id,
@@ -250,6 +296,7 @@ def finish_invocation_attempt(
 
 
 __all__ = [
+    "cancel_invocation",
     "finish_invocation_attempt",
     "finalize_invocation",
     "load_invocation_for_gateway",

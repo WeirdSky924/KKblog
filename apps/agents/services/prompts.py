@@ -38,6 +38,15 @@ _PURPOSE_VARIABLES = {
             "tag_candidates",
         }
     ),
+    AgentProfile.Purpose.ARTICLE_EXPLANATION: frozenset(
+        {
+            "article_title",
+            "article_summary",
+            "article_tags",
+            "section_heading",
+            "selected_text",
+        }
+    ),
 }
 
 

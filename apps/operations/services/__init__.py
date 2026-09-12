@@ -7,6 +7,13 @@ from .alerts import (
     record_task_final_failure_alert,
     send_pending_operational_alert_emails,
 )
+from .article_explanation_usage import (
+    ArticleExplanationRateLimitError,
+    ArticleExplanationUsageError,
+    ArticleExplanationUsageResult,
+    allow_article_explanation_retry,
+    reserve_article_explanation_usage,
+)
 from .backup import (
     BackupBuildResult,
     BackupError,
@@ -74,6 +81,9 @@ __all__ = [
     "BackupRetryable",
     "AlertEmailBatchResult",
     "OperationalEmailMessage",
+    "ArticleExplanationRateLimitError",
+    "ArticleExplanationUsageError",
+    "ArticleExplanationUsageResult",
     "MonitoringConflict",
     "RetryableTaskError",
     "StartOutcome",
@@ -106,6 +116,8 @@ __all__ = [
     "terminal_task_run_snapshots",
     "retry_delay_seconds",
     "send_pending_operational_alert_emails",
+    "allow_article_explanation_retry",
+    "reserve_article_explanation_usage",
     "shanghai_backup_week",
     "sample_service_health",
 ]

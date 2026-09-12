@@ -8,6 +8,10 @@ from django.conf import settings
 from django.utils.module_loading import import_string
 
 from .site_contracts import (
+    DEFAULT_ARTICLE_EXPLANATION_DAILY_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_MINUTE_LIMIT,
+    DEFAULT_ARTICLE_EXPLANATION_SELECTION_LIMIT,
     SITE_MAX_ARTICLE_BODY_BYTES,
     SITE_MIN_ARTICLE_BODY_BYTES,
     STATIC_PAGE_FORMAT_CHOICES,
@@ -20,6 +24,8 @@ if TYPE_CHECKING:
         AdminNavigationNode,
         AdminNavigationTree,
         AdminSiteSettings,
+        ArticleExplanationSettingsItem,
+        ArticleExplanationSettingsQueryError,
         FriendLinkItem,
         NavigationTreeQueryError,
         PublishedStaticPage,
@@ -28,12 +34,14 @@ if TYPE_CHECKING:
         admin_navigation_tree,
         admin_site_settings,
         article_body_max_bytes,
+        article_explanation_settings,
         public_navigation_tree,
         published_static_page,
         registration_enabled,
         visible_friend_links,
     )
     from .services import (
+        ArticleExplanationSettingsResult,
         NavigationCommandError,
         NavigationDeleteResult,
         NavigationNodeResult,
@@ -50,6 +58,7 @@ if TYPE_CHECKING:
         move_navigation_subtree,
         set_navigation_node_hidden,
         set_trusted_embed_source,
+        update_article_explanation_settings,
         update_friend_link,
         update_site_configuration,
         update_static_page,
@@ -167,6 +176,9 @@ __all__ = [
     "AdminNavigationNode",
     "AdminNavigationTree",
     "AdminSiteSettings",
+    "ArticleExplanationSettingsItem",
+    "ArticleExplanationSettingsQueryError",
+    "ArticleExplanationSettingsResult",
     "FriendLinkItem",
     "NavigationCommandError",
     "NavigationDeleteResult",
@@ -176,6 +188,10 @@ __all__ = [
     "PublishedStaticPage",
     "SITE_MAX_ARTICLE_BODY_BYTES",
     "SITE_MIN_ARTICLE_BODY_BYTES",
+    "DEFAULT_ARTICLE_EXPLANATION_DAILY_LIMIT",
+    "DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT",
+    "DEFAULT_ARTICLE_EXPLANATION_MINUTE_LIMIT",
+    "DEFAULT_ARTICLE_EXPLANATION_SELECTION_LIMIT",
     "STATIC_PAGE_FORMAT_CHOICES",
     "STATIC_PAGE_TYPE_CHOICES",
     "SiteConfigurationItem",
@@ -189,6 +205,7 @@ __all__ = [
     "admin_site_settings",
     "admin_navigation_tree",
     "article_body_max_bytes",
+    "article_explanation_settings",
     "create_friend_link",
     "create_navigation_node",
     "default_site_presentation",
@@ -203,6 +220,7 @@ __all__ = [
     "set_trusted_embed_source",
     "set_navigation_node_hidden",
     "update_friend_link",
+    "update_article_explanation_settings",
     "update_site_configuration",
     "update_verification_email_template",
     "update_static_page",
@@ -210,6 +228,26 @@ __all__ = [
 ]
 
 _LAZY_EXPORTS = {
+    "ArticleExplanationSettingsItem": (
+        "apps.navigation.queries",
+        "ArticleExplanationSettingsItem",
+    ),
+    "ArticleExplanationSettingsQueryError": (
+        "apps.navigation.queries",
+        "ArticleExplanationSettingsQueryError",
+    ),
+    "article_explanation_settings": (
+        "apps.navigation.queries",
+        "article_explanation_settings",
+    ),
+    "ArticleExplanationSettingsResult": (
+        "apps.navigation.services",
+        "ArticleExplanationSettingsResult",
+    ),
+    "update_article_explanation_settings": (
+        "apps.navigation.services",
+        "update_article_explanation_settings",
+    ),
     "AdminSiteSettings": ("apps.navigation.queries", "AdminSiteSettings"),
     "AdminNavigationNode": ("apps.navigation.queries", "AdminNavigationNode"),
     "AdminNavigationTree": ("apps.navigation.queries", "AdminNavigationTree"),

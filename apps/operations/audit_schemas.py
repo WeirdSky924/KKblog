@@ -54,6 +54,11 @@ def register_builtin_audit_schemas() -> None:
             frozenset({"auto_republish_enabled"}),
         ),
         AuditSchema(
+            "accounts.article_explanation_preference.change",
+            "account",
+            frozenset({"article_explanation_auto_accept"}),
+        ),
+        AuditSchema(
             "accounts.attachment_capability.set",
             "account",
             frozenset({"attachment_upload_enabled"}),

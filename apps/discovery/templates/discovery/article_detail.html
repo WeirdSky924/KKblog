@@ -101,7 +101,7 @@
     {% endif %}
 
     <div class="article-reader__grid{% if not article.toc %} article-reader__grid--prose-only{% endif %}">
-      <section class="article-prose" aria-label="文章正文">{{ article.body_html }}</section>
+      <section class="article-prose" data-article-explanation-body aria-label="文章正文">{{ article.body_html }}</section>
       {% if article.toc %}
         <aside class="article-toc article-toc--desktop" aria-label="文章目录">
           <h2>文章目录</h2>
@@ -239,5 +239,93 @@
       </div>
     </aside>
   </article>
+  {% if article_explanation_enabled %}
+    <aside
+      class="article-reading-tools"
+      data-article-explanation
+      data-article-id="{{ article.article_id }}"
+      data-account-namespace="{{ article_explanation_account_namespace }}"
+      data-create-url="{{ article_explanation_create_url }}"
+      data-auto-accept="{{ request.account.article_explanation_auto_accept|yesno:'true,false' }}"
+      data-history-limit="{{ article_explanation_history_limit }}"
+      aria-label="文章阅读工具"
+    >
+      <div class="article-reading-tools__bar" data-article-reading-tools-bar>
+        <button
+          class="article-reading-tools__toggle"
+          type="button"
+          data-article-reading-tools-toggle
+          aria-expanded="false"
+          aria-controls="article-reading-tools-capsule"
+          aria-label="展开文章阅读工具"
+          title="展开文章阅读工具"
+        ><i data-lucide="wrench" aria-hidden="true"></i></button>
+        <div
+          id="article-reading-tools-capsule"
+          class="article-reading-tools__capsule"
+          data-article-reading-tools-capsule
+          hidden
+        >
+          <button
+            class="button button--secondary"
+            type="button"
+            data-article-explanation-open
+            aria-expanded="false"
+            aria-controls="article-explanation-panel"
+            aria-label="打开划词解释"
+            title="打开划词解释"
+          ><i data-lucide="info" aria-hidden="true"></i><span>划词解释</span></button>
+        </div>
+      </div>
+      <button
+        class="article-explanation-selection-action"
+        type="button"
+        data-article-explanation-selection-action
+        hidden
+      ><i data-lucide="info" aria-hidden="true"></i><span>解释</span></button>
+      <section
+        id="article-explanation-panel"
+        class="article-explanation-panel"
+        data-article-explanation-panel
+        hidden
+        tabindex="-1"
+        aria-labelledby="article-explanation-title"
+      >
+        <header class="article-explanation-panel__header" data-article-explanation-drag-handle>
+          <h2 id="article-explanation-title">阅读工具</h2>
+          <div class="article-explanation-panel__actions">
+            <button class="button button--secondary" type="button" data-article-explanation-clear>清空历史</button>
+            <button class="icon-button" type="button" data-article-explanation-close aria-label="关闭阅读工具"><i data-lucide="x" aria-hidden="true"></i></button>
+          </div>
+        </header>
+        <div class="article-explanation-panel__body">
+          <div class="article-explanation-history" data-article-explanation-history role="log" aria-live="polite"></div>
+          <p class="article-explanation-empty" data-article-explanation-empty>选中文字后点击“解释”，结果会显示在这里。</p>
+        </div>
+        <form class="article-explanation-form" data-article-explanation-form>
+          {% csrf_token %}
+          <input type="hidden" name="selected_html" data-explanation-selected-html>
+          <input type="hidden" name="selected_text" data-explanation-selected-text>
+          <input type="hidden" name="section_heading" data-explanation-section-heading>
+          <input type="hidden" name="idempotency_key" data-explanation-idempotency-key>
+          <div class="article-explanation-form__status" data-article-explanation-status aria-live="polite"></div>
+          <div class="article-explanation-form__actions">
+            <button class="button button--primary" type="submit" data-article-explanation-submit disabled>解释所选文字</button>
+          </div>
+        </form>
+      </section>
+      <dialog class="article-explanation-consent" data-article-explanation-consent aria-labelledby="article-explanation-consent-title" aria-describedby="article-explanation-consent-description">
+        <div class="article-explanation-consent__content">
+          <p class="account-kicker">阅读工具授权</p>
+          <h2 id="article-explanation-consent-title">允许解释本篇文章的选中文字？</h2>
+          <p id="article-explanation-consent-description">只会发送选中的文字和文章标题、摘要、标签及当前一级标题，不会执行代码、访问链接或调用其他工具。</p>
+          <div class="article-explanation-consent__actions">
+            <button class="button button--secondary" type="button" data-article-explanation-consent-reject>暂不使用</button>
+            <button class="button button--primary" type="button" data-article-explanation-consent-accept>允许本篇文章</button>
+          </div>
+        </div>
+      </dialog>
+    </aside>
+  {% endif %}
   {% include "comments/partials/article_panel.html" %}
 {% endblock %}

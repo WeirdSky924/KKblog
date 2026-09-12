@@ -98,6 +98,56 @@ class RuntimeErrorOccurrence(models.Model):
         ]
 
 
+class ArticleExplanationUsage(models.Model):
+    """Durable user-level usage reservations for article explanations."""
+
+    id = models.CharField(
+        primary_key=True, max_length=26, default=new_ulid, editable=False
+    )
+    account = models.ForeignKey(
+        "accounts.Account",
+        related_name="article_explanation_usages",
+        on_delete=models.PROTECT,
+        editable=False,
+    )
+    idempotency_key = models.CharField(max_length=128, unique=True, editable=False)
+    retry_of = models.ForeignKey(
+        "self",
+        related_name="retries",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        editable=False,
+    )
+    usage_date = models.DateField(editable=False)
+    occurred_at = models.DateTimeField(editable=False)
+    counts_toward_limit = models.BooleanField(default=True, editable=False)
+    retry_allowed = models.BooleanField(default=False, editable=False)
+
+    class Meta:
+        db_table = "operations_article_explanation_usage"
+        ordering = ("-occurred_at", "-id")
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(retry_of__isnull=True, counts_toward_limit=True)
+                    | models.Q(retry_of__isnull=False, counts_toward_limit=False)
+                ),
+                name="article_explanation_usage_retry_shape",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("account", "usage_date", "counts_toward_limit"),
+                name="article_explain_usage_day_idx",
+            ),
+            models.Index(
+                fields=("account", "occurred_at"),
+                name="article_explain_usage_time_idx",
+            ),
+        ]
+
+
 class CapacitySnapshotState(models.TextChoices):
     NORMAL = "normal", "Normal"
     WARN = "warn", "Warning"

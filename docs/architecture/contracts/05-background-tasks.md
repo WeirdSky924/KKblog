@@ -42,6 +42,7 @@ task(payload_id, idempotency_key)
 | `cleanup_check_history` | 上海时间每日 18:30 | `opportunity-cleanup:{utc-date}` | 每日单例 + 小批量删除 | 到期检查/快照已按上限清理 |
 | `aggregate_notifications` | 事件触发/周期补偿 | 业务 dedupe key | DB 唯一键 | 通知/receipt 存在 |
 | `check_agent_endpoint` | 管理员显式请求 | `agent-check:{check-id}` | Endpoint 频控 + TaskRun 租约 | 安全检查结果已写且配置未被改写 |
+| `apps.discovery.article_explanation` | 登录用户文章选区提交 | `article-explanation:{request-id}` | TaskRun 租约 + 用户每日/分钟限制 + AGENT token reservation | 解释请求进入 `SUCCEEDED/FAILED/CANCELLED`；成功只写安全 Markdown，排队/执行中可取消，晚到结果丢弃 |
 | `review_knowledge_document` | 文档事务提交/批准申诉 | `knowledge-review:{run-id}` | 业务并发配额 + token reservation + run 租约 | APPROVED/REJECTED 或声明的最终失败 |
 | `generate_question_bank` | 用户生成请求提交后 | `question-generation:{run-id}` | 业务并发配额 + token reservation + run 租约 | 一卷/两卷原子发布或声明的最终失败 |
 | `recover_agent_reservations` | 每分钟 | `agent-reservation-recovery:{utc-minute}` | 小批量 skip locked | 过期租约已保守结算/释放并审计 |
@@ -79,6 +80,8 @@ Worker 写 ZIP 到 `.part` 文件并周期检查 Job 状态。管理员取消使
 全局备份、导出、招聘检查等租约必须保存在 PostgreSQL 状态/约束中，不能只用 Redis 锁。Worker 崩溃后由 `heartbeat_at + lease_expires_at` 判断失联；恢复服务在新数据库连接上释放租约，并协调领域明细、TaskRun 和后续派发。Redis 分布式锁只能降低争抢，不能成为正确性来源。招聘检查的每日调度在复用活动运行前也执行同一恢复服务，避免失效 `RUNNING` 永久挡住下一天。
 
 AGENT 审核/生成每次 Provider 外呼前都必须持有业务运行租约、账户并发占用和全站/Endpoint token reservation。成功调用按可信 usage 结算；失败、拒答、schema 修复失败和 Worker 租约失效以 `0` 结算，不占每日 token 额度，安全错误码只通过通知说明。取消、重试和 schema 修复请求复用同一业务运行预算，不重复计每日业务次数。
+
+文章划词解释沿用同一 TaskRun/Celery 入口，不创建专用队列。请求幂等键由账户动作生成，重复投递只读回同一请求；用户停止先将领域请求写为 `CANCELLED`，Provider 调用前后均检查取消，Token reservation 未使用部分释放，不能由浏览器断开连接冒充服务端取消。只有 Provider/网络/超时异常允许重新建立新的幂等请求；限额、授权、安全拒绝和配置不可用为最终状态。解释不做流式输出，文档审核和题库生成协议不变。
 
 ## 告警去重
 

@@ -1,3 +1,7 @@
+from .article_explanation import (
+    ArticleExplanationSettingsResult,
+    update_article_explanation_settings,
+)
 from .friend_links import (
     FriendLinkResult,
     create_friend_link,
@@ -29,6 +33,7 @@ from .tree import (
 )
 
 __all__ = [
+    "ArticleExplanationSettingsResult",
     "NavigationCommandError",
     "SiteConfigurationResult",
     "SiteContentCommandError",
@@ -48,6 +53,7 @@ __all__ = [
     "set_trusted_embed_source",
     "update_friend_link",
     "update_site_configuration",
+    "update_article_explanation_settings",
     "update_verification_email_template",
     "update_static_page",
 ]

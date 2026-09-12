@@ -251,3 +251,12 @@ class AuthorPreferenceForm(forms.Form):
         required=False,
         help_text="仅用于已发布文章的普通编辑；首次发布和历史版本恢复仍需终稿审查。",
     )
+
+
+class ArticleExplanationPreferenceForm(forms.Form):
+    auto_accept = forms.BooleanField(
+        label="自动接受文章划词解释",
+        required=False,
+        help_text="开启后，首次在每篇公开文章使用划词解释时不再重复询问；可随时关闭。",
+        widget=forms.CheckboxInput(attrs={"role": "switch"}),
+    )

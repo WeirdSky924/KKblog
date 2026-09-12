@@ -6,6 +6,8 @@ class AgentsConfig(AppConfig):
     name = "apps.agents"
 
     def ready(self) -> None:
+        from .article_explanation_schema import register_article_explanation_schema
         from .audit_schemas import register_agent_audit_schemas
 
         register_agent_audit_schemas()
+        register_article_explanation_schema()

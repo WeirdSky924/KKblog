@@ -166,3 +166,18 @@ class ReadingBookmarkProgressForm(forms.Form):
             "max_value": "阅读位置无效。",
         },
     )
+
+
+class ArticleExplanationRequestForm(forms.Form):
+    selected_html = forms.CharField(required=False, max_length=262_144)
+    selected_text = forms.CharField(required=False, max_length=262_144)
+    section_heading = forms.CharField(required=False, max_length=255)
+    idempotency_key = forms.CharField(required=False, max_length=128)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get("selected_html") and not cleaned_data.get(
+            "selected_text"
+        ):
+            raise forms.ValidationError("请先选择要解释的文字。")
+        return cleaned_data

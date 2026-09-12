@@ -112,6 +112,7 @@ import {
   Undo2,
   UserPlus,
   UserRound,
+  Wrench,
   X,
   createIcons,
 } from "lucide";
@@ -157,6 +158,7 @@ import { initializeHeaderSearch } from "./header-search.js";
 import { initializeOpportunities } from "./opportunities.js";
 import { initializeQuiz } from "./quiz.js";
 import { initializeRecords } from "./records.js";
+import { initializeArticleExplanations } from "./article-explanation.js";
 import {
   MediaUploadRequestError,
   uploadMediaFile,
@@ -278,6 +280,7 @@ const availableIcons = {
   Undo2,
   UserPlus,
   UserRound,
+  Wrench,
   X,
 };
 const RETURN_FOCUS_KEY = "kaj.error-return-focus";
@@ -1583,6 +1586,7 @@ initializeAdministrationArticlePreviews();
 initializeOpportunities();
 initializeQuiz();
 initializeRecords();
+initializeArticleExplanations();
 initializeLiveSubmitSupport();
 initializeLiveSubmitForms();
 focusInsertedError(document);
