@@ -1,6 +1,6 @@
 # Kaj 空间下一轮更新公告（持续记录）
 
-状态：Labs 下一轮迭代中；正式基线已同步至 2026-09-05 合并增量发布。
+状态：本轮已于 2026-09-12 完成正式增量部署；后续 Labs 迭代继续沿用本文件记录。
 
 ## 发布基线
 
@@ -81,6 +81,17 @@
 - 新增 accounts/agents/discovery/navigation/operations 兼容迁移，生产发布前需新鲜数据库备份后按依赖顺序执行迁移，并为已有站点配置、AGENT profile 和任务状态做只读读回；不迁移 Labs 测试账户、解释历史或模型调用数据。
 - 验证：前端构建、Node 前端回归、`git diff --check`、Labs live/ready 与桌面/窄屏主题读回通过；测试文件仅保留在 Labs 工作区供回归，不纳入交付提交。正式部署前仍需执行隔离 PostgreSQL 迁移计划、候选镜像构建、生产健康检查和历史错误状态核对。
 
+## 本轮正式部署记录（2026-09-12）
+
+- 正式提交：`8cfe88086bc3c5546ec8055f80b7def8d5fe079e`；任务分支已推送并 fast-forward 集成到远端 `main`，随后删除远端任务分支。
+- 正式应用镜像：`kaj-blog-web:8cfe880`，镜像 manifest `sha256:83ab872684fea0ce409c55646a731261af9e56707ff12a5d6aa6a37256abe2ee`；Web、Worker、Beat 使用同一镜像，旧镜像 `kaj-blog-web:5053a67804ee` 保留用于应用回退。
+- 本轮迁移 `accounts.0009_account_article_explanation_auto_accept`、`agents.0010_article_explanation_profile`、`discovery.0005_article_explanation_request`、`navigation.0008_article_explanation_settings`、`operations.0008_article_explanation_usage` 已在生产执行成功；候选 `check --deploy`、`makemigrations --check --dry-run` 和迁移计划均通过。
+- 发布前备份：`pre-deploy-8cfe880-20260912T111924Z.dump`（SHA-256 `a8da894de01a9594d95dd3b26426af3beea38368c5f6b2eddcf62e49099f57dd`）、`pre-deploy-8cfe880-20260912T111924Z-media.tar.gz`（SHA-256 `b6b161b87a72900b70678d47bdeb556bb1c36d9004984785f328906b5f285360`）和 Compose 快照（SHA-256 `ce64232048b520eb6fbf397dfe7f5a1afc761870dbef035fd6beab8b60884dc4`）均保存于正式备份目录并设为 `0600`；custom dump 的 `pg_restore --list` 读回 1014 个条目。
+- 生产初始化：文章解释 AGENT profile 已绑定现有启用 Endpoint，使用真实 Endpoint 严格 schema 检查成功（`SCHEMA_SUPPORTED`）后启用；站点默认用户限制为每日 50 次、每分钟 5 次、选区 1000 字、本地历史 30 条。不迁移 Labs 账户、解释历史或模型调用数据。
+- 状态修复：回收 1 个过期健康任务并重放 2 个历史孤儿重试；读回活动招聘检查、运行中来源、非终态 TaskRun、待发布 Outbox 和处理中消费者均为 0。没有手动抓取招聘来源。
+- 生产读回：`/health/live=200`、`/health/ready=200`、主页/登录页/文章详情 200、知识答题和招聘入口按权限重定向，静态 JS/CSS 200；Web/Worker 健康且重启次数为 0，Beat 正常运行。
+- 回退边界：仅回退 Web/Worker/Beat 到旧镜像，不反向迁移数据库；备份、媒体、Compose 快照和旧镜像均保留。正式部署未复制 Labs 数据，也未在发布窗口触发招聘全量采集。
+
 ## 质量与发布状态
 
 - Labs 服务必须保持 `active/running`，`https://labs.kajspace.cn/health/live` 返回 `200`。
@@ -89,6 +100,6 @@
 - 未经明确授权，不执行生产迁移、备份、镜像切换、服务重启、来源抓取或 Git 提交/推送。
 - 下一轮正式公告形成前，先把本节所有新增记录与部署执行记录核对，禁止只凭上下文补写。
 
-## 正式发布时补录
+## 后续维护
 
-下一次生产发布完成后，在本目录补充或链接：候选完整 SHA、镜像 digest、数据库迁移、备份摘要、错误状态修复、健康检查、关键页面读回、回退边界和未执行项。本文件在候选完成前保持“Labs 迭代中”。
+本轮候选 SHA、镜像 digest、数据库迁移、备份摘要、错误状态修复、健康检查、关键页面读回、回退边界和未执行项已在上方补录；下一轮 Labs 切片继续追加到本文件，并在下一次正式发布时新增独立部署记录。
