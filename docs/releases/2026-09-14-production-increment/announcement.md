@@ -21,4 +21,5 @@
 
 - Labs 前端构建、前端回归、Ruff、Python 编译和差异检查通过。
 - Labs 招聘筛选真实请求和结果读回通过；`/health/live`、`/health/ready` 返回 200。
-- 正式发布后的镜像摘要、备份校验、状态修复和页面读回记录在本目录 `deployment-record.md`。
+- 正式提交为 `451bc9fd6c039848e13a3f089ba566d33299b044`，应用镜像为 `kaj-blog-web:451bc9f`，manifest 为 `sha256:9d4874f56871b7fb3815b582613be24a556e560b604b901a3fc10bcc9f54e5cf`。
+- 正式发布后的备份校验、状态恢复和页面读回记录在本目录 `deployment-record.md`；本轮无待执行迁移，未导入 Labs 数据，未手动抓取招聘来源。

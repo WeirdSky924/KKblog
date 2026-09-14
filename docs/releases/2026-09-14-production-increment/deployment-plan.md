@@ -1,6 +1,6 @@
 # 2026-09-14 正式增量部署方案
 
-状态：待执行；执行完成后以 `deployment-record.md` 为准。
+状态：已执行（2026 年 9 月 14 日，Asia/Shanghai）；详细证据见 `deployment-record.md`。
 
 ## 候选边界
 
