@@ -100,6 +100,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `admin:notifications` | 群发 | notifications | 全体用户、读回、隐藏/恢复/删除 |
 | `admin:navigation` | 三层拖拽树 | navigation | 站内页/分区/外链统一排版；父级切换自动建议位置；插入后移、删除补位 |
 | `admin:site-settings` | 分组设置 | navigation/core/media | 品牌、注册、Logo、Hero 图片/视频、正文限制、可信来源、法律页 |
+| `admin:article-explanation-settings` | 文章解释设置 | navigation/agents/operations | 用户每日/每分钟解释次数、选区上限、本地历史条数；与 Endpoint/AGENT token 配置分离 |
 | `admin:exchange` | 导出任务 | exchange | 单全局任务、取消、下载、三天到期 |
 | `admin:audit` | 审计检索 | operations | 关键字、类型、目标、时间、前后值 |
 | `admin:errors` | 错误检索 | operations | 错误码、trace、脱敏详情 |

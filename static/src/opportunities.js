@@ -51,6 +51,17 @@ function storeVisibleJobColumns(columns) {
 
 let visibleJobColumns = loadVisibleJobColumns();
 
+function submitOpportunityFilter(form) {
+  if (!(form instanceof HTMLFormElement)) return;
+  if (typeof form.requestSubmit === "function") {
+    form.requestSubmit();
+    return;
+  }
+  form.dispatchEvent(
+    new CustomEvent("opportunity-filter-change", { bubbles: true }),
+  );
+}
+
 function bindDisclosure(root) {
   const disclosure = root.querySelector?.("[data-opportunity-filter-disclosure]");
   if (!(disclosure instanceof HTMLDetailsElement)) {
@@ -92,9 +103,7 @@ function bindFilterChanges(root) {
       form,
       window.setTimeout(() => {
         filterTimers.delete(form);
-        form.dispatchEvent(
-          new CustomEvent("opportunity-filter-change", { bubbles: true }),
-        );
+        submitOpportunityFilter(form);
       }, 120),
     );
   });
@@ -222,11 +231,9 @@ function bindRequestPositionSupport() {
     const isBookmarksView =
       workspace instanceof HTMLElement && workspace.dataset.opportunityView === "bookmarks";
     if (bookmarkFilter instanceof HTMLInputElement || isBookmarksView) {
-      document
-        .querySelector("[data-opportunity-filter-form]")
-        ?.dispatchEvent(
-          new CustomEvent("opportunity-filter-change", { bubbles: true }),
-        );
+      submitOpportunityFilter(
+        document.querySelector("[data-opportunity-filter-form]"),
+      );
     }
   });
   for (const eventName of ["htmx:sendError", "htmx:responseError", "htmx:timeout"]) {

@@ -92,6 +92,27 @@
 - 生产读回：`/health/live=200`、`/health/ready=200`、主页/登录页/文章详情 200、知识答题和招聘入口按权限重定向，静态 JS/CSS 200；Web/Worker 健康且重启次数为 0，Beat 正常运行。
 - 回退边界：仅回退 Web/Worker/Beat 到旧镜像，不反向迁移数据库；备份、媒体、Compose 快照和旧镜像均保留。正式部署未复制 Labs 数据，也未在发布窗口触发招聘全量采集。
 
+本轮修正文章解释配置入口：
+
+- 文章解释的用户级限制已从“站点设置”分组页面移出，改为“内容与互动”下的独立管理员页面 `admin:article-explanation-settings`；站点设置只保留站点结构、品牌、法律页、可信来源和留言等配置。
+- 独立页面继续复用 navigation 的配置查询/更新服务、版本冲突、管理员权限和审计逻辑，不新增数据表或迁移；旧的 `focus=article-explanation-settings` 链接会安全跳转到新页面。
+- 后续正式部署只需同步 Python、模板和导航静态源码，不需要迁移或状态修复。
+- 验证：变更 Python 通过 Ruff、格式检查、compileall、Django check；新模板可加载，导航反向解析到 `/admin/article-explanation-settings/`，Labs 服务保持 `active/running`，live/ready 均为 200，匿名访问管理员入口被正确拒绝。
+
+本轮修复找工作公开页筛选提交与岗位排序：
+
+- 招聘筛选弹窗点击“完成”后改用原生表单 `requestSubmit()` 提交，保留旧浏览器的自定义事件回退；城市、企业、招聘类型、岗位类别、届别等多选条件继续通过 HTMX 局部刷新工作区并同步 URL，不再出现选择后只更新弹窗而列表不生效的情况。
+- 岗位列表默认排序调整为一级企业发布时间 `published_at` 降序，二级抓取时间 `last_collected_at` 降序，再按企业名称、岗位名称和 ID 稳定排序；搜索时保留关键词相关度优先，相关度相同的结果仍遵循上述时间排序。发布时间为空的岗位置于有发布时间岗位之后，抓取时间为空的岗位同理。
+- 复用现有字段和查询 owner，不新增迁移、不触发招聘来源抓取，也不改变岗位展示的发布时间含义；正式部署时只需同步 Python、前端源码及重新生成的静态 JS 产物。
+- 验证：`npm run build:js` 成功，`npm run test:frontend` 为 12 passed；Ruff、compileall、`git diff --check` 通过；Labs 真实浏览器选择“招聘类型 → 校园招聘”后请求带 `recruitment_types=CAMPUS`，结果从 22535 条变为 12005 条且列表仅显示校园招聘；Labs `/health/live` 与 `/health/ready` 均返回 200。招聘 pytest 未进入用例，因既有 SQLite 测试库迁移不支持 `ALTER TABLE ... ADD CONSTRAINT` 失败，需在 PostgreSQL 隔离环境补跑。
+- 本轮未执行数据库迁移、状态修复、来源抓取、生产部署或 Git 提交/推送。
+
+本轮调整文章划词解释按钮位置：
+
+- 解释按钮从选区下方改为选区整体右上方，优先放在选区右侧并向上留出间距；靠近视口右边缘时自动与选区右边对齐，顶部空间不足时才使用可见的下方回退位置，避免常规阅读时遮挡选中文字。
+- 复用现有阅读工具的固定层级、酒红色强调和主题变量，不改变授权、解释请求、历史记录或阅读工具栏行为。
+- 验证：`npm run build:js` 成功，`npm run test:frontend` 为 12 passed，`git diff --check` 通过；Labs 服务保持 `active/running`，健康接口继续返回 200。未执行迁移、状态修复、来源抓取、生产部署或 Git 提交/推送。
+
 ## 质量与发布状态
 
 - Labs 服务必须保持 `active/running`，`https://labs.kajspace.cn/health/live` 返回 `200`。

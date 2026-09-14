@@ -87,6 +87,7 @@
 | `admin:notifications` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；群发/回执/隐藏/删除 | notifications |
 | `admin:navigation` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；三层拖拽/键盘替代/冲突 | settings |
 | `admin:site-settings` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；品牌/法律页/可信来源/留言 | settings |
+| `admin:article-explanation-settings` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；用户级解释限制/版本冲突/不可用 | settings |
 | `admin:exchange` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；导出/取消/过期/下载 | exchange |
 | `admin:audit` | administration | 管理员 | S0,S1,S2,S3,S4,S5；关键字/类型/目标/时间 | operations |
 | `admin:errors` | administration | 管理员 | S0,S1,S2,S3,S4,S5；trace/脱敏/未找到 | operations |

@@ -3,6 +3,7 @@ from django.urls import path
 from apps.administration.permissions import administrator_required
 from apps.administration.views.agent_endpoints import agent_endpoints
 from apps.administration.views.agent_profiles import agent_profiles
+from apps.administration.views.article_explanation import article_explanation_settings
 from apps.administration.views.article_moderation import (
     create_article_case_action,
     restore_article_case_action,
@@ -49,6 +50,11 @@ urlpatterns = [
         "agent-profiles/",
         administrator_required(agent_profiles),
         name="agent-profiles",
+    ),
+    path(
+        "article-explanation-settings/",
+        administrator_required(article_explanation_settings),
+        name="article-explanation-settings",
     ),
     path(
         "learning-documents/",

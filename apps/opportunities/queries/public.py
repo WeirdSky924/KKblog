@@ -326,10 +326,12 @@ def public_opportunities(
     if recruitment_types:
         rows = rows.filter(recruitment_type__in=recruitment_types)
     publication_order = F("published_at").desc(nulls_last=True)
+    collection_order = F("last_collected_at").desc(nulls_last=True)
     ordering = (
         (
             "-search_rank",
             publication_order,
+            collection_order,
             "source__normalized_company_name",
             "title",
             "id",
@@ -337,6 +339,7 @@ def public_opportunities(
         if term
         else (
             publication_order,
+            collection_order,
             "source__normalized_company_name",
             "title",
             "id",

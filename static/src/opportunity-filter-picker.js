@@ -23,6 +23,17 @@ function pickerElements(root) {
   return elements;
 }
 
+function submitOpportunityFilter(form) {
+  if (!(form instanceof HTMLFormElement)) return;
+  if (typeof form.requestSubmit === "function") {
+    form.requestSubmit();
+    return;
+  }
+  form.dispatchEvent(
+    new CustomEvent("opportunity-filter-change", { bubbles: true }),
+  );
+}
+
 function initializePicker(picker) {
   if (!(picker instanceof HTMLElement) || picker.dataset.filterPickerBound === "true") {
     return;
@@ -301,9 +312,7 @@ function initializePicker(picker) {
       currentSelection !== committedSelection
     ) {
       committedSelection = currentSelection;
-      picker.closest("form")?.dispatchEvent(
-        new CustomEvent("opportunity-filter-change", { bubbles: true }),
-      );
+      submitOpportunityFilter(picker.closest("form"));
     }
   });
 

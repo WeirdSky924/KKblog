@@ -54,8 +54,7 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem(
                 "article-explanation",
                 "文章解释设置",
-                "admin:site-settings",
-                "focus=article-explanation-settings",
+                "admin:article-explanation-settings",
             ),
         ),
     ),

@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
 from apps.comments.public import guestbook_comment_access
-from apps.navigation.public import AdminSiteSettings, article_explanation_settings
+from apps.navigation.public import AdminSiteSettings
 
 from ..forms.site_settings import (
-    ArticleExplanationSettingsForm,
     FriendLinkDeleteForm,
     FriendLinkForm,
     GuestbookSettingsForm,
@@ -25,7 +24,6 @@ class SiteSettingsForms:
     friend_delete: dict[str, FriendLinkDeleteForm]
     trusted_sources: dict[str, TrustedSourceForm]
     guestbook: GuestbookSettingsForm
-    article_explanation: ArticleExplanationSettingsForm
 
 
 def build_site_settings_forms(
@@ -125,17 +123,6 @@ def build_site_settings_forms(
             "post_login_required": access.post_login_required,
         },
     )
-    explanation = article_explanation_settings()
-    article_explanation = ArticleExplanationSettingsForm(
-        data=bind("article_explanation"),
-        initial={
-            "daily_limit": explanation.daily_limit,
-            "minute_limit": explanation.minute_limit,
-            "selection_limit": explanation.selection_limit,
-            "history_limit": explanation.history_limit,
-            "expected_version": explanation.row_version,
-        },
-    )
     return SiteSettingsForms(
         configuration=configuration,
         verification_email=verification_email,
@@ -145,7 +132,6 @@ def build_site_settings_forms(
         friend_delete=friend_delete,
         trusted_sources=trusted_sources,
         guestbook=guestbook,
-        article_explanation=article_explanation,
     )
 
 

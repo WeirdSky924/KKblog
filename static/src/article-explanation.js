@@ -248,11 +248,26 @@ function explanationSetSelectionButton(root, selection) {
   }
   button.hidden = false;
   const rect = selection.rect;
+  const buttonRect = button.getBoundingClientRect();
+  const margin = 8;
+  const gap = 8;
+  const width = buttonRect.width || 72;
+  const height = buttonRect.height || 44;
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  const rightSide = rect.right + gap;
+  const rightAligned = rect.right - width;
   const left = Math.min(
-    Math.max(8, rect.left + rect.width / 2 - 30),
-    window.innerWidth - 80,
+    Math.max(margin, rightSide <= maxLeft ? rightSide : rightAligned),
+    maxLeft,
   );
-  const top = Math.min(Math.max(8, rect.bottom + 8), window.innerHeight - 56);
+  const above = rect.top - height - gap;
+  const below = rect.bottom + gap;
+  const top = above >= margin
+    ? above
+    : below <= maxTop
+      ? below
+      : Math.min(Math.max(margin, above), maxTop);
   button.style.left = `${left}px`;
   button.style.top = `${top}px`;
 }
