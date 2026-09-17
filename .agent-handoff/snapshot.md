@@ -24,7 +24,7 @@
 
 ## Recovery Summary
 
-- 远端 `origin/main` 与 Labs 快照均为 `9b017f1`；性能测试文档和 handoff 已从 Labs 提交并 fast-forward 推送（`0b700d4`、`3c34606`、`9b017f1`）。
+- 性能测试文档和 handoff 已由 Labs 任务分支提交并 fast-forward 推送到远端 `main`；具体集成提交以当前 `git fetch`/读回为准。
 - 主工作区 `main` 仍停留在旧快照且工作区脏；用 `git fetch` 后的 `git rev-list HEAD...origin/main` 获取实时差异，不要用 reset、checkout 覆盖、stash 制造假干净状态。
 - Labs 的 `kaj-labs.service`、worker、beat 均为 `inactive/dead`；正式 Docker Compose 仍运行 `kaj-blog-web:451bc9f`。
 - 最近生产审核失败的直接事实是 `knowledge-review.v1` 没有匹配当前 Endpoint row version 的 `SCHEMA_SUPPORTED` 检查；先完成严格检查再重试。
