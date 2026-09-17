@@ -2,7 +2,7 @@
 
 ## Current Blockers
 
-- 主工作区 `/home/code/personal-blog` 的 `main` 落后 `origin/main` 23 个提交，同时有 70 个 tracked 修改和 22 个 untracked 路径（含本 handoff）；未完成分类前不能安全同步。
+- 主工作区 `/home/code/personal-blog` 的 `main` 落后 `origin/main` 且存在预存脏改动；实时提交差异、tracked 修改和 untracked 路径必须以当前 Git 读回为准，未完成分类前不能安全同步。
 
 ## Current Risks
 
