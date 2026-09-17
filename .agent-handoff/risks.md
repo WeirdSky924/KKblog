@@ -2,7 +2,7 @@
 
 ## Current Blockers
 
-- 主工作区 `/home/code/personal-blog` 的 `main` 落后 `origin/main` 21 个提交，同时有 69 个 tracked 修改和 12 个 untracked 路径；未完成分类前不能安全同步。
+- 主工作区 `/home/code/personal-blog` 的 `main` 落后 `origin/main` 23 个提交，同时有 70 个 tracked 修改和 22 个 untracked 路径（含本 handoff）；未完成分类前不能安全同步。
 
 ## Current Risks
 
@@ -14,7 +14,7 @@
 
 ## Unknowns / Confirmations Needed
 
-- UNKNOWN: 主工作区 69 个 tracked 改动中哪些属于当前有效开发意图；需要逐文件比较 Labs/远端并结合用户确认。
+- UNKNOWN: 主工作区原有 69 个 tracked 改动中哪些属于当前有效开发意图；需要逐文件比较 Labs/远端并结合用户确认。
 - UNKNOWN: 外部 P0 测试机是否能取得 PostgreSQL、Redis、TaskRun 和 Outbox 的只读快照。
 - UNKNOWN: 是否需要同时维护 Claude Code 的 `.claude/CLAUDE.md`；当前只生成 Codex `AGENTS.md` handoff protocol。
 

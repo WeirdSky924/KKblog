@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Last updated: 2026-09-16
+- Last updated: 2026-09-17
 - Last agent: Codex
 - Workspace root: `/home/code/personal-blog`
 - Current objective: 保持 Labs-first 开发与交付流程；在处理主工作区漂移后推进正式环境外部性能测试和下一轮迭代。
@@ -17,14 +17,14 @@
   - `apps/agents/services/invocations.py`
   - `apps/learning/services/review_runtime.py`
   - `docs/operations/performance-testing/`
-- Blockers: 主工作区存在未分类的 69 个已修改文件和 12 个未跟踪路径，不能安全同步到远端最新 `main`。
+- Blockers: 主工作区存在未分类的 70 个 tracked 修改和 22 个未跟踪路径（其中 69/12 为 handoff 之前的预存改动），不能安全同步到远端最新 `main`。
 - Open questions:
   - UNKNOWN: 主工作区独有改动中哪些仍是用户有效意图，哪些已经被 Labs/远端实现替代。
   - UNKNOWN: 外部 P0 测试机能否取得正式环境 PostgreSQL/Redis/TaskRun 的只读指标快照。
 
 ## Recovery Summary
 
-- 远端 `origin/main` 与 Labs 快照均为 `3c34606`；`0b700d4` 的性能测试文档和本次 handoff 已从 Labs 提交并 fast-forward 推送。
-- 主工作区 `main` 仍停留在 `e5adc20`，落后远端 22 个提交且工作区脏；不要用 reset、checkout 覆盖、stash 制造假干净状态。
+- 远端 `origin/main` 与 Labs 快照均为 `9b017f1`；性能测试文档和 handoff 已从 Labs 提交并 fast-forward 推送（`0b700d4`、`3c34606`、`9b017f1`）。
+- 主工作区 `main` 仍停留在 `e5adc20`，落后远端 23 个提交且工作区脏；不要用 reset、checkout 覆盖、stash 制造假干净状态。
 - Labs 的 `kaj-labs.service`、worker、beat 均为 `inactive/dead`；正式 Docker Compose 仍运行 `kaj-blog-web:451bc9f`。
 - 最近生产审核失败的直接事实是 `knowledge-review.v1` 没有匹配当前 Endpoint row version 的 `SCHEMA_SUPPORTED` 检查；先完成严格检查再重试。

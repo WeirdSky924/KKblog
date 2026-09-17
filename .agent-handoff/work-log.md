@@ -4,8 +4,8 @@
 
 - Objective: 按 Labs-first 规则提交并推送 handoff。
 - Changed files: `AGENT_HANDOFF.md`、`AGENT_SESSION_PROMPTS.md`、`.agent-handoff/*.md`、`AGENTS.md` 的 handoff protocol。
-- Result: Labs 任务分支提交 `3c34606`，已推送并 fast-forward 到远端 `main`；临时分支已删除；Labs 保留在 `3c34606` detached 快照。
-- Remaining risks: 主工作区仍为 `e5adc20`、落后远端 22 个提交且保留原有脏改动，未执行同步或覆盖。
+- Result: 初始提交 `3c34606` 以及状态收口提交 `9b017f1` 均由 Labs 任务分支推送并 fast-forward 到远端 `main`；临时分支已删除；Labs 保留在 `9b017f1` detached 快照。
+- Remaining risks: 主工作区仍为 `e5adc20`、落后远端 23 个提交且保留原有脏改动，未执行同步或覆盖。
 
 ## 2026-09-16
 
@@ -16,7 +16,7 @@
   - `AGENT_SESSION_PROMPTS.md`: 写入新窗口、继续、收口和质量复核提示词。
   - `AGENTS.md`: 追加标记的多文档 handoff protocol，保留既有项目规则。
 - Result: handoff 已按当前主工作区、Labs、正式快照、Git 和服务状态填充；未创建 `.claude/CLAUDE.md`，因为项目当前没有 Claude Code 项目规则文件。
-- Remaining risks: 主工作区脏且落后远端；handoff 文件尚未提交，等待用户明确 Git 交付。
+- Remaining risks: 主工作区脏且落后远端；handoff 文件当时尚未提交，后续已在 2026-09-17 完成交付。
 
 ## 2026-09-15
 
