@@ -14,7 +14,6 @@
 
 ## Unknowns / Confirmations Needed
 
-- UNKNOWN: 用户是否希望在下一次 Git 交付中提交本次 handoff 文件；当前请求只授权创建文件。
 - UNKNOWN: 主工作区 69 个 tracked 改动中哪些属于当前有效开发意图；需要逐文件比较 Labs/远端并结合用户确认。
 - UNKNOWN: 外部 P0 测试机是否能取得 PostgreSQL、Redis、TaskRun 和 Outbox 的只读快照。
 - UNKNOWN: 是否需要同时维护 Claude Code 的 `.claude/CLAUDE.md`；当前只生成 Codex `AGENTS.md` handoff protocol。

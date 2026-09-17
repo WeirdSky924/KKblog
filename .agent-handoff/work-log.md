@@ -1,5 +1,12 @@
 # Current Work Log
 
+## 2026-09-17
+
+- Objective: 按 Labs-first 规则提交并推送 handoff。
+- Changed files: `AGENT_HANDOFF.md`、`AGENT_SESSION_PROMPTS.md`、`.agent-handoff/*.md`、`AGENTS.md` 的 handoff protocol。
+- Result: Labs 任务分支提交 `3c34606`，已推送并 fast-forward 到远端 `main`；临时分支已删除；Labs 保留在 `3c34606` detached 快照。
+- Remaining risks: 主工作区仍为 `e5adc20`、落后远端 22 个提交且保留原有脏改动，未执行同步或覆盖。
+
 ## 2026-09-16
 
 - Objective: 为 `/home/code/personal-blog` 建立完整的 repository-local multi-document handoff。
