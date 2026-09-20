@@ -25,7 +25,7 @@
 ## Recovery Summary
 
 - 性能测试文档和 handoff 已由 Labs 任务分支提交并 fast-forward 推送到远端 `main`；具体集成提交以当前 `git fetch`/读回为准。
-- 主工作区当前已与 `origin/main` 同步在 `42adeb4`；岗位性能代码已提交并正式部署，原有未跟踪 P0 文档和本轮发布记录待独立 Git 交付，临时回归文件已清理。
+- 主工作区当前已与 `origin/main` 同步在 `6f59ed8`；岗位性能代码已提交并正式部署，发布记录已提交，原有未跟踪 P0 文档仍排除在交付之外，临时回归文件已清理。
 - Labs 的 `kaj-labs.service`、worker、beat 均为 `inactive/dead`；正式 Docker Compose 仍运行 `kaj-blog-web:451bc9f`。
 - 最近生产审核失败的直接事实是 `knowledge-review.v1` 没有匹配当前 Endpoint row version 的 `SCHEMA_SUPPORTED` 检查；先完成严格检查再重试。
 - 本任务定位出岗位公开页的重复筛选选项 SQL、重复来源计数和 HTMX 未使用 summary 查询；最小优化已在本地隔离 PostgreSQL 回归通过，临时回归文件已按交付规则清理。

@@ -26,6 +26,7 @@
 | 2026-09-20 | 正式候选构建与预检 | passed | `docker build` 退出 `0`；候选 image `sha256:26caccd5272c9173252504d578846f1e21287700c9981a6b2814749fb7c0aaf8`；`check --deploy`、`makemigrations --check --dry-run`、`migrate --plan` 均退出 `0`，无待执行 migration。 |
 | 2026-09-20 | 正式发布前备份 | passed | PostgreSQL dump `176670834` 字节、TOC `1043`；媒体归档 `7024193` 字节、成员 `410`；Compose 快照 `6413` 字节；三者权限均 `0600`，摘要见正式 deployment record。 |
 | 2026-09-20 | 正式应用切换与只读 smoke | passed | Web/Worker/Beat 顺序切换到 `42adeb4ceb74`，healthy/running、RestartCount 0；live/ready、默认/搜索/筛选/分页和 JS/CSS 均 HTTP 200；未执行 migration、招聘采集、Provider/AGENT 或状态补偿。 |
+| 2026-09-20 | 发布记录 Git 交付 | passed | `docs: 记录岗位性能正式增量发布` 提交 `6f59ed8` 已推送并 fast-forward 到远端 `main`；临时分支已删除，原有未跟踪 P0 文档未纳入。 |
 
 ## Validation Guidelines
 

@@ -7,7 +7,7 @@
 - [x] `B-005` 用户明确 Git 交付后，从 Labs 任务分支提交 handoff 文件；已完成推送、fast-forward 集成和临时分支清理。
 - [ ] `B-006` 更新或审查仍写着旧远端提交号的历史实施清单，避免把文档旧事实当作当前 Git 真值；先记录影响再决定是否修订。
 - [ ] `B-007` Labs 服务恢复为 `active/running` 后，读回本任务同步的岗位性能代码和代表性岗位页面；不得自行重启服务。
-- [ ] `B-008` 提交并推送 `docs/releases/2026-09-20-production-increment/` 发布记录；不得混入原有未跟踪 P0 文档。
+- [x] `B-008` 提交并推送 `docs/releases/2026-09-20-production-increment/` 发布记录；未混入原有未跟踪 P0 文档，提交为 `6f59ed8`。
 
 ## Backlog Guidelines
 

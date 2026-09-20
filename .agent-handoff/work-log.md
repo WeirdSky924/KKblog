@@ -21,7 +21,7 @@
 - Preflight: 构建 `kaj-blog-web:42adeb4ceb74` 成功；候选 `check --deploy`、migration drift 和正式 `migrate --plan` 通过且无待执行 migration。
 - Safety: 新鲜 PostgreSQL dump、媒体归档和 Compose 快照均为 `0600` 并完成 SHA-256/TOC/成员校验；未执行 migration、招聘采集、Provider/AGENT、恢复或 Outbox 补偿。
 - Result: Web/Worker/Beat 按顺序切换，均为候选镜像、healthy/running、RestartCount 0；健康、岗位默认/搜索/筛选/分页及 JS/CSS 均 HTTP 200。
-- Remaining: Labs 仍 inactive/dead；外部 P0 并发复测仍待执行；发布记录位于 `docs/releases/2026-09-20-production-increment/`，尚未纳入 Git。
+- Remaining: Labs 仍 inactive/dead；外部 P0 并发复测仍待执行；发布记录已由 `6f59ed8` 推送并 fast-forward 到远端 `main`。
 
 ## 2026-09-16
 
