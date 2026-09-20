@@ -8,9 +8,9 @@
 ## Current Risks
 
 - Labs 和正式快照均为 detached HEAD；Labs 服务已停，且 Labs 还有 handoff/文章解释测试等未提交改动；后续 Git 交付必须从已核验远端 `main` 建任务分支。
-- 主工作区当前与 `origin/main` 同步在 `a06a94f`，本任务的岗位性能代码及原有 P0 文档未提交；不得混入无关改动或擅自执行 Git 交付。
+- 主工作区当前与 `origin/main` 同步在 `42adeb4`；本轮正式发布记录和原有 P0 文档仍未提交，后续 Git 交付不得混入无关改动。
 - 正式项目快照 `/home/code/.codex-worktrees/personal-blog/production-688c25b` 仍有性能文档未提交改动；运行目录 `/home/code/personal-blog/var/production` 含生产凭据、数据库、媒体和备份，禁止当作源码同步目标。
-- P0 性能测试尚未重新执行；当前只有历史部分失败结果、本次代码级证据和健康/容器只读状态，不能把它们当作优化后的 P0 通过证据。
+- P0 性能测试尚未重新执行；正式环境已完成运行时增量切换，但当前只有代码级证据、发布 smoke 和历史部分失败结果，不能把它们当作优化后的 P0 通过证据。
 - 生产知识审核 profile 当前没有匹配 Endpoint row version 的 `knowledge-review.v1` 严格能力检查；重复启动审核会继续确定性失败，必须先检查。
 - `docs/planning/implementation-todolist.md` 等历史文档含旧远端提交号/部署口径；Git、服务和数据库读回优先级高于历史文案。
 

@@ -15,6 +15,14 @@
 - Result: 合并筛选选项查询、复用来源计数、HTMX 跳过未使用摘要；聚焦测试 `6 passed`，既有岗位回归 `9 passed`，合并 `15 passed`；Ruff/format/Django check/diff check 通过。
 - Labs: 三个已完成文件已定向同步并 `cmp` 验证；Labs 服务仍 `inactive/dead`，`health/live=502`，未启动/重启；本任务未执行 Git add/commit/push、生产 migration、部署或 P0 外部复测。
 
+## 2026-09-20（正式增量发布）
+
+- Objective: 将岗位性能优化提交 `42adeb4` 增量更新到正式环境。
+- Preflight: 构建 `kaj-blog-web:42adeb4ceb74` 成功；候选 `check --deploy`、migration drift 和正式 `migrate --plan` 通过且无待执行 migration。
+- Safety: 新鲜 PostgreSQL dump、媒体归档和 Compose 快照均为 `0600` 并完成 SHA-256/TOC/成员校验；未执行 migration、招聘采集、Provider/AGENT、恢复或 Outbox 补偿。
+- Result: Web/Worker/Beat 按顺序切换，均为候选镜像、healthy/running、RestartCount 0；健康、岗位默认/搜索/筛选/分页及 JS/CSS 均 HTTP 200。
+- Remaining: Labs 仍 inactive/dead；外部 P0 并发复测仍待执行；发布记录位于 `docs/releases/2026-09-20-production-increment/`，尚未纳入 Git。
+
 ## 2026-09-16
 
 - Objective: 为 `/home/code/personal-blog` 建立完整的 repository-local multi-document handoff。

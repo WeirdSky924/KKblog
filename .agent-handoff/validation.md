@@ -23,6 +23,9 @@
 | 2026-09-20 | 正式公网岗位只读传输读回 | observed | 默认列表/关键词/分页均 `200`；未压缩 `394–420 KB`，gzip 后 `60–62 KB`，`private, no-store`；未执行压测或生产写入。 |
 | 2026-09-20 | Labs 定向同步与读回 | partial | 仅同步 `views.py`、`queries/public.py`、`test_public_performance.py` 并 `cmp` 成功；`kaj-labs.service=inactive/dead`，Labs `/health/live=502`，未启动/重启。 |
 | 2026-09-20 | 最终轻量复核：目标 Ruff/format、`git diff --check`、临时测试文件清理、`git rev-list HEAD...origin/main`、`systemctl show kaj-labs.service` | passed/partial | 代码静态检查和差异检查退出 `0`；主工作区 `a06a94f` 与远端 `0/0`；两处临时测试文件均已清理；Labs 仍 `inactive/dead`。 |
+| 2026-09-20 | 正式候选构建与预检 | passed | `docker build` 退出 `0`；候选 image `sha256:26caccd5272c9173252504d578846f1e21287700c9981a6b2814749fb7c0aaf8`；`check --deploy`、`makemigrations --check --dry-run`、`migrate --plan` 均退出 `0`，无待执行 migration。 |
+| 2026-09-20 | 正式发布前备份 | passed | PostgreSQL dump `176670834` 字节、TOC `1043`；媒体归档 `7024193` 字节、成员 `410`；Compose 快照 `6413` 字节；三者权限均 `0600`，摘要见正式 deployment record。 |
+| 2026-09-20 | 正式应用切换与只读 smoke | passed | Web/Worker/Beat 顺序切换到 `42adeb4ceb74`，healthy/running、RestartCount 0；live/ready、默认/搜索/筛选/分页和 JS/CSS 均 HTTP 200；未执行 migration、招聘采集、Provider/AGENT 或状态补偿。 |
 
 ## Validation Guidelines
 
