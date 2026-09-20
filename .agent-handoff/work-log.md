@@ -7,6 +7,14 @@
 - Result: handoff 初始内容和状态收口均由 Labs 任务分支推送并 fast-forward 到远端 `main`；临时分支已删除；Labs 保留在集成后的 detached 快照。
 - Remaining risks: 主工作区仍为 `e5adc20`、落后远端 23 个提交且保留原有脏改动，未执行同步或覆盖。
 
+## 2026-09-20
+
+- Objective: 按 P0 `03-backend-performance.md` 定位 Kajspace 公开岗位性能，先形成 SQL/模板/响应传输证据，再做最小优化和聚焦回归。
+- Evidence: 正式公网三个岗位 GET 均 `200`；未压缩响应 `394–420 KB`，Nginx gzip 后 `60–62 KB`。隔离 PostgreSQL 探针显示筛选选项 owner SQL `5→3`，完整岗位请求 `17→14`；岗位查询本身保持 count/page/prefetch 三条，无模板 N+1。
+- Changed files: `apps/opportunities/queries/public.py`、`apps/opportunities/views.py`；临时回归文件仅用于本轮验证，已清理。
+- Result: 合并筛选选项查询、复用来源计数、HTMX 跳过未使用摘要；聚焦测试 `6 passed`，既有岗位回归 `9 passed`，合并 `15 passed`；Ruff/format/Django check/diff check 通过。
+- Labs: 三个已完成文件已定向同步并 `cmp` 验证；Labs 服务仍 `inactive/dead`，`health/live=502`，未启动/重启；本任务未执行 Git add/commit/push、生产 migration、部署或 P0 外部复测。
+
 ## 2026-09-16
 
 - Objective: 为 `/home/code/personal-blog` 建立完整的 repository-local multi-document handoff。

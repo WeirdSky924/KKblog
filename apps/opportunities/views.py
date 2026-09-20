@@ -143,7 +143,7 @@ def _active_filter_count(values):
     )
 
 
-def _context(request):
+def _context(request, *, include_summary=True):
     actor_id = _actor(request)
     filters = public_opportunity_filters()
     default_filters = (
@@ -212,10 +212,15 @@ def _context(request):
         else (*SOURCE_FILTER_PARAMETERS, "source_page")
     )
     clear_parameters = (*clear_parameters, DEFAULT_FILTERS_PARAMETER)
+    summary = (
+        public_opportunity_summary(source_count=len(filters.sources))
+        if include_summary
+        else None
+    )
     return {
         "opportunity_form": form,
         "opportunity_filters": filters,
-        "opportunity_summary": public_opportunity_summary(),
+        "opportunity_summary": summary,
         "opportunity_jobs": jobs,
         "opportunity_sources": sources,
         "opportunity_view": view,
@@ -244,11 +249,12 @@ def opportunities(request):
         return redirect(f"{reverse('opportunities:index')}?{query}")
     if request.GET.get("view") == "bookmarks" and _actor(request) is None:
         return redirect(_login_url(_query_url(request.GET, view="bookmarks")))
-    context = _context(request)
+    is_htmx = is_htmx_fragment_request(request)
+    context = _context(request, include_summary=not is_htmx)
     status = context.pop("status")
     template = (
         "opportunities/partials/workspace.html"
-        if is_htmx_fragment_request(request)
+        if is_htmx
         else "opportunities/index.html"
     )
     response = render(request, template, context, status=status)

@@ -413,18 +413,27 @@ def public_opportunity_sources(
 
 
 def public_opportunity_filters() -> PublicOpportunityFilters:
-    def options(kind):
-        rows = (
-            OpportunityFilterOption.objects.filter(
-                kind=kind,
-                source_observations__active=True,
-                source_observations__source__enabled=True,
-                source_observations__source__publicly_visible=True,
-            )
-            .distinct()
-            .order_by("normalized_label", "id")
+    filter_options = tuple(
+        OpportunityFilterOption.objects.filter(
+            kind__in=(
+                OpportunityFilterKind.CITY,
+                OpportunityFilterKind.CATEGORY,
+                OpportunityFilterKind.COHORT,
+            ),
+            source_observations__active=True,
+            source_observations__source__enabled=True,
+            source_observations__source__publicly_visible=True,
         )
-        return tuple(PublicFilterOption(row.id, row.label) for row in rows)
+        .distinct()
+        .order_by("kind", "normalized_label", "id")
+    )
+
+    def options(kind):
+        return tuple(
+            PublicFilterOption(row.id, row.label)
+            for row in filter_options
+            if row.kind == kind
+        )
 
     sources = tuple(
         PublicSourceOption(row.id, row.company_name)
@@ -470,7 +479,9 @@ def public_opportunity_filters() -> PublicOpportunityFilters:
     )
 
 
-def public_opportunity_summary() -> PublicOpportunitySummary:
+def public_opportunity_summary(
+    *, source_count: int | None = None
+) -> PublicOpportunitySummary:
     rows = Opportunity.objects.filter(publicly_available_opportunity())
     counts = rows.aggregate(
         total=Count("id"),
@@ -481,7 +492,11 @@ def public_opportunity_summary() -> PublicOpportunitySummary:
         counts["total"],
         counts["confirmed"],
         counts["pending"],
-        OpportunitySource.objects.filter(enabled=True, publicly_visible=True).count(),
+        source_count
+        if source_count is not None
+        else OpportunitySource.objects.filter(
+            enabled=True, publicly_visible=True
+        ).count(),
     )
 
 

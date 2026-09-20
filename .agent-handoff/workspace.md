@@ -46,8 +46,8 @@
 
 ## Worktree Map
 
-- `/home/code/personal-blog`: 开发主工作区，`main`，当前脏且落后远端，不得直接覆盖。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 快照，当前 detached `0b700d4`，服务已停。
+- `/home/code/personal-blog`: 开发主工作区，`main`，当前与 `origin/main` 同步在 `a06a94f`；保留本任务岗位优化代码和未跟踪 P0 文档，不得用 reset/宽泛同步覆盖。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 快照，当前 detached `a06a94f`，服务已停，保留其他任务未提交改动。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
 - `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；含凭据、数据库、媒体和备份，禁止复制/清理。
 

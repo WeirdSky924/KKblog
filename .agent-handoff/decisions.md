@@ -8,6 +8,7 @@
 | 2026-09-15 | P0 先由服务器外部机器执行低风险只读基线。 | 避免本机 AI/浏览器/压测进程干扰正式服务器性能；P0 不调用 AGENT、不上传、不抓取招聘。 | `docs/operations/performance-testing/p0-production-canary.md`；用户确认。 |
 | 2026-09-15 | AGENT capability check 按 Endpoint row version + schema 绑定；Endpoint 修改后必须重新严格检查。 | 文章解释、题库生成、知识审核使用不同 schema，不能用其他 schema 的成功检查授权。 | `apps/agents/services/invocations.py`、`apps/agents/services/checks.py`、生产只读状态。 |
 | 2026-09-15 | 站内通知分为 Outbox 事件、Notification 本体和 NotificationReceipt 回执；Toast 不进入通知中心。 | 保证事务一致性、幂等投递、每用户已读隔离，并区分持久业务通知与临时操作反馈。 | `apps/core/events/`、`apps/notifications/`、通知模板/已读服务。 |
+| 2026-09-20 | 岗位公开页的性能优化保留在 `apps/opportunities` 唯一 public query owner：合并三个筛选选项查询、复用已加载来源计数，并让 HTMX fragment 跳过完整页摘要。 | P0 隔离 PostgreSQL 证据显示筛选页从 5 条 owner SQL 降为 3 条，完整请求从 17 条降为 14 条；岗位分页仍固定为 count/page/prefetch 三条，无模板 N+1 或响应字段删减。 | `apps/opportunities/queries/public.py`、`apps/opportunities/views.py`；本轮临时聚焦回归探针（已清理）6 个测试、9 个既有领域回归通过。 |
 
 ## Decision Guidelines
 
