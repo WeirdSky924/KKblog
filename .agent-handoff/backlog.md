@@ -19,8 +19,9 @@
 - [x] `B-017` 首页导航分区链接在 HTMX 成功替换文章列表后平滑定位至 `data-home-articles` 顶部；390/768/1440 与桌面深处滚动路径均通过 Labs 浏览器读回。
 - [ ] `B-018` 本轮正式发布时，在浏览器 Unix socket 已就绪后重建 `kaj-production-worker-1`，读回容器内 socket 与宿主 inode 一致，并确认 Worker healthy。
 - [x] `B-019` 在 Labs 用有界 SafeHttpClient/robots 请求和聚焦回归确认 Hotjob、Getui、Dahua、Beisen 响应契约，修复相应 parser；Meituan 五页只读解析未复现响应错误。生产数据未写入。
-- [ ] `B-020` 当前用户已授权本轮提交/推送和生产增量更新；五个代码提交已在 `codex/labs-production-increment` 本地形成，待推送、fast-forward、候选构建与正式切换。
-- [ ] `B-021` 应用 `learning.0014`/`0015`、部署答题/导航/招聘修复，按受影响来源检查流程重查固定 35 条 `STALE` 来源，并按用户要求关闭 Labs Web 与 P12 测试依赖。
+- [x] `B-020` 本轮主体代码和发布计划已推送并 fast-forward；正式 Web 候选已构建，生产预检通过。
+- [ ] `B-021` 在 Nginx 维护标记下应用 `learning.0014`/`0015`，切换 Web/Worker/Beat、`collectstatic`，通过来源检查 service 重查固定 35 条 `STALE` 来源，移除维护标记并关闭 Labs Web/P12 测试依赖。
+- [ ] `B-022` 完成 Nginx 唯一维护入口文档收口，撤销本轮误加的冗余 Caddy maintenance route，然后推送并 fast-forward。
 
 ## Backlog Guidelines
 

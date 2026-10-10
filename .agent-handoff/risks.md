@@ -3,7 +3,7 @@
 ## Current Blockers
 
 - Labs Web `/home/code/.codex-worktrees/personal-blog/labs-test-environment` 当前为 `active/running`，公网 `/health/live` 返回 `200`；测试库已应用 `learning.0014` 和 `0015`，读回模式数据库默认值 `EXAM`。答题解析栏位置由用户确认，首页导航平滑定位已通过 390/768/1440 浏览器验证。
-- 招聘适配器、Worker socket、Caddy 维护路由和增量镜像合同回归为 `36 passed`；Labs 已通过 SafeHttpClient/robots 检查完成五种来源有界直连，未写招聘数据。Beisen/Hotjob/Meituan 的 `truncated=True` 是刻意设置的测试上限。
+- 招聘适配器、Worker socket、Caddy/config 与增量镜像合同回归已完成；正式维护验证归 Nginx owner，不保留重复的 Caddy 维护开关。Labs 来源直连未写招聘数据。
 - Labs 没有 Worker 或浏览器沙箱；`kaj-labs.service` 只运行 Web。生产 socket inode 问题已由生产只读证据确认，但 Worker 重建后的 socket 可见性尚未在 Labs 运行态验证。
 - Labs 当前数据库的 3 个题库卷均为 `ADMIN_HIDDEN`，锁定原因 `security_review`；公开题库页返回 `0 个结果` 是业务可见性事实，不应通过原始 SQL 静默改公开。若要测试公开答题入口，需要用户授权由 learning 管理 owner 恢复指定题库卷。
 - Labs `var/media` 初始为空导致数据库中 11 个非删除媒体引用返回 404；已从旧 Labs 归档按 storage key 定向恢复，当前媒体文件存在且属主为 `kaj-labs`。后续禁止从 `/home/code/personal-blog/var/production/media` 复制，除非用户明确授权并完成数据边界评审。
@@ -15,9 +15,10 @@
 - 生产浏览器服务 active，但当前 Worker 容器内配置的 socket 不存在；根因为容器 bind mount 指向旧 RuntimeDirectory inode。重建 Worker 后必须在来源重查前读回 socket 和 healthcheck。
 - 生产 35 条 `STALE` 来源分别记录 26 个浏览器 socket 错误、8 个响应契约错误和 1 个超时。当前请求已明确授权状态修复；只能通过现有来源检查 service 逐条重查并读回终态，不可直接把状态字段改为成功，也不运行全量扫描。
 - 五个本轮代码提交已在任务分支本地形成，Git 远端集成尚未完成；当前请求明确授权提交/推送和正式增量更新。
-- 生产容器使用 `/home/code/personal-blog/var/production/compose.runtime.yaml`；正式更新会定向切换 Web/Worker/Beat/Caddy 镜像，先保存权限 `0600` 的 Compose 快照，不读取或输出环境秘密。
+- 正式公网入口是宿主 Nginx。`/run/kaj-production-maintenance.enabled` 已启用并读回公网 `503`；Web loopback 通过正式 Host/代理头返回 live/ready `200`。维护模式期间不得删除此标记。
+- 生产容器使用 `/home/code/personal-blog/var/production/compose.runtime.yaml`；正式更新只切换 Web/Worker/Beat 应用镜像，Caddy 已恢复正式基线 `2cbead0`。Compose runtime/database 快照均已保存为 `0600`。
 - `learning.0014` 与 `0015` 必须在同一维护窗口完成；若 `0015` 失败，保持维护模式，不开放旧应用写入。新刷题记录产生后，旧应用回退不理解 `PRACTICE`，后续应前向修复。
-- Docker Hub 基础镜像元数据请求超时；Caddy 候选已复用现有正式镜像构建并通过 `caddy adapt --validate`。Web 候选使用本轮新增的基线源码增量 Dockerfile，正式构建仍待执行。
+- Docker Hub 基础镜像元数据请求超时；Web 候选使用本轮新增的基线源码增量 Dockerfile。最终 revision 的 Web 候选仍待重新构建。
 - 旧 Labs worktree 已归档并保留脏改动；后续需要某项旧工作时先逐文件审查，禁止整体复制或覆盖新基线。
 - 当前 Labs 分支 `codex/labs-next-20261009` 跟踪 `origin/main`，HEAD `631253f`；正式应用 revision 为 `42adeb4`，其后的提交仅有文档差异。
 - 根主工作区仍有 handoff 修改与未跟踪 P0 文档；本轮没有清理或同步这些改动，后续 Git 交付必须排除无关内容。

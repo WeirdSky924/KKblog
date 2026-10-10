@@ -3,11 +3,12 @@
 ## 2026-10-11（正式增量发布准备）
 
 - Objective: 提交推送 Labs 本轮答题/导航/招聘修复，增量更新生产，修复 35 条来源状态，并在结束时关闭 Labs 测试服务。
-- Changes: 五个本轮提交已在 `codex/labs-production-increment` 本地形成；答题迁移增加 `0015` 数据库默认值，Caddy 增加可切换维护路由，新增基于正式基线的源码增量 Dockerfile；独立发布公告、部署计划和检查清单已创建。
-- Validation: Quiz `15 passed`；招聘适配器/Worker/Caddy `36 passed`；维护与增量镜像合同 `2 passed`；Django check、migration drift、目标 Ruff、JS 语法、`npm run build` 和 Caddy `adapt --validate` 通过。Labs `0015` 已应用并读回数据库默认值 `'EXAM'`。
-- Production baseline: Web/Worker/Beat `42adeb4ceb74`，Caddy `2cbead0`，learning leaf `0013_generation_batches`；live/ready `200`。35 条启用来源 stale（26 socket、8 parser、1 timeout），无活动来源检查；Worker 内 socket 当前不可见。
-- Status/boundary: 正式生产备份、迁移、服务切换和来源重查尚未执行。用户当前回合已授权 Git 交付、生产增量更新、错误状态修复与 Labs 服务关闭；未调用 Provider/AGENT。
-- Next: 完成发布记录和 handoff 审查，推送/fast-forward；构建候选，生产预检和备份，维护窗口迁移与切换，重查固定 35 条来源，最后停止 Labs Web/P12 测试依赖。
+- Changes: 答题、导航、适配器与 Web 增量构建提交已集成远端；答题迁移新增数据库级 `EXAM` 默认值。正式维护入口核验归属后，保留宿主 Nginx 现有 marker owner，移除冗余 Caddy 开关。发布公告、方案和执行记录分文件维护。
+- Validation: Quiz `15 passed`；adapter/Worker 回归 `35 passed`；增量镜像合同 `1 passed`；Django check、migration drift、Ruff、JS 语法、`npm run build` 通过。Labs `0015` 已应用并读回数据库默认值 `'EXAM'`。
+- Production baseline: Web/Worker/Beat 原基线 `42adeb4ceb74`，Caddy 已恢复 `2cbead0`，learning leaf `0013_generation_batches`。Nginx marker 读回公网 `503`/维护响应头，直连 Web live/ready `200`。35 条来源 stale（26 socket、8 parser、1 timeout），无活动来源检查。
+- Backup/state: PostgreSQL、媒体、Compose runtime/database 快照均已创建、权限 `0600` 并读回；Nginx 维护标记当前启用。Web/Worker/Beat 仍为旧容器，生产 migration 和来源检查尚未执行。
+- Status/boundary: 用户当前回合已授权 Git 交付、生产增量更新、错误状态修复与 Labs 服务关闭；未调用 Provider/AGENT。生产数据修复仅通过现有 source check service 执行。
+- Next: 推送 Nginx owner 文档收口并 fast-forward；按最终 revision 重建 Web 候选，停 Beat/Worker，执行 `0014+0015`、Web/Worker/Beat 切换和 `collectstatic`，逐条检查固定 35 条来源，移除 Nginx marker，最后停止 Labs Web/P12 测试依赖。
 
 ## 2026-10-10（Labs 招聘来源适配器验证与修复）
 

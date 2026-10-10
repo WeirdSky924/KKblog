@@ -5,12 +5,10 @@
 
 import /etc/caddy/media-delivery.caddy
 import /etc/caddy/analytics-proxy.caddy
-import /etc/caddy/maintenance.caddy
 
 http://localhost {
 	encode gzip
 	route {
-		import maintenance
 		import media_delivery
 		import analytics_proxy
 		handle_path /static/* {

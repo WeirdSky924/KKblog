@@ -4,7 +4,7 @@
 
 当前源码是否已形成可部署候选，以对应发布目录中的验证记录和远端默认分支读回为准。P12 只在隔离环境验证了候选镜像、Compose、健康检查、备份任务和本页模拟状态机；提交或推送源码不表示已经执行生产备份、migration、部署、服务重启或恢复演练。
 
-Development 与 production 两种 Caddy 配置共用 `/etc/caddy/maintenance.caddy`。当前正式 Compose 位于宿主 Nginx TLS 代理之后，实际使用 `Caddyfile.development`；两种配置都通过 `/config/maintenance.enabled` 文件开关维护页。存在该文件时，公开请求返回 `503`、`Cache-Control: no-store` 和 `Retry-After: 120`；`/health/live` 与 `/health/ready` 保持可读。维护文件必须在正式 Compose 所挂载的 Caddy config 目录中创建，并在候选应用通过健康读回后移除。
+正式公网维护门禁由宿主 Nginx 所有，规则位于 `/etc/nginx/snippets/kaj-manual-maintenance.conf`。创建 `/run/kaj-production-maintenance.enabled` 后，Nginx 对所有公网请求返回 `503`、`Cache-Control: no-store` 和 `Retry-After: 120`；维护期间通过 Web 容器的 loopback 端口并带正式 Host/代理头检查 live/ready，确认候选通过后再移除标记。该开关无需重载 Nginx。
 
 ## 安全边界
 
