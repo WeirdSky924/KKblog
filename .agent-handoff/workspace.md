@@ -46,7 +46,7 @@
 
 ## Worktree Map
 
-- `/home/code/personal-blog`: 开发主工作区，`main`，当前与 `origin/main` 同步在 `631253f`；有本地 handoff 修改及未跟踪 P0 文档，必须保留并与 Labs 迭代区分。
+- `/home/code/personal-blog`: 开发主工作区，local `main` HEAD 为 `631253f`；有未提交 handoff 修改及未跟踪 `docs/operations/performance-testing/p0-production-canary/`，必须保留并与 Labs 发布分开处理。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree；Web、Worker、Beat、Outbox service/timer 均 inactive/dead，P12 PostgreSQL/Redis/Mailpit 均已退出，数据卷保留。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
