@@ -5,6 +5,7 @@
 
 import /etc/caddy/media-delivery.caddy
 import /etc/caddy/analytics-proxy.caddy
+import /etc/caddy/maintenance.caddy
 
 http://{$KAJ_PUBLIC_HOST} {
 	redir https://{$KAJ_PUBLIC_HOST}{uri} permanent
@@ -17,19 +18,7 @@ http://{$KAJ_PUBLIC_HOST} {
 {$KAJ_PUBLIC_HOST} {
 	encode gzip
 	route {
-		@maintenance {
-			file {
-				root /config
-				try_files /maintenance.enabled
-			}
-			not path /health/live /health/ready
-		}
-		handle @maintenance {
-			header Cache-Control "no-store"
-			header Retry-After "120"
-			respond "Kajspace 正在进行维护，请稍后重试。" 503
-		}
-
+		import maintenance
 		import media_delivery
 		import analytics_proxy
 		handle_path /static/* {
