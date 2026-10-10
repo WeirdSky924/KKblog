@@ -47,10 +47,10 @@
 ## Worktree Map
 
 - `/home/code/personal-blog`: 开发主工作区，`main`，当前与 `origin/main` 同步在 `631253f`；有本地 handoff 修改及未跟踪 P0 文档，必须保留并与 Labs 迭代区分。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: 当前 Labs worktree，分支 `codex/nginx-maintenance-gate`，基于远端 `main=fde8a60`；`kaj-labs.service` 当前 active，本轮结束时按用户要求停止 Labs Web 与 P12 PostgreSQL/Redis/Mailpit 测试依赖。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree；Web、Worker、Beat、Outbox service/timer 均 inactive/dead，P12 PostgreSQL/Redis/Mailpit 均已退出，数据卷保留。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
-- `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；当前 Web/Worker/Beat 为 `kaj-blog-web:42adeb4ceb74`，含凭据、数据库、媒体和备份，禁止复制/清理。
+- `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；Web/Worker/Beat 已增量切换为 `kaj-blog-web:d06af75a9c31`，Caddy 保持 `kaj-blog-caddy:2cbead0`。目录含凭据、数据库、媒体和备份，禁止整体复制或清理。
 
 ## Durable Project Context
 

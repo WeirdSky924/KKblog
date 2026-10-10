@@ -17,11 +17,12 @@
 - [x] `B-015` 统一答题提交入口：考试模式提交整卷，刷题模式提交当前题；移除题目内重复按钮，解析栏按当前题揭晓状态展开/收起，切回已提交题自动恢复。
 - [x] `B-016` 用户已手动确认刷题解析面板回到原右侧栏位置。
 - [x] `B-017` 首页导航分区链接在 HTMX 成功替换文章列表后平滑定位至 `data-home-articles` 顶部；390/768/1440 与桌面深处滚动路径均通过 Labs 浏览器读回。
-- [ ] `B-018` 本轮正式发布时，在浏览器 Unix socket 已就绪后重建 `kaj-production-worker-1`，读回容器内 socket 与宿主 inode 一致，并确认 Worker healthy。
+- [x] `B-018` 本轮重建生产 Worker；容器 socket 与宿主设备/inode 一致、权限 `0660`、UID/GID `999:10001`，Worker healthy。
 - [x] `B-019` 在 Labs 用有界 SafeHttpClient/robots 请求和聚焦回归确认 Hotjob、Getui、Dahua、Beisen 响应契约，修复相应 parser；Meituan 五页只读解析未复现响应错误。生产数据未写入。
-- [x] `B-020` 本轮主体代码和发布计划已推送并 fast-forward；正式 Web 候选已构建，生产预检通过。
-- [ ] `B-021` 在 Nginx 维护标记下应用 `learning.0014`/`0015`，切换 Web/Worker/Beat、`collectstatic`，通过来源检查 service 重查固定 35 条 `STALE` 来源，移除维护标记并关闭 Labs Web/P12 测试依赖。
-- [ ] `B-022` 完成 Nginx 唯一维护入口文档收口，撤销本轮误加的冗余 Caddy maintenance route，然后推送并 fast-forward。
+- [x] `B-020` 本轮最终有效代码与公告已推送并 fast-forward 到远端 `main=d06af75`；临时任务分支已清理。
+- [x] `B-021` 生产应用 `learning.0014/0015`，切换 Web/Worker/Beat、收集静态资源，通过现有 service 检查 35 个来源，恢复公网并关闭 Labs Web/P12 测试服务；保留真实失败状态。
+- [x] `B-022` 正式维护入口归宿主 Nginx；Caddy 保持既有基线，没有重复 Caddy marker。
+- [ ] `B-023` 调查生产 PostgreSQL backend 两次 exit-code 2 自动恢复的根因；在 Labs 校准并修复 3 个 HTTP parser stale 来源和 Qcraft source timeout 后再做定向复查。
 
 ## Backlog Guidelines
 

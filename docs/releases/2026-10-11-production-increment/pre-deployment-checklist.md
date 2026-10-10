@@ -9,15 +9,21 @@
 - [x] 生产只读基线：Web/Worker/Beat 为 `42adeb4ceb74`，Caddy 为 `2cbead0`；live/ready 为 `200`。
 - [x] 生产 learning migration leaf 为 `0013_generation_batches`。
 - [x] 生产共有 35 条启用的 `STALE` 来源；26 个浏览器 socket 错误、8 个响应契约错误、1 个超时；没有活动来源检查运行。
-- [x] 正式 Caddy 维护候选基于现有 Caddy 镜像构建，Caddy `adapt --validate` 退出 `0`。
+- [x] Nginx 维护片段只读核验；临时标记验证公网 `503` 和维护响应头，Web loopback health 在正式代理头下返回 `200`。
 
 ## Git 与生产
 
-- [ ] 远端默认分支包含全部本轮提交，任务分支已完成 fast-forward 集成和清理。
-- [ ] Web/Caddy 候选镜像构建成功，源码 revision 与镜像 ID 已记录。
-- [ ] 候选 `check --deploy`、`makemigrations --check --dry-run` 与正式 `migrate --plan` 通过。
-- [ ] PostgreSQL、媒体和 Compose 新鲜备份完成，权限 `0600`，摘要和可读性已读回。
-- [ ] Caddy 维护开关、`0014+0015` migration、Web/Worker/Beat 顺序切换和 `collectstatic` 完成。
-- [ ] 35 条来源逐条重新检查并按实际终态读回；未执行全量招聘检查或 Provider/AGENT 调用。
-- [ ] 正式页面/静态/健康读回完成，维护模式关闭。
-- [ ] Labs Web 及本轮相关测试服务停止，测试数据与卷保留。
+- [x] 远端 `main=d06af75` 包含本轮最终有效提交，任务分支 fast-forward 后已清理。
+- [x] Web 候选 `kaj-blog-web:d06af75a9c31` 构建成功，源码 revision 和镜像 ID 已读回；Caddy 保持基线 `2cbead0`。
+- [x] 候选 `check --deploy`、migration drift、正式 migration plan 通过；plan 包含 `learning.0014/0015`。
+- [x] PostgreSQL、媒体和 Compose runtime/database 新鲜备份完成，均为 `0600`，摘要与可读性已读回。
+- [x] Nginx maintenance、`0014+0015` migration、Web/Worker/Beat 切换、browser sandbox 更新和 `collectstatic` 完成。
+- [x] 35 条来源逐条检查：30 成功、1 截断、4 失败；未运行每日全量检查或 Provider/AGENT 调用。
+- [x] 根页、岗位页、CSS/JS、live/ready 均 `200`；答题匿名入口按权限 `302` 到登录；维护模式已关闭。
+- [x] Labs Web 及 P12 PostgreSQL/Redis/Mailpit 已停止，测试数据与卷保留。
+
+## 剩余事项
+
+- 3 条来源仍因 `opportunities.adapter_response_invalid.v1` 保持 `STALE`（2 Hotjob、1 Meituan）；Qcraft 来源超时也保留 `STALE`。
+- ByteDance 返回截断结果，来源状态保留 `DEGRADED`。
+- PostgreSQL backend 两次以 exit-code 2 退出并自动恢复，容器无 restart/OOM；根因未知，需单独调查。

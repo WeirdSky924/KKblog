@@ -1,14 +1,14 @@
 # Current Work Log
 
-## 2026-10-11（正式增量发布准备）
+## 2026-10-11（正式增量发布与状态修复）
 
-- Objective: 提交推送 Labs 本轮答题/导航/招聘修复，增量更新生产，修复 35 条来源状态，并在结束时关闭 Labs 测试服务。
-- Changes: 答题、导航、适配器与 Web 增量构建提交已集成远端；答题迁移新增数据库级 `EXAM` 默认值。正式维护入口核验归属后，保留宿主 Nginx 现有 marker owner，移除冗余 Caddy 开关。发布公告、方案和执行记录分文件维护。
-- Validation: Quiz `15 passed`；adapter/Worker 回归 `35 passed`；增量镜像合同 `1 passed`；Django check、migration drift、Ruff、JS 语法、`npm run build` 通过。Labs `0015` 已应用并读回数据库默认值 `'EXAM'`。
-- Production baseline: Web/Worker/Beat 原基线 `42adeb4ceb74`，Caddy 已恢复 `2cbead0`，learning leaf `0013_generation_batches`。Nginx marker 读回公网 `503`/维护响应头，直连 Web live/ready `200`。35 条来源 stale（26 socket、8 parser、1 timeout），无活动来源检查。
-- Backup/state: PostgreSQL、媒体、Compose runtime/database 快照均已创建、权限 `0600` 并读回；Nginx 维护标记当前启用。Web/Worker/Beat 仍为旧容器，生产 migration 和来源检查尚未执行。
-- Status/boundary: 用户当前回合已授权 Git 交付、生产增量更新、错误状态修复与 Labs 服务关闭；未调用 Provider/AGENT。生产数据修复仅通过现有 source check service 执行。
-- Next: 推送 Nginx owner 文档收口并 fast-forward；按最终 revision 重建 Web 候选，停 Beat/Worker，执行 `0014+0015`、Web/Worker/Beat 切换和 `collectstatic`，逐条检查固定 35 条来源，移除 Nginx marker，最后停止 Labs Web/P12 测试依赖。
+- Objective: 提交推送本轮答题/导航/招聘修复，增量更新正式环境，按真实终态修复 35 条来源状态，并关闭 Labs 测试服务。
+- Changes: 最终有效提交已 fast-forward 到远端 `main=d06af75`。答题迁移 `0014/0015` 已应用；Web/Worker/Beat 使用 `kaj-blog-web:d06af75a9c31`；独立 browser sandbox 更新到版本化 `d06af75` release，Feishu allowlist 与应用契约一致；Nginx marker 已移除、Caddy 保持 `2cbead0`。
+- Validation: Quiz/记录回归 `15 passed`；adapter/Worker `35 passed`；增量镜像合同 `1 passed`；browser runner 合同 `19 passed`。Django check、migration drift、生产 plan、Ruff、JS 语法、`npm run build` 和 Caddy profile 验证通过。
+- Production: `learning.0014/0015`、模式约束和 DB `EXAM` default 读回；Web/Worker/Beat healthy/running、restart 0；Worker socket 与宿主 inode一致。35 条最新来源检查为 30 healthy、1 degraded/truncated、4 stale（Qcraft timeout、2 Hotjob parser、1 Meituan parser）；无活动检查/每日全量任务/Provider/AGENT。
+- Safety: PostgreSQL dump、媒体归档、Compose 快照均为 `0600` 并校验。来源状态只经现有 service 更新。生产 PostgreSQL backend 两次 exit-code 2 后自动 WAL recovery；容器无 restart/OOM，当前 healthy，根因需后续调查。
+- Labs: Web 与 P12 PostgreSQL/Redis/Mailpit 已 stop 并读回 inactive/exited；数据卷保留。
+- Next: 独立调查 PostgreSQL backend exit 根因；在 Labs 修复三条仍 `adapter_response_invalid` 来源和 Qcraft timeout，再定向复查。外部 P0 性能复测与生产 knowledge-review capability check 仍是独立运维待办。
 
 ## 2026-10-10（Labs 招聘来源适配器验证与修复）
 

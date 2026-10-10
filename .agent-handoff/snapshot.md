@@ -5,13 +5,11 @@
 - Last updated: 2026-10-11
 - Last agent: Codex
 - Workspace root: `/home/code/.codex-worktrees/personal-blog/labs-test-environment`
-- Current objective: 完成本轮 Labs 代码、文档的提交推送，增量更新正式环境、前向应用答题迁移、按真实检查结果修正 35 条岗位来源状态，并在结束时关闭 Labs 测试服务。
-- Current status: 答题、导航、适配器和增量镜像代码已提交并 fast-forward 到远端；正在收口维护入口文档。正式 Nginx 维护标记已开启，公网返回 `503`；数据库/媒体/Compose 备份已校验。Caddy 已恢复 `2cbead0`，Web/Worker/Beat 仍为旧镜像；生产尚未执行 migration 或来源状态修复。Labs 已应用 `learning.0015` 并读回数据库级 `EXAM` 默认值。
+- Current objective: 完成本轮 Labs 提交推送、正式增量更新、答题前向 migration、35 条招聘来源状态复核及 Labs 测试服务关闭。
+- Current status: 已完成。本轮生产部署代码 revision 为 `d06af75`；Web/Worker/Beat 使用 `kaj-blog-web:d06af75a9c31`，Caddy 保持 `2cbead0`。生产已应用 `learning.0014/0015`；公网维护 marker 已移除，关键公网路径和 health 为 `200`。35 条来源最新终态为 30 HEALTHY、1 DEGRADED/TRUNCATED、4 STALE（Qcraft 超时、2 Hotjob 和1 Meituan响应错误）。Labs Web、Worker、Beat、Outbox service/timer 与 P12 PostgreSQL/Redis/Mailpit 已停止。
 - Immediate next actions:
-  - 完成 Nginx 维护入口收口并推送 fast-forward；重新构建最终 revision 的 Web 候选，候选 checks 和 migration plan 与最终 revision 对齐。
-  - 保持 `/run/kaj-production-maintenance.enabled`，停 Beat/Worker，前向执行 `learning.0014`/`0015`，切换 Web、`collectstatic`、Worker、Beat。
-  - Worker socket 健康后逐条重查固定 35 条来源，读回终态；然后移除 Nginx 标记并验证公网和关键页面。
-  - 最后关闭 Labs Web 与 P12 PostgreSQL/Redis/Mailpit 测试服务。
+  - 单独调查定向来源复查期间两次 PostgreSQL backend exit-code 2 自动恢复的根因；容器无 restart/OOM，当前 healthy。
+  - 在 Labs 收集安全响应契约并修复 3 个仍 stale 的 HTTP 来源；定位 Qcraft 单来源超时，后续只按受限检查恢复其状态。
   - 外部 P0 性能复测与生产知识审核 capability check 保持独立运维待办。
 - Active files:
   - `apps/learning/migrations/0014_quizattempt_mode_and_more.py`
@@ -22,18 +20,18 @@
   - `docs/releases/2026-10-09-next-iteration/announcement.md`
   - `.agent-handoff/snapshot.md`
   - `.agent-handoff/validation.md`
-- Blockers: 没有授权阻塞。Nginx 维护标记已开启；需及时完成前向 migration、服务切换和定向来源检查后恢复公网访问。
+- Blockers: 本轮部署和 Labs 关停均已完成。剩余 4 个来源保持真实失败状态；PostgreSQL backend 自动恢复根因待调查。
 - Open questions:
   - 无当前发布范围内的待确认项。
 
 ## Recovery Summary
 
-- 最新核验远端默认分支为 `fde8a60`；当前活动 Labs 分支为 `codex/nginx-maintenance-gate`。正式 Web/Worker/Beat 容器仍为 `42adeb4`；生产 Caddy 已恢复 `2cbead0`。
+- 本轮生产部署代码提交为 `d06af75`；Labs worktree 内的相关测试服务已关闭。正式 Web/Worker/Beat 为 `d06af75a9c31` 候选；Caddy 为 `2cbead0`。
 - 旧 Labs 工作树完整保留在 `labs-test-environment-archive-20261009`（detached `a06a94f`），其脏改动未迁入新分支；旧 `codex/labs-next-iteration` 分支仍保留。
 - 正式公告与本轮增量记录分别以 `docs/releases/2026-09-20-production-increment/` 和 `docs/releases/2026-10-09-next-iteration/announcement.md` 为准。
 - 2026-10-09 生产只读指标快照截止 `03:20 UTC`：9 个 ACTIVE/有行为账户、159 篇文章、301 条修订、4 个 APPROVED 文档、4 套 PUBLISHED 题库（公开最新版 999 题）；TaskRun 1,737,523 条，成功率 `99.9930%`，重试率 `0.1112%`，P95 `254ms`。该数据不属于下一轮效果。
 - 2026-10-10 生产招聘定时检查只读诊断：Celery 全局硬/软时限未配置；最新 18:00 批次完整处理 129 个来源，0 个未执行。35 个来源失败中 34 个为浏览器适配器不可用/响应校验失败，仅 1 个为单请求超时；近 30 天来源时限错误仅 1 条。另有 2026-09-20 单次 TaskRun 租约最终失败记录，作为独立异常保留，不解释当前重复失败模式。
 - 进一步核验确认浏览器服务实际可运行，但 Worker 容器的 bind mount 与宿主当前 `/run/kaj-opportunity-browser` 是不同目录 inode；浏览器 systemd 服务于 2026-09-26 启动，Worker 容器于 2026-09-20 创建。持续的 `adapter_response_invalid` 分布于 Hotjob、Dahua、Getui、Meituan、Beisen，实时响应体未持久化。
 - 2026-10-10 Labs 已通过有界 SafeHttpClient/robots 直连验证 Dahua、Beisen、Getui、Hotjob、Meituan 当前来源响应，并修复四种 adapter 的契约差异；聚焦回归 `35 passed`。没有运行生产采集或写入数据库。
-- 2026-10-11 生产只读读回：35 条启用招聘来源为 `STALE`，26 条最后错误为浏览器 socket 不可用、8 条为响应契约错误、1 条为请求超时；没有活动来源检查运行。当前生产 Worker 环境变量指向的 socket 在容器内不存在，宿主浏览器服务为 active。
-- 2026-10-11 生产执行中：备份已生成并校验；Nginx 维护标记的公网 `503` 和 Web loopback live/ready `200` 已读回。生产 migration 和来源重查尚未执行。
+- 2026-10-11 发布前生产快照：35 条启用招聘来源为 `STALE`，26 条最后错误为浏览器 socket 不可用、8 条为响应契约错误、1 条为请求超时；没有活动来源检查运行。该状态已由本轮定向复查更新，最终结果见 deployment record。
+- 2026-10-11 生产执行完成：生产 dump、媒体、Compose 备份已校验；`0014/0015` 已应用；browser runtime 已更新到 `d06af75` 并与 Worker socket inode 对齐；Nginx marker 已关闭、公网关键路径 `200`。来源复查结果和数据库 backend 自动恢复见正式 deployment record。
