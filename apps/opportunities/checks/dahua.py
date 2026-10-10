@@ -11,7 +11,11 @@ from .adapters import (
     FetchClient,
     published_at_from_mapping,
 )
-from .http import MAX_ADAPTER_RESPONSE_BYTES, SafeHttpResult, SafeRequestError
+from .http import (
+    MAX_LARGE_ADAPTER_RESPONSE_BYTES,
+    SafeHttpResult,
+    SafeRequestError,
+)
 
 _API = "https://job.dahuatech.com/talent-pool/api/bs-info/list-position-by-search"
 _COHORT = re.compile(r"(?<!\d)(?:20)?(\d{2})\s*届")
@@ -146,7 +150,7 @@ class DahuaAdapter:
                     "jobTitle": "",
                     "recruitType": recruit_type,
                 },
-                max_response_bytes=MAX_ADAPTER_RESPONSE_BYTES,
+                max_response_bytes=MAX_LARGE_ADAPTER_RESPONSE_BYTES,
             )
         )
         truncated = len(rows) > max_opportunities

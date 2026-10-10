@@ -18,13 +18,15 @@ def _result(payload, *, url="https://job.getui.com/data/recruit/school/2021/job/
 
 
 class _GetuiClient:
-    def __init__(self):
+    def __init__(self, payload=None):
         self.posts = []
+        self.payload = payload
 
     def post_json(self, url, payload, **limits):
         self.posts.append((url, payload, limits))
         return _result(
-            {
+            self.payload
+            or {
                 "errNo": 0,
                 "data": {
                     "total": 2,
@@ -94,6 +96,41 @@ def test_getui_adapter_collects_the_category_selected_by_the_source_url():
             {},
         )
     ]
+
+
+def test_getui_category_route_does_not_require_a_job_with_the_category_id():
+    source_url = "https://job.getui.com/campus/position/192?type=技术类"
+    client = _GetuiClient(
+        {
+            "errNo": 0,
+            "data": {
+                "total": 1,
+                "list": [
+                    {
+                        "id": 301,
+                        "name": "研发工程师",
+                        "city": "浙江省/杭州市",
+                        "type": "技术类",
+                        "content": "软件研发岗位。",
+                    }
+                ],
+            },
+        }
+    )
+
+    result = GETUI_ADAPTER.collect(
+        source_url=source_url,
+        config={},
+        client=client,
+        initial_response=SafeHttpResult(200, source_url, "每日互动招聘", b"", False),
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert len(result.opportunities) == 1
+    assert result.opportunities[0].target_url.endswith(
+        "position/301?type=%E6%8A%80%E6%9C%AF%E7%B1%BB"
+    )
 
 
 def test_getui_adapter_rejects_a_mismatched_category_anchor():

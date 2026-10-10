@@ -5,7 +5,7 @@ import pytest
 from apps.opportunities.checks.adapters import CollectedOpportunity
 from apps.opportunities.checks.dahua import DAHUA_ADAPTER
 from apps.opportunities.checks.http import (
-    MAX_ADAPTER_RESPONSE_BYTES,
+    MAX_LARGE_ADAPTER_RESPONSE_BYTES,
     SafeHttpResult,
     SafeRequestError,
 )
@@ -105,7 +105,7 @@ def test_dahua_adapter_collects_each_public_recruitment_list(
                 "jobTitle": "",
                 "recruitType": 2 if recruit_type == "CAMPUS" else 3,
             },
-            {"max_response_bytes": MAX_ADAPTER_RESPONSE_BYTES},
+            {"max_response_bytes": MAX_LARGE_ADAPTER_RESPONSE_BYTES},
         )
     ]
 

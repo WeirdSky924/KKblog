@@ -105,7 +105,7 @@ services:
       test:
         - CMD-SHELL
         - >-
-          python -c 'import os; raise SystemExit(0 if any(b"celery" in open("/proc/"+pid+"/cmdline","rb").read() for pid in os.listdir("/proc") if pid.isdigit()) else 1)'
+          python -c 'import os,pathlib; p=os.environ.get("KAJ_OPPORTUNITY_BROWSER_SOCKET"); worker=any(b"celery" in open("/proc/"+pid+"/cmdline","rb").read() for pid in os.listdir("/proc") if pid.isdigit()); raise SystemExit(0 if worker and (not p or pathlib.Path(p).is_socket()) else 1)'
       interval: 30s
       timeout: 5s
       retries: 3

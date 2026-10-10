@@ -143,12 +143,16 @@ def _page(
         current_page = 1
     if isinstance(current_page, bool) or not isinstance(current_page, int):
         raise SafeRequestError("opportunities.adapter_response_invalid.v1")
+    empty_result = not rows and total_pages == 0 and total == 0
     if page_size is not None and (
         isinstance(page_size, bool)
         or not isinstance(page_size, int)
-        or not 1 <= page_size <= 100
+        or (page_size == 0 and not empty_result)
+        or (page_size != 0 and not 1 <= page_size <= 100)
     ):
         raise SafeRequestError("opportunities.adapter_response_invalid.v1")
+    if empty_result and page_size == 0:
+        page_size = None
     return rows, total_pages, total, current_page, page_size
 
 

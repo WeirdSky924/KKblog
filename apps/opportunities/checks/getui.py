@@ -119,7 +119,7 @@ class GetuiAdapter:
         heartbeat,
     ) -> AdapterResult:
         del initial_response
-        anchor, category = _source(source_url)
+        _, category = _source(source_url)
         max_pages = config.get("_max_pages", 50)
         max_opportunities = config.get("_max_opportunities", 5000)
         if (
@@ -175,8 +175,7 @@ class GetuiAdapter:
             page += 1
 
         parsed = tuple(_job(row, category=category) for row in rows)
-        identities = {job_id for job_id, _item in parsed}
-        if not truncated and (len(rows) != total or anchor not in identities):
+        if not truncated and len(rows) != total:
             raise SafeRequestError("opportunities.adapter_response_invalid.v1")
         items = tuple(item for _job_id, item in parsed)
         return AdapterResult(

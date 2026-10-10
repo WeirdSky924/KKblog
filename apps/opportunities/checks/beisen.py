@@ -39,6 +39,7 @@ _PLAN = {
     "social": "社会招聘",
 }
 _KIND_BY_CATEGORY = {"1": "social", "2": "campus", "3": "intern"}
+_TRUNCATED_PAGE_RETRY_SIZE = 20
 _LEGACY_COUNT = re.compile(r"共\s*([0-9][0-9,]*)\s*条(?:记录|职位)")
 _LEGACY_PAGE = re.compile(r"当前第\s*(\d+)\s*/\s*(\d+)\s*页")
 _LEGACY_JOB_HREF = re.compile(
@@ -820,6 +821,7 @@ class BeisenZhiyeAdapter:
         opportunities = []
         page_index = 0
         truncated = False
+        page_size_retries = 0
         while True:
             heartbeat()
             jobs_request = {
@@ -840,13 +842,23 @@ class BeisenZhiyeAdapter:
             }
             if category is not None:
                 jobs_request["Category"] = [category]
-            payload = _json_object(
-                client.post_json(
-                    f"{base}/api/Jobad/GetJobAdPageList",
-                    jobs_request,
-                    max_response_bytes=MAX_LARGE_ADAPTER_RESPONSE_BYTES,
-                )
+            response = client.post_json(
+                f"{base}/api/Jobad/GetJobAdPageList",
+                jobs_request,
+                max_response_bytes=MAX_LARGE_ADAPTER_RESPONSE_BYTES,
             )
+            if response.truncated and page_size > 1 and page_size_retries < 3:
+                retry_page_size = min(page_size, _TRUNCATED_PAGE_RETRY_SIZE)
+                page_size = (
+                    retry_page_size
+                    if retry_page_size < page_size
+                    else max(1, page_size // 2)
+                )
+                page_size_retries += 1
+                page_index = 0
+                opportunities.clear()
+                continue
+            payload = _json_object(response)
             rows = payload.get("Data")
             if not isinstance(rows, list):
                 raise SafeRequestError("opportunities.adapter_response_invalid.v1")

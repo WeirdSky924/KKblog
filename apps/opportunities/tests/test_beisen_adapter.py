@@ -506,6 +506,20 @@ class _BeisenPageSizeClient(_BeisenClient):
         return _result({"Code": 200, "Count": 21, "Data": rows})
 
 
+class _BeisenTruncatedFirstPageClient(_BeisenPageSizeClient):
+    def post_json(self, url, payload, **limits):
+        if url.endswith("GetJobAdPageList") and payload["PageSize"] > 20:
+            self.posts.append((url, payload, limits))
+            return SafeHttpResult(
+                status=200,
+                final_url=url,
+                title="",
+                body=b"",
+                truncated=True,
+            )
+        return super().post_json(url, payload, **limits)
+
+
 class _BeisenEmptyLocationClient(_BeisenClient):
     def post_json(self, url, payload, **limits):
         self.posts.append((url, payload, limits))
@@ -624,6 +638,48 @@ def test_beisen_adapter_honors_bounded_page_size_override():
         limits["max_response_bytes"] == MAX_LARGE_ADAPTER_RESPONSE_BYTES
         for limits in job_limits
     )
+
+
+def test_beisen_retries_a_truncated_large_page_with_a_smaller_page_size():
+    page_config = {
+        "Pages": [
+            {
+                "Key": "campus-page-id",
+                "PageType": 2,
+                "BusinessType": "2",
+                "Config": "{}",
+            }
+        ]
+    }
+    initial = SafeHttpResult(
+        status=200,
+        final_url="https://jobs.example.com/campus/jobs",
+        title="校园招聘",
+        body=(
+            "<script>BSGlobal = "
+            + json.dumps(page_config, ensure_ascii=False)
+            + ";</script>"
+        ).encode(),
+        truncated=False,
+    )
+    client = _BeisenTruncatedFirstPageClient()
+
+    result = BEISEN_ZHIYE_ADAPTER.collect(
+        source_url=initial.final_url,
+        config={"page_size": 100, "_max_pages": 5, "_max_opportunities": 100},
+        client=client,
+        initial_response=initial,
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert len(result.opportunities) == 21
+    jobs_requests = [
+        payload
+        for url, payload, _limits in client.posts
+        if url.endswith("GetJobAdPageList")
+    ]
+    assert [payload["PageSize"] for payload in jobs_requests] == [100, 20, 20]
 
 
 def test_beisen_adapter_uses_large_default_page_size_for_unconfigured_sources():

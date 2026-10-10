@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 
 def test_web_image_contains_media_runtime_without_browser_privilege_expansion():
     dockerfile = Path("docker/web/Dockerfile").read_text(encoding="utf-8")
@@ -25,3 +27,12 @@ def test_browser_runtime_is_isolated_in_a_non_privileged_host_service():
     assert "--chrome /opt/google/chrome/chrome" in unit
     assert "SYS_ADMIN" not in unit
     assert "--no-sandbox" not in unit
+
+
+def test_worker_healthcheck_requires_a_configured_browser_socket():
+    compose = yaml.safe_load(Path("compose.yaml").read_text(encoding="utf-8"))
+    healthcheck = compose["services"]["worker"]["healthcheck"]["test"]
+    command = " ".join(healthcheck)
+
+    assert "KAJ_OPPORTUNITY_BROWSER_SOCKET" in command
+    assert "is_socket" in command

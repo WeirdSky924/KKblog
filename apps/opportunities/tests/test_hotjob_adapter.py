@@ -122,6 +122,26 @@ def test_hotjob_adapter_collects_pages_and_source_publication_time():
     assert len(client.urls) == 2
 
 
+def test_hotjob_adapter_accepts_empty_result_with_zero_page_size_sentinel():
+    source = "https://wecruit.hotjob.cn/SU62b2ae672f9d24458d72f9cc/pb/school.html"
+    client = _Client(
+        [_response(_payload([], total=0, total_pages=0, current_page=0, page_size=0))]
+    )
+
+    result = HOTJOB_ADAPTER.collect(
+        source_url=source,
+        config={"_max_pages": 10, "_max_opportunities": 20},
+        client=client,
+        initial_response=SafeHttpResult(200, source, "", b"", False),
+        heartbeat=lambda: None,
+    )
+
+    assert result.complete is True
+    assert result.opportunities == ()
+    assert result.pages_read == 1
+    assert len(client.urls) == 1
+
+
 def test_hotjob_comprehensive_portal_deduplicates_same_post_across_types():
     source = "https://wecruit.hotjob.cn/SU64ae46c02f9d24760adac777/pb/index.html"
     row = _row("same-job", "结构管培生")
