@@ -1,5 +1,97 @@
 # Current Work Log
 
+## 2026-10-11（正式增量发布准备）
+
+- Objective: 提交推送 Labs 本轮答题/导航/招聘修复，增量更新生产，修复 35 条来源状态，并在结束时关闭 Labs 测试服务。
+- Changes: 五个本轮提交已在 `codex/labs-production-increment` 本地形成；答题迁移增加 `0015` 数据库默认值，Caddy 增加可切换维护路由，新增基于正式基线的源码增量 Dockerfile；独立发布公告、部署计划和检查清单已创建。
+- Validation: Quiz `15 passed`；招聘适配器/Worker/Caddy `36 passed`；维护与增量镜像合同 `2 passed`；Django check、migration drift、目标 Ruff、JS 语法、`npm run build` 和 Caddy `adapt --validate` 通过。Labs `0015` 已应用并读回数据库默认值 `'EXAM'`。
+- Production baseline: Web/Worker/Beat `42adeb4ceb74`，Caddy `2cbead0`，learning leaf `0013_generation_batches`；live/ready `200`。35 条启用来源 stale（26 socket、8 parser、1 timeout），无活动来源检查；Worker 内 socket 当前不可见。
+- Status/boundary: 正式生产备份、迁移、服务切换和来源重查尚未执行。用户当前回合已授权 Git 交付、生产增量更新、错误状态修复与 Labs 服务关闭；未调用 Provider/AGENT。
+- Next: 完成发布记录和 handoff 审查，推送/fast-forward；构建候选，生产预检和备份，维护窗口迁移与切换，重查固定 35 条来源，最后停止 Labs Web/P12 测试依赖。
+
+## 2026-10-10（Labs 招聘来源适配器验证与修复）
+
+- Objective: 在 Labs 先验证每日招聘来源失败并修复稳定的 parser 根因；验证通过后进入正式更新准备。
+- Changes: Dahua 列表响应上限采用项目允许的 384 KiB；Beisen 对截断页执行最多 3 次有界降页重试；Getui 不再把分类路由号当作岗位 ID；Hotjob 接受合法空列表的 `total=0/pageSize=0`；Worker healthcheck 在配置浏览器 socket 时要求路径为 Unix socket。
+- Live Labs probes: 使用安全客户端、robots 检查和 2 秒请求间隔；Dahua 144 条完整、Getui 5 条完整。Beisen 3 页 60 条、Hotjob 2 页 30 条、Meituan 5 页 25 条均按探针页数上限正常返回并标记 truncated；不输出或保存岗位正文，不写 Labs/生产数据库。
+- Validation: 五个 adapter 文件 + 容器 contract 共 `35 passed in 1.17s`；目标 Ruff check、format、`git diff --check` 退出码 `0`；Labs service `active/running`、live `200`。`uv` 不在 shell PATH，使用现有 `.venv` 工具，没有安装依赖。
+- Boundary: 没有运行定时采集、Provider/AGENT、生产 migration 或生产任务；Labs 未部署 Worker/浏览器沙箱，socket 运行态仅有 Compose contract 证据。正式更新尚未执行。
+- Next: 正式发布需只包含岗位修复的可追溯候选；当前 Git commit/push 授权待用户明确确认。候选通过后重建 Worker 并验证 socket/健康状态，不触发生产招聘采集。
+
+## 2026-10-10（生产招聘定时失败诊断）
+
+- Objective: 判断每天 18:00 批量招聘检查的大量来源失败是否由整批超时中断造成。
+- Evidence: 只读检查生产 `kaj-production-worker-1` 和 PostgreSQL；最新批次 129 个来源全部有终态（93 成功、35 失败、1 截断、0 未执行），TaskRun `succeeded`/attempt 1、耗时 1810 秒。运行时 Celery `task_time_limit=None`、`task_soft_time_limit=None`；来源单独 `max_duration_seconds=600`。
+- Failure categories: 当天 26 个 `opportunities.adapter_browser_unavailable.v1`、8 个 `opportunities.adapter_response_invalid.v1`、1 个 `opportunities.request_timeout.v1`。近 30 天分别累计 509/20 runs、176/28 runs、23/16 runs；`opportunities.collection_timeout.v1` 仅 1/1 run。
+- Separate incident: 2026-09-20 有一次 TaskRun attempt 3 以 `operations.task_lease_expired.v1` 终结，批次耗时 88,837 秒；这是租约/heartbeat 类异常，不是 Celery 全局硬时限，也不符合最近每日失败分布。
+- Boundary: 所有生产数据库操作均在 `BEGIN READ ONLY`、5 秒 statement timeout 下执行；未运行招聘采集、Provider/AGENT、生产写入、migration、部署或重启，也未执行 Git 写操作。
+
+## 2026-10-10（定位重复招聘来源失败根因）
+
+- Deterministic browser failure: 最新 7 个定时批次内，21 个 `feishu-career-v1` 来源以及 Alibaba、ByteDance、Hikvision、Xiaomi 浏览器来源均连续 7/7 返回 `adapter_browser_unavailable`。生产 Worker 已配置 `/run/kaj-opportunity-browser/browser.sock`，但容器内挂载目录 inode 为 `26:10264108` 且 socket 不存在；宿主当前 socket 位于 inode `26:13168080`，权限 `0660`、UID 999/GID 10001。Worker 创建时间为 2026-09-20 10:41 UTC，浏览器 systemd 服务启动于 2026-09-25 22:59 UTC。
+- Root cause: Worker 容器创建早于浏览器 socket 就绪；宿主 `/run/kaj-opportunity-browser` 的目录 inode 此后变化，而 Worker 的只读 bind mount 仍固定在旧 inode。浏览器服务 `active/running` 并不代表容器可见 socket。修复需在 socket 已就绪时重建 Worker 容器，让挂载重新绑定当前目录。
+- Other stable failures: 最近 7 个批次中，Hotjob 3 个、Getui 2 个、Dahua/Meituan/Beisen 各 1 个来源连续返回 `adapter_response_invalid`。错误记录仅保留 `FILTERS`/错误码，不保存 HTTP 响应体；没有当前响应证据，不能安全放宽 parser。
+- Boundary: 未重建生产 Worker；此前用户边界明确禁止生产重启/部署，当前尚未明确解除。未访问招聘来源或调用 Provider/AGENT；等待用户决定 worker recreate 和后续来源诊断授权。
+
+## 2026-10-10（首页导航定位文章列表顶部）
+
+- Objective: 从主页大图手动打开侧边导航后，点击任一文章分区链接，无论当前滚动位置都平滑定位到文章列表顶部。
+- Changed: `static/src/home-navigation.js` 在侧边导航 HTMX 请求成功后调用现有 `snapTo(articles)`，等待列表替换完成再计算目标；`templates/base.html` 更新 JS/CSS 缓存版本。
+- Validation: `npm run build:js`、`node --check static/src/home-navigation.js`、`git diff --check` 均退出码 `0`；Labs 公网 `app.js` SHA-256 与本地一致；Web `active/running`、health `200`。
+- Browser: Labs 首页真实点击分区导航，390/768/1440 视口和桌面底部滚动位置下文章区顶端均与站点头部下沿一致；横向溢出 `0`，console errors/warnings `0`；浏览器已关闭。
+- Resource gate: `yellow`; browser/build concurrency `1`; 任务期间 Swap 余量保持约 `2.2 GiB`，主机有响应，构建与单一浏览器会话均完成。
+
+## 2026-10-10（修复 Labs 答题 500）
+
+- Root cause: Labs 应用已读写 `QuizAttempt.mode`，测试库仍停在 `learning.0013_generation_batches` 且 `learning_quiz_attempt` 缺少 `mode` 字段；因此考试与刷题模式都在创建答题记录时返回 500。
+- Fix: 仅在 Labs 测试库运行 `manage.py migrate learning --noinput`；`learning.0014_quizattempt_mode_and_more` 应用成功，没有修改题库 `ADMIN_HIDDEN/security_review` 状态。
+- Validation: 字段、约束、migration 记录读回；Django check、learning migration drift check、health 均通过。未运行浏览器矩阵或全量回归，用户可重新开始答题验证。
+
+## 2026-10-10（统一答题提交入口与解析栏）
+
+- Changed: `quiz_attempt.html` 移除题目内刷题提交按钮，底部原主提交位置按模式绑定整卷或当前题；`_attempt_context` 只在已有揭晓题目时让解析栏进入布局。
+- Interaction: `quiz.js` 在切题时更新底部按钮的 form/formaction，并按当前题的揭晓状态同步解析栏布局、`aria-hidden` 和 `inert`；已揭晓题目禁用提交。解析面板恢复为工作区外层第三栏，外层网格轨道随状态展开/收起；窄屏时放在答题区下方。`templates/base.html` 更新静态缓存版本。
+- Validation: 本轮 `npm run build:css`、`git diff --check` 均退出 `0`；Labs CSS 公网 SHA-256 与本地构建产物一致，服务 `active/running`、live `200`。Playwright 打开正确答题入口后被重定向到登录（`302`），无登录态，未能查看答题页布局。
+
+## 2026-10-10（Labs 资源显示诊断收口）
+
+- User feedback: 启动后头像、知识文档、图片和题库没有正确出现；随后明确不需要继续测试。
+- Evidence: Labs Web 保持 `active/running`，公网 live 为 `200`；11 个非删除媒体文件已按数据库 storage key 从旧 Labs 归档恢复，文件大小/SHA-256 与数据库一致，头像、Hero、封面、正文图片和附件 URL 均返回 `200`。
+- Root cause split: 知识文档媒体匿名读取被访问控制返回 `404`；当前数据库文档记录为 `APPROVED=1`、`DELETED=1`。公开题库为空是因为 3 个题库卷均为 `ADMIN_HIDDEN/security_review`，不是模板或媒体路由缺陷。刷题模式依赖的 `learning.0014_quizattempt_mode_and_more` 也尚未应用。
+- Boundary: 本轮停止浏览器和回归测试；没有应用 migration、修改题库可见性、生产写入、服务重启或 Git 交付。后续必须先得到对应 Labs 共享数据动作的明确授权。
+
+## 2026-10-09（启动 Labs Web）
+
+- User request: 启动 Labs 服务进行答题模式测试。
+- Result: `kaj-labs.service` 已 `active/running`，WorkingDirectory 为当前 Labs worktree；公网 `/health/live=200`，未登录 `/knowledge/quiz/` 为 `302`。仅启动 Web，Worker/Beat 未启动。
+- Runtime fix: systemd 首次启动因 unit 声明的 `var/media`、`var/backups` 目录缺失而 `226/NAMESPACE`；按现有 unit 只创建两个 `0750`、`kaj-labs:kaj-labs` runtime 目录，未改源码/数据库。
+- Limitation: 服务日志提示 Labs 数据库有 1 个未应用 migration，即本轮 `learning.0014_quizattempt_mode_and_more`；本轮没有执行 migration。登录后的刷题模式公网流需要下一步单独授权 Labs migration。
+
+## 2026-10-09（复核 Labs 依赖资源）
+
+- Readback: `kaj-p12-postgres`、`kaj-p12-redis` 已 running，`kaj-p12-mailpit` running/healthy；`kaj_test_production_clone` 可用、Redis PONG、Mailpit API 200，相关端口均监听。
+- Action: 未重复启动或重启容器；Labs Web 继续保持 active/running。剩余阻塞是 `learning.0014` 尚未授权/执行。
+
+## 2026-10-09（答题考试/刷题模式）
+
+- Objective: 保留考试模式既有整套揭晓行为，新增每题提交即揭晓的刷题模式。
+- Changed: `QuizAttempt.mode` + migration `learning.0014`（默认 `EXAM`）；`submit_quiz_response` 在事务内判客观题、更新错题本并锁定已揭晓 response；query 按单题提交状态隐藏/揭晓答案；配置页、回答页、短答自评、模式结果标签、静态缓存版本及 planning/architecture/release 文档同步。
+- RED/GREEN: 初始聚焦 RED 明确落在缺少模式选项；真实浏览器又发现重入 `requestSubmit` 被忽略，改为下一事件循环任务再提交后成功。
+- Validation: 隔离 PostgreSQL/Redis/Mailpit 上模式、答题顺序和记录回归 `14 passed in 91.79s`；Django check、migration drift、目标 Ruff/format、JS 语法、完整静态构建和 `git diff --check` 通过。
+- Browser/data: 本地隔离站点登录并真实选择 PRACTICE、逐题提交、刷新和最终提交；DB 读回 `PRACTICE/SUBMITTED`、2/2 responses、objective `1/2`、错题计数只增一次、题库完成数 `+1`。390/768/1440 × 三主题无横向溢出，Enter 导航有效，控制台 0 error/0 warning。
+- Runtime/boundary: 临时 `kaj_test_quizmode_ui_20261009` 数据库和 `/tmp` 媒体目录已删除；Labs 源码目标与当前 worktree 相同，但服务仍 `inactive/dead`、公网 live `502`，未启动/重启；未执行生产 migration/部署/Provider/AGENT/Git 写操作。
+- Next: 等 Labs 服务由运维恢复后再做公网 Labs 只读页面读回；生产发布需另行授权。
+
+## 2026-10-09（恢复 Labs 正式基线）
+
+- Objective: 盘点分支/worktree，并让新 Labs 迭代从当前正式源码基线开始；建立独立公告台账。
+- Evidence: 正式 Web/Worker/Beat image revision 均为 `42adeb4ceb74ec5823df70a66144b21b80b0f275`；最新 `origin/main=631253f` 在其后只有 handoff/发布文档差异，`apps/ config/ templates/ static/` 完全一致。
+- Worktree: 旧 Labs detached `a06a94f`（包含未提交应用代码、handoff、测试及公告）完整移动到 `labs-test-environment-archive-20261009`；原服务工作目录建立干净分支 `codex/labs-next-20261009`，跟踪 `origin/main`。旧分支保留，未提交/推送。
+- Docs: 新增 `docs/releases/2026-10-09-next-iteration/announcement.md`，作为逐切片公告台账；补齐新分支 handoff 状态。
+- Planning: 复核实施清单与 readiness；计划文档称原定 P0-P12 的 102 项已完成，没有新的产品 Todo。外部 P0 复测和生产知识审核能力核对仍是独立运维待办，不擅自选为新产品功能。
+- Runtime: Labs 服务仍 `inactive/dead`，`/health/live=502`；只完成源码基线确认，没有启动或重启服务，也没有执行产品测试或生产操作。
+- Next: 等待明确下一产品切片；服务运行时验收须待 Labs 获明确授权恢复后进行。
+
 ## 2026-09-17
 
 - Objective: 按 Labs-first 规则提交并推送 handoff。

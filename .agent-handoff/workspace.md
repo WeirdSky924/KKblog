@@ -46,8 +46,9 @@
 
 ## Worktree Map
 
-- `/home/code/personal-blog`: 开发主工作区，`main`，当前与 `origin/main` 同步在 `a06a94f`；保留本任务岗位优化代码和未跟踪 P0 文档，不得用 reset/宽泛同步覆盖。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 快照，当前 detached `a06a94f`，服务已停，保留其他任务未提交改动。
+- `/home/code/personal-blog`: 开发主工作区，`main`，当前与 `origin/main` 同步在 `631253f`；有本地 handoff 修改及未跟踪 P0 文档，必须保留并与 Labs 迭代区分。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: 当前 Labs worktree，分支 `codex/labs-production-increment`，从 `origin/main=631253f` 创建；`kaj-labs.service` 当前 active，本轮结束时按用户要求停止 Labs Web 与 P12 PostgreSQL/Redis/Mailpit 测试依赖。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
 - `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；当前 Web/Worker/Beat 为 `kaj-blog-web:42adeb4ceb74`，含凭据、数据库、媒体和备份，禁止复制/清理。
 
@@ -56,7 +57,7 @@
 - PostgreSQL 是业务事实；Redis 只承载可丢失的验证码、限流、冷却和公开缓存；跨领域副作用经事务 Outbox 和幂等 Consumer。
 - View 只编排 HTTP/模板，业务授权、事务、锁、审计、状态和 Outbox 属于领域 service/query/task owner。
 - Labs-first：先在 Labs 编码和验证，按任务清单同步读回；确认后从 Labs 任务分支提交/推送，再让主工作区同步。
-- 生产部署、迁移、备份、真实邮件、服务重启、生产数据修复和 Git 交付必须由用户当前回合明确授权。
+- 生产部署、迁移、备份、真实邮件、服务启动/重启、生产数据修复和 Git 交付必须由用户当前回合明确授权。
 - 当前正式性能测试分 P0（低风险只读基线）、P1（隔离环境容量）、P2（AGENT/故障恢复），必须按顺序推进。
 - AGENT 调用要求当前 Endpoint row version 与对应 schema 的严格 `SCHEMA_SUPPORTED` capability check 匹配；Endpoint 修改会使旧检查失效。
 

@@ -82,6 +82,10 @@
 | `learning.0009_question_bank_api_policy` | 增加精确 Origin 白名单、分钟/每日限流策略及范围约束 | M/C1 | B/R2 |
 | `learning.0010_quiz_learning_facts` | 新增答题会话、回答和错题本快照事实及删除/结果约束 | N+D/C2 | B/R2 |
 | `learning.0011_quiz_contract_completion` | 完成答题快照兼容回填、索引与不可变结果形状约束 | M+D/C2 | B/R2 |
+| `learning.0012_question_bank_point_source_units` | 题库知识点增加来源单元 ID 快照，既有行使用空列表初始化 | M/C0 | B/R1 |
+| `learning.0013_generation_batches` | 新增题库分批生成运行事实、约束与索引 | N/C0 | B/R1 |
+| `learning.0014_quizattempt_mode_and_more` | 为答题记录增加考试/刷题模式并初始化既有记录为考试模式，增加模式约束；数据库默认值由下一迁移补齐 | M+D/C1 | B/R2 |
+| `learning.0015_quiz_attempt_mode_db_default` | 为模式列增加数据库级 `EXAM` 默认值，保持旧应用省略新列时仍能创建答题记录 | M/C0 | B/R1 |
 | `media.0001_initial` | asset/binding、大小/用途/slot 约束与索引 | N/C0 | B/R1 |
 | `media.0002_owner_cleanup_lifecycle` | asset owner 删除语义改为 SET NULL | M/C1 | B/R1 |
 | `media.0003_owner_lifecycle_constraint` | owner 生命周期配对约束 | M/C1 | B/R1 |
@@ -121,6 +125,8 @@
 3. 有待执行项时先完成新鲜数据库备份，再启用维护页并执行迁移。
 4. 迁移失败保留当前应用；迁移成功但新应用健康失败只回滚应用镜像，不反向迁移数据库。
 5. 读回 leaf、关键约束/索引、live/ready 和关键请求后才关闭维护页。
+
+`learning.0014` 与 `learning.0015` 必须在同一维护窗口连续执行。`0014` 先为既有答题记录填入 `EXAM` 并增加模式约束；`0015` 随后保留数据库级默认值，供旧应用省略新列时写入兼容。若 `0015` 失败，继续保持维护页并修复前向迁移，不恢复旧应用承接写请求。候选验证失败且尚未开放用户流时可回退应用镜像；一旦已创建刷题记录，旧应用不理解该模式，后续故障应前向修复，不把数据库反向迁移或旧应用回退视为常规恢复路径。
 
 `media.0004` 应先于新应用开放附件入口。迁移后的旧应用仍可读取既有图片数据，但一旦写入首条 `ATTACHMENT` 资产，数据库就不得反向恢复旧尺寸与用途约束；应用回滚时数据库保持向前，并临时关闭附件入口。
 
