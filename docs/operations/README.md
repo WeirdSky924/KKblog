@@ -20,6 +20,7 @@
 - [备份与人工恢复](backups.md)
 - [Umami 同源分析与保留](analytics.md)
 - [部署状态机骨架](deployment.md)
+- [源码增量镜像构建](incremental-image-build.md)
 - [容量保护门禁](capacity-policy.md)
 - [性能测试任务与执行记录：P0 正式金丝雀](performance-testing/p0-production-canary.md) / [P0 执行日志](performance-testing/p0-production-canary.execution.md)
 - [性能测试任务与执行记录：P1 隔离环境容量](performance-testing/p1-preproduction-load.md) / [P1 执行日志](performance-testing/p1-preproduction-load.execution.md)
