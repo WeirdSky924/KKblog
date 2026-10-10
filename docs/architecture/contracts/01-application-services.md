@@ -179,6 +179,7 @@ class CommandResult[T]:
 | `set_question_bank_visibility` | owner/admin, target state, version | visibility state | owner 解除 admin 锁、状态非法 |
 | `delete/restore_question_bank` | owner/admin, bank, version | deletion/restored state | 冷静期/管理员锁/申诉竞态 |
 | `create/save/submit_quiz_attempt` | actor, bank revision/config or attempt version/answers | attempt/result | 未登录、配置过期、非本人、并发 409 |
+| `submit_quiz_response` | actor, practice attempt, response version, final answer | one graded/revealed response | 非刷题模式、未登录、非本人、已关闭、并发 409 |
 | `set_wrong_question_mastery` | actor, wrong item, state, version | wrong item | 非本人、非法状态 |
 | `delete/restore_quiz_records` | actor, explicit attempt IDs, versions | per-item result | 非本人、数量/状态冲突 |
 

@@ -236,6 +236,7 @@ erDiagram
       uuid id PK
       uuid account_id FK
       uuid revision_id FK
+      string mode
       string state
       int row_version
     }

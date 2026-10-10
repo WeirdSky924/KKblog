@@ -11,6 +11,7 @@ from apps.core.ids import new_ulid
 from apps.learning.contracts import (
     QUIZ_QUESTION_TYPE_ORDER,
     QuestionType,
+    QuizAttemptMode,
     QuizAttemptSource,
 )
 from apps.learning.public import (
@@ -27,6 +28,7 @@ from apps.learning.public import (
     start_quiz_attempt,
     start_wrong_question_attempt,
     submit_quiz_attempt,
+    submit_quiz_response,
     wrong_question_quiz_configuration,
 )
 
@@ -76,13 +78,16 @@ def _has_answer(value) -> bool:
     return True
 
 
-def _navigation_state(response, *, submitted: bool) -> str:
+def _navigation_state(response, *, submitted: bool = False) -> str:
     answered = _has_answer(response.answer)
-    if not submitted:
+    if not getattr(response, "answer_revealed", submitted):
         return "answered" if answered else ""
-    if not answered:
-        return "wrong"
     if response.question_type == QuestionType.SHORT_ANSWER:
+        self_assessment = getattr(response, "self_assessment", None)
+        if self_assessment == "MASTERED":
+            return "correct"
+        if self_assessment == "NOT_MASTERED":
+            return "wrong"
         return "pending"
     return "correct" if response.is_correct else "wrong"
 
@@ -98,6 +103,7 @@ def _configuration_form(
         "bank_id": configuration.bank_id,
         "expected_revision_id": configuration.revision_id,
         "source": source,
+        "mode": QuizAttemptMode.EXAM,
         "question_types": tuple(item.value for item in configuration.question_types),
         "question_count": configuration.question_count,
         "timed": False,
@@ -257,8 +263,9 @@ def _attempt_context(
     for response, response_form in zip(detail.responses, forms, strict=True):
         assessment_form = None
         if (
-            detail.status == "SUBMITTED"
+            response.answer_revealed
             and response.question_type == QuestionType.SHORT_ANSWER
+            and response.self_assessment is None
         ):
             assessment_form = QuizAssessmentForm(
                 initial={
@@ -276,9 +283,7 @@ def _attempt_context(
                 "question_type_label": _QUESTION_TYPE_LABELS.get(
                     response.question_type, response.question_type
                 ),
-                "nav_state": _navigation_state(
-                    response, submitted=detail.status == "SUBMITTED"
-                ),
+                "nav_state": _navigation_state(response),
             }
         )
     question_groups = tuple(
@@ -294,9 +299,14 @@ def _attempt_context(
         for question_type in QUIZ_QUESTION_TYPE_ORDER
         if any(entry["response"].question_type == question_type for entry in entries)
     )
+    has_revealed_response = any(
+        response.answer_revealed for response in detail.responses
+    )
     return {
         "attempt": detail,
         "response_entries": tuple(entries),
+        "has_revealed_response": has_revealed_response,
+        "practice_submit_response": detail.responses[0] if detail.responses else None,
         "question_groups": question_groups,
         "submit_form": submit_form
         or QuizSubmitForm(
@@ -411,6 +421,7 @@ def quiz_index(request: HttpRequest) -> HttpResponse:
             "duration_minutes": form.cleaned_data["duration_minutes"],
             "random_questions": form.cleaned_data["random_questions"],
             "random_options": form.cleaned_data["random_options"],
+            "mode": form.cleaned_data["mode"],
         }
         started = (
             start_wrong_question_attempt(
@@ -465,15 +476,7 @@ def quiz_save_response(request: HttpRequest, response_id):
     form = QuizResponseForm(request.POST)
     if not form.is_valid():
         return _no_store(HttpResponse("答案请求不合法。", status=422))
-    question_type = form.cleaned_data["question_type"]
-    raw = request.POST.getlist("answer")
-    if question_type in (QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE):
-        answer = raw
-    elif question_type == QuestionType.TRUE_FALSE:
-        raw_boolean = request.POST.get("answer")
-        answer = None if raw_boolean is None else raw_boolean == "true"
-    else:
-        answer = request.POST.get("answer", "")
+    answer = _answer_from_request(request, form)
     try:
         saved = save_quiz_response(
             account_id=request.account_id,
@@ -500,6 +503,47 @@ def quiz_save_response(request: HttpRequest, response_id):
             kwargs={"attempt_id": form.cleaned_data["attempt_id"]},
         )
         + "?saved=response"
+    )
+
+
+def _answer_from_request(request: HttpRequest, form: QuizResponseForm):
+    question_type = form.cleaned_data["question_type"]
+    if question_type in (QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE):
+        return request.POST.getlist("answer")
+    if question_type == QuestionType.TRUE_FALSE:
+        raw_boolean = request.POST.get("answer")
+        return None if raw_boolean is None else raw_boolean == "true"
+    return request.POST.get("answer", "")
+
+
+@require_http_methods(["POST"])
+def quiz_submit_response(request: HttpRequest, response_id):
+    if not is_active_account(getattr(request, "account_id", None)):
+        return _login_required(request)
+    form = QuizResponseForm(request.POST)
+    if not form.is_valid():
+        return _no_store(HttpResponse("答案请求不合法。", status=422))
+    try:
+        submit_quiz_response(
+            account_id=request.account_id,
+            attempt_id=form.cleaned_data["attempt_id"],
+            response_id=response_id,
+            expected_version=form.cleaned_data["expected_version"],
+            request_id=form.cleaned_data["request_id"],
+            answer=_answer_from_request(request, form),
+        )
+    except LearningCommandError as error:
+        return _no_store(
+            HttpResponse(
+                error.safe_message, status=409 if "conflict" in error.code else 422
+            )
+        )
+    return redirect(
+        reverse(
+            "learning:quiz-attempt",
+            kwargs={"attempt_id": form.cleaned_data["attempt_id"]},
+        )
+        + "?saved=answer-submitted"
     )
 
 
@@ -564,5 +608,6 @@ __all__ = [
     "quiz_attempt",
     "quiz_index",
     "quiz_save_response",
+    "quiz_submit_response",
     "quiz_submit",
 ]

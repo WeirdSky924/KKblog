@@ -71,6 +71,7 @@ from .lifecycle import (
 from .quizzes import (
     QuizAssessmentResult,
     QuizResponseResult,
+    QuizResponseSubmitResult,
     QuizStartResult,
     QuizSubmitResult,
     assess_quiz_short_answer,
@@ -78,6 +79,7 @@ from .quizzes import (
     start_quiz_attempt,
     start_wrong_question_attempt,
     submit_quiz_attempt,
+    submit_quiz_response,
 )
 from .quotas import (
     DailyGenerationResetResult,
@@ -130,6 +132,7 @@ __all__ = [
     "RateLimitDecision",
     "RateLimiterUnavailable",
     "QuizResponseResult",
+    "QuizResponseSubmitResult",
     "QuizAssessmentResult",
     "QuizStartResult",
     "QuizSubmitResult",
@@ -182,6 +185,7 @@ __all__ = [
     "save_quiz_response",
     "start_quiz_attempt",
     "start_wrong_question_attempt",
+    "submit_quiz_response",
     "submit_quiz_attempt",
     "delete_quiz_records",
     "delete_all_quiz_records",

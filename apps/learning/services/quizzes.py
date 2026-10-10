@@ -13,6 +13,7 @@ from apps.learning.contracts import (
     QUIZ_QUESTION_TYPE_ORDER,
     LearningCommandError,
     QuestionType,
+    QuizAttemptMode,
     QuizAttemptSource,
     QuizAttemptStatus,
     QuizSelfAssessment,
@@ -33,6 +34,14 @@ class QuizResponseResult:
     response_id: UUID
     row_version: int
     saved_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class QuizResponseSubmitResult:
+    response_id: UUID
+    row_version: int
+    submitted_at: datetime
+    is_correct: bool | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +143,15 @@ def _duration(timed: bool, duration_minutes) -> int | None:
     return duration_minutes
 
 
+def _mode(value: str) -> QuizAttemptMode:
+    try:
+        return QuizAttemptMode(value)
+    except (TypeError, ValueError):
+        raise LearningCommandError(
+            "learning.quiz_config_invalid.v1", "答题模式不合法。"
+        ) from None
+
+
 def _answer(value, response: QuizResponse):
     question_type = response.question_type
     if question_type in (QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE):
@@ -179,11 +197,13 @@ def start_quiz_attempt(
     random_questions: bool = True,
     random_options: bool = True,
     source: str = QuizAttemptSource.QUESTION_BANK,
+    mode: str = QuizAttemptMode.EXAM,
     now: datetime | None = None,
 ) -> QuizStartResult:
     account_id = _owner(account_id)
     selected_types = _question_types(question_types)
     duration = _duration(timed, duration_minutes)
+    selected_mode = _mode(mode)
     if (
         not isinstance(question_count, int)
         or isinstance(question_count, bool)
@@ -253,6 +273,7 @@ def start_quiz_attempt(
             bank=bank,
             revision=revision,
             source=QuizAttemptSource.QUESTION_BANK,
+            mode=selected_mode,
             bank_id_snapshot=bank.id,
             series_id_snapshot=bank.series_id,
             revision_id_snapshot=revision.id,
@@ -304,11 +325,13 @@ def start_wrong_question_attempt(
     duration_minutes=None,
     random_questions: bool = True,
     random_options: bool = True,
+    mode: str = QuizAttemptMode.EXAM,
     now: datetime | None = None,
 ) -> QuizStartResult:
     account_id = _owner(account_id)
     selected_types = _question_types(question_types)
     duration = _duration(timed, duration_minutes)
+    selected_mode = _mode(mode)
     if (
         not isinstance(question_count, int)
         or isinstance(question_count, bool)
@@ -389,6 +412,7 @@ def start_wrong_question_attempt(
             bank=bank,
             revision=revision,
             source=QuizAttemptSource.WRONG_QUESTIONS,
+            mode=selected_mode,
             bank_id_snapshot=bank.id,
             series_id_snapshot=bank.series_id,
             revision_id_snapshot=revision.id,
@@ -464,6 +488,10 @@ def save_quiz_response(
             raise LearningCommandError(
                 "learning.quiz_closed.v1", "答题已提交，不能继续修改。"
             )
+        if response.submitted_at is not None:
+            raise LearningCommandError(
+                "learning.quiz_closed.v1", "本题已提交，不能继续修改。"
+            )
         if response.last_save_request_id == request_id:
             saved_at = response.saved_at or _current_time(now)
             return QuizResponseResult(response.id, response.row_version, saved_at)
@@ -497,6 +525,106 @@ def _is_correct(response: QuizResponse) -> bool:
     if response.question_type == QuestionType.MULTIPLE_CHOICE:
         return set(response.answer) == set(response.correct_option_ids)
     return False
+
+
+def submit_quiz_response(
+    *,
+    account_id,
+    attempt_id,
+    response_id,
+    expected_version: int,
+    request_id: str,
+    answer,
+    now: datetime | None = None,
+) -> QuizResponseSubmitResult:
+    account_id = _owner(account_id)
+    if not isinstance(request_id, str) or not 1 <= len(request_id) <= 128:
+        raise LearningCommandError(
+            "learning.quiz_request_invalid.v1", "请求标识不合法。"
+        )
+    if (
+        not isinstance(expected_version, int)
+        or isinstance(expected_version, bool)
+        or expected_version < 1
+    ):
+        raise LearningCommandError(
+            "learning.quiz_response_conflict.v1", "答案版本已更新，请刷新后重试。"
+        )
+    submitted_at = _current_time(now)
+    with transaction.atomic():
+        _lock_account(account_id)
+        try:
+            attempt = QuizAttempt.objects.select_for_update().get(
+                pk=attempt_id, account_id=account_id
+            )
+            response = QuizResponse.objects.select_for_update().get(
+                pk=response_id, attempt=attempt
+            )
+        except (
+            QuizAttempt.DoesNotExist,
+            QuizResponse.DoesNotExist,
+            TypeError,
+            ValueError,
+        ):
+            raise LearningCommandError(
+                "learning.quiz_not_found.v1", "答题记录不存在。"
+            ) from None
+        if attempt.mode != QuizAttemptMode.PRACTICE:
+            raise LearningCommandError(
+                "learning.quiz_mode_invalid.v1", "当前答题模式不支持逐题提交。"
+            )
+        if response.submitted_at is not None:
+            return QuizResponseSubmitResult(
+                response.id,
+                response.row_version,
+                response.submitted_at,
+                response.is_correct,
+            )
+        if attempt.status != QuizAttemptStatus.IN_PROGRESS:
+            raise LearningCommandError(
+                "learning.quiz_closed.v1", "答题已提交，不能继续修改。"
+            )
+        if response.row_version != expected_version:
+            raise LearningCommandError(
+                "learning.quiz_response_conflict.v1", "答案已在其他设备更新。"
+            )
+        response.answer = _answer(answer, response)
+        response.is_correct = (
+            _is_correct(response)
+            if response.question_type != QuestionType.SHORT_ANSWER
+            else None
+        )
+        response.score = (
+            int(response.is_correct)
+            if response.question_type != QuestionType.SHORT_ANSWER
+            else None
+        )
+        response.saved_at = submitted_at
+        response.submitted_at = submitted_at
+        response.row_version += 1
+        response.save(
+            update_fields=(
+                "answer",
+                "is_correct",
+                "score",
+                "saved_at",
+                "submitted_at",
+                "row_version",
+            )
+        )
+        if response.question_type != QuestionType.SHORT_ANSWER:
+            _upsert_wrong(
+                attempt,
+                response,
+                correct=bool(response.is_correct),
+                now=submitted_at,
+            )
+    return QuizResponseSubmitResult(
+        response.id,
+        response.row_version,
+        submitted_at,
+        response.is_correct,
+    )
 
 
 def _upsert_wrong(
@@ -594,10 +722,14 @@ def submit_quiz_attempt(
         ]
         objective_score = 0
         for response in responses:
+            already_individually_submitted = response.submitted_at is not None
             correct = _is_correct(response)
             if response.question_type != QuestionType.SHORT_ANSWER:
                 objective_score += int(correct)
-                _upsert_wrong(attempt, response, correct=correct, now=submitted_at)
+                if not already_individually_submitted:
+                    _upsert_wrong(attempt, response, correct=correct, now=submitted_at)
+            if already_individually_submitted:
+                continue
             response.is_correct = (
                 correct if response.question_type != QuestionType.SHORT_ANSWER else None
             )
@@ -611,7 +743,9 @@ def submit_quiz_attempt(
             response.save(
                 update_fields=("is_correct", "score", "submitted_at", "row_version")
             )
-        short_mastered = 0
+        short_mastered = sum(
+            item.self_assessment == QuizSelfAssessment.MASTERED for item in short
+        )
         attempt.status = QuizAttemptStatus.SUBMITTED
         attempt.objective_score = objective_score
         attempt.objective_total = len(objective)
@@ -678,9 +812,7 @@ def assess_quiz_short_answer(
         _lock_account(account_id)
         try:
             attempt = QuizAttempt.objects.select_for_update().get(
-                pk=attempt_id,
-                account_id=account_id,
-                status=QuizAttemptStatus.SUBMITTED,
+                pk=attempt_id, account_id=account_id
             )
             response = QuizResponse.objects.select_for_update().get(
                 pk=response_id,
@@ -703,6 +835,17 @@ def assess_quiz_short_answer(
                 response.row_version,
                 attempt.row_version,
             )
+        can_assess = (
+            attempt.status == QuizAttemptStatus.SUBMITTED
+            if attempt.mode == QuizAttemptMode.EXAM
+            else response.submitted_at is not None
+            and attempt.status
+            in (QuizAttemptStatus.IN_PROGRESS, QuizAttemptStatus.SUBMITTED)
+        )
+        if not can_assess:
+            raise LearningCommandError(
+                "learning.quiz_closed.v1", "请先提交本题后再进行自评。"
+            )
         if response.row_version != expected_version:
             raise LearningCommandError(
                 "learning.quiz_response_conflict.v1", "答案已在其他设备更新。"
@@ -723,16 +866,17 @@ def assess_quiz_short_answer(
         )
         mastered = assessment == QuizSelfAssessment.MASTERED
         _upsert_wrong(attempt, response, correct=mastered, now=assessed_at)
-        if mastered:
+        if mastered and attempt.status == QuizAttemptStatus.SUBMITTED:
             attempt.short_answer_mastered = (attempt.short_answer_mastered or 0) + 1
-        attempt.row_version += 1
-        attempt.save(
-            update_fields=(
-                "short_answer_mastered",
-                "row_version",
-                "updated_at",
+        if attempt.status == QuizAttemptStatus.SUBMITTED:
+            attempt.row_version += 1
+            attempt.save(
+                update_fields=(
+                    "short_answer_mastered",
+                    "row_version",
+                    "updated_at",
+                )
             )
-        )
     return QuizAssessmentResult(
         response.id,
         assessment,

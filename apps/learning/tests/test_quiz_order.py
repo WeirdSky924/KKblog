@@ -129,4 +129,5 @@ def test_quiz_start_form_preserves_multiple_wrong_question_source_keys():
     )
 
     assert form.is_valid()
+    assert form.cleaned_data["mode"] == "EXAM"
     assert form.source_keys() == ("wrong:one", "wrong:two")

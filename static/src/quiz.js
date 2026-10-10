@@ -18,6 +18,8 @@ function nextRequestId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+const pendingQuizSaves = new WeakMap();
+
 function updateSaveContract(form, response) {
   const version = response.headers.get("X-Quiz-Response-Version");
   const expectedVersion = form.elements.namedItem("expected_version");
@@ -76,6 +78,37 @@ function quizResponses(root) {
       Number(left.dataset.quizPosition || 0) -
       Number(right.dataset.quizPosition || 0),
   );
+}
+
+function syncPracticeSubmitControl(root, response) {
+  const button = root.querySelector("[data-quiz-practice-submit]");
+  if (!(button instanceof HTMLButtonElement)) return;
+  const form = response?.querySelector("form[data-quiz-save]");
+  const revealed = response?.dataset.quizRevealed === "true";
+  if (!(form instanceof HTMLFormElement) || !form.id || revealed) {
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
+    button.removeAttribute("form");
+    button.removeAttribute("formaction");
+    return;
+  }
+  button.disabled = false;
+  button.removeAttribute("aria-disabled");
+  button.setAttribute("form", form.id);
+  button.setAttribute("formaction", form.dataset.quizSubmitAction || "");
+}
+
+function syncExplanationPanel(root, response) {
+  const panel = root.querySelector("[data-quiz-explanation-panel]");
+  if (!(panel instanceof HTMLElement)) return;
+  const workspace = panel.closest(".quiz-attempt__workspace");
+  if (!(workspace instanceof HTMLElement)) return;
+  const revealed =
+    root.dataset.quizSubmitted === "true" ||
+    response?.dataset.quizRevealed === "true";
+  workspace.classList.toggle("quiz-attempt__workspace--has-explanations", revealed);
+  panel.setAttribute("aria-hidden", String(!revealed));
+  panel.toggleAttribute("inert", !revealed);
 }
 
 function quizPositionKey(root) {
@@ -150,6 +183,8 @@ function setCurrentQuizQuestion(root, position, { focus = true } = {}) {
   root.querySelectorAll("[data-quiz-explanation]").forEach((panel) => {
     panel.hidden = Number(panel.dataset.quizPosition) !== targetPosition;
   });
+  syncPracticeSubmitControl(root, target);
+  syncExplanationPanel(root, target);
   root.dataset.quizCurrentPosition = String(targetPosition);
   persistQuizPosition(root, targetPosition);
   if (focus) {
@@ -168,6 +203,7 @@ function updateQuestionNavigationState(root) {
     const response = root.querySelector(
       `[data-quiz-response][data-quiz-position="${position}"]`,
     );
+    if (response?.dataset.quizRevealed === "true") return;
     const form = response?.querySelector("form[data-quiz-save]");
     const answered = form instanceof HTMLFormElement && formHasAnswer(form);
     item.dataset.quizState = answered ? "answered" : "";
@@ -215,27 +251,38 @@ function bindQuestionNavigation(root) {
 }
 
 async function saveForm(form) {
-  if (form.dataset.saving === "true") return;
+  const existing = pendingQuizSaves.get(form);
+  if (existing) return existing;
   form.dataset.saving = "true";
   form.setAttribute("aria-busy", "true");
-  try {
-    const response = await fetch(form.action, {
-      method: "POST",
-      body: new FormData(form),
-      credentials: "same-origin",
-      headers: { "X-CSRFToken": csrfToken(), "X-Requested-With": "XMLHttpRequest" },
-    });
-    if (!response.ok) {
-      setStatus(form, "答案保存失败，请重试。", true);
-      return;
+  const saving = (async () => {
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrfToken(), "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (!response.ok) {
+        setStatus(form, "答案保存失败，请重试。", true);
+        return false;
+      }
+      updateSaveContract(form, response);
+      setStatus(form, "答案已自动保存。", false);
+      return true;
+    } catch {
+      setStatus(form, "答案保存失败，请检查网络后重试。", true);
+      return false;
+    } finally {
+      delete form.dataset.saving;
+      form.removeAttribute("aria-busy");
     }
-    updateSaveContract(form, response);
-    setStatus(form, "答案已自动保存。", false);
-  } catch {
-    setStatus(form, "答案保存失败，请检查网络后重试。", true);
+  })();
+  pendingQuizSaves.set(form, saving);
+  try {
+    return await saving;
   } finally {
-    delete form.dataset.saving;
-    form.removeAttribute("aria-busy");
+    if (pendingQuizSaves.get(form) === saving) pendingQuizSaves.delete(form);
   }
 }
 
@@ -255,6 +302,33 @@ function bindForm(form) {
     input.addEventListener("change", schedule);
   });
   form.querySelector("textarea")?.addEventListener("input", schedule);
+  form.addEventListener("submit", (event) => {
+    const button = event.submitter;
+    if (!(button instanceof HTMLButtonElement) || !button.matches("[data-quiz-submit-response]")) {
+      return;
+    }
+    if (form.dataset.quizSubmitting === "true") return;
+    event.preventDefault();
+    if (form.dataset.quizSubmitPending === "true") return;
+    form.dataset.quizSubmitPending = "true";
+    button.setAttribute("aria-disabled", "true");
+    window.clearTimeout(timer);
+    void (async () => {
+      const pending = pendingQuizSaves.get(form);
+      if (pending && !(await pending)) {
+        setStatus(form, "自动保存未完成，请检查网络或刷新答案后重试。", true);
+        delete form.dataset.quizSubmitPending;
+        button.removeAttribute("aria-disabled");
+        return;
+      }
+      // Let the original submit algorithm finish before calling requestSubmit again.
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      delete form.dataset.quizSubmitPending;
+      form.dataset.quizSubmitting = "true";
+      button.removeAttribute("aria-disabled");
+      form.requestSubmit(button);
+    })();
+  });
 }
 
 function bindTimer(root) {

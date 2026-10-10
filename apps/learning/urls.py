@@ -7,6 +7,7 @@ from apps.learning.presentation.quiz import (
     quiz_index,
     quiz_save_response,
     quiz_submit,
+    quiz_submit_response,
 )
 from apps.learning.presentation.records import (
     record_detail,
@@ -34,6 +35,11 @@ urlpatterns = [
         "quiz/response/<uuid:response_id>/save/",
         quiz_save_response,
         name="quiz-save-response",
+    ),
+    path(
+        "quiz/response/<uuid:response_id>/submit/",
+        quiz_submit_response,
+        name="quiz-submit-response",
     ),
     path(
         "quiz/response/<uuid:response_id>/assess/",

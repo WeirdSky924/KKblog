@@ -10,6 +10,7 @@ from apps.core.pagination import page_window
 from apps.learning.contracts import (
     LearningCommandError,
     QuestionType,
+    QuizAttemptMode,
     QuizAttemptStatus,
 )
 from apps.learning.models import QuestionBank, QuizAttempt, WrongQuestion
@@ -51,6 +52,7 @@ class QuizResponseView:
     row_version: int
     saved_at: datetime | None
     submitted_at: datetime | None
+    answer_revealed: bool
     is_correct: bool | None
     score: int | None
     correct_option_ids: tuple[str, ...] | None
@@ -64,6 +66,7 @@ class QuizResponseView:
 class QuizAttemptDetail:
     attempt_id: UUID
     source: str
+    mode: str
     status: str
     bank_id: UUID | None
     bank_id_snapshot: UUID
@@ -230,13 +233,20 @@ def quiz_attempt_detail(
             response.row_version,
             response.saved_at,
             response.submitted_at,
-            response.is_correct,
-            response.score,
-            tuple(response.correct_option_ids) if submitted else None,
-            response.boolean_answer if submitted else None,
-            response.reference_answer if submitted else None,
-            tuple(response.scoring_points) if submitted else None,
-            response.explanation_markdown if submitted else None,
+            answer_revealed := (
+                submitted
+                or (
+                    attempt.mode == QuizAttemptMode.PRACTICE
+                    and response.submitted_at is not None
+                )
+            ),
+            response.is_correct if answer_revealed else None,
+            response.score if answer_revealed else None,
+            tuple(response.correct_option_ids) if answer_revealed else None,
+            response.boolean_answer if answer_revealed else None,
+            response.reference_answer if answer_revealed else None,
+            tuple(response.scoring_points) if answer_revealed else None,
+            response.explanation_markdown if answer_revealed else None,
         )
         for position, response in enumerate(ordered, start=1)
     )
@@ -258,6 +268,7 @@ def quiz_attempt_detail(
     return QuizAttemptDetail(
         attempt.id,
         attempt.source,
+        attempt.mode,
         attempt.status,
         attempt.bank_id,
         attempt.bank_id_snapshot,

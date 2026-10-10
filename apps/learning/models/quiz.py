@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.learning.contracts import (
     QUIZ_DURATION_OPTIONS,
     QuestionType,
+    QuizAttemptMode,
     QuizAttemptSource,
     QuizAttemptStatus,
     QuizMasteryStatus,
@@ -32,6 +33,12 @@ class QuizAttempt(models.Model):
         related_name="quiz_attempts",
     )
     source = models.CharField(max_length=20, choices=QuizAttemptSource.choices)
+    mode = models.CharField(
+        max_length=8,
+        choices=QuizAttemptMode.choices,
+        default=QuizAttemptMode.EXAM,
+        db_default=QuizAttemptMode.EXAM,
+    )
     bank_id_snapshot = models.UUIDField()
     series_id_snapshot = models.UUIDField()
     revision_id_snapshot = models.UUIDField()
@@ -80,6 +87,10 @@ class QuizAttempt(models.Model):
             models.CheckConstraint(
                 condition=Q(source__in=QuizAttemptSource.values),
                 name="learning_quiz_attempt_source_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(mode__in=QuizAttemptMode.values),
+                name="learning_quiz_attempt_mode_valid",
             ),
             models.CheckConstraint(
                 condition=Q(status__in=QuizAttemptStatus.values),

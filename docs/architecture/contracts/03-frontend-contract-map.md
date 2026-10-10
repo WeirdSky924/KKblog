@@ -45,8 +45,8 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `learning:documents` | 我的知识文档 | owner document queries/submit | 权限入口、逐次声明、上传、待审/审核中/终态、删除/恢复 |
 | `learning:document-detail` | 文档状态与访问历史 | owner document detail/appeal/retry | 原文仅本人、访问历史隐藏管理员身份、申诉 Markdown、异步局部读回 |
 | `learning:bank-generate` | 题库生成配置/结果 | generate_question_bank | 标题/简介、题型 Switch、完整/部分覆盖、失败重试 |
-| `learning:quiz-start` | 答题配置 | create_quiz_attempt | 题型多选、题量、随机题目/选项、软计时 |
-| `learning:quiz-attempt` | 作答与结果 | save/submit_quiz_attempt | 自动保存、跨设备、版本冲突、简答自评、超时后继续 |
+| `learning:quiz-start` | 答题配置与模式 | create_quiz_attempt | 考试/刷题选择（默认考试）、题型多选、题量、随机题目/选项、软计时 |
+| `learning:quiz-attempt` | 考试/刷题作答与结果 | save/submit_quiz_response/submit_quiz_attempt | 自动保存不揭晓；考试整套提交；刷题逐题提交后只揭晓该题；简答自评、跨设备冲突、超时后继续 |
 | `learning:wrong-book` | 错题本 | wrong questions/set mastery | 题库分组、TO_REVIEW/MASTERED、错题练习 |
 | `learning:records` | 答题记录 | records/delete/export | 详情、复选删除/清空、CSV、防公式注入、删除冷静期 |
 

@@ -30,7 +30,7 @@ apps/learning/
 - Review/GenerationRun：输入配置快照、源知识单元分批摘要、分批 AGENT invocation/TaskRun 引用、状态、稳定原因码与安全计数，不保存完整 Prompt 或模型原始响应。
 - QuestionBankSeries/QuestionBank/QuestionBankRevision：系列可变元数据、最多两卷、不可变完整修订、按源顺序的细粒度知识点及其来源定位、知识点覆盖/遗漏和独立题库标签。
 - LearningAppeal/KnowledgeDocumentAccess：正式申诉和管理员成功原文读取历史；前者 Markdown 安全渲染，后者不保存正文或路径。
-- QuizAttempt/QuizResponse/WrongQuestion：固定题库 revision、题目/选项顺序与历史快照、严格判分、个人掌握状态和软删除记录。
+- QuizAttempt/QuizResponse/WrongQuestion：固定题库 revision、考试/刷题模式、题目/选项顺序与历史快照、严格判分、个人掌握状态和软删除记录。
 - `cleanup_learning_expired`：有界到期清理、学习/AGENT reservation 恢复和账户终局学习数据清理；不绕过媒体、通知或 operations owner。
 
 ## 权限和状态边界
@@ -40,6 +40,7 @@ apps/learning/
 - 审核/生成 AGENT 成功且确定性校验通过后直接进入终态，不增加发布前人工审核；管理员保留事后隐藏、恢复、删除和申诉处理。
 - owner 隐藏与 admin 隐藏正交；owner 不能解除 admin 锁。用户删除统一 7 天冷静期，失败材料 30 天后清为无正文 tombstone。
 - 删除源文档不删除既有题库；删除题库阻止公开/API/新答题，但本人历史和错题保留自包含只读快照。
+- 考试模式只在整套 attempt 提交后释放全部正确答案和解析；刷题模式仅在本人显式提交某个 response 后释放该题答案和解析，未提交的其他 response 继续由 query 投影隐藏。自动保存始终不判分、不更新错题本、不揭晓答案；已揭晓 response 不可继续修改。
 
 ## 公开查询和 API
 
@@ -61,6 +62,6 @@ API gate 在对象查询前执行。关闭返回 `404/api_disabled`；Redis 限�
 
 ## 验证
 
-附件权限与原文隔离、文档去重/状态/清理、完整分块审核、最多两卷与覆盖统计、不可变修订、公开投影等价、API gate/CORS/限流 fail closed、答题快照/自动保存/严格判分、错题手动掌握、账户删除匿名化，以及四身份、三视口、三主题和键盘真实流。
+附件权限与原文隔离、文档去重/状态/清理、完整分块审核、最多两卷与覆盖统计、不可变修订、公开投影等价、API gate/CORS/限流 fail closed、考试与刷题模式隔离、逐题提交和答案投影、答题快照/自动保存/严格判分、错题手动掌握、账户删除匿名化，以及四身份、三视口、三主题和键盘真实流。
 
 施工依据：`contracts/01-application-services.md` 到 `05-background-tasks.md`、`data/01-er-model.md`、`data/05-storage-lifecycle.md`、`delivery/02-module-verification-matrix.md`。

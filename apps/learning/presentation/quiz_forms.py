@@ -1,6 +1,10 @@
 from django import forms
 
-from apps.learning.contracts import QUIZ_DURATION_OPTIONS, QuizAttemptSource
+from apps.learning.contracts import (
+    QUIZ_DURATION_OPTIONS,
+    QuizAttemptMode,
+    QuizAttemptSource,
+)
 
 
 class MultipleHiddenValueField(forms.Field):
@@ -23,6 +27,15 @@ class QuizStartForm(forms.Form):
         choices=QuizAttemptSource.choices,
         widget=forms.HiddenInput(),
         initial=QuizAttemptSource.QUESTION_BANK,
+    )
+    mode = forms.ChoiceField(
+        label="答题模式",
+        choices=(
+            (QuizAttemptMode.EXAM, "考试模式（提交整套后查看解析）"),
+            (QuizAttemptMode.PRACTICE, "刷题模式（提交每题后查看解析）"),
+        ),
+        initial=QuizAttemptMode.EXAM,
+        required=False,
     )
     question_types = forms.MultipleChoiceField(
         required=True, widget=forms.CheckboxSelectMultiple()
@@ -59,6 +72,7 @@ class QuizStartForm(forms.Form):
         cleaned = super().clean()
         if self.errors:
             return cleaned
+        cleaned["mode"] = cleaned.get("mode") or QuizAttemptMode.EXAM
         if cleaned.get("timed") and not cleaned.get("duration_minutes"):
             self.add_error("duration_minutes", "请选择答题时长。")
         if not cleaned.get("timed"):

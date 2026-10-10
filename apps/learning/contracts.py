@@ -177,6 +177,11 @@ class QuizAttemptStatus(models.TextChoices):
     DELETED = "DELETED", "已删除"
 
 
+class QuizAttemptMode(models.TextChoices):
+    EXAM = "EXAM", "考试模式"
+    PRACTICE = "PRACTICE", "刷题模式"
+
+
 class QuizAttemptSource(models.TextChoices):
     QUESTION_BANK = "QUESTION_BANK", "题库"
     WRONG_QUESTIONS = "WRONG_QUESTIONS", "错题本"

@@ -66,7 +66,7 @@
 | AGENT 首次外呼与结算 | 锁全站/Endpoint 当日 ledger 并按稳定顺序原子预留；结算/adjustment 依幂等键，活跃 reservation 不被 reset 清除 |
 | 文档提交/审核领取 | 锁账户配额、文档和运行；摘要唯一约束裁决重复；领取同时占用业务并发和 token reservation |
 | 题库生成/修订 | 锁文档、系列/题库当前指针与账户配额；所有卷完整校验后原子发布，不暴露半卷 |
-| 答题保存/提交 | 锁本人 attempt 并校验 row version；重复自动保存/提交幂等，提交后 wrong book 更新同事务 |
+| 答题保存/提交 | 锁本人 attempt/response 并校验 row version；自动保存、逐题提交、整套提交幂等；刷题逐题揭晓只更新一题，整套提交不重复累计错题 |
 
 默认使用 PostgreSQL `READ COMMITTED` 加显式行锁，不为“看起来更安全”全局升到 SERIALIZABLE。只有已证明的跨行写偏差再局部采用更高隔离级别。
 

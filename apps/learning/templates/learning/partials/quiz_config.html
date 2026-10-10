@@ -11,6 +11,7 @@
     <form method="post" class="quiz-config__form">{% csrf_token %}{{ start_form.bank_id }}{{ start_form.expected_revision_id }}{{ start_form.source }}{{ start_form.expected_source_keys }}
       <fieldset><legend>题型</legend>{{ start_form.question_types }}{{ start_form.question_types.errors }}</fieldset>
       <div>{{ start_form.question_count.label_tag }}{{ start_form.question_count }}{{ start_form.question_count.errors }}</div>
+      <div>{{ start_form.mode.label_tag }}{{ start_form.mode }}{{ start_form.mode.errors }}</div>
       <label class="switch-control" for="{{ start_form.timed.id_for_label }}">{{ start_form.timed }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span class="switch-control__label">开启软计时</span></label>
       <div>{{ start_form.duration_minutes.label_tag }}{{ start_form.duration_minutes }}{{ start_form.duration_minutes.errors }}</div>
       <label class="switch-control" for="{{ start_form.random_questions.id_for_label }}">{{ start_form.random_questions }}<span class="switch-control__track" aria-hidden="true"><span class="switch-control__thumb"></span></span><span class="switch-control__label">随机题目</span></label>
