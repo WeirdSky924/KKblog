@@ -190,6 +190,21 @@ function bindHomeSectionSnapping(page) {
     }, reduceMotion ? 0 : SECTION_SNAP_DURATION);
   };
 
+  page.addEventListener("htmx:afterRequest", (event) => {
+    const link = event.detail?.elt?.closest?.(
+      "[data-home-section-link], [data-home-latest-link]",
+    );
+    if (
+      !event.detail?.successful ||
+      !(link instanceof HTMLAnchorElement) ||
+      !page.contains(link) ||
+      !link.closest("[data-home-navigation-panel]")
+    ) {
+      return;
+    }
+    snapTo(articles);
+  });
+
   const insideNavigation = (target) =>
     target instanceof Element &&
     target.closest("[data-home-navigation-panel]") !== null;
