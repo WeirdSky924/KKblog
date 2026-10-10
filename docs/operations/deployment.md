@@ -4,6 +4,8 @@
 
 当前源码是否已形成可部署候选，以对应发布目录中的验证记录和远端默认分支读回为准。P12 只在隔离环境验证了候选镜像、Compose、健康检查、备份任务和本页模拟状态机；提交或推送源码不表示已经执行生产备份、migration、部署、服务重启或恢复演练。
 
+生产 Caddy 通过 `/config/maintenance.enabled` 文件开关维护页。存在该文件时，公开请求返回 `503`、`Cache-Control: no-store` 和 `Retry-After: 120`；`/health/live` 与 `/health/ready` 保持可读。维护文件必须在正式 Compose 所挂载的 Caddy config 目录中创建，并在候选应用通过健康读回后移除。
+
 ## 安全边界
 
 - 禁止自动部署；Git 提交、推送和部署分别授权。
