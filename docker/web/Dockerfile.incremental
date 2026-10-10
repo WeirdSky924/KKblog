@@ -1,4 +1,4 @@
-ARG BASE_IMAGE
+ARG BASE_IMAGE=registry.invalid/kajspace/base-image:required-build-arg
 FROM ${BASE_IMAGE}
 
 ARG SOURCE_REVISION

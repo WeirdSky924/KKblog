@@ -7,7 +7,10 @@ def test_incremental_image_requires_a_revision_and_only_copies_runtime_sources()
         encoding="utf-8"
     )
 
-    assert "ARG BASE_IMAGE" in dockerfile
+    assert (
+        "ARG BASE_IMAGE=registry.invalid/kajspace/base-image:required-build-arg"
+        in dockerfile
+    )
     assert "ARG SOURCE_REVISION" in dockerfile
     assert "org.opencontainers.image.revision=${SOURCE_REVISION}" in dockerfile
     assert "COPY --chown=10001:10001 apps/ /app/apps/" in dockerfile
