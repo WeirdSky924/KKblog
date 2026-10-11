@@ -2,6 +2,7 @@
 
 | Date | Decision | Reason | Evidence |
 | --- | --- | --- | --- |
+| 2026-10-12 | README 中的运行数据一律标注采样日期和来源；README 修改起点与生产运行 revision 分开陈述。 | 生产统计是历史只读快照，Git 主线在部署后还包含文档提交；避免把旧指标当实时 SLO 或把最新文档提交误认为已部署代码。 | 2026-10-09 业务/TaskRun 快照、2026-10-11 deployment record、README 修改基线 `91b88e7` 与 HTTP health 读回。 |
 | 2026-10-11 | 将 `learning.0014` 与 `0015` 作为同一维护窗口迁移；`QuizAttempt.mode` 同时保留应用和数据库级 `EXAM` 默认值。 | 只靠 Django 模型默认值时旧应用省略新列会在数据库写入时报错；`0015` 失败时也不能开放旧应用写请求。新刷题数据产生后旧应用不理解 `PRACTICE`，按前向修复处理。 | RED 用例读到 PostgreSQL `column_default=NULL`；加入 `0015` 后隔离 DB 和 Labs DB 均读回 `'EXAM'::character varying`。 |
 | 2026-10-11 | 对 35 条招聘来源状态只通过现有来源检查 service 重新检查，不直接 SQL 改写 `check_state`。 | `STALE` 是此前 socket/parser/timeout 失败的事实；只有修复后检查的真实终态才能决定 HEALTHY/DEGRADED/STALE，原始状态不能安全批量置成功。 | 生产只读聚合为 26 个 socket 错误、8 个响应契约错误、1 个 timeout；当前请求明确要求修正这些状态。 |
 | 2026-10-11 | 增量发布复用当前正式 Web 镜像构建源码候选；正式维护门禁由宿主 Nginx 唯一控制，Caddy 维持现有下游静态/媒体职责。 | 公网 `kajspace.cn` 由 Nginx `kaj-manual` server 接入，Nginx 已有 `kaj-manual-maintenance.conf` 和 `/run/kaj-production-maintenance.enabled`。Caddy 容器实际运行 development profile 且不在 TLS 入口；避免重复维护状态。 | Nginx marker 读回公网 `503`、no-store/Retry-After，Web loopback live/ready `200`；Caddy 已恢复 `2cbead0`；独立公告目录 `docs/releases/2026-10-11-production-increment/`。 |

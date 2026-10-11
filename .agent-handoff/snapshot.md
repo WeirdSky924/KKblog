@@ -2,30 +2,27 @@
 
 ## Current State
 
-- Last updated: 2026-10-11
+- Last updated: 2026-10-12
 - Last agent: Codex
 - Workspace root: `/home/code/.codex-worktrees/personal-blog/labs-test-environment`
-- Current objective: 完成本轮 Labs 提交推送、正式增量更新、答题前向 migration、35 条招聘来源状态复核及 Labs 测试服务关闭。
-- Current status: 已完成。本轮生产部署代码 revision 为 `d06af75`；Web/Worker/Beat 使用 `kaj-blog-web:d06af75a9c31`，Caddy 保持 `2cbead0`。生产已应用 `learning.0014/0015`；公网维护 marker 已移除，关键公网路径和 health 为 `200`。35 条来源最新终态为 30 HEALTHY、1 DEGRADED/TRUNCATED、4 STALE（Qcraft 超时、2 Hotjob 和1 Meituan响应错误）。Labs Web、Worker、Beat、Outbox service/timer 与 P12 PostgreSQL/Redis/Mailpit 已停止。
+- Current objective: 整理根 README 与相关状态摘要，使其符合 2026-10-11 正式增量发布及截至 2026-10-12 可核验的项目情况。
+- Current status: 已完成。生产应用 revision 为 `d06af75`。根 README、架构入口、运维入口和实施清单状态段已更新；运行数据均注明快照日期与来源，Git 交付以远端读回为准。
 - Immediate next actions:
-  - 单独调查定向来源复查期间两次 PostgreSQL backend exit-code 2 自动恢复的根因；容器无 restart/OOM，当前 healthy。
-  - 在 Labs 收集安全响应契约并修复 3 个仍 stale 的 HTTP 来源；定位 Qcraft 单来源超时，后续只按受限检查恢复其状态。
-  - 外部 P0 性能复测与生产知识审核 capability check 保持独立运维待办。
+  - README 文档任务无后续动作；保留以下独立运维待办：PostgreSQL backend 自动恢复根因调查、4 条仍 `STALE` 的来源复核、外部 P0 正式性能金丝雀和生产知识审核 capability check。
 - Active files:
-  - `apps/learning/migrations/0014_quizattempt_mode_and_more.py`
-  - `apps/learning/migrations/0015_quiz_attempt_mode_db_default.py`
-  - `apps/opportunities/checks/`
-  - `docker/web/Dockerfile.incremental`
-  - `docs/releases/2026-10-11-production-increment/`
-  - `docs/releases/2026-10-09-next-iteration/announcement.md`
+  - `README.md`
+  - `docs/architecture/README.md`
+  - `docs/operations/README.md`
+  - `docs/planning/implementation-todolist.md`
   - `.agent-handoff/snapshot.md`
   - `.agent-handoff/validation.md`
-- Blockers: 本轮部署和 Labs 关停均已完成。剩余 4 个来源保持真实失败状态；PostgreSQL backend 自动恢复根因待调查。
+- Blockers: 无 README 文档阻塞；Labs 服务仍按上一轮要求保持关闭。4 条来源状态与 PostgreSQL backend 根因调查仍是独立运维事项。
 - Open questions:
   - 无当前发布范围内的待确认项。
 
 ## Recovery Summary
 
+- 2026-10-12 README 快照已注明：生产代码 revision `d06af75`；业务规模数据来自 2026-10-09 生产只读快照，招聘来源聚合来自 2026-10-11 检查记录，P0 金丝雀仍未执行。
 - 本轮生产部署代码提交为 `d06af75`；Labs worktree 内的相关测试服务已关闭。正式 Web/Worker/Beat 为 `d06af75a9c31` 候选；Caddy 为 `2cbead0`。
 - 旧 Labs 工作树完整保留在 `labs-test-environment-archive-20261009`（detached `a06a94f`），其脏改动未迁入新分支；旧 `codex/labs-next-iteration` 分支仍保留。
 - 正式公告与本轮增量记录分别以 `docs/releases/2026-09-20-production-increment/` 和 `docs/releases/2026-10-09-next-iteration/announcement.md` 为准。

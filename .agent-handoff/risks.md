@@ -23,7 +23,7 @@
 - 正式项目快照 `/home/code/.codex-worktrees/personal-blog/production-688c25b` 仍有性能文档未提交改动；运行目录 `/home/code/personal-blog/var/production` 含生产凭据、数据库、媒体和备份，禁止当作源码同步目标。
 - P0 性能测试尚未在本轮重新执行；本轮应用与定向来源检查读回不能替代公网并发 1/2/5 与 Nginx timing 测试。
 - 2026-09-15 的历史只读诊断曾发现生产知识审核 profile 缺少匹配当前 Endpoint row version 的 `knowledge-review.v1` 严格能力检查；本轮未复核生产状态，重试前需重新只读确认。
-- `docs/planning/implementation-todolist.md` 等历史文档含旧远端提交号/部署口径；Git、服务和数据库读回优先级高于历史文案。
+- 其他历史规划文档可能保留其编写时的运行状态；当前生产 revision 与迁移状态以带日期的发布执行记录为准，README、架构入口、运维入口和实施清单摘要已更新至 2026-10-12。
 
 ## Unknowns / Confirmations Needed
 

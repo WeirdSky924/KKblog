@@ -2,6 +2,8 @@
 
 | Date | Command/Check | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-12 | README internal-link and source review | passed | All 14 unique README link targets exist; usage metrics were checked against dated release records, deployment revision against the 2026-10-11 execution record, and P0 state against its execution file. |
+| 2026-10-12 | `git diff --check` | passed, exit `0` | Documentation-only changes in `README.md`, architecture, operations, and implementation status summaries. No test suite or Labs runtime was started. |
 | 2026-10-11 | Quiz RED compatibility test: DB column default for old application writer | failed as RED, exit `1` | Before `0015`, PostgreSQL `column_default` was `NULL`; this reproduced old-version insert incompatibility. |
 | 2026-10-11 | `./scripts/test apps/learning/tests/test_quiz_modes.py::test_quiz_attempt_mode_has_database_default_for_previous_app_versions -q` | passed, exit `0` | `1 passed in 77.14s`; after adding `db_default=EXAM` and migration `0015`, isolated PostgreSQL readback returned `'EXAM'::character varying`. |
 | 2026-10-11 | `./scripts/test apps/learning/tests/test_quiz_modes.py apps/learning/tests/test_quiz_order.py apps/learning/tests/test_quiz_records_t18.py -q` | passed, exit `0` | `15 passed in 94.78s`; isolated PostgreSQL/Redis/Mailpit. |

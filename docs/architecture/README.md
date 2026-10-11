@@ -8,24 +8,26 @@
 
 本架构服务于可长期维护的私人博客。它把认证、私密内容、不可变版本、评论审核、数据交换和异步任务放在可独立测试的稳定领域内；Django 页面层只承担 HTTP、表单、模板和局部交互编排。
 
-产品主体仍是同源 Web 应用，不提供移动 App API、第三方登录、RSS 或社交平台直发。唯一外部接口例外是默认关闭的匿名题库只读 API；它使用独立 `/api/v1/question-banks` transport、精确 CORS 白名单和 fail-closed 限流，不把内部 HTMX 端点升级为公共合同。所有功能完成后才统一部署；Git 提交、推送、部署、迁移和服务重启仍只在用户当前明确唤起时执行。
+产品主体仍是同源 Web 应用，不提供移动 App API、第三方登录、RSS 或社交平台直发。唯一外部接口例外是默认关闭的匿名题库只读 API；它使用独立 `/api/v1/question-banks` transport、精确 CORS 白名单和 fail-closed 限流，不把内部 HTMX 端点升级为公共合同。生产环境按版本化增量发布；Git 提交、推送、后续部署、迁移和服务重启仍需当前任务授权。已完成发布的运行 revision 见对应发布执行记录。
 
 ## 运行时
 
 ```text
 Browser
-  -> Caddy :80 / future :443
-    -> Django / Gunicorn
-       -> PostgreSQL       业务事实、正文、版本、权限、任务状态
-       -> Redis            可丢失验证码、限流、冷却、公开缓存
-       -> media filesystem 受控图片与导出包
-       -> Outbox           提交后跨领域副作用
-       -> Provider Gateway 受限调用管理员配置的模型 Endpoint
-    -> Celery worker/beat  幂等应用服务和数据库到期扫描
-    -> Umami               仅经管理员入口访问
+  -> Host Nginx            正式公网入口与维护门禁
+    -> Caddy                下游路由、静态资源与受控媒体交付
+      -> Django / Gunicorn
+          -> PostgreSQL       业务事实、正文、版本、权限、任务状态
+          -> Redis            可丢失验证码、限流、冷却、公开缓存与任务 broker
+          -> media filesystem 受控图片与导出包
+          -> Outbox           提交后跨领域副作用
+          -> Provider Gateway 受限调用管理员配置的模型 Endpoint
+          -> Umami            管理员入口使用的数据分析服务
+
+Celery Beat -> Redis broker -> Celery Worker -> 领域 service -> PostgreSQL
 ```
 
-Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`umami`、`mailpit`。PostgreSQL、Redis、Mailpit、Umami 不绑定公网端口。生产域名就绪后 Caddy 启用 HTTPS，验证邮件由 Resend 替换 Mailpit。
+当前生产部署由宿主 Nginx 接收公网流量；2026-10-11 读回时 Caddy 位于 Nginx 后并使用下游配置，正式 TLS 由宿主入口处理。仓库 Compose 定义 `web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`umami`、`mailpit` 等服务；不同 profile 的端口和邮件配置以对应 Compose 与运行配置为准，不能把本地 Mailpit 当作生产邮件服务。
 
 ## 稳定所有权
 
@@ -72,4 +74,4 @@ Compose 服务：`web`、`postgres`、`redis`、`worker`、`beat`、`caddy`、`u
 
 ## 实施门禁
 
-任何模块开始前必须确认：需求来源、唯一所有者、入口身份、服务/query、事务与锁、持久化约束、事件/任务、错误状态、测试层次和原型页面。架构文档完成不等于产品已实现；当前已有 core/outbox/operations migration、Compose 运行契约和 P2 基础代码，但没有生产配置、生产数据、真实备份或部署完成事实。
+任何模块开始前必须确认：需求来源、唯一所有者、入口身份、服务/query、事务与锁、持久化约束、事件/任务、错误状态、测试层次和原型页面。架构文档完成不等于产品已实现；P0-P12 任务验收状态见实施清单，生产 migration、运行镜像、备份和健康读回等实际状态见带日期的发布执行记录。2026-10-11 的发布记录证明完成了该轮生产更新，但不代表完整恢复演练或 P0 负载金丝雀已通过。
