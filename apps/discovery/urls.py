@@ -1,7 +1,9 @@
 from django.urls import path
 
 from apps.comments.guestbook_views import (
+    create_guestbook_board_comment,
     create_guestbook_comment,
+    guestbook_board_page,
     guestbook_comment_page,
     guestbook_page,
     upload_guestbook_comment_image,
@@ -37,9 +39,19 @@ urlpatterns = [
         name="guestbook-comment-create",
     ),
     path(
+        "guestbook/board/comments/",
+        create_guestbook_board_comment,
+        name="guestbook-board-comment-create",
+    ),
+    path(
         "guestbook/comments/page/",
         guestbook_comment_page,
         name="guestbook-comment-page",
+    ),
+    path(
+        "guestbook/board/",
+        guestbook_board_page,
+        name="guestbook-board-page",
     ),
     path(
         "guestbook/comment-images/",

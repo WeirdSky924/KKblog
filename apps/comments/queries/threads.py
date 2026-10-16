@@ -69,6 +69,20 @@ class PublicCommentPage:
     next_cursor: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class GuestbookBoardItem:
+    id: str
+    body: str
+    created_at: datetime
+    flag: str
+
+
+@dataclass(frozen=True, slots=True)
+class GuestbookBoardPage:
+    items: tuple[GuestbookBoardItem, ...]
+    next_cursor: str | None
+
+
 def _thread_id(value) -> str:
     try:
         return str(UUID(str(value)))
@@ -433,6 +447,48 @@ def public_comment_page(
         else None
     )
     return PublicCommentPage(ordering, items, next_cursor)
+
+
+def guestbook_board_page(*, thread_id, cursor: str | None = None) -> GuestbookBoardPage:
+    identity = _thread_id(thread_id)
+    snapshot, created_at, comment_id, _reply_count = _root_position(
+        token=cursor,
+        thread_id=identity,
+        sort=CommentSort.LATEST,
+    )
+    query = _visible_rows(thread_id=identity, snapshot=snapshot).filter(
+        parent__isnull=True,
+        guestbook_hidden=False,
+        state=Comment.State.VISIBLE,
+    )
+    if created_at is not None and comment_id is not None:
+        query = query.filter(
+            Q(created_at__lt=created_at) | Q(created_at=created_at, id__lt=comment_id)
+        )
+    fetched = tuple(query.order_by("-created_at", "-id")[:11])
+    rows = fetched[:10]
+    next_cursor = (
+        _root_cursor(
+            thread_id=identity,
+            sort=CommentSort.LATEST,
+            snapshot=snapshot,
+            row=rows[-1],
+        )
+        if len(fetched) > 10
+        else None
+    )
+    return GuestbookBoardPage(
+        items=tuple(
+            GuestbookBoardItem(
+                id=row.id,
+                body=row.body,
+                created_at=row.created_at,
+                flag=row.guestbook_flag,
+            )
+            for row in rows
+        ),
+        next_cursor=next_cursor,
+    )
 
 
 def public_reply_page(

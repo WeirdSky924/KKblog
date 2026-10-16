@@ -27,6 +27,13 @@ def login_required(request):
     return private_response(redirect(target))
 
 
+def authenticated_account_id_or_response(request):
+    actor_id = getattr(request, "account_id", None)
+    if actor_id is None:
+        return None, login_required(request)
+    return actor_id, None
+
+
 def author_id_or_response(request):
     actor_id = getattr(request, "account_id", None)
     if actor_id is None:

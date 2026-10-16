@@ -21,6 +21,12 @@ class Comment(models.Model):
         ADMIN = "ADMIN", "管理员"
         REPORT = "REPORT", "举报裁决"
 
+    class GuestbookFlag(models.TextChoices):
+        NONE = "", "无标记"
+        READ = "READ", "阅"
+        NO = "NO", "否"
+        DONE = "DONE", "毕"
+
     id = models.CharField(
         primary_key=True,
         max_length=26,
@@ -73,6 +79,22 @@ class Comment(models.Model):
         blank=True,
     )
     deletion_reason = models.CharField(max_length=200, null=True, blank=True)
+    guestbook_hidden = models.BooleanField(default=False)
+    guestbook_flag = models.CharField(
+        max_length=4,
+        choices=GuestbookFlag.choices,
+        default=GuestbookFlag.NONE,
+    )
+    guestbook_hidden_at = models.DateTimeField(null=True, blank=True, editable=False)
+    guestbook_hidden_by = models.ForeignKey(
+        "accounts.Account",
+        related_name="guestbook_comments_hidden",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        db_constraint=False,
+    )
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -146,5 +168,23 @@ class Comment(models.Model):
                 fields=("visible_at", "id"),
                 condition=models.Q(state="BUFFERED"),
                 name="comment_buffer_due_idx",
+            ),
+            models.Index(
+                fields=("thread", "guestbook_hidden", "-created_at", "-id"),
+                condition=models.Q(
+                    parent__isnull=True,
+                    state="VISIBLE",
+                ),
+                name="comment_guestbook_public_idx",
+            ),
+            models.Index(
+                fields=("thread", "author", "created_at", "id"),
+                condition=models.Q(parent__isnull=True),
+                name="comment_top_author_day_idx",
+            ),
+            models.Index(
+                fields=("thread", "created_at"),
+                condition=models.Q(parent__isnull=True),
+                name="comment_top_daily_idx",
             ),
         ]

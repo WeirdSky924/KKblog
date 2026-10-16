@@ -139,6 +139,7 @@ import { initializeAdministrationOperations } from "./administration-operations.
 import { initializeAdministrationArticlePreviews } from "./administration-article-preview.js";
 import { initializeHomeNavigation } from "./home-navigation.js";
 import { initializeHomeHeroMedia } from "./home-hero.js";
+import { initializeHomeGuestbook } from "./home-guestbook.js";
 import {
   disposeArticleActions,
   initializeArticleActions,
@@ -154,6 +155,7 @@ import {
   initializeLiveSubmitSupport,
 } from "./live-submit.js";
 import { initializePasswordReveals } from "./password-reveal.js";
+import { initializeAdminPasswordResetLink } from "./admin-password-reset-link.js";
 import { initializeHeaderSearch } from "./header-search.js";
 import { initializeOpportunities } from "./opportunities.js";
 import { initializeQuiz } from "./quiz.js";
@@ -1429,6 +1431,7 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeNodeForms(root);
   initializeNavigationTrees(root);
   initializeHomeHeroMedia(root);
+  initializeHomeGuestbook(root);
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeAdministrationSettings(root);
@@ -1449,6 +1452,7 @@ document.addEventListener("htmx:load", (event) => {
   initializeNodeForms(root);
   initializeNavigationTrees(root);
   initializeHomeHeroMedia(root);
+  initializeHomeGuestbook(root);
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeArticleActions(root);
@@ -1568,6 +1572,7 @@ initializeLatexRenderer();
 initializeCharacterCounts();
 initializePublicationForms();
 initializePasswordReveals();
+initializeAdminPasswordResetLink();
 initializeArticleDraftClears();
 initializeAuthorEditors();
 initializeEditorTagPickers();
@@ -1578,6 +1583,7 @@ initializeImportUploadForms();
 initializeNodeForms();
 initializeNavigationTrees();
 initializeHomeHeroMedia();
+initializeHomeGuestbook();
 initializeHomeNavigation();
 initializeHeaderSearch();
 initializeAdministrationSettings();

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.core.events import enqueue_event
 from apps.core.ids import new_ulid
@@ -27,7 +28,8 @@ from ..ports import (
     default_comment_account_policy,
     default_comment_media_gateway,
 )
-from ..validation import normalize_comment_body
+from ..targets import DiscussionTargetType
+from ..validation import normalize_comment_body, normalize_guestbook_body
 from .access import resolve_top_level_posting_access
 
 
@@ -75,9 +77,24 @@ def create_top_level_comment(
     account_policy: CommentAccountPolicy | None = None,
     cooldown_store: CommentCooldownStore | None = None,
     media_gateway: CommentMediaGateway | None = None,
+    strict_guestbook: bool = False,
 ) -> TopLevelCommentResult:
-    normalized_body = normalize_comment_body(body)
-    normalized_refs = _image_refs(image_refs)
+    is_guestbook = (
+        target_type == DiscussionTargetType.GUESTBOOK or target_type == "GUESTBOOK"
+    )
+    is_strict_guestbook = is_guestbook and strict_guestbook
+    normalized_body = (
+        normalize_guestbook_body(body)
+        if is_strict_guestbook
+        else normalize_comment_body(body)
+    )
+    if is_strict_guestbook and image_refs:
+        raise CommentPostingError(
+            "comments.images_invalid.v1",
+            "留言板仅支持纯文字留言。",
+            field="images",
+        )
+    normalized_refs = _image_refs(image_refs) if not is_strict_guestbook else ()
     accounts = account_policy or default_comment_account_policy()
     cooldown = cooldown_store or default_comment_cooldown_store()
     media = media_gateway or default_comment_media_gateway()
@@ -97,25 +114,59 @@ def create_top_level_comment(
             actor = access.actor_id
             address = access.client_ip
 
-            ttl = (
-                ACCOUNT_COOLDOWN_SECONDS
-                if actor is not None
-                else ANONYMOUS_COOLDOWN_SECONDS
-            )
-            try:
-                reservation = cooldown.reserve(
-                    subject_kind="ACCOUNT" if actor is not None else "IP",
-                    subject_value=str(actor) if actor is not None else address,
-                    ttl_seconds=ttl,
-                )
-            except CommentCooldownActive as exc:
-                raise CommentPostingError(
-                    "comments.cooldown_active.v1",
-                    f"请等待 {exc.remaining_seconds} 秒后再发表评论。",
-                    retry_after=exc.remaining_seconds,
-                ) from None
-
             now = active_clock.now()
+            is_guestbook = access.target_type is DiscussionTargetType.GUESTBOOK
+            is_strict_guestbook = is_guestbook and strict_guestbook
+            if is_strict_guestbook:
+                if actor is None:
+                    raise CommentPostingError(
+                        "comments.login_required.v1", "登录后才能发表留言。"
+                    )
+                local_now = timezone.localtime(now)
+                day_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                day_end = day_start + timedelta(days=1)
+                daily_comments = Comment.objects.filter(
+                    thread=thread,
+                    parent__isnull=True,
+                    created_at__gte=day_start,
+                    created_at__lt=day_end,
+                )
+                if daily_comments.count() >= thread.guestbook_daily_limit:
+                    raise CommentPostingError(
+                        "comments.guestbook_daily_limit.v1",
+                        "今日留言板已满，请明天再来。",
+                        field="body",
+                    )
+                if (
+                    daily_comments.filter(
+                        author_id=actor,
+                        author_kind=Comment.AuthorKind.ACCOUNT,
+                    ).count()
+                    >= thread.guestbook_account_daily_limit
+                ):
+                    raise CommentPostingError(
+                        "comments.guestbook_account_daily_limit.v1",
+                        f"每位用户每天最多留言 {thread.guestbook_account_daily_limit} 条。",
+                        field="body",
+                    )
+            else:
+                ttl = (
+                    ACCOUNT_COOLDOWN_SECONDS
+                    if actor is not None
+                    else ANONYMOUS_COOLDOWN_SECONDS
+                )
+                try:
+                    reservation = cooldown.reserve(
+                        subject_kind="ACCOUNT" if actor is not None else "IP",
+                        subject_value=str(actor) if actor is not None else address,
+                        ttl_seconds=ttl,
+                    )
+                except CommentCooldownActive as exc:
+                    raise CommentPostingError(
+                        "comments.cooldown_active.v1",
+                        f"请等待 {exc.remaining_seconds} 秒后再发表评论。",
+                        retry_after=exc.remaining_seconds,
+                    ) from None
             comment_id = new_ulid()
             comment = Comment.objects.create(
                 id=comment_id,
@@ -129,8 +180,16 @@ def create_top_level_comment(
                     else Comment.AuthorKind.ANONYMOUS
                 ),
                 body=normalized_body,
-                state=Comment.State.BUFFERED,
-                visible_at=now + timedelta(seconds=COMMENT_BUFFER_SECONDS),
+                state=(
+                    Comment.State.VISIBLE
+                    if is_strict_guestbook
+                    else Comment.State.BUFFERED
+                ),
+                visible_at=(
+                    now
+                    if is_strict_guestbook
+                    else now + timedelta(seconds=COMMENT_BUFFER_SECONDS)
+                ),
                 depth=0,
                 reply_count=0,
                 client_ip=address,

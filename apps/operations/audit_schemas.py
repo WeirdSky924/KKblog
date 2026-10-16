@@ -44,6 +44,11 @@ def register_builtin_audit_schemas() -> None:
             frozenset({"status", "roles", "deletion_id", "disposition"}),
         ),
         AuditSchema(
+            "accounts.password_reset.link.request",
+            "account",
+            frozenset({"active_link", "validity_minutes"}),
+        ),
+        AuditSchema(
             "accounts.profile.change",
             "account",
             frozenset({"nickname_present", "theme", "avatar_present"}),

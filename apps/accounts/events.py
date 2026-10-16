@@ -20,6 +20,14 @@ def _account_status_changed(payload: Mapping[str, object]) -> None:
     _exact(payload, set())
 
 
+def _account_registered(payload: Mapping[str, object]) -> None:
+    _exact(payload, set())
+
+
+def _author_permission_requested(payload: Mapping[str, object]) -> None:
+    _exact(payload, set())
+
+
 def _account_deleted(payload: Mapping[str, object]) -> None:
     _exact(
         payload,
@@ -63,6 +71,10 @@ def _account_deleted(payload: Mapping[str, object]) -> None:
 AUTHOR_ROLE_CHANGED = EventDefinition(
     "account.author_role_changed.v1", _author_role_changed
 )
+ACCOUNT_REGISTERED = EventDefinition("account.registered.v1", _account_registered)
+AUTHOR_PERMISSION_REQUESTED = EventDefinition(
+    "account.author_permission_requested.v1", _author_permission_requested
+)
 ACCOUNT_DISABLED = EventDefinition("account.disabled.v1", _account_status_changed)
 ACCOUNT_ENABLED = EventDefinition("account.enabled.v1", _account_status_changed)
 ACCOUNT_DELETED = EventDefinition("account.deleted.v1", _account_deleted)
@@ -71,6 +83,8 @@ ACCOUNT_EVENT_DEFINITIONS = {
     item.event_type: item
     for item in (
         AUTHOR_ROLE_CHANGED,
+        ACCOUNT_REGISTERED,
+        AUTHOR_PERMISSION_REQUESTED,
         ACCOUNT_DISABLED,
         ACCOUNT_ENABLED,
         ACCOUNT_DELETED,

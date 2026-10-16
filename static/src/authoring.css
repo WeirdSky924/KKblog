@@ -1757,3 +1757,58 @@
     width: 100%;
   }
 }
+
+.author-permission-page {
+  width: min(100%, 50rem);
+  margin-inline: auto;
+}
+
+.author-permission-page__heading {
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.author-permission-page__panel {
+  display: grid;
+  gap: 1.5rem;
+  margin-block-start: 1.5rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--accent);
+  background: var(--surface-panel);
+}
+
+.author-permission-page__panel h2,
+.author-permission-page__panel p {
+  max-width: 40rem;
+  margin: 0;
+}
+
+.author-permission-page__panel h2 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.author-permission-page__panel > div > p {
+  margin-block-start: 0.625rem;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.author-permission-page__submitted {
+  padding-block: 0.75rem;
+  border-block: 1px solid var(--line);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.author-permission-page__error {
+  color: var(--danger);
+}
+
+@media (max-width: 34rem) {
+  .author-permission-page__panel .button {
+    width: 100%;
+  }
+}

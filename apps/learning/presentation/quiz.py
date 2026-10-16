@@ -96,6 +96,16 @@ def _question_type_choices(options):
     return tuple((item.value, f"{item.label}（{item.count} 题）") for item in options)
 
 
+def _display_options(options):
+    return tuple(
+        {
+            **option,
+            "label": chr(ord("A") + index),
+        }
+        for index, option in enumerate(options)
+    )
+
+
 def _configuration_form(
     configuration, *, data=None, source=QuizAttemptSource.QUESTION_BANK, wrong=None
 ):
@@ -283,6 +293,7 @@ def _attempt_context(
                 "question_type_label": _QUESTION_TYPE_LABELS.get(
                     response.question_type, response.question_type
                 ),
+                "display_options": _display_options(response.options),
                 "nav_state": _navigation_state(response),
             }
         )
@@ -306,7 +317,10 @@ def _attempt_context(
         "attempt": detail,
         "response_entries": tuple(entries),
         "has_revealed_response": has_revealed_response,
-        "practice_submit_response": detail.responses[0] if detail.responses else None,
+        "practice_submit_response": next(
+            (response for response in detail.responses if not response.answer_revealed),
+            None,
+        ),
         "question_groups": question_groups,
         "submit_form": submit_form
         or QuizSubmitForm(

@@ -6,7 +6,11 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.comments.public import article_comment_context
+from apps.comments.public import (
+    GuestbookUnavailableError,
+    article_comment_context,
+    guestbook_board_context,
+)
 from apps.content.public import (
     ArticleLoginRequired,
     ArticleNotFound,
@@ -237,6 +241,15 @@ def home(request):
         )
     else:
         status = 422
+    guestbook_context = {}
+    if not (
+        is_htmx_fragment_request(request)
+        and request.headers.get("HX-Target") == "home-article-region"
+    ):
+        try:
+            guestbook_context = guestbook_board_context(request=request)
+        except GuestbookUnavailableError:
+            guestbook_context = {"guestbook_board_unavailable": True}
     context = {
         "filter_options": filter_options,
         "pagination_form": form,
@@ -251,6 +264,7 @@ def home(request):
         "home_article_jump_label": "查看最新文章",
         "home_article_refresh_url": request.get_full_path(),
         "active_home_section_id": None,
+        **guestbook_context,
     }
     return _no_store(
         render(

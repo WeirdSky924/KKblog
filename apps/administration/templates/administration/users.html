@@ -16,6 +16,7 @@
       {% if saved == "enabled" %}{% include "components/feedback/trigger.html" with key="user-enabled" message="账户已启用，旧会话未恢复。" %}{% endif %}
       {% if saved == "deleted" %}{% include "components/feedback/trigger.html" with key="user-deleted" message="账户及其关联内容已删除。" %}{% endif %}
       {% if saved == "restrictions-cleared" %}{% include "components/feedback/trigger.html" with key="user-restrictions-cleared" message="账户的临时登录与邮箱验证码限制已清除。" %}{% endif %}
+      {% if saved == "password-reset-sent" %}{% include "components/feedback/trigger.html" with key="user-password-reset-sent" message="密码重置邮件已发送，链接将在 30 分钟后失效。" %}{% endif %}
     </header>
 
     <form method="get" class="admin-users__filters" role="search">
@@ -79,6 +80,7 @@
                 <td><span class="admin-users__article-count">{{ row.article_count }}</span></td>
                 <td>
                   <div class="admin-users__actions">
+                    <a id="account-password-reset-{{ row.account.account_id }}" href="?confirm_action=password_reset&amp;account_id={{ row.account.account_id }}#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="key-round"></i><span>重置密码</span></a>
                     {% if row.can_manage %}
                       {% if row.account.is_author %}
                         <a id="account-role-{{ row.account.account_id }}" href="?confirm_action=role&amp;account_id={{ row.account.account_id }}&amp;enabled=0#user-list" data-dialog-trigger data-dialog-return-hash="user-list" aria-controls="account-action-dialog"><i data-lucide="circle-x"></i><span>撤销作者</span></a>

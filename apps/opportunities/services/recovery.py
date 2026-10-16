@@ -29,6 +29,17 @@ LEASE_EXPIRED_ERROR = "opportunities.check_lease_expired.v1"
 SOURCE_TIMEOUT_WARNING = "opportunities.source_timeout_warning.v1"
 ORPHANED_RUN_ERROR = "opportunities.check_run_orphaned.v1"
 _SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.v[1-9][0-9]*$")
+_TERMINAL_RUN_STATES = (
+    OpportunityCheckRun.State.SUCCEEDED,
+    OpportunityCheckRun.State.PARTIAL,
+    OpportunityCheckRun.State.FAILED,
+    OpportunityCheckRun.State.TRUNCATED,
+    OpportunityCheckRun.State.CANCELLED,
+)
+_ACTIVE_SOURCE_STATES = (
+    OpportunityCheckRunSource.State.PENDING,
+    OpportunityCheckRunSource.State.RUNNING,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,6 +304,85 @@ def _reconcile_terminal_runs(*, now, batch_size: int) -> int:
     return reconciled
 
 
+def _refresh_terminal_run_counts(run: OpportunityCheckRun) -> None:
+    counts = {
+        state: run.source_runs.filter(state=state).count()
+        for state in OpportunityCheckRunSource.State.values
+    }
+    run.succeeded_sources = counts[OpportunityCheckRunSource.State.SUCCEEDED]
+    run.failed_sources = counts[OpportunityCheckRunSource.State.FAILED]
+    run.truncated_sources = counts[OpportunityCheckRunSource.State.TRUNCATED]
+    run.skipped_sources = counts[OpportunityCheckRunSource.State.SKIPPED]
+    run.not_executed_sources = counts[OpportunityCheckRunSource.State.NOT_EXECUTED]
+    run.created_opportunities = sum(
+        run.source_runs.values_list("created_opportunities", flat=True)
+    )
+    run.changed_opportunities = sum(
+        run.source_runs.values_list("changed_opportunities", flat=True)
+    )
+    run.missing_opportunities = sum(
+        run.source_runs.values_list("missing_opportunities", flat=True)
+    )
+    run.failed_opportunity_checks = sum(
+        run.source_runs.values_list("failed_opportunity_checks", flat=True)
+    )
+    run.current_source = None
+    run.save(
+        update_fields=(
+            "current_source",
+            "succeeded_sources",
+            "failed_sources",
+            "truncated_sources",
+            "skipped_sources",
+            "not_executed_sources",
+            "created_opportunities",
+            "changed_opportunities",
+            "missing_opportunities",
+            "failed_opportunity_checks",
+            "updated_at",
+        )
+    )
+
+
+def _reconcile_terminal_source_items(*, now, batch_size: int) -> int:
+    """Close source rows left active after their parent run became terminal."""
+    run_ids = tuple(
+        OpportunityCheckRunSource.objects.filter(
+            run__state__in=_TERMINAL_RUN_STATES,
+            state__in=_ACTIVE_SOURCE_STATES,
+        )
+        .order_by("run_id")
+        .values_list("run_id", flat=True)
+        .distinct()[:batch_size]
+    )
+    reconciled = 0
+    for run_id in run_ids:
+        with transaction.atomic():
+            run = (
+                OpportunityCheckRun.objects.select_for_update()
+                .filter(pk=run_id, state__in=_TERMINAL_RUN_STATES)
+                .first()
+            )
+            if run is None:
+                continue
+            items = list(
+                OpportunityCheckRunSource.objects.select_for_update().filter(
+                    run=run,
+                    state__in=_ACTIVE_SOURCE_STATES,
+                )
+            )
+            if not items:
+                continue
+            for item in items:
+                item.state = OpportunityCheckRunSource.State.FAILED
+                item.safe_error_code = ORPHANED_RUN_ERROR
+                item.completed_at = now
+                item.save(update_fields=("state", "safe_error_code", "completed_at"))
+            _refresh_terminal_run_counts(run)
+            reconciled += len(items)
+    return reconciled
+
+
 def recover_expired_check_runs(
     *,
     dispatcher: Callable[[str], None],
@@ -311,6 +401,7 @@ def recover_expired_check_runs(
     now = active_clock.now()
     close_old_connections()
     reconciled = _reconcile_terminal_runs(now=now, batch_size=batch_size)
+    reconciled += _reconcile_terminal_source_items(now=now, batch_size=batch_size)
     recovered = recover_expired_task_leases(
         batch_size=batch_size,
         clock=active_clock,

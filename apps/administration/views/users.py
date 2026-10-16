@@ -7,11 +7,13 @@ from django.utils.http import urlencode
 from apps.accounts.public import (
     AccountAdministrationQueryError,
     AccountLifecycleError,
+    AdminPasswordResetError,
     RestrictionError,
     clear_account_restrictions,
     default_restriction_store,
     delete_account,
     is_administrator,
+    issue_admin_password_reset_link,
     set_account_enabled,
     set_attachment_upload_capability,
     set_author_role,
@@ -19,6 +21,7 @@ from apps.accounts.public import (
 from apps.administration.forms.users import (
     AccountAttachmentConfirmationForm,
     AccountDeletionConfirmationForm,
+    AccountPasswordResetConfirmationForm,
     AccountRestrictionConfirmationForm,
     AccountRoleConfirmationForm,
     AccountStatusConfirmationForm,
@@ -105,6 +108,16 @@ def _dialog(kind: str, target, form) -> dict[str, str]:
             "return_focus_id": f"account-restriction-{target.account.account_id}",
             "return_url": f"{reverse('admin:users')}#user-list",
         }
+    if kind == "password_reset":
+        return {
+            "title": "向这个账户发送密码重置邮件？",
+            "description": f"将向 {display} 的已绑定邮箱发送密码重置链接。",
+            "details": "链接 30 分钟后失效；用户成功设置新密码后，所有设备上的现有会话都会退出。",
+            "action": "send_password_reset",
+            "label": "发送重置邮件",
+            "return_focus_id": f"account-password-reset-{target.account.account_id}",
+            "return_url": f"{reverse('admin:users')}#user-list",
+        }
     return {
         "title": "确认永久删除这个账户？",
         "description": (
@@ -126,7 +139,11 @@ def _get_confirmation(request: HttpRequest, actor_id):
         actor_id=actor_id,
         account_id=request.GET.get("account_id", ""),
     )
-    if not target.can_manage and kind not in {"attachment", "restriction"}:
+    if not target.can_manage and kind not in {
+        "attachment",
+        "restriction",
+        "password_reset",
+    }:
         raise Http404
     if kind == "role":
         enabled = request.GET.get("enabled", "")
@@ -178,6 +195,13 @@ def _get_confirmation(request: HttpRequest, actor_id):
                 "confirm": "restriction",
             }
         )
+    elif kind == "password_reset":
+        form = AccountPasswordResetConfirmationForm(
+            initial={
+                "account_id": target.account.account_id,
+                "confirm": "password_reset",
+            }
+        )
     else:
         raise Http404
     return kind, target, form
@@ -224,9 +248,7 @@ def _render(
         {
             "presentation": presentation,
             "filter_form": filter_form,
-            "pagination_query": urlencode(
-                {"q": keyword, "status": selected_status}
-            ),
+            "pagination_query": urlencode({"q": keyword, "status": selected_status}),
             "confirmation_kind": confirmation_kind,
             "confirmation_target": confirmation_target,
             "confirmation_form": confirmation_form,
@@ -356,6 +378,28 @@ def _post(request: HttpRequest) -> HttpResponse:
                 message=str(exc),
             )
         saved = "restrictions-cleared"
+    elif action == "send_password_reset":
+        form = AccountPasswordResetConfirmationForm(request.POST)
+        if not form.is_valid():
+            return _action_error(
+                request,
+                kind="password_reset",
+                form=form,
+                message="请重新确认密码重置邮件。",
+            )
+        try:
+            issue_admin_password_reset_link(
+                actor_id=actor_id,
+                account_id=form.cleaned_data["account_id"],
+                **_meta(request),
+            )
+        except AdminPasswordResetError as exc:
+            return _action_error(
+                request, kind="password_reset", form=form, message=str(exc)
+            )
+        except PermissionError:
+            raise PermissionDenied from None
+        saved = "password-reset-sent"
     elif action == "delete":
         form = AccountDeletionConfirmationForm(request.POST)
         if not form.is_valid():

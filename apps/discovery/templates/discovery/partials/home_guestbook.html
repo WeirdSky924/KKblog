@@ -1,0 +1,110 @@
+<div
+  id="home-guestbook-shell"
+  class="home-guestbook-shell"
+  data-home-guestbook-shell
+  data-collapsed="false"
+  data-bounds-ready="false"
+  data-manually-collapsed="false"
+  data-articles-visible="false"
+  data-dialog-open="{% if guestbook_dialog_open %}true{% else %}false{% endif %}"
+>
+  <aside
+    id="home-guestbook-panel"
+    class="home-guestbook"
+    data-home-guestbook-panel
+    aria-labelledby="home-guestbook-title"
+    aria-hidden="false"
+  >
+    <header class="home-guestbook__header">
+      <div>
+        <p class="home-guestbook__kicker">留言板</p>
+        <h2 id="home-guestbook-title">留下此刻</h2>
+      </div>
+      <span class="home-guestbook__quota">每日上限 {{ guestbook_board_daily_limit }} 条</span>
+      <button
+        class="icon-button home-guestbook__collapse"
+        type="button"
+        data-home-guestbook-collapse
+        aria-controls="home-guestbook-panel"
+        aria-expanded="true"
+        aria-label="收起留言板"
+        title="收起留言板"
+      >
+        <i data-lucide="chevron-right" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    {% if guestbook_board_unavailable %}
+      <p class="home-guestbook__empty">留言板暂时不可用。</p>
+    {% else %}
+      <div id="home-guestbook-feed" class="home-guestbook__feed" data-guestbook-feed>
+        {% include "discovery/partials/home_guestbook_batch.html" %}
+      </div>
+      <footer class="home-guestbook__footer">
+        {% if guestbook_feedback %}<p class="home-guestbook__feedback" role="status">{{ guestbook_feedback }}</p>{% endif %}
+        {% if guestbook_board_access.can_post %}
+          <button class="button button--primary home-guestbook__write" type="button" data-home-guestbook-open-dialog>
+            <i data-lucide="message-circle" aria-hidden="true"></i><span>留言</span>
+          </button>
+          <small>每位用户每天最多 {{ guestbook_account_daily_limit }} 条</small>
+        {% elif guestbook_board_access.post_login_required %}
+          <a class="button button--secondary home-guestbook__write" href="{{ guestbook_login_url }}">登录后留言</a>
+        {% else %}
+          <small>留言板当前关闭</small>
+        {% endif %}
+      </footer>
+    {% endif %}
+  </aside>
+
+  <button
+    class="home-guestbook__reopen"
+    type="button"
+    data-home-guestbook-open
+    aria-controls="home-guestbook-panel"
+    aria-expanded="true"
+    aria-label="展开留言板"
+    title="展开留言板"
+  >
+    <i data-lucide="message-circle" aria-hidden="true"></i><span aria-hidden="true">留言</span>
+  </button>
+
+  {% if guestbook_board_access.can_post %}
+    <dialog
+      id="home-guestbook-dialog"
+      class="confirm-dialog confirm-dialog-panel home-guestbook-dialog"
+      data-home-guestbook-dialog
+      {% if guestbook_dialog_open %}open{% endif %}
+      aria-labelledby="home-guestbook-dialog-title"
+    >
+      <div class="confirm-dialog__content confirm-dialog-panel__content home-guestbook-dialog__content">
+        <header class="confirm-dialog-panel__header home-guestbook-dialog__header">
+          <div><p>留言板</p><h2 id="home-guestbook-dialog-title">写下留言</h2></div>
+          <button class="icon-button" type="button" data-home-guestbook-close-dialog aria-label="关闭留言窗口" title="关闭留言窗口"><i data-lucide="x" aria-hidden="true"></i></button>
+        </header>
+        <form
+          class="confirm-dialog-panel__form home-guestbook-dialog__form"
+          method="post"
+          action="{{ guestbook_post_url }}"
+          hx-post="{{ guestbook_post_url }}"
+          hx-target="#home-guestbook-shell"
+          hx-swap="outerHTML"
+          data-submit-once
+          data-home-guestbook-form
+        >
+          {% csrf_token %}
+          <div class="home-guestbook-dialog__field">
+            <label for="{{ guestbook_form.body.id_for_label }}">{{ guestbook_form.body.label }}</label>
+            {{ guestbook_form.body }}
+            <div class="home-guestbook-dialog__help"><span id="guestbook-body-help">纯文字，中文最多 50 字或总长度不超过 100 个字符。</span><span data-guestbook-count>0 / 100</span></div>
+            {% if guestbook_form.body.errors %}<ul class="comment-form__errors" role="alert">{% for error in guestbook_form.body.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          {% if guestbook_form.non_field_errors %}<ul class="comment-form__errors" role="alert">{% for error in guestbook_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          <div class="confirm-dialog__actions confirm-dialog-panel__actions home-guestbook-dialog__actions">
+            <button class="button button--secondary" type="button" data-home-guestbook-close-dialog>取消</button>
+            <button class="button button--primary" type="submit"><i data-lucide="send" aria-hidden="true"></i><span>发布留言</span></button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  {% endif %}
+</div>

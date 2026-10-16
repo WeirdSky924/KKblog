@@ -48,6 +48,7 @@ ADMIN_NAVIGATION = (
         items=(
             AdminNavigationItem("articles", "文章管理", "admin:articles"),
             AdminNavigationItem("comments", "评论管理", "admin:comments"),
+            AdminNavigationItem("guestbook", "留言板管理", "admin:guestbook"),
             AdminNavigationItem("reports", "举报与申诉", "admin:reports"),
             AdminNavigationItem("tags", "标签审核", "admin:tags"),
             AdminNavigationItem("sections", "文章分区", "admin:sections"),

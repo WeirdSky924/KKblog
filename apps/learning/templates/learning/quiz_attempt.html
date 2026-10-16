@@ -95,11 +95,11 @@
               </header>
               <h2 tabindex="-1">{{ response.stem_markdown }}</h2>
               {% if response.answer_revealed %}
-                {% if response.options %}<ul class="quiz-options">{% for option in response.options %}<li{% if option.id in response.correct_option_ids %} class="quiz-option--correct"{% endif %}>{{ option.text }}</li>{% endfor %}</ul>{% endif %}
+                {% if entry.display_options %}<ul class="quiz-options">{% for option in entry.display_options %}<li{% if option.id in response.correct_option_ids %} class="quiz-option--correct"{% endif %}>{{ option.label }}. {{ option.text }}</li>{% endfor %}</ul>{% endif %}
                 {% if response.question_type == "SHORT_ANSWER" %}<div class="quiz-reference"><h3>参考答案</h3><p>{{ response.reference_answer }}</p><h3>评分要点</h3><ul>{% for point in response.scoring_points %}<li>{{ point }}</li>{% endfor %}</ul>{% if response.self_assessment %}<p>自评：{% if response.self_assessment == "MASTERED" %}已掌握{% else %}未掌握{% endif %}</p>{% elif entry.assessment_form %}<form method="post" action="{% url 'learning:quiz-assess' response_id=response.response_id %}" class="quiz-assessment">{% csrf_token %}{{ entry.assessment_form.attempt_id }}{{ entry.assessment_form.response_id }}{{ entry.assessment_form.expected_version }}{{ entry.assessment_form.request_id }}{{ entry.assessment_form.self_assessment }}<button class="button button--secondary" type="submit">保存自评</button></form>{% endif %}</div>{% endif %}
               {% else %}
                 <form id="quiz-response-form-{{ response.response_id }}" method="post" action="{% url 'learning:quiz-save-response' response_id=response.response_id %}" data-quiz-submit-action="{% url 'learning:quiz-submit-response' response_id=response.response_id %}" class="quiz-response__form" data-quiz-save>{% csrf_token %}{{ response_form.attempt_id }}{{ response_form.response_id }}{{ response_form.expected_version }}{{ response_form.request_id }}{{ response_form.question_type }}
-                  {% if response.options %}<div class="quiz-options">{% for option in response.options %}<label><input type="{% if response.question_type == 'SINGLE_CHOICE' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.id }}"{% if response.answer and option.id in response.answer %} checked{% endif %}> <span>{{ option.id }}. {{ option.text }}</span></label>{% endfor %}</div>{% elif response.question_type == "TRUE_FALSE" %}<div class="quiz-options"><label><input type="radio" name="answer" value="true"{% if response.answer is True %} checked{% endif %}> 真</label><label><input type="radio" name="answer" value="false"{% if response.answer is False %} checked{% endif %}> 假</label></div>{% else %}<textarea name="answer" rows="5" maxlength="10000" placeholder="写下你的答案">{{ response.answer|default:"" }}</textarea>{% endif %}
+                  {% if entry.display_options %}<div class="quiz-options">{% for option in entry.display_options %}<label><input type="{% if response.question_type == 'SINGLE_CHOICE' %}radio{% else %}checkbox{% endif %}" name="answer" value="{{ option.id }}"{% if response.answer and option.id in response.answer %} checked{% endif %}> <span>{{ option.label }}. {{ option.text }}</span></label>{% endfor %}</div>{% elif response.question_type == "TRUE_FALSE" %}<div class="quiz-options"><label><input type="radio" name="answer" value="true"{% if response.answer is True %} checked{% endif %}> 真</label><label><input type="radio" name="answer" value="false"{% if response.answer is False %} checked{% endif %}> 假</label></div>{% else %}<textarea name="answer" rows="5" maxlength="10000" placeholder="写下你的答案">{{ response.answer|default:"" }}</textarea>{% endif %}
                 </form>
               {% endif %}
             </article>
@@ -112,17 +112,25 @@
           <button class="button button--secondary" type="button" data-quiz-next{% if attempt.question_count <= 1 %} disabled{% endif %}><span>下一题</span><i data-lucide="chevron-right" aria-hidden="true"></i></button>
         </nav>
         {% if attempt.status != "SUBMITTED" %}
-          {% if attempt.mode == "PRACTICE" and practice_submit_response %}
+          {% if attempt.mode == "PRACTICE" %}
+            <form id="quiz-submit-form-{{ attempt.attempt_id }}" method="post" action="{% url 'learning:quiz-submit' attempt_id=attempt.attempt_id %}" class="quiz-submit-form quiz-submit-form--whole">{% csrf_token %}{{ submit_form.attempt_id }}{{ submit_form.request_id }}</form>
             <div class="quiz-submit-form quiz-submit-form--practice">
               <button
                 class="button button--primary"
                 type="submit"
                 data-quiz-practice-submit
-                data-quiz-submit-response
-                form="quiz-response-form-{{ practice_submit_response.response_id }}"
-                formaction="{% url 'learning:quiz-submit-response' response_id=practice_submit_response.response_id %}"
-                {% if practice_submit_response.answer_revealed %}disabled{% endif %}
-              ><i data-lucide="check"></i><span>提交本题并查看解析</span></button>
+                data-quiz-response-label="提交本题并查看解析"
+                data-quiz-attempt-label="提交整张试卷"
+                data-quiz-attempt-form="quiz-submit-form-{{ attempt.attempt_id }}"
+                {% if practice_submit_response %}
+                  data-quiz-submit-response
+                  form="quiz-response-form-{{ practice_submit_response.response_id }}"
+                  formaction="{% url 'learning:quiz-submit-response' response_id=practice_submit_response.response_id %}"
+                {% else %}
+                  data-quiz-submit-attempt
+                  form="quiz-submit-form-{{ attempt.attempt_id }}"
+                {% endif %}
+              ><i data-lucide="check"></i><span>{% if practice_submit_response %}提交本题并查看解析{% else %}提交整张试卷{% endif %}</span></button>
             </div>
           {% else %}
             <form method="post" action="{% url 'learning:quiz-submit' attempt_id=attempt.attempt_id %}" class="quiz-submit-form">{% csrf_token %}{{ submit_form.attempt_id }}{{ submit_form.request_id }}<button class="button button--primary" type="submit"><i data-lucide="check"></i><span>提交答题</span></button></form>
@@ -169,7 +177,7 @@
                       {% elif response.options %}
                         {% if response.answer %}
                           <ul class="quiz-explanation-panel__answer-list">
-                            {% for option in response.options %}{% if option.id in response.answer %}<li>{{ option.id }}. {{ option.text }}</li>{% endif %}{% endfor %}
+                            {% for option in entry.display_options %}{% if option.id in response.answer %}<li>{{ option.label }}. {{ option.text }}</li>{% endif %}{% endfor %}
                           </ul>
                         {% else %}
                           <span class="quiz-explanation-panel__answer-value">未作答</span>
@@ -185,7 +193,7 @@
                       {% if response.options %}
                         {% if response.correct_option_ids %}
                           <ul class="quiz-explanation-panel__answer-list">
-                            {% for option in response.options %}{% if option.id in response.correct_option_ids %}<li>{{ option.id }}. {{ option.text }}</li>{% endif %}{% endfor %}
+                            {% for option in entry.display_options %}{% if option.id in response.correct_option_ids %}<li>{{ option.label }}. {{ option.text }}</li>{% endif %}{% endfor %}
                           </ul>
                         {% else %}
                           <span class="quiz-explanation-panel__answer-value">暂无正确答案</span>

@@ -703,6 +703,27 @@ _BUILTINS = (
         ),
     ),
     (
+        _schema("account.registered.v1", "admin_user", frozenset(), _empty),
+        NotificationTemplateDefinition(
+            "account.registered.v1",
+            "新用户注册",
+            lambda _payload: "有新用户完成注册，请前往用户管理查看对应账户。",
+        ),
+    ),
+    (
+        _schema(
+            "account.author_permission_requested.v1",
+            "admin_user",
+            frozenset(),
+            _empty,
+        ),
+        NotificationTemplateDefinition(
+            "account.author_permission_requested.v1",
+            "作者权限申请",
+            lambda _payload: "有用户申请作者权限，请前往用户管理查看对应账户。",
+        ),
+    ),
+    (
         _schema(
             "tag.reviewed.v1",
             "tag",

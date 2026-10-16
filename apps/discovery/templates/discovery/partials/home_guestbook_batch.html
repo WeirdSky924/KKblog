@@ -1,0 +1,25 @@
+{% if guestbook_board_error %}
+  <p class="home-guestbook__empty" role="alert">{{ guestbook_board_error }}</p>
+{% else %}
+{% for item in guestbook_board_page.items %}
+  <article class="home-guestbook__item" data-guestbook-item>
+    <div class="home-guestbook__item-meta">
+      <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"m月d日 H:i" }}</time>
+      {% if item.flag == "READ" %}<span class="home-guestbook__flag home-guestbook__flag--read">阅</span>{% elif item.flag == "NO" %}<span class="home-guestbook__flag home-guestbook__flag--no">否</span>{% elif item.flag == "DONE" %}<span class="home-guestbook__flag home-guestbook__flag--done">毕</span>{% endif %}
+    </div>
+    <p>{{ item.body }}</p>
+  </article>
+{% empty %}
+  <p class="home-guestbook__empty">还没有留言。</p>
+{% endfor %}
+{% if guestbook_board_page.next_cursor %}
+  <div
+    class="home-guestbook__load-more"
+    data-guestbook-load-more
+    hx-get="{{ guestbook_board_page_url }}?cursor={{ guestbook_board_page.next_cursor|urlencode }}"
+    hx-trigger="revealed"
+    hx-target="#home-guestbook-feed"
+    hx-swap="beforeend"
+  >正在加载更多留言</div>
+{% endif %}
+{% endif %}

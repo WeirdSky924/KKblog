@@ -35,6 +35,9 @@
 | `accounts.0006_nickname_history` | 昵称历史表与账户索引 | N/C0 | B/R1 |
 | `accounts.0007_account_auto_republish_enabled` | account 增加布尔偏好 | M/C0 | B/R1 |
 | `accounts.0008_account_attachment_upload_enabled` | account 增加默认关闭的附件能力 | M/C0 | B/R1 |
+| `accounts.0009_account_article_explanation_auto_accept` | account 增加默认关闭的文章解析自动通过偏好 | M/C0 | B/R1 |
+| `accounts.0010_account_author_permission_requested_at` | account 增加可空的作者权限申请时间 | M/C0 | B/R1 |
+| `accounts.0011_admin_password_reset` | 新增账户一对一密码重置状态表、令牌摘要唯一约束和有效期检查；不回填账户数据 | N/C0 | B/R1 |
 | `agents.0001_initial` | 新增 Endpoint/Profile/不可变 Prompt/Invocation、全站 policy、双层 token ledger/reservation/adjustment/reset operation 及约束索引；只 seed 单例默认 policy，不调用 Provider | N/C0 | B/R1 |
 | `agents.0002_endpoint_connection_checks` | 新增显式 Endpoint 连接检查事实与约束，并把 token reservation owner 扩展为 Invocation 或 EndpointCheck 二选一 | N+M/C1 | B/R2 |
 | `agents.0003_remove_agentendpoint_agent_endpoint_auth_mode_valid_and_more` | 增加加密自定义 API Key、Invocation/EndpointCheck 凭据快照、CUSTOM_API_KEY 认证形状约束及字段长度扩展；不回填明文或调用 Provider | M/C1 | B/R2 |
@@ -157,3 +160,5 @@
 `learning.0002` 必须先于派发或领取知识审核任务。既有 review 行扩展为 `attempt_count=0`、`dispatch_required=true`，其余运行引用为空；迁移不派发任务、不调用 Provider。隔离 PostgreSQL 已验证前向、10 个字段/5 条约束读回、反向到 `0001` 字段为 0、再次前向成功。Labs 已于 `2026-08-17` 根据当前 Goal 持续授权执行，读回 migration/字段/约束与空 review 表，并 warm restart worker 读回审核任务注册；生产 migration 仍仅在实际生产 Goal 明确需要时执行。一旦派发任务或写入运行快照，应用回滚时数据库保持向前并暂停审核 worker。
 
 `learning.0003` 必须先于开放知识文档申诉或管理员原文访问。它只创建 Appeal/Access 两表，不读取正文、不派发审核、不回填既有文档。隔离 PostgreSQL 已验证前向、单 pending/决定/trace 约束读回、反向到 `0002` 表数恢复、再次前向成功；Labs 已根据持续授权执行并读回两表为空、ready 200。生产 migration 仍仅在实际生产 Goal 明确需要时执行；应用回滚时数据库保持向前并关闭申诉/访问历史入口。
+
+`accounts.0011_admin_password_reset` 仅创建账户一对一重置状态表，字段为账户 ID、HMAC 令牌摘要、创建/到期/消费时间；约束包括账户主键/外键、令牌摘要唯一和到期时间晚于创建时间。Labs 于 `2026-10-16` 经用户明确授权应用；PostgreSQL introspection 确认表、5 个字段、主键/外键/唯一/检查约束及 migration 记录，迁移后 plan 为空，`health/live` 与 `health/ready` 均为 `200`。未触碰生产、未发送邮件、未重启服务；生产 migration 仍需单独授权。

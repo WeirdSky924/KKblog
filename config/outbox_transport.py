@@ -11,6 +11,7 @@ from apps.moderation.consumers.account_deletion import (
 )
 from apps.navigation.consumers import consume_navigation_section_event
 from apps.notifications.public import (
+    consume_account_administrator_notice,
     consume_account_deleted,
     consume_author_role_changed,
     consume_domain_notification,
@@ -123,6 +124,13 @@ def _consume_opportunity_notification(envelope: EventEnvelope):
     )
 
 
+def _consume_account_administrator_notice(envelope: EventEnvelope):
+    return consume_account_administrator_notice(
+        envelope,
+        administrator_id_provider=active_administrator_id,
+    )
+
+
 def _consume_export_final_failure(envelope: EventEnvelope):
     if envelope.payload.get("task_name") != "apps.exchange.build_export":
         return None
@@ -146,6 +154,11 @@ def _consume_backup_final_failure(envelope: EventEnvelope):
 
 
 def _routes(event_type: str) -> tuple[EventConsumer, ...]:
+    if event_type in {
+        "account.registered.v1",
+        "account.author_permission_requested.v1",
+    }:
+        return (_consume_account_administrator_notice,)
     if event_type == "account.author_role_changed.v1":
         return (consume_author_role_changed,)
     if event_type in {"account.disabled.v1", "account.enabled.v1"}:

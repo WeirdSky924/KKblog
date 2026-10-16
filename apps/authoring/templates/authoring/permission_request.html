@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}我的文章 · {{ site_presentation.site_name }}{% endblock %}
+{% block body_class %}authoring-shell{% endblock %}
+{% block main_class %}authoring-main{% endblock %}
+
+{% block content %}
+  <section class="author-permission-page" aria-labelledby="author-permission-title">
+    <header class="authoring-heading author-permission-page__heading">
+      <div>
+        <p class="authoring-folio">我的文章</p>
+        <h1 id="author-permission-title">创作权限</h1>
+      </div>
+    </header>
+    <div class="author-permission-page__panel">
+      <div>
+        <h2>你还没有作者权限</h2>
+        <p>提交申请后，管理员会收到站内通知。每个账户只能申请一次。</p>
+      </div>
+      {% if request_error %}<p class="author-permission-page__error" role="alert">{{ request_error }}</p>{% endif %}
+      {% if request_submitted %}
+        <p class="author-permission-page__submitted" role="status">已通知管理员申请作者权限</p>
+      {% else %}
+        <form method="post" action="{% url 'authoring:articles' %}" data-submit-once>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="request_author_permission">
+          <button class="button button--primary" type="submit">
+            <i data-lucide="send" aria-hidden="true"></i><span>申请作者权限</span>
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

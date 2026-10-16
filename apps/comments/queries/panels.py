@@ -27,6 +27,8 @@ class CommentThreadAccess:
     can_view: bool
     can_post: bool
     post_login_required: bool
+    guestbook_daily_limit: int
+    guestbook_account_daily_limit: int
     can_manage_buffer: bool
     is_active_actor: bool
     actor_id: UUID | None
@@ -63,6 +65,8 @@ def _thread_access(
         can_view=can_view,
         can_post=can_post,
         post_login_required=thread.post_login_required,
+        guestbook_daily_limit=thread.guestbook_daily_limit,
+        guestbook_account_daily_limit=thread.guestbook_account_daily_limit,
         can_manage_buffer=bool(owner or administrator),
         is_active_actor=active,
         actor_id=actor_id if active else None,

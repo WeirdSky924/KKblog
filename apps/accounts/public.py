@@ -24,6 +24,9 @@ from apps.accounts.queries.administration import (
     admin_account_page,
     admin_author_choices,
 )
+from apps.accounts.queries.author_permissions import (
+    author_permission_request_submitted,
+)
 from apps.accounts.queries.invites import (
     InviteDetail,
     InviteListItem,
@@ -48,11 +51,21 @@ from apps.accounts.queries.security_events import (
     security_event_detail,
     security_event_list,
 )
+from apps.accounts.services.admin_password_reset import (
+    AdminPasswordResetError,
+    IssuedAdminPasswordReset,
+    issue_admin_password_reset_link,
+)
 from apps.accounts.services.article_explanation_preferences import (
     ArticleExplanationPreferenceError,
     ArticleExplanationPreferences,
     article_explanation_preferences,
     change_article_explanation_preferences,
+)
+from apps.accounts.services.author_permission_requests import (
+    AuthorPermissionRequestError,
+    AuthorPermissionRequestResult,
+    submit_author_permission_request,
 )
 from apps.accounts.services.author_preferences import (
     AuthorPreferenceError,
@@ -148,8 +161,12 @@ def active_administrator_id() -> UUID | None:
 __all__ = [
     "ADMIN_ACCOUNT_STATUSES",
     "AccountAdministrationQueryError",
+    "AdminPasswordResetError",
+    "AuthorPermissionRequestError",
+    "AuthorPermissionRequestResult",
     "AdminAccountItem",
     "AdminAccountPage",
+    "IssuedAdminPasswordReset",
     "AdminAuthorChoice",
     "InviteDetail",
     "InviteError",
@@ -158,6 +175,7 @@ __all__ = [
     "admin_account_detail",
     "admin_account_page",
     "admin_author_choices",
+    "author_permission_request_submitted",
     "block_ip",
     "can_upload_attachments",
     "active_administrator_id",
@@ -189,6 +207,7 @@ __all__ = [
     "generate_invite_codes",
     "invite_detail",
     "invite_list",
+    "issue_admin_password_reset_link",
     "ip_block_detail",
     "ip_block_list",
     "is_ip_blocked",
@@ -204,6 +223,7 @@ __all__ = [
     "security_event_list",
     "set_account_enabled",
     "set_attachment_upload_capability",
+    "submit_author_permission_request",
     "set_author_role",
     "revoke_invites",
     "render_verification_email_html",

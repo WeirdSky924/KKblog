@@ -140,6 +140,30 @@ class PasswordResetForm(PasswordResetCodeForm):
     )
 
 
+class AdminPasswordResetForm(_ScopedAutoIdForm):
+    auto_id_scope = "admin_password_reset"
+
+    token = forms.CharField(max_length=128, widget=forms.HiddenInput)
+    new_password = forms.CharField(
+        label="新密码",
+        min_length=8,
+        validators=[validate_password_strength],
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    confirm_password = forms.CharField(
+        label="确认新密码",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "两次输入的新密码不一致。")
+        return cleaned_data
+
+
 class ChangePasswordForm(forms.Form):
     current_password = forms.CharField(
         label="当前密码",

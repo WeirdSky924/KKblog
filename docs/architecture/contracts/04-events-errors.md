@@ -23,7 +23,8 @@ payload 由每个版本的 schema 校验，不放正文、密码、验证码、�
 
 | 事件 | 生产者 | 消费者/副作用 |
 | --- | --- | --- |
-| `account.registered.v1` | accounts | 初始化通知偏好（首版无欢迎邮件） |
+| `account.registered.v1` | accounts | notifications 向当前启用的管理员发送新用户注册站内通知；无欢迎邮件 |
+| `account.author_permission_requested.v1` | accounts | notifications 向当前启用的管理员发送作者申请站内通知，链接到对应用户管理记录 |
 | `account.author_role_changed.v1` | accounts | 站内通知、管理员审计 |
 | `account.disabled.v1` | accounts | content 隐藏投影、取消定时、审计 |
 | `account.enabled.v1` | accounts | content 恢复禁用遮罩、审计 |

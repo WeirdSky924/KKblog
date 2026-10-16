@@ -8,11 +8,17 @@ def is_htmx(request) -> bool:
 def posting_status(code: str) -> int:
     if code in {
         "comments.body_invalid.v1",
+        "comments.guestbook_body_invalid.v1",
         "comments.images_invalid.v1",
         "comments.reply_images_forbidden.v1",
     }:
         return 422
     if code == "comments.cooldown_active.v1":
+        return 429
+    if code in {
+        "comments.guestbook_daily_limit.v1",
+        "comments.guestbook_account_daily_limit.v1",
+    }:
         return 429
     if code in {
         "comments.login_required.v1",

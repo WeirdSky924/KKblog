@@ -43,6 +43,7 @@
 | `accounts:login` | accounts | 访客 | S0,S1,S3,S4,S5,S6；密码/邮箱码/30 天/回跳 | auth |
 | `accounts:register` | accounts | 访客 | S0,S1,S2,S3,S4,S5,S6；开关/邀请码/自动登录 | auth |
 | `accounts:password-reset` | accounts | 访客 | S0,S1,S3,S4,S5,S6；第五次错误/每日限制 | auth |
+| `accounts:admin-password-reset` | accounts | 邮件链接持有人 | S0,S1,S3,S4,S5,S6；缺少/无效/过期/已消费令牌、密码不匹配、成功后退出全部会话 | auth |
 | `accounts:settings` | accounts | 用户/作者/管理员 | S0,S1,S2,S3,S4,S5,S6；昵称/邮箱/密码/主题 | personalsettings |
 | `accounts:sessions` | accounts | 用户/作者/管理员 | S0,S1,S2,S3,S4,S5,S6；指定退出/全退出 | account |
 | `accounts:bookmarks` | discovery | 用户/作者/管理员 | S0,S1,S2,S4,S5；失效文章占位 | personalsettings |
@@ -61,7 +62,7 @@
 
 | URL name | owner | 入口身份 | 必测状态 | 原型基线 |
 | --- | --- | --- | --- | --- |
-| `authoring:articles` | authoring | 作者 | S0,S1,S2,S4,S5；发布/草稿/定时/冷静期 | authorlist |
+| `authoring:articles` | authoring/accounts | 登录用户/作者/管理员 | S0,S1,S2,S3,S4,S5,S6；作者工作台或一次性作者权限申请/已提交状态 | authorlist |
 | `authoring:create` | authoring | 作者 | S0,S1,S3,S4,S5,S6；Markdown/富文本/导入三选一，空白格式一经选择不可改 | editor |
 | `authoring:edit` | authoring | 作者 | S0,S1,S3,S4,S5,S6,S7；本地/云保存/磁盘/冲突 | editor |
 | `authoring:review` | authoring | 作者 | S0,S1,S3,S4,S5,S6,S7；返回/立即/定时 | editor |

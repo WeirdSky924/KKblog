@@ -122,9 +122,14 @@ def admin_account_page(
     query = keyword.strip()
     queryset = Account.objects.order_by("-created_at", "id")
     if query:
-        queryset = queryset.filter(
-            Q(email__icontains=query) | Q(nickname__icontains=query)
-        )
+        identity_filter = Q(email__icontains=query) | Q(nickname__icontains=query)
+        try:
+            account_id = UUID(query)
+        except ValueError:
+            pass
+        else:
+            identity_filter |= Q(pk=account_id)
+        queryset = queryset.filter(identity_filter)
     if selected_status:
         queryset = queryset.filter(status=selected_status)
     queryset = queryset.prefetch_related(

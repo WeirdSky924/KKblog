@@ -126,6 +126,9 @@
         </button>
       </div>
     {% endif %}
+    {% if guestbook_board_page or guestbook_board_unavailable %}
+      {% include "discovery/partials/home_guestbook.html" %}
+    {% endif %}
     <section id="home-articles" class="home-articles" data-home-articles aria-labelledby="home-articles-title">
       {% include "discovery/partials/home_article_region.html" %}
     </section>

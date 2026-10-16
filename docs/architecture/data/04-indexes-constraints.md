@@ -9,6 +9,7 @@
 | `account` | `lower(email)` 唯一；有效 nickname 规范化值唯一；状态枚举检查 |
 | `role_assignment` | `(account_id, role)` 唯一；`role=ADMINISTRATOR` 部分唯一 |
 | `login_session` | `token_digest` 唯一；`expires_at > created_at` |
+| `account_admin_password_reset` | `account_id` 唯一；`token_digest` 唯一；`expires_at > created_at`；账户删除级联清理 |
 | `invite_code` | `code_digest` 唯一；兑换账户唯一；过期时间晚于创建时间 |
 | `ip_block` | 未解除的规范化 IP 部分唯一 |
 | `article` | 作者不可空；三个修订指针必须属于同一文章；软删除时间成对出现 |
@@ -50,6 +51,7 @@
 | 动作 | 锁与隔离策略 |
 | --- | --- |
 | 兑换邀请码注册 | `SELECT ... FOR UPDATE` 锁邀请码；创建账户与写兑换结果同事务 |
+| 作者权限申请 | `SELECT ... FOR UPDATE` 锁本人 Account；仅空申请时间可写入，并与 Outbox 事件同事务 |
 | 昵称修改 | 依赖唯一索引裁决并捕获冲突；冷却时间在账户行锁内检查 |
 | 新建修订 | 锁 Article 行，校验 `row_version`，分配 sequence，切换 working 指针 |
 | 发布/定时发布 | 锁 Article；确认目标修订、权限、分区和遮罩，再原子切指针 |

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
+from apps.accounts.events import ACCOUNT_REGISTERED
 from apps.accounts.models import Account, LoginSession, SecurityEvent
 from apps.accounts.models.account import normalize_email
 from apps.accounts.policies.registration import RegistrationPolicy
@@ -19,6 +20,7 @@ from apps.accounts.services.verification import (
 from apps.accounts.services.verification import (
     request_verification_code as send_verification_code,
 )
+from apps.core.events import enqueue_event
 
 
 class RegistrationError(ValueError):
@@ -131,6 +133,14 @@ def register_account(
                 client_ip=client_ip,
                 trace_code=trace_code,
                 safe_summary={"registration_path": "invite" if invite else "direct"},
+            )
+            enqueue_event(
+                ACCOUNT_REGISTERED,
+                aggregate_type="account",
+                aggregate_id=str(account.id),
+                actor_id=account.id,
+                trace_code=trace_code,
+                payload={},
             )
     except IntegrityError:
         raise RegistrationError("邮箱或用户名已被使用") from None

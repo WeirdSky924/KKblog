@@ -29,9 +29,12 @@ class CommandResult[T]:
 | --- | --- | --- | --- |
 | `request_verification_code` | purpose, email, invite?, IP | challenge metadata + multipart 邮件 | 注册关闭、邀请码无效、发送过频、IP 受限、邮件发送失败 |
 | `register_account` | email, code, password, invite? | account + session | 验证码错误、邮箱冲突、邀请码已用 |
+| `submit_author_permission_request` | account_id, trace_code | 一次性申请状态；首次写时间戳与 Outbox 事件 | 账户不存在/未启用 |
 | `authenticate_password` | email, password, remember | session | 凭证错误、临时限制、账号禁用 |
 | `authenticate_code` | email, code, remember | session | 同上 |
 | `reset_password` | email, code, new password | 完成 | 验证失败、限制中；成功撤销所有会话 |
+| `issue_admin_password_reset_link` | active admin, target account, IP, trace | 30 分钟链接发送结果 | 非管理员、账户不存在、数据库未迁移、邮件发送失败 |
+| `reset_password_with_admin_link` | fragment token, new password, IP, trace | 完成 | 链接无效、过期、已消费、凭据已变化或密码不符合规则 |
 | `change_password` | actor, current, new | rotated session | 当前密码错误 |
 | `change_email` | actor, new email, code | account | 验证/唯一冲突 |
 | `change_profile` | nickname/theme/avatar | account | 昵称规则/冷却/冲突、媒体归属 |
@@ -42,6 +45,8 @@ class CommandResult[T]:
 | `block_ip` / `unblock_ip` | admin, IP, note | block | 格式/重复状态 |
 
 验证码邮件由 accounts 在发码事务外沿既有 mail adapter 发送：主题和发件人显示名读取当前站名，正文同时提供纯文本与经过白名单校验的 HTML。navigation 只提供站名与可空模板配置，不接触收件人、验证码或 SMTP 凭据；发送失败必须回滚本次 challenge 与限流预留，不能显示假成功。
+
+管理员重置邮件由 accounts 在链接状态提交后经同一邮件配置发送，使用专用纯文本/HTML 模板。链接域名取 `SITE_BASE_URL`，秘密令牌仅置于 URL fragment，页面设置 no-store/no-referrer 并禁用分析脚本；邮件发送失败会消费本次链接并返回安全错误，不把令牌写入审计或安全事件。
 
 ## content 公开服务
 

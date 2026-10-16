@@ -52,7 +52,7 @@ DiscussionThread 的目标仅 ARTICLE/GUESTBOOK。Comment 保存 parent/root/dep
 
 ## 留言板
 
-留言板复用 DiscussionThread，owner 是管理员。默认开启且访客可顶层留言；管理员配置关闭/登录要求并接收深层提醒。禁止复制第二套 GuestbookComment 模型或审核规则。
+留言板复用 DiscussionThread，owner 是管理员。旧 `/guestbook/` 保留访客顶层留言兼容；首页即时留言入口仅允许注册账户。管理员配置留言板开关/登录要求，并在首页留言板管理页设置每人每日上限和全站每日接收上限，同时接收深层提醒。首页配额默认 `2/20`，允许每人 `1..100` 条、全站 `1..1000` 条；写入使用独立配额版本和管理员审计。发布服务在事务中锁定同一 DiscussionThread，再按上海时区自然日计数并写入，因此配额修改与并发发布串行裁决；已成功创建后再隐藏或删除不返还额度。全站计数使用 top-level `(thread, created_at)` 部分索引。禁止复制第二套 GuestbookComment 模型或审核规则。
 
 ## UI
 

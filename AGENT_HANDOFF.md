@@ -37,8 +37,8 @@
 
 ## Current Pointer
 
-- Last updated: 2026-10-11
-- Workspace root: `/home/code/personal-blog`
+- Last updated: 2026-10-16
+- Workspace root: `/home/code/.codex-worktrees/personal-blog/labs-test-environment`
 - Current state file: `.agent-handoff/snapshot.md`
 - Primary next-action source: `.agent-handoff/snapshot.md`
 - Risk source: `.agent-handoff/risks.md`

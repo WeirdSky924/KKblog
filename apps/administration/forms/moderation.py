@@ -1,5 +1,10 @@
 from django import forms
 
+from apps.comments.public import (
+    GUESTBOOK_MAX_ACCOUNT_DAILY_LIMIT,
+    GUESTBOOK_MAX_DAILY_LIMIT,
+)
+
 ARTICLE_STATES = (
     ("", "全部状态"),
     ("DRAFT", "草稿"),
@@ -99,6 +104,55 @@ class CommentDeletionConfirmationForm(forms.Form):
     )
 
 
+class GuestbookModerationForm(forms.Form):
+    comment_id = forms.CharField(max_length=26, widget=forms.HiddenInput)
+    operation = forms.ChoiceField(
+        choices=(("HIDE", "隐藏"), ("SHOW", "显示"), ("MARK", "标记")),
+        widget=forms.HiddenInput,
+    )
+    flag = forms.ChoiceField(
+        choices=(
+            ("", "无标记"),
+            ("READ", "阅"),
+            ("NO", "否"),
+            ("DONE", "毕"),
+        ),
+        required=False,
+    )
+
+
+class GuestbookQuotaForm(forms.Form):
+    account_daily_limit = forms.IntegerField(
+        label="每人每日留言上限",
+        min_value=1,
+        max_value=GUESTBOOK_MAX_ACCOUNT_DAILY_LIMIT,
+        help_text=f"每个注册账户每天可成功发布 1 至 {GUESTBOOK_MAX_ACCOUNT_DAILY_LIMIT} 条。",
+        widget=forms.NumberInput(
+            attrs={
+                "min": 1,
+                "max": GUESTBOOK_MAX_ACCOUNT_DAILY_LIMIT,
+                "inputmode": "numeric",
+                "aria-describedby": "guestbook-account-daily-limit-help",
+            }
+        ),
+    )
+    board_daily_limit = forms.IntegerField(
+        label="站内每日接收上限",
+        min_value=1,
+        max_value=GUESTBOOK_MAX_DAILY_LIMIT,
+        help_text=f"全站每天可成功接收 1 至 {GUESTBOOK_MAX_DAILY_LIMIT} 条。",
+        widget=forms.NumberInput(
+            attrs={
+                "min": 1,
+                "max": GUESTBOOK_MAX_DAILY_LIMIT,
+                "inputmode": "numeric",
+                "aria-describedby": "guestbook-board-daily-limit-help",
+            }
+        ),
+    )
+    expected_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+
+
 class AdminReportFilterForm(forms.Form):
     state = forms.ChoiceField(label="案件状态", required=False, choices=REPORT_STATES)
     page = forms.IntegerField(required=False, min_value=1, initial=1)
@@ -137,6 +191,7 @@ __all__ = [
     "ArticleAppealReviewConfirmationForm",
     "ArticleRestoreConfirmationForm",
     "CommentDeletionConfirmationForm",
+    "GuestbookModerationForm",
     "ReportFinalReviewConfirmationForm",
     "ReportReviewConfirmationForm",
 ]

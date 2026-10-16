@@ -83,6 +83,24 @@ function quizResponses(root) {
 function syncPracticeSubmitControl(root, response) {
   const button = root.querySelector("[data-quiz-practice-submit]");
   if (!(button instanceof HTMLButtonElement)) return;
+  const responses = quizResponses(root);
+  const attemptFormId = button.dataset.quizAttemptForm;
+  const allResponsesRevealed =
+    responses.length > 0 &&
+    responses.every((item) => item.dataset.quizRevealed === "true");
+  const label = button.querySelector("span");
+  if (attemptFormId && allResponsesRevealed) {
+    button.disabled = false;
+    button.removeAttribute("aria-disabled");
+    button.setAttribute("form", attemptFormId);
+    button.removeAttribute("formaction");
+    button.removeAttribute("data-quiz-submit-response");
+    button.setAttribute("data-quiz-submit-attempt", "");
+    if (label instanceof HTMLElement) {
+      label.textContent = button.dataset.quizAttemptLabel || "提交整张试卷";
+    }
+    return;
+  }
   const form = response?.querySelector("form[data-quiz-save]");
   const revealed = response?.dataset.quizRevealed === "true";
   if (!(form instanceof HTMLFormElement) || !form.id || revealed) {
@@ -90,12 +108,22 @@ function syncPracticeSubmitControl(root, response) {
     button.setAttribute("aria-disabled", "true");
     button.removeAttribute("form");
     button.removeAttribute("formaction");
+    button.removeAttribute("data-quiz-submit-response");
+    button.removeAttribute("data-quiz-submit-attempt");
+    if (label instanceof HTMLElement) {
+      label.textContent = button.dataset.quizResponseLabel || "提交本题并查看解析";
+    }
     return;
   }
   button.disabled = false;
   button.removeAttribute("aria-disabled");
   button.setAttribute("form", form.id);
   button.setAttribute("formaction", form.dataset.quizSubmitAction || "");
+  button.removeAttribute("data-quiz-submit-attempt");
+  button.setAttribute("data-quiz-submit-response", "");
+  if (label instanceof HTMLElement) {
+    label.textContent = button.dataset.quizResponseLabel || "提交本题并查看解析";
+  }
 }
 
 function syncExplanationPanel(root, response) {

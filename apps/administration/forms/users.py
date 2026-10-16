@@ -13,13 +13,13 @@ def _boolean(value: str) -> bool:
 
 class AdminUserFilterForm(forms.Form):
     q = forms.CharField(
-        label="邮箱或昵称",
+        label="邮箱、昵称或账户 ID",
         max_length=254,
         required=False,
         widget=forms.TextInput(
             attrs={
                 "autocomplete": "off",
-                "placeholder": "输入邮箱或昵称",
+                "placeholder": "输入邮箱、昵称或账户 ID",
             }
         ),
     )
@@ -100,9 +100,18 @@ class AccountRestrictionConfirmationForm(forms.Form):
     )
 
 
+class AccountPasswordResetConfirmationForm(forms.Form):
+    account_id = forms.UUIDField(widget=forms.HiddenInput)
+    confirm = forms.ChoiceField(
+        choices=(("password_reset", "发送密码重置邮件"),),
+        widget=forms.HiddenInput,
+    )
+
+
 __all__ = [
     "AccountAttachmentConfirmationForm",
     "AccountDeletionConfirmationForm",
+    "AccountPasswordResetConfirmationForm",
     "AccountRoleConfirmationForm",
     "AccountRestrictionConfirmationForm",
     "AccountStatusConfirmationForm",

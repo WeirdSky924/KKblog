@@ -24,3 +24,17 @@ def register_comment_audit_schemas() -> None:
             frozenset({"comments_enabled", "post_login_required"}),
         )
     )
+    register_audit_schema(
+        AuditSchema(
+            "comments.guestbook.quota_update",
+            "discussion_thread",
+            frozenset({"account_daily_limit", "board_daily_limit"}),
+        )
+    )
+    register_audit_schema(
+        AuditSchema(
+            "comments.guestbook.moderate",
+            "comment",
+            frozenset({"flag", "hidden", "operation"}),
+        )
+    )

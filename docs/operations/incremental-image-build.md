@@ -14,7 +14,7 @@ docker build \
   .
 ```
 
-Dockerfile 复制 `apps/`、根模板和 `static/dist/`，并设置 `org.opencontainers.image.revision` 标签。对应的 `.dockerignore` 排除凭据、`var/`、依赖目录、测试和文档，同时保留已构建的静态资源。构建记录应保存基线镜像 ID、源码 SHA、候选镜像 ID 和构建命令。
+Dockerfile 复制 `apps/`、`config/`、根模板和 `static/dist/`，并设置 `org.opencontainers.image.revision` 标签。对应的 `.dockerignore` 排除凭据、`var/`、依赖目录、测试和文档，同时保留已构建的静态资源。构建记录应保存基线镜像 ID、源码 SHA、候选镜像 ID 和构建命令。
 
 只有在 `pyproject.toml`、`uv.lock`、`package.json`、`package-lock.json`、系统包安装步骤和运行入口都与基线兼容时才能使用此方法；其中任一项变化时，改用完整 `docker/web/Dockerfile` 构建并重新验证依赖。
 

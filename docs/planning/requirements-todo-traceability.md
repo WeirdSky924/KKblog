@@ -1,4 +1,4 @@
-# Q001-Q322 需求、架构、Todo 与验收逐条追踪
+# Q001-Q323 需求、架构、Todo 与验收逐条追踪
 
 状态：由需求访谈、架构聚合矩阵和 Todo 来源字段生成；每个 Q 必须至少映射一个 Todo。
 
@@ -328,9 +328,10 @@
 | Q320 | 产品/工程需求 | Retain Umami analytics data for one month, then automatically remove expired analytics records. | exchange/analytics module、tasks | EXC-007 | REQ-Q320 | authoring:import/admin:exchange |
 | Q321 | 产品/工程需求 | Treat bulk Markdown import as an explicit exception to normal per-article format immutability. When an authorized update targets a rich-text article, replace its current content with the imported Markdown version and make Markdown the current content format. Retain the prior rich-text state in version history; historical restoration may restore its original saved format as part of the complete version state. | ArticleRevision、article state、authoring module | CNT-007、EXC-001、EXC-003 | REQ-Q321 | article/authoring/admin:articles；authoring:import/admin:exchange |
 | Q322 | 外部边界 | Provide no public API, mobile-app API, or third-party social-login integration in the initial release. Deliver all user and administrator workflows through the same-origin Django-rendered web application, using its internal HTMX endpoints only for browser interactions. Do not expose a reusable external authentication or content API. | system overview、ADR-003、frontend contract | FND-002 | REQ-Q322 | 无独立页面/阶段门禁 |
+| Q323 | 产品/工程需求 | Notify the active administrator after successful registration and show a one-time author-permission request flow to logged-in non-authors from “我的文章”. Persist the request and Outbox event atomically; repeated requests do not create a second event. Author access remains controlled by the existing administrator-confirmed role grant. | accounts state/service/data、notification events、authorization matrix、authoring page state | ITER-001 | REQ-Q323 | `authoring:articles`；`admin:users`；notifications |
 
 ## 维护门禁
 
 - 新需求先追加访谈/变更记录，再更新消歧、架构、Todo 和本表。
 - Todo 来源字段变化后必须重新生成本表；生成失败即不得声明覆盖完整。
-- QA-006 按 322 个 REQ-Qnnn 场景核对证据，不以范围行替代逐条结果。
+- QA-006 的历史基线按 322 个 REQ-Qnnn 场景核对；后续新增需求必须追加 REQ 场景和独立迭代任务，不回写历史审计结果。

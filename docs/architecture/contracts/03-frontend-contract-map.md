@@ -56,7 +56,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 
 | URL name | 页面 | 所有者/服务 | 关键状态/弹窗 |
 | --- | --- | --- | --- |
-| `authoring:articles` | 我的文章 | content queries | 已发布、草稿、定时、冷静期、空态 |
+| `authoring:articles` | 我的文章 | authoring 编排；accounts 申请服务/状态查询；content queries | 作者看到既有工作台；普通登录用户看到一次性申请/已提交状态；未登录回登录 |
 | `authoring:create` | 创建方式选择 | create_article/exchange import | Markdown/富文本/导入三选一；空白文章格式一经选择普通流程不可改 |
 | `authoring:edit` | 编辑器+预览 | save_revision/media | 本地自动保存、云保存、磁盘限制、冲突、剪贴板图片上传/撤销/失败 |
 | `authoring:review` | 全文终稿审查 | prepare/publish/schedule | 返回编辑、立即/定时、退出存草稿 |

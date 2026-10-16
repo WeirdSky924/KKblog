@@ -208,11 +208,19 @@ function bindHomeSectionSnapping(page) {
   const insideNavigation = (target) =>
     target instanceof Element &&
     target.closest("[data-home-navigation-panel]") !== null;
+  const insideGuestbook = (target) =>
+    target instanceof Element &&
+    target.closest("[data-home-guestbook-panel]") !== null;
 
   page.addEventListener(
     "wheel",
     (event) => {
-      if (event.ctrlKey || event.deltaY === 0 || insideNavigation(event.target)) {
+      if (
+        event.ctrlKey ||
+        event.deltaY === 0 ||
+        insideNavigation(event.target) ||
+        insideGuestbook(event.target)
+      ) {
         return;
       }
       if (snapping) {

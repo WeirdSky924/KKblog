@@ -24,6 +24,8 @@ apps/accounts/
 - Account UUID 永不复用；邮箱大小写不敏感唯一；昵称允许安全可见字符，按汉字 2、其他字符 1 的 16 单位预算，以 Unicode `casefold` 规范值执行大小写不敏感全站唯一，展示保留原始大小写。
 - 角色只有 AUTHOR/ADMINISTRATOR；管理员最多一个且必须同时是作者。
 - `attachment_upload_enabled` 是作者角色之上的独立能力，默认关闭；撤销作者角色时同步关闭。
+- `author_permission_requested_at` 记录账户是否已经提交过一次作者权限申请；申请命令锁定 Account 行，时间戳与 `account.author_permission_requested.v1` Outbox 事件同事务提交。
+- `AdminPasswordReset` 为每个账户最多保存一条管理员重置记录；只存 HMAC 摘要、创建/过期/消费时间，摘要绑定当前密码哈希和规范邮箱。
 - Session 只存 token 摘要；12 小时默认或 30 天 remembered。
 - 邀请码 16 位 Crockford Base32、一次使用、1/3/7/30 天；原码只显示一次。
 - IpBlock 永久有效到管理员解除；完整 IP 只在管理详情可见。
@@ -31,15 +33,18 @@ apps/accounts/
 
 ## 公开服务与查询
 
-命令：验证码请求、注册、密码/邮箱码登录、密码重置、登录态改密/改邮箱、资料/头像/主题、会话撤销、作者角色、附件能力、禁用/启用、删除账户、IP 封禁/解除。
+命令：验证码请求、注册、作者权限申请、密码/邮箱码登录、自助密码重置、管理员邮件重置链接签发与兑换、登录态改密/改邮箱、资料/头像/主题、会话撤销、作者角色、附件能力、禁用/启用、删除账户、IP 封禁/解除。
 
 查询：本人设置/会话、公开作者资料、管理员用户搜索/状态筛选、邀请码状态列表、IP 列表/详情。查询 DTO 默认掩码邮箱/IP。
 
 ## 关键流程
 
 - 注册关闭时页面仍支持邀请码；邀请码先校验再允许发码，账户事务成功才消费。
+- 注册成功在账户事务中写入 `account.registered.v1`，由 notifications 事务外通知管理员；普通登录用户可从“我的文章”提交一次作者权限申请，重复 POST 不重复发事件。
 - 六位验证码 10 分钟；1 分钟重发；新码覆盖旧码；第五次错误失效。
 - 验证码邮件主题为“当前站名 · 邮箱验证码”，发件人显示名跟随站名，同时发送纯文本和 HTML；邮件失败时回滚新 challenge 与发送计数预留。
+- 管理员用户管理操作发送 30 分钟有效的一次性密码链接；令牌只放在 URL fragment，页面读取后立即清除地址栏片段，数据库只存 HMAC 摘要。重发替换旧摘要；邮箱或密码变化也会使旧链接失效。
+- 管理员重置邮件发送成功才显示完成；发送失败会消费本次链接并返回安全错误。用户确认新密码后清除 `must_change_password`、消费链接并撤销全部会话，不自动登录。
 - 每邮箱/IP 每上海自然日各 20 次，次日 00:00 重置；管理员可清账户/IP 限制。
 - 连续五次密码失败限制一小时，期间密码/码登录和密码重置均禁止；管理员可提前解除。
 - 改密撤销其他会话并旋转当前；重置密码撤销全部；禁用立即撤销全部。
@@ -50,7 +55,7 @@ apps/accounts/
 
 ## 事件
 
-生产：AccountRegistered、AuthorRoleChanged、AccountDisabled、AccountEnabled、AccountDeleted、CredentialChanged。消费者不得从事件 payload 获取密码、码、token 或完整邮箱。
+生产：AccountRegistered、AuthorPermissionRequested、AuthorRoleChanged、AccountDisabled、AccountEnabled、AccountDeleted、CredentialChanged。消费者不得从事件 payload 获取密码、码、token 或完整邮箱。
 
 ## 验证
 
@@ -58,6 +63,8 @@ apps/accounts/
 - 昵称 Unicode 计数、casefold 并发冲突、7 天冷却、删除后立即复用但 UUID 不复用。
 - 五次登录、验证码五次错误、每日 20 次、Redis 清空后的安全退化。
 - 唯一管理员、不可自删/撤销作者；普通作者不能进管理入口。
+- 注册管理员通知与一次性作者权限申请具有持久状态、并发幂等和真实 Notification/Receipt 读回；未申请普通用户只访问入口，不获得作者命令权限。
+- 管理员重置链接覆盖确认发送、隔离 Mailpit 读回、30 分钟过期、重发失效、凭据变化失效、密码确认、一次性消费及全部会话撤销。
 - 会话旋转/撤销真实 Cookie 流、IP 封禁对已登录请求也生效。
 
 施工依据：`data/02-identity-content-fields.md`、`flows/01-account-access-state-machine.md`、`contracts/02-authorization-matrix.md`。

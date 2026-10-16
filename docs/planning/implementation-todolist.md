@@ -31,7 +31,7 @@ docs/
     contracts/              # 服务、权限、前端、事件/错误、后台任务
     adr/                    # ADR-001..006 与索引
     delivery/               # 实施、验证、评审门禁
-    reference/              # 消歧、术语、322 项需求追踪
+    reference/              # 消歧、术语、323 项需求追踪
 ```
 
 ### 2.2 全量文本文件（47/47 已全文读取）
@@ -55,9 +55,9 @@ docs/
 ### 2.4 施工派生文档
 
 - `docs/planning/implementation-readiness.md`：阶段 DoR/DoD、真值优先级、跨域拆分和证据模板。
-- `docs/planning/requirements-todo-traceability.md`：Q001-Q322 逐条映射到架构、Todo、验收场景和页面/门禁。
+- `docs/planning/requirements-todo-traceability.md`：Q001-Q323 逐条映射到架构、Todo、验收场景和页面/门禁。
 - `docs/prototype/page-state-matrix.md`：42 个路由的身份、状态、视口和原型落点。
-- `docs/planning/implementation-goal-prompts.md` 与 13 份阶段提示词：每阶段一个一次性 Goal。
+- `docs/planning/implementation-goal-prompts.md` 与 13 份阶段提示词：每阶段一个一次性 Goal；P12 后增量 Goal 见独立提示词。
 
 ## 3. 唯一清单分档
 
@@ -77,7 +77,7 @@ docs/
 | 11 | [`phase-11-administration.md`](implementation-todolist/phase-11-administration.md) | 管理后台、导航与设置 | 8 |
 | 12 | [`phase-12-regression-delivery.md`](implementation-todolist/phase-12-regression-delivery.md) | 跨模块回归与部署准备 | 6 |
 
-总计：13 个阶段、102 条唯一任务。每个 ID 只在一个阶段文件中定义；新增 `OBS-008..010` 分别承接领域通知、最终失败通知和周期容量告警集成。
+基础清单：13 个阶段、102 条唯一任务。后续产品新增项不重写该历史计数，统一登记在 [P12 后迭代任务](implementation-todolist/post-p12-iterations.md)。
 
 ## 4. 执行与拆分规则
 
@@ -94,16 +94,17 @@ docs/
 
 ## 6. 全局退出门禁
 
-- 102 个 ID 唯一，所有依赖 ID 存在，前置图无环且无反向阶段边；每项稳定事实只有一个 owner。
-- Q001-Q322 均在 `requirements-todo-traceability.md` 有最终决定、架构落点、Todo 和 `REQ-Qnnn` 验收场景。
+- 基础清单的 102 个 ID 唯一，所有依赖 ID 存在，前置图无环且无反向阶段边；每项稳定事实只有一个 owner。增量任务使用独立 `ITER-*` ID。
+- Q001-Q323 均在 `requirements-todo-traceability.md` 有最终决定、架构落点、Todo 和 `REQ-Qnnn` 验收场景。
 - 权限、版本、删除、媒体、任务、缓存、导入导出必须有真实 PostgreSQL/临时文件读回，不能只用 mock。
 - 访客、用户、作者、管理员在 42 个路由的适用身份和 S0-S7 状态完成桌面/手机流；密集管理页追加平板。
 - 未经明确授权不得执行 Git add/commit/push、生产迁移、部署、服务重启或不可逆数据操作。
 
 ## 7. 进度与证据
 
-- 当前：102 条唯一任务全部完成，P0-P12 无 `进行中`、`待处理` 或 `阻塞` 项。P12 的 schema/并发、四身份授权、全应用浏览器流、真实 worker/缓存/文件 Saga、Compose/备份/部署沙箱及最终治理审计均有验收证据。生产运行状态不由阶段验收推断，按独立发布执行记录维护。
+- 当前：基础 102 条任务全部完成，P0-P12 基线不变；后续新增功能单独计入 post-P12 增量任务。`ITER-001` 正在进行，代码与隔离回归已完成，Labs schema migration 和运行时读回待单独授权/处理。生产运行状态不由阶段验收推断，按独立发布执行记录维护。
 - P12 `QA-006` 已完成 322 项需求、47 份原始文档、3 份施工派生文档、102 个任务、owner/依赖/页面/链接/Goal 的全量审计，并关闭 findings-first 评审的 4 个 P1；最终全量 `pytest` 为 `405 passed`、Playwright 授权/应用/基础四身份为 `1/5/8 passed`，Ruff、Django、migration drift、前端构建、Compose/Caddy/部署合同与差异检查均退出 0。
+- `QA-006` 及第 9 节结构数字是 P12 完成时的历史基线；Q323 与 `ITER-001` 是之后新增的独立迭代，不回写或伪称纳入当时审计。
 - 决定性证据已按 `implementation-readiness.md` 口径写回各任务卡。正式应用于 2026-10-11 更新到 revision `d06af75`，并应用 `learning.0014/0015`；完整恢复演练、P0 正式性能金丝雀和自动生产部署命令适配器尚未完成。部署细节见[正式执行记录](../releases/2026-10-11-production-increment/deployment-record.md)。
 
 ## 8. 已确认 P0 决策摘要
@@ -124,6 +125,7 @@ docs/
 - Owner：102 张卡各且仅声明一个 owner，共 22 个执行 owner；领域事实仍分别归 accounts/content/media/comments/moderation/notifications/navigation/operations/exchange/analytics，authoring/administration/discovery 仅做架构允许的编排或读取投影。
 - 追踪/页面：322 个需求段、322 行逐条追踪和 322 个 `REQ-Qnnn` 均唯一且一一覆盖；架构前端契约与页面矩阵各有 42 个唯一 URL name，集合差异为 0。
 - Goal/文档：13 份提示词各只有一个主 Goal，复选框并集为 102 个唯一 Todo，0 缺失/额外；47 份原始文本文件名均在 Todo 包覆盖矩阵或任务来源中出现；本地相对链接 63 个，缺失 0。
+- 本节各项数量为 P12 `QA-006` 当时的审计快照；增量任务从 `ITER-001` 起单独核对。
 
 ## 10. 文档覆盖矩阵
 
@@ -132,7 +134,7 @@ docs/
 | `planning/requirements-interview.md` | `DEC-001..005`、`FND-001..006`、`RUN-001..006`、全部领域任务、`QA-001..006` |
 | `planning/project-plan.md` | `FND-001..006`、各阶段退出门禁、`QA-003..006` |
 | `planning/implementation-readiness.md` | 全 13 阶段 DoR/DoD、跨域基础拆分、证据和停止条件 |
-| `planning/requirements-todo-traceability.md` | Q001-Q322 → 102 Todo → `REQ-Qnnn` |
+| `planning/requirements-todo-traceability.md` | Q001-Q323 → 102 个基础 Todo 与 post-P12 增量任务 → `REQ-Qnnn` |
 | `prototype/README.md` | `RUN-005`、`DSC-001..007`、`AUT-001..006`、`ADM-001..008`、`QA-003` |
 | `prototype/index.html` | `RUN-005`、`DSC-001..007`、`CMT-002..011`、`AUT-001..006`、`ADM-001..008`、`QA-003` |
 | `prototype/page-state-matrix.md` | 42 路由、S0-S7、四身份、390/768/1440、全部页面任务与 `QA-003` |
@@ -184,6 +186,6 @@ docs/
 
 ## 11. 当前完成口径
 
-- P0-P12 共 102 项全部完成；当前没有进行中、待处理或阻塞的 Todo，阶段编号保留为实施和证据索引顺序。
+- P0-P12 基础清单共 102 项全部完成；当前 `ITER-001` 正在进行，新增需求与后续交付状态以 [增量任务台账](implementation-todolist/post-p12-iterations.md) 为准。
 - 当前源码已完成隔离 Compose、数据库、媒体、任务、浏览器和部署沙箱验收；正式运行版本另见 2026-10-11 发布记录。沙箱验收与生产部署是两类不同证据。
 - P0-P12 完成不自动证明生产恢复能力、持续流量或 P0 负载表现，也不授权未来 Git add/commit/push 或生产操作。生产实际变更与未执行的恢复/性能验证必须分别查阅有日期的执行记录。

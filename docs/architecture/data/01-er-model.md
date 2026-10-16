@@ -17,6 +17,7 @@
 erDiagram
     ACCOUNT ||--o{ ROLE_ASSIGNMENT : has
     ACCOUNT ||--o{ LOGIN_SESSION : owns
+    ACCOUNT ||--o| ADMIN_PASSWORD_RESET : reset_link
     ACCOUNT ||--o{ SECURITY_EVENT : generates
     ACCOUNT ||--o{ INVITE_CODE : redeems
     ACCOUNT ||--o{ IP_BLOCK : creates
@@ -28,6 +29,7 @@ erDiagram
       string nickname
       enum status
       bool must_change_password
+      datetime author_permission_requested_at
     }
     ROLE_ASSIGNMENT {
       uuid account_id FK
@@ -39,6 +41,13 @@ erDiagram
       string token_digest
       datetime expires_at
       datetime revoked_at
+    }
+    ADMIN_PASSWORD_RESET {
+      uuid account_id PK,FK
+      string token_digest UK
+      datetime created_at
+      datetime expires_at
+      datetime consumed_at
     }
     INVITE_CODE {
       uuid id PK

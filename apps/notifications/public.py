@@ -1,4 +1,5 @@
 from apps.notifications.consumers import (
+    consume_account_administrator_notice,
     consume_account_deleted,
     consume_author_role_changed,
     consume_domain_notification,
@@ -50,6 +51,7 @@ __all__ = [
     "consume_opportunity_notification",
     "consume_task_final_failure_notification",
     "consume_author_role_changed",
+    "consume_account_administrator_notice",
     "consume_account_deleted",
     "notification_for_recipient",
     "mark_target_notifications_read",

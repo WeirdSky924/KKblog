@@ -15,6 +15,7 @@
 | `theme` | enum | 否 | `LIGHT`、`DARK`、`EYE_CARE`，默认 `LIGHT` |
 | `auto_republish_enabled` | bool | 否 | 默认关闭；仅普通已发布文章的显式云保存可自动重发，首次发布与历史恢复仍强制终稿审查 |
 | `attachment_upload_enabled` | bool | 否 | 默认关闭；只有作者可由管理员授予，撤销作者角色时同步关闭 |
+| `author_permission_requested_at` | timestamptz | 是 | 首次申请时间；空值表示未申请，服务在账户行锁内只允许从空值写入一次 |
 | `avatar_asset_id` | media id | 是 | 只能绑定本人头像用途资产 |
 | `nickname_changed_at` | timestamptz | 是 | 7 天冷却判断来源 |
 | `must_change_password` | bool | 否 | 首次管理员登录前为真 |
@@ -47,6 +48,17 @@
 | `created_ip` | inet | 仅管理员详情可见完整值 |
 
 密码重置撤销全部会话；登录态改密保留当前会话但旋转令牌，撤销其他会话；“退出所有设备”包括当前会话。
+
+## AdminPasswordReset
+
+| 字段 | 类型 | 规则 |
+| --- | --- | --- |
+| `account_id` | UUID PK/FK | 每个账户至多一条记录；账户删除时级联删除 |
+| `token_digest` | char(64) unique | HMAC 摘要，不存邮件中的原始随机令牌；计算时绑定账户当前密码哈希和邮箱 |
+| `created_at` / `expires_at` | timestamptz | 创建时设置 30 分钟有效期，数据库检查过期时间晚于创建时间 |
+| `consumed_at` | timestamptz | 非空表示已发送失败或已成功兑换；重发覆盖摘要并清空消费时间 |
+
+令牌由 URL fragment 传入，避免进入 HTTP 请求路径和查询串；服务端成功改密后消费链接并撤销全部会话。
 
 ## InviteCode
 

@@ -2898,3 +2898,12 @@ Answer: Resolved from the established stack and requested scope; no new user cho
 
 Decision: Provide no public API, mobile-app API, or third-party social-login integration in the initial release. Deliver all user and administrator workflows through the same-origin Django-rendered web application, using its internal HTMX endpoints only for browser interactions. Do not expose a reusable external authentication or content API.
 Notes: This prevents unrequested expansion of the authentication and authorization surface.
+
+### Q323 - Registration And Author Permission Notifications
+
+Question: Should a successful new-user registration notify the administrator, and should a logged-in non-author be able to submit a one-time author permission request from “我的文章”?
+
+Answer: Yes. Keep both notices in the in-site notification system.
+
+Decision: Emit `account.registered.v1` in the successful registration transaction and notify the active administrator through the existing Outbox and Notification/Receipt owners. Show “我的文章” to every active logged-in account. Authors continue to see the existing article workspace; ordinary users see an author-permission prompt and one request button. Persist the first request on the account under an account-row lock and emit `account.author_permission_requested.v1` in the same transaction. After submission, replace the button with “已通知管理员申请作者权限”. The administrator notice links to the matching account in the existing user-management interface, where the existing confirmed author-role grant remains the only authorization path.
+Notes: Do not send email or let the request itself grant author access. The event payload contains no email or nickname. The new requirement is tracked as post-P12 `ITER-001`; it does not rewrite the historical P0-P12 task audit.

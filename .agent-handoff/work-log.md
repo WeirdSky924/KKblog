@@ -1,5 +1,139 @@
 # Current Work Log
 
+## 2026-10-17（账户配额覆盖弹窗统一留言输入样式）
+
+- Report: 用户管理中的“配额覆盖”弹窗沿用基础确认框，标题区、关闭按钮区和内容间距未完整呈现，与之前留言输入窗口的站内样式不一致。
+- Changed: 在 `feedback.css` 增加共享 `confirm-dialog-panel` 外壳；留言输入弹窗和 `learning_question_banks.html` 的账户配额覆盖弹窗统一使用该外壳。移除留言弹窗中重复的外壳 CSS，保留留言字段/计数专属样式；更新 CSS cache version。
+- Validation: `npm run build:css`、Django check、`git diff --check` 通过；Labs service `active/running`、`/health/live=200`、HTML 引用 `quota-dialog-panel-20261017`。真实 Labs 页面加载 CSS 后，临时配额弹窗结构 desktop `512×300`、顶部线 `4px`、标题区 `72px`、表单内边距 `20px`；390px 下宽 `358px`、内边距 `16px`、配额字段单列、无横向溢出。临时 DOM 已移除，浏览器已关闭。
+- Boundary: 没有可授权管理员 session，未打开真实用户管理入口、未保存配额、未修改数据库、未重启服务、未触碰生产或执行 Git 写操作。
+
+## 2026-10-16（全局通知与顶部栏悬浮层级修复）
+
+- Report: 右上角全局通知出现时盖住顶部栏的悬浮菜单，菜单选项无法正常选择。
+- Root cause: `global-feedback` 使用 `z-index: 80`，高于 `site-header` 的 `z-index: 30`；顶部栏内的通知浮窗虽为 `z-index: 50`，仍受 header stacking context 限制。
+- Changed: 将 `static/src/feedback.css` 的全局通知层降为 `z-index: 25`，更新 `templates/base.html` 的 CSS cache version，并重新生成 `static/dist/styles.css`。
+- Validation: `npm run build:css` 退出 `0`；生成 CSS 含 `.global-feedback{z-index:25`；Labs service `active/running`、公网 `/health/live=200`、HTML 引用 `feedback-header-layer-20261016`。真实匿名页面 computed 层级为 header `30` / feedback `25`；合成通知与顶部栏浮窗重叠点命中顶部栏浮窗。浏览器已关闭。
+- Boundary: 未修改通知数据、账户、数据库、服务进程或生产；无登录态，通知中心真实数据和个人菜单内容未验收。
+
+## 2026-10-16（管理员重置链接 CSRF 403 修复）
+
+- Report: 重置页能打开，但提交新密码返回 Django 403 CSRF 验证失败。
+- Root cause: Labs 日志为 `Origin checking failed - null does not match any trusted origins`；页面响应同时设置 `Referrer-Policy: no-referrer`。CSRF cookie 和隐藏 token 均存在，问题发生在 Origin 检查阶段。
+- Changed: `apps/accounts/presentation/admin_password_reset.py` 的成功/失败响应和模板 meta 改为 `same-origin`；保留 Django CSRF 中间件、表单 token、fragment 令牌和服务端一次性校验。创建独立公告 `admin-password-reset-csrf-20261016.md`，并更新本轮 announcement。
+- Validation: compileall、Django check、git diff check 通过；Labs header 为 `same-origin`。同一 cookie/token 对比：`Origin:null -> 403`，同站 Origin -> `422`，同站 Referer -> `422`；服务日志确认后两者进入应用层校验。浏览器修复后 GET 两次遇到 Nginx 504，按规则恢复一次后停止，无真实账户或邮件副作用。
+- Boundary: 未运行 migration、未重启服务、未发送邮件、未触碰生产、未运行 Provider/AGENT/招聘采集、未执行 Git 写操作。下一步仅需稳定 Labs 后真实浏览器复测或隔离环境回归。
+
+## 2026-10-16（授权应用管理员重置 migration）
+
+- Authorization: 用户明确授权仅对 Labs `kaj_test_production_clone` 应用 `accounts.0011_admin_password_reset`；不包含生产 migration、邮件发送、服务重启或 Git 操作。
+- Plan/application: 使用 `kaj-labs.service` 当前进程环境读取计划，唯一操作为 `Create model AdminPasswordReset`；`migrate accounts 0011_admin_password_reset --noinput --database default` 返回 `Applying ... OK`，退出 `0`。
+- Readback: PostgreSQL 中表存在，字段为 `account_id, token_digest, created_at, expires_at, consumed_at`；确认账户主键/外键、token digest 唯一、`account_admin_pw_reset_positive_lifetime` 检查约束及 migration 记录。迁移后 plan 为空。
+- Runtime: Labs Web PID `3372370` 与启动时间不变，仍为 `active/running`；公网 `/health/live=200`、`/health/ready=200`。没有重启服务。
+- Boundary: 未发送邮件、未执行生产操作；没有可授权管理员 session，未验证按钮 POST 或邮件链接兑换。隔离测试环境仍缺少四项 `KAJ_TEST_*` 值。
+
+## 2026-10-16（管理员重置邮件暂不可用故障定位）
+
+- Report: 用户管理点击“发送重置邮件”显示“管理员密码重置功能暂不可用”。
+- Root cause: 管理服务捕获 `AdminPasswordReset.objects.get_or_create()` 的数据库 `ProgrammingError` 并返回该安全提示；通过当前 `kaj-labs.service` 进程环境只读核实，Labs PostgreSQL migration 到 `accounts.0010` 为已应用、`accounts.0011_admin_password_reset` 未应用，`account_admin_password_reset` 表不存在。
+- Validation: 服务保持 `active/running` 且工作目录正确。用服务进程环境运行 `showmigrations accounts` 与 Django 表 introspection 均退出 `0`；迁移状态为 `[ ] 0011`，`reset_table_exists=False`。本机默认 `config.settings.development` 下的全未应用结果不是 Labs 数据库证据。
+- Boundary: 此次故障定位阶段未运行 migration、测试邮件或真实邮件，未触碰生产、未重启服务、未运行招聘采集/Provider/AGENT、未执行 Git 写操作。随后已按用户单独授权应用 migration，结果见本日志上节。
+
+## 2026-10-16（管理员邮件密码重置）
+
+- Objective: 在用户管理中增加确认发送邮件重置链接；用户在 30 分钟内设置并确认新密码，成功后撤销全部现有会话。
+- Changed: `accounts` 增加一次性重置状态模型/服务与 `0011_admin_password_reset` migration；令牌只存 HMAC，摘要绑定 password hash/email，重发和凭据变化使旧链接失效；新增 fragment 兑换页、no-store/same-origin、停用 analytics、密码确认；管理用户行添加确认弹窗，写 operations 审计与脱敏 SecurityEvent。新增隔离用例和独立 Labs 迭代公告。
+- Static validation: 目标 Ruff check、JS `node --check`、Django system check、migration autodetector、`git diff --check` 和最终 `npm run build:js` 均退出 `0`；`makemigrations --check --dry-run` 输出 `No changes detected`。app bundle 为 1.1 MB，本地/公网 SHA-256 均为 `acb443131eaab3efbcb8634e6207d87ac818ef40c3ee8b736177d119d721e443`。
+- RED: 实现前 `test_admin_password_reset_link_route_is_registered` 因路由不存在失败，`1 failed in 3.03s`，符合预期。最终 PostgreSQL/Redis/Mailpit pytest 未运行：当前 shell 缺少 4 个 `KAJ_TEST_*` 值；没有连接共享 Labs 数据库/Mailpit。
+- Browser/Labs: `kaj-labs.service` 工作目录正确且 `active/running`，公网 live/重置页 GET `200`。Playwright 最终读到密码重置页，伪造 fragment 已从 URL 清除、表单可见并聚焦；390px document/body 宽 375、无横向溢出，Tab 到 `confirm_password`，console errors/warnings `0`。两个初始导航等待超时后页面才读回；截图/主题交互超时，未重试；没有提交密码。
+- Boundary at initial feature validation, before the later authorized Labs migration: `accounts.0011_admin_password_reset` 未应用；无真实邮件、管理员/用户账号操作、生产 migration/deploy/restart、招聘采集、Provider/AGENT 或 Git 写入。隔离回归和认证态验收仍待完成。
+
+## 2026-10-16（Labs 管理员通知未到达修复）
+
+- Report: 用户在 Labs 测试注册及作者权限申请后，管理员均未收到站内通知。
+- Root cause: Celery Worker PID `3375824` 于 `2026-10-13 18:15:32 CST` 启动；事件路由和 account notification consumer 于 `2026-10-16` 更新。Web 热重载不更新 Worker 已导入模块，故新事件一直 pending、没有 consumer/通知记录。
+- Recovery: 只执行 `systemctl restart kaj-labs-worker.service`，退出 `0`；新 Worker PID `399934` 于 `2026-10-16 13:35:04 CST` active/running。Beat 维持原调度；Web、Beat、PostgreSQL、Redis、Outbox timer 未重启。
+- Readback: 注册和作者申请事件各 1 条转为 `published`，相应 consumer 各 1 条 `processed`；启用管理员各有 1 条 `NotificationReceipt`，且均未读。公网 `/health/live=200`。两个旧每周备份失败事件仍 pending、无 consumer 记录，保留给 B-027。
+- Validation/boundary: 没有管理员浏览器 session，通知中心 UI 未浏览器验收；没有触发真实邮件，Worker/outbox 环境 `KAJ_LABS_SMTP_ENABLED=false`。未运行招聘采集、Provider/AGENT、生产操作或 Git 写操作。资源门禁黄色，单一重启操作完成，重启后 MemAvailable/SwapFree 均上升。
+
+## 2026-10-16（授权后的 Labs schema migration 收尾）
+
+- Authorization: 用户明确允许在 Labs `kaj_test_production_clone` 执行账号字段 migration；范围不包含生产、Outbox、真实邮件、账号创建或 Git 交付。
+- Migration: 只读计划精确列出 `accounts.0010_account_author_permission_requested_at`；`migrate accounts 0010 --noinput` 返回 `Applying ... OK`。读回 `django_migrations`、`public.account.author_permission_requested_at`（nullable `timestamp with time zone`，无默认值）和迁移后空计划；现有 2 个账户值为 `NULL`。
+- Runtime: `kaj-labs.service` 仍为 `active/running`，工作目录未漂移；公网 live/ready 为 `200`，匿名 `/author/articles/` 为登录跳转 `302`。
+- Boundary: 没有可授权普通用户/管理员 session，未执行认证态浏览器流；Outbox service/timer 仍为 `failed/failed`、`inactive/dead`，未启动或改写；未执行生产 migration、部署、重启、Provider/AGENT、真实邮件或 Git 写操作。
+
+## 2026-10-16（注册管理员通知与一次性作者权限申请）
+
+- Objective: 注册成功后通知管理员；让所有已登录用户访问“我的文章”，普通用户可申请一次作者权限，已授权作者保留原工作台。
+- Changed: accounts 增加一次性申请时间戳、行锁服务、注册/申请 Outbox 事件和 migration `0010`；notifications 增加管理员通知 consumer/模板、幂等投递和账户 UUID 目标；作者入口常显并按角色渲染申请页/原工作台；用户管理支持 UUID 精确搜索。同步更新 Q323、ITER-001、架构契约、页面状态和 Labs 独立公告。
+- Validation: 初始 RED 复现首页缺少“我的文章”入口。最终入口逻辑复核后的隔离回归 `12 passed in 247.51s`；目标 Ruff check/format、Django check、CSS 构建通过。`makemigrations --check --dry-run` 无 model drift，但因基准测试库未创建产生连接 warning；pytest 在独立临时 PostgreSQL 测试库应用 migration。
+- Initial Labs readback before migration: 服务 `active/running`；live 和首页 `200`，匿名作者入口按预期跳登录 `302`；本地/公网 CSS SHA-256 均为 `ca118a4f8f2a2b8b588d656ccd796f71194d20d88aeb426072498c79574ec509`。当时 Labs 共享库尚未应用 `accounts.0010`，且无认证用户/管理员浏览器状态；最终迁移结果见上节。
+- Blockers/boundary: Outbox service `failed/failed`、timer `inactive/dead`，因此新通知尚不能在 Labs 实际消费；本轮未处理 Outbox、未跑认证态浏览器。无生产操作、服务重启、Provider/AGENT、真实邮件或 Git 写操作。
+
+## 2026-10-15（留言板尺寸稳定与滚轮归属）
+
+- Objective: 修复真实发布后留言板缩小，以及留言列表滚轮带动整个主页的问题。
+- Root cause: 前一版只把宽高保存在会被 HTMX `outerHTML` 替换的面板上；用户实测确认真实发布仍会缩小。另一个主页级 wheel handler 仅排除了左侧导航，主动接管了留言板内滚轮。
+- Changed: 将面板宽高/中心变量移至稳定的 `[data-home-page]`；主页吸附 wheel handler 忽略留言板；app bundle cache version 更新。前一版独立说明已补充“合成事件验证不代表真实发布”的更正。
+- Validation: JS 语法检查和 `npm run build:js` 通过；新 bundle 本地/公网 SHA-256 一致，Labs health `200`。访客页面上的 `beforeRequest → outerHTML → afterSwap` 桌面尺寸前后均为 `634×468px`；1440×900 真实鼠标滚轮把留言列表滚到 `scrollTop=23px`，window `scrollY=0`；390×844 面板 `355×465.4px`，上下边界分别与页眉和 Hero 内容边界重合，控制台/page error 为 `0`。
+- Boundary: 没有可授权 Labs 登录态，因此未执行真实留言 POST；无 migration、生产操作、服务重启、Provider/AGENT、真实邮件或 Git 写操作。
+
+## 2026-10-14（富文本图片内容列宽度）
+
+- Objective: 让图片 100% 与 25/50/75% 一样按当前内容列展示宽度计算，不使用原图自然尺寸或固定像素。
+- Root cause: `tiptap_schema` 将默认 width=100 规范化为省略字段；原 CSS 仅对带 `data-width` 的图片设 `width:100%`，无属性时由浏览器采用固有尺寸。
+- Changed: `static/src/editor-image.css` 对编辑器和公开文章图片统一设置基础宽度 100%，显式 25/50/75 继续覆盖；`templates/base.html` 更新 CSS 查询版本。新增独立说明并追加到 Labs 公告台账。
+- Validation: `npm run build:css`、`git diff --check`、本地与 Labs CSS SHA-256 对照、Labs health 200。Playwright 文章页导航 60 秒超时、快照 30 秒超时；作者态四档点击未验收，浏览器已关闭。
+- Boundary: 无 schema/数据/migration、生产、服务重启、招聘采集、Provider/AGENT、邮件或 Git 写操作。
+
+## 2026-10-14（留言板展示与管理页调整）
+
+- Objective: 留言板放大时保持正文字号，新增手动收起，后台留言页使用站内视觉和统一分页。
+- Changed: 独立宽高限制留言板尺寸，由留言列表吸收额外空间；加入有焦点恢复的收起/展开控制；后台新增概览/状态徽标/审核卡片，分页复用全站组件并保留单页状态。静态版本号同步更新。
+- Validation: 留言板 JS syntax、首页与管理模板解析、CSS/JS build、`git diff --check` 通过；Labs 服务 `active/running`、health `200`、CSS/JS 哈希一致。已有 1440px 读回：面板 `634×468px`、字号 `13.76px`、页眉和 Hero 边界内、z-index `20<30`。
+- Limitation: 最新浏览器多次超时，窄屏、点击收起/展开及管理员态尚未验收；没有管理员会话可用。产品变更和验证限制写入独立公告文档。
+- Boundary: 无 migration、生产操作、服务重启、Provider/AGENT、真实留言或 Git 写操作。
+
+## 2026-10-14（留言板居中与输入浮窗布局）
+
+- Objective: 将首页留言板放到 Hero 上下中心，修复留言输入浮窗标题栏、关闭按钮、输入区和底部按钮的布局错位。
+- Changed: `home-guestbook` 使用页眉以下 Hero 可视区域中心定位；模板增加浮窗结构 class；CSS 补齐 header/form/actions、图标对齐和窄屏换行；更新静态资源版本。
+- Validation: 成员态结构回归 `1 passed in 6.72s`；目标 Ruff/format、Django check、diff check 通过；`npm run build:css` 成功。Labs CSS 哈希 `fe65a2fd…` 本地/公网一致、health `200`。
+- Browser: 桌面面板中心与 Hero 中心均为 `400.5px`；390px 下均为 `516.5px`，`scrollWidth=375`，控制台 0 error/0 warning。用当前 CSS 结构化读回标题栏 flex、桌面操作区横向、390px 弹窗宽 `358px` 和纵向操作区；匿名态没有输入浮窗，结构由成员态模板回归覆盖；浏览器已关闭。
+- Boundary: 未执行生产 migration、部署、重启、招聘采集、Provider/AGENT、真实邮件或 Git 交付。
+
+## 2026-10-13（首页匿名留言板）
+
+- Objective: 在首页大图右侧提供匿名展示留言板，注册用户可发布纯文字留言，按 2/20 日配额限制，最新 10 条 keyset 加载，并在后台管理隐藏、删除和阅否毕标记。
+- Changed: 扩展 `apps/comments` 的 `Comment` 字段/迁移、严格首页发布 service、公开查询、管理员 moderation/query/view/form；新增独立 `guestbook/board/comments/` 路由，保留旧 `/guestbook/` 的匿名、图片和缓冲兼容；加入 `home-guestbook.js`、首页模板/CSS、测试和公告文档。
+- Performance: 公开列表单次 `LIMIT 11` 返回 10 条前瞻，不 count、不作者/媒体 N+1；日配额检查在锁定 guestbook thread 的事务内完成，查询索引随 migration 创建。
+- Validation: 新留言板 `4 passed`；旧 CMT007 `5 passed`，合并回归 `8 passed`；Django check/migration drift、Ruff、compile、JS syntax、CSS/JS build、diff check 通过。Labs `comments.0006_guestbook_board` 经授权应用到 `kaj_test_production_clone`，字段/索引/迁移记录读回；公网首页/health `200`。
+- Browser: Labs 首页真实读回初始展开、文章区滚动收起、右侧入口重开、390px 无横向溢出和深色主题；未登录只看到“登录后留言”，未执行登录或真实发布；浏览器会话已关闭。
+- Boundary: 未执行生产 migration、部署、重启、招聘采集、Provider/AGENT、真实邮件或 Git 交付；Outbox 既有失败状态未改写。
+
+## 2026-10-13（答题选项标签与刷题最终提交）
+
+- Objective: 隐藏存储 option ID，按当前显示顺序提供大写 `A/B/C/D`；刷题模式最后一题揭晓后切换整卷提交。
+- Changed: presentation 层增加 `display_options`；答题/解析模板统一使用展示标签；练习按钮复用独立整卷 form，JS 在全部 response 揭晓后切换 action/form/文案。
+- Validation: 临时 HTTP RED/GREEN `1 passed`；答题模式/顺序 `11 passed`，最终入口 `1 passed`；Django check、Ruff、JS syntax、`npm run build:js`、diff check 通过；Labs `app.js` hash 与公网一致、live `200`。
+- Boundary: 临时测试文件和数据库已清理；未运行浏览器登录流，因为 Labs 公开题库保持 `ADMIN_HIDDEN/security_review`；未改变题库可见性、生产或 Outbox 状态。
+
+## 2026-10-13（完整重启 Labs 及资源）
+
+- Action: 依次重启 P12 PostgreSQL/Redis/Mailpit 和 Labs Web/Worker/Beat，未触碰生产服务、数据卷或源码。
+- Readback: Web 首次启动因 Django autoreloader 子进程处于 swap 等待而短暂无监听；停止 Worker/Beat 后 Web health 恢复 `200`，再按依赖顺序启动 Worker/Beat，最终三项均 `active/running`。
+- Final: 公网及带代理头的本地 `/health/live` 均 `200`；PostgreSQL accepting、Redis `PONG`、Mailpit `200/healthy`。
+- Boundary: Outbox service/timer 继续保持 `failed/timeout`、`inactive/dead`，两条历史事件未改写；详见 `docs/releases/2026-10-13-next-iteration/runtime-restart.md`。
+
+## 2026-10-13（恢复 Labs 与下一轮迭代基线）
+
+- Objective: 整理分支/worktree，确认 Labs 对齐当前正式运行代码，建立下一轮公告台账并重启 Labs 及资源服务。
+- Baseline: 生产运行 revision 为 `d06af75`；远端 `main=9a0a6c8`；`d06af75..origin/main` 在 `apps/config/docker/static/templates` 无差异。Labs 已切换到 `codex/labs-next-20261013`，起点为 `9a0a6c8`。
+- Runtime: P12 PostgreSQL 已接受连接，Redis `PONG`，Mailpit healthy；Web/Worker/Beat active/running；公网 `/health/live=200`。本地直连 health 需 `X-Kaj-Client-IP`，符合 Labs 受信代理配置。
+- Outbox: timer/service 两次启动均在 30 秒内超时；日志显示 2 条历史 `task.final_failed.v1` transport failure，未 SQL 清理或改写，timer 已停止，待独立调查。
+- Documentation: 新建 `docs/releases/2026-10-13-next-iteration/announcement.md`，后续每个产品切片追加 owner、验证、数据副作用和正式发布准备记录。
+- Resource gate: 启动阶段处于黄色区间，MemAvailable 约 545-709 MiB、SwapFree 约 2.09-2.80 GiB；只串行启动必要服务，未启动浏览器或测试套件。
+
 ## 2026-10-12（README 当前状态整理）
 
 - Objective: 更新项目 README，使其反映当前产品能力、正式运行版本、可核验数据和开发入口。

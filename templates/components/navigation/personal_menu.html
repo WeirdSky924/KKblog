@@ -7,9 +7,7 @@
   <div class="personal-menu__panel">
     <nav aria-label="个人管理">
       <a href="{{ shell_account.profile_url }}"><i data-lucide="user-round"></i><span>公开主页</span></a>
-      {% if shell_is_author %}
-        <a href="{% url 'authoring:articles' %}"><i data-lucide="notebook-pen"></i><span>我的文章</span></a>
-      {% endif %}
+      <a href="{% url 'authoring:articles' %}"><i data-lucide="notebook-pen"></i><span>我的文章</span></a>
       {% if shell_can_upload_attachments %}
         <a href="{% url 'learning:documents' %}"><i data-lucide="file-text"></i><span>知识文档</span></a>
       {% endif %}

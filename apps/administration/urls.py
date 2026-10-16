@@ -15,6 +15,7 @@ from apps.administration.views.audit import audit_log
 from apps.administration.views.comments import comments
 from apps.administration.views.errors import runtime_errors
 from apps.administration.views.exchange import download_export, exchange
+from apps.administration.views.guestbook import guestbook
 from apps.administration.views.index import index
 from apps.administration.views.invites import invites
 from apps.administration.views.ip_blocks import ip_blocks
@@ -79,6 +80,7 @@ urlpatterns = [
         name="article-preview",
     ),
     path("comments/", administrator_required(comments), name="comments"),
+    path("guestbook/", administrator_required(guestbook), name="guestbook"),
     path("reports/", administrator_required(reports), name="reports"),
     path("tags/", administrator_required(tags), name="tags"),
     path("sections/", administrator_required(sections), name="sections"),

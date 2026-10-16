@@ -22,9 +22,9 @@
     >
     <script src="{% static 'dist/navigation-state.js' %}"></script>
     <script src="{% static 'dist/theme.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'dist/styles.css' %}?v=quiz-practice-home-nav-20261011">
-    <script type="module" src="{% static 'dist/app.js' %}?v=quiz-practice-home-nav-20261011"></script>
-    {% if analytics_tracking.enabled %}
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}?v=quota-dialog-panel-20261017">
+    <script type="module" src="{% static 'dist/app.js' %}?v=admin-password-reset-link-20261016"></script>
+    {% if analytics_tracking.enabled and not disable_analytics %}
       <script
         defer
         src="{{ analytics_tracking.script_path }}"

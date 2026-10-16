@@ -11,7 +11,12 @@ from .cooldown import CommentCooldownUnavailable
 from .errors import CommentPostingError
 from .http import is_htmx, posting_status
 from .ports import CommentMediaError
-from .presentation import TopLevelCommentForm, guestbook_comment_context
+from .presentation import (
+    GuestbookCommentForm,
+    TopLevelCommentForm,
+    guestbook_board_context,
+    guestbook_comment_context,
+)
 from .queries import CommentCursorError
 from .receipts import (
     add_comment_receipt,
@@ -51,6 +56,17 @@ def _list_error(request):
     return response
 
 
+def _home_board_response(request, context, *, status: int):
+    response = render(
+        request,
+        "discovery/partials/home_guestbook.html",
+        context,
+        status=status,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @require_GET
 def guestbook_page(request):
     try:
@@ -85,10 +101,53 @@ def guestbook_comment_page(request):
     return response
 
 
-@require_POST
-def create_guestbook_comment(request):
-    form = TopLevelCommentForm(request.POST, noun="留言")
+@require_GET
+def guestbook_board_page(request):
+    try:
+        context = guestbook_board_context(
+            request=request,
+            cursor=request.GET.get("cursor") or None,
+        )
+    except GuestbookUnavailableError:
+        return _unavailable(request)
+    except CommentCursorError:
+        response = render(
+            request,
+            "discovery/partials/home_guestbook_batch.html",
+            {"guestbook_board_error": "留言板未能继续加载，请稍后重试。"},
+            status=422,
+        )
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+    response = render(
+        request,
+        "discovery/partials/home_guestbook_batch.html",
+        context,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+def _create_guestbook_comment(request, *, home_surface: bool):
+    form = (
+        GuestbookCommentForm(request.POST)
+        if home_surface
+        else TopLevelCommentForm(request.POST, noun="留言")
+    )
     if not form.is_valid():
+        if home_surface:
+            try:
+                return _home_board_response(
+                    request,
+                    guestbook_board_context(
+                        request=request,
+                        form=form,
+                        dialog_open=True,
+                    ),
+                    status=422,
+                )
+            except GuestbookUnavailableError:
+                return _unavailable(request)
         try:
             context = guestbook_comment_context(request=request, form=form)
         except GuestbookUnavailableError:
@@ -102,6 +161,7 @@ def create_guestbook_comment(request):
             client_ip=request.client_ip,
             body=form.cleaned_data["body"],
             image_refs=form.image_refs,
+            strict_guestbook=home_surface,
             trace_code=request.trace_code,
         )
     except GuestbookUnavailableError:
@@ -115,6 +175,16 @@ def create_guestbook_comment(request):
         return response
     except CommentPostingError as exc:
         form.add_error("body" if exc.field == "body" else None, exc.safe_message)
+        if home_surface:
+            return _home_board_response(
+                request,
+                guestbook_board_context(
+                    request=request,
+                    form=form,
+                    dialog_open=True,
+                ),
+                status=posting_status(exc.code),
+            )
         try:
             context = guestbook_comment_context(request=request, form=form)
         except GuestbookUnavailableError:
@@ -131,6 +201,15 @@ def create_guestbook_comment(request):
         receipts = add_comment_receipt(receipts, result.comment_id)
     if not is_htmx(request):
         response = HttpResponseRedirect(f"{reverse('public:guestbook')}#comment-thread")
+    elif home_surface:
+        response = _home_board_response(
+            request,
+            guestbook_board_context(
+                request=request,
+                feedback="留言已发布。",
+            ),
+            status=201,
+        )
     else:
         response = _panel_response(
             request,
@@ -144,6 +223,16 @@ def create_guestbook_comment(request):
     if getattr(request, "account_id", None) is None:
         set_comment_receipt_cookie(response, receipts)
     return response
+
+
+@require_POST
+def create_guestbook_comment(request):
+    return _create_guestbook_comment(request, home_surface=False)
+
+
+@require_POST
+def create_guestbook_board_comment(request):
+    return _create_guestbook_comment(request, home_surface=True)
 
 
 @require_POST

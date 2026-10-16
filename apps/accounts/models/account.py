@@ -62,6 +62,9 @@ class Account(models.Model):
     auto_republish_enabled = models.BooleanField(default=False)
     article_explanation_auto_accept = models.BooleanField(default=False)
     attachment_upload_enabled = models.BooleanField(default=False)
+    author_permission_requested_at = models.DateTimeField(
+        null=True, blank=True, editable=False
+    )
     avatar_asset_id = models.CharField(max_length=26, null=True, blank=True)
     nickname_changed_at = models.DateTimeField(null=True, blank=True)
     must_change_password = models.BooleanField(default=False)

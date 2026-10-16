@@ -1,4 +1,5 @@
 from .account_events import (
+    consume_account_administrator_notice,
     consume_account_deleted,
     consume_author_role_changed,
     register_account_event_templates,
@@ -14,6 +15,7 @@ __all__ = [
     "consume_opportunity_notification",
     "consume_task_final_failure_notification",
     "consume_author_role_changed",
+    "consume_account_administrator_notice",
     "consume_account_deleted",
     "register_account_event_templates",
 ]

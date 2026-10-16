@@ -30,6 +30,14 @@ Todo 生成基线 SHA-256：3cd9ccf9d5702ef81d4c89697683a7ff81e09653e713b62b8151
 | [phase-11-administration.md](implementation-goal-prompts/phase-11-administration.md) | P11 管理后台、导航与站点设置 | 1 | 8 |
 | [phase-12-regression-delivery.md](implementation-goal-prompts/phase-12-regression-delivery.md) | P12 跨模块回归与部署准备 | 1 | 6 |
 
+## P12 后增量 Goal
+
+P0-P12 阶段仍维持 13 份提示词与 102 个基础 Todo。后续新增需求使用单独的 post-P12 Goal，不改变阶段历史计数。
+
+| 文件 | 增量任务 | Goal 数 | 覆盖 Todo |
+| --- | --- | ---: | ---: |
+| [post-p12-iter-001-author-permission.md](implementation-goal-prompts/post-p12-iter-001-author-permission.md) | 注册管理员通知与一次性作者权限申请 | 1 | 1 |
+
 ## 完整性门禁
 
 - 13 份文件各有且只有一个主 Goal。

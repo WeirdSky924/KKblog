@@ -1,5 +1,5 @@
-.author-tiptap__content img[data-width],
-.article-prose img[data-width] {
+.author-tiptap__content img,
+.article-prose img {
   width: 100%;
   margin-inline: auto;
 }

@@ -1,4 +1,5 @@
 from .account import Account
+from .admin_password_reset import AdminPasswordReset
 from .bootstrap import BootstrapState
 from .deletion import AccountDeletion
 from .invite import InviteCode
@@ -10,6 +11,7 @@ from .session import LoginSession
 
 __all__ = [
     "Account",
+    "AdminPasswordReset",
     "AccountDeletion",
     "BootstrapState",
     "InviteCode",

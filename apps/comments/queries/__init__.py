@@ -9,6 +9,12 @@ from .administration import (
     admin_comments_for_target,
 )
 from .counts import article_comment_counts
+from .guestbook_admin import (
+    GuestbookAdminItem,
+    GuestbookAdminPage,
+    GuestbookAdminQueryError,
+    guestbook_admin_page,
+)
 from .management import (
     OwnerBufferedComment,
     OwnerCommentArticle,
@@ -35,9 +41,12 @@ from .reporting import (
 from .threads import (
     CommentCursorError,
     CommentSort,
+    GuestbookBoardItem,
+    GuestbookBoardPage,
     PublicCommentItem,
     PublicCommentPage,
     PublicReplyPage,
+    guestbook_board_page,
     public_comment_page,
     public_reply_page,
 )
@@ -53,11 +62,16 @@ __all__ = [
     "CommentPanel",
     "CommentReportTargetError",
     "CommentSort",
+    "GuestbookBoardItem",
+    "GuestbookBoardPage",
     "CommentThreadAccess",
     "OwnerBufferedComment",
     "OwnerCommentArticle",
     "OwnerCommentWorkspace",
     "OwnerCommentWorkspaceError",
+    "GuestbookAdminItem",
+    "GuestbookAdminPage",
+    "GuestbookAdminQueryError",
     "PublicCommentItem",
     "PublicCommentPage",
     "PublicReplyPage",
@@ -73,7 +87,9 @@ __all__ = [
     "guestbook_comment_access",
     "guestbook_comment_panel",
     "owner_comment_workspace",
+    "guestbook_admin_page",
     "public_comment_page",
+    "guestbook_board_page",
     "public_reply_page",
     "reportable_comment_target",
 ]

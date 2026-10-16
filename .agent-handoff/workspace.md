@@ -2,11 +2,11 @@
 
 ## Repository Structure
 
-- `apps/accounts/`: 账户、登录、会话、个人资料和权限入口。
+- `apps/accounts/`: 账户、登录、会话、个人资料、角色与一次性作者权限申请。
 - `apps/content/`, `apps/authoring/`: 文章、不可变修订、发布状态和作者编辑工作台。
 - `apps/discovery/`: 公开阅读、文章索引、作者主页和 query/presenter 组合。
 - `apps/administration/`: 管理页面编排；不拥有其他领域事实。
-- `apps/notifications/`: Notification、NotificationReceipt、模板、Consumer 和已读服务。
+- `apps/notifications/`: Notification、NotificationReceipt、模板、Consumer、管理员通知和已读服务。
 - `apps/agents/`: Endpoint、AGENT Profile/Prompt、LangChain Gateway、schema capability、token ledger/reservation。
 - `apps/learning/`: 知识文档、审核、题库、答题记录和错题本。
 - `apps/opportunities/`: 招聘来源、岗位、适配器、检查运行和筛选查询。
@@ -47,7 +47,7 @@
 ## Worktree Map
 
 - `/home/code/personal-blog`: 开发主工作区，local `main` HEAD 为 `631253f`；有未提交 handoff 修改及未跟踪 `docs/operations/performance-testing/p0-production-canary/`，必须保留并与 Labs 发布分开处理。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree；Web、Worker、Beat、Outbox service/timer 均 inactive/dead，P12 PostgreSQL/Redis/Mailpit 均已退出，数据卷保留。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree，当前分支 `codex/labs-next-20261013`，基线 `origin/main=9a0a6c8`；Web、Worker、Beat active/running，P12 PostgreSQL/Redis/Mailpit 已启动并保留既有数据卷，Outbox service/timer 因启动超时暂未运行。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
 - `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；Web/Worker/Beat 已增量切换为 `kaj-blog-web:d06af75a9c31`，Caddy 保持 `kaj-blog-caddy:2cbead0`。目录含凭据、数据库、媒体和备份，禁止整体复制或清理。

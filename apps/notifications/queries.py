@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from urllib.parse import urlencode
 from uuid import UUID
 
 from django.core import signing
@@ -188,7 +189,9 @@ def broadcast_list(
     paginator = Paginator(ordered, page_size)
     selected = paginator.get_page(page)
     return PageSlice(
-        items=tuple(_broadcast_summary(notification) for notification in selected.object_list),
+        items=tuple(
+            _broadcast_summary(notification) for notification in selected.object_list
+        ),
         page_number=selected.number,
         page_size=page_size,
         total_items=paginator.count,
@@ -310,6 +313,8 @@ def _target_url(target_type: str, target_id: str) -> str | None:
         return reverse("public:tag", kwargs={"tag_id": target_id})
     if target_type == "account_role":
         return reverse("accounts:settings")
+    if target_type == "admin_user":
+        return f"{reverse('admin:users')}?{urlencode({'q': target_id})}"
     if target_type in {"knowledge_document", "learning_appeal"}:
         return reverse("learning:documents")
     if target_type == "question_bank":

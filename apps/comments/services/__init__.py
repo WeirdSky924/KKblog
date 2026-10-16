@@ -13,9 +13,16 @@ from .deletion import (
     restore_comment_from_report,
 )
 from .guestbook import (
+    GuestbookQuotaResult,
     GuestbookSettingsError,
     GuestbookSettingsResult,
+    update_guestbook_quotas,
     update_guestbook_settings,
+)
+from .guestbook_moderation import (
+    GuestbookModerationError,
+    GuestbookModerationResult,
+    moderate_guestbook_comment,
 )
 from .pinning import (
     CommentPinError,
@@ -62,7 +69,10 @@ __all__ = [
     "TopLevelCommentResult",
     "GuestbookSettingsError",
     "GuestbookSettingsResult",
+    "GuestbookQuotaResult",
     "GuestbookUnavailableError",
+    "GuestbookModerationError",
+    "GuestbookModerationResult",
     "create_top_level_comment",
     "delete_comment_as_admin",
     "delete_comment_for_report",
@@ -80,4 +90,6 @@ __all__ = [
     "sync_article_thread",
     "sync_guestbook_thread",
     "update_guestbook_settings",
+    "update_guestbook_quotas",
+    "moderate_guestbook_comment",
 ]

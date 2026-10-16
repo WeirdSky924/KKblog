@@ -1,0 +1,121 @@
+{% extends "administration/layout.html" %}
+
+{% block title %}留言板管理 · {{ site_presentation.site_name }}{% endblock %}
+
+{% block admin_content %}
+  <section class="admin-queue admin-guestbook" aria-labelledby="admin-guestbook-title">
+    <header class="admin-queue__header admin-guestbook__header">
+      <div class="admin-guestbook__intro">
+        <p>管理 · 内容与互动</p>
+        <h1 id="admin-guestbook-title">留言板管理</h1>
+        <p>按时间查看留言，更新公开状态与处理标记，必要时记录删除原因。</p>
+      </div>
+      <dl class="admin-guestbook__overview" aria-label="留言板数量与发布规则">
+        <div>
+          <dt>留言记录</dt>
+          <dd>{{ guestbook_page.total_items|default:"0" }}</dd>
+        </div>
+        <div>
+          <dt>留言板每日上限</dt>
+          <dd>{{ guestbook_page.board_daily_limit|default:"20" }} <small>条</small></dd>
+        </div>
+        <div>
+          <dt>账户每日上限</dt>
+          <dd>{{ guestbook_page.account_daily_limit|default:"2" }} <small>条</small></dd>
+        </div>
+      </dl>
+      {% if saved == "moderated" %}{% include "components/feedback/trigger.html" with key="admin-guestbook-moderated" message="留言板状态已更新。" %}{% elif saved == "deleted" %}{% include "components/feedback/trigger.html" with key="admin-guestbook-deleted" message="留言已删除。" %}{% elif saved == "quotas" %}{% include "components/feedback/trigger.html" with key="admin-guestbook-quotas" message="每日留言额度已更新。" %}{% endif %}
+    </header>
+
+    {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}</p>{% endif %}
+
+    {% if guestbook_page and quota_form %}
+      <section id="guestbook-limits" class="admin-guestbook__quota" aria-labelledby="guestbook-limits-title">
+        <header class="admin-guestbook__quota-intro">
+          <h2 id="guestbook-limits-title">每日留言额度</h2>
+          <p>按上海时区自然日计算。成功创建的留言会计入额度，之后隐藏或删除不会返还。</p>
+        </header>
+        <form class="admin-guestbook__quota-form" method="post" data-submit-once>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="guestbook_quota_update">
+          {{ quota_form.expected_version }}
+          <div class="admin-guestbook__quota-field">
+            {{ quota_form.account_daily_limit.label_tag }}
+            {{ quota_form.account_daily_limit }}
+            <p id="guestbook-account-daily-limit-help">{{ quota_form.account_daily_limit.help_text }}</p>
+            {% if quota_form.account_daily_limit.errors %}<ul class="admin-guestbook__field-errors" role="alert">{% for error in quota_form.account_daily_limit.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="admin-guestbook__quota-field">
+            {{ quota_form.board_daily_limit.label_tag }}
+            {{ quota_form.board_daily_limit }}
+            <p id="guestbook-board-daily-limit-help">{{ quota_form.board_daily_limit.help_text }}</p>
+            {% if quota_form.board_daily_limit.errors %}<ul class="admin-guestbook__field-errors" role="alert">{% for error in quota_form.board_daily_limit.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <button class="button button--primary" type="submit">保存额度</button>
+        </form>
+      </section>
+    {% endif %}
+
+    <section id="guestbook-list" class="admin-queue__detail admin-guestbook__list" aria-labelledby="guestbook-list-title">
+      <header class="admin-guestbook__list-header">
+        <div>
+          <h2 id="guestbook-list-title">全部留言</h2>
+          <p>共 {{ guestbook_page.total_items|default:"0" }} 条记录，按最新发布排序。</p>
+        </div>
+        {% if guestbook_page %}<span>第 {{ guestbook_page.page_number }} / {{ guestbook_page.total_pages }} 页 · 每页 {{ guestbook_page.page_size }} 条</span>{% endif %}
+      </header>
+
+      {% if guestbook_page.items %}
+        <div class="admin-guestbook__entries">
+          {% for item in guestbook_page.items %}
+            <article class="admin-guestbook__entry{% if item.hidden %} admin-guestbook__entry--hidden{% endif %}{% if item.state == "DELETED" %} admin-guestbook__entry--deleted{% endif %}">
+              <header class="admin-guestbook__entry-header">
+                <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"Y-m-d H:i" }}</time>
+                <div class="admin-guestbook__badges" aria-label="留言状态">
+                  {% if item.state == "DELETED" %}
+                    <span class="admin-guestbook__badge admin-guestbook__badge--deleted">已删除</span>
+                  {% elif item.hidden %}
+                    <span class="admin-guestbook__badge admin-guestbook__badge--hidden">已隐藏</span>
+                  {% else %}
+                    <span class="admin-guestbook__badge admin-guestbook__badge--public">公开</span>
+                  {% endif %}
+                  {% if item.flag == "READ" %}<span class="admin-guestbook__badge admin-guestbook__badge--read">阅</span>{% elif item.flag == "NO" %}<span class="admin-guestbook__badge admin-guestbook__badge--no">否</span>{% elif item.flag == "DONE" %}<span class="admin-guestbook__badge admin-guestbook__badge--done">毕</span>{% endif %}
+                </div>
+              </header>
+
+              <p class="admin-guestbook__body">{% if item.state == "DELETED" %}该留言已删除{% else %}{{ item.body }}{% endif %}</p>
+
+              {% if item.state != "DELETED" %}
+                <div class="admin-guestbook__actions">
+                  <form method="post" data-submit-once>
+                    {% csrf_token %}<input type="hidden" name="action" value="guestbook_moderate"><input type="hidden" name="comment_id" value="{{ item.id }}"><input type="hidden" name="operation" value="{% if item.hidden %}SHOW{% else %}HIDE{% endif %}">
+                    <button class="button button--secondary" type="submit">{% if item.hidden %}显示留言{% else %}隐藏留言{% endif %}</button>
+                  </form>
+                  <form method="post" class="admin-guestbook__mark-form" data-submit-once>
+                    {% csrf_token %}<input type="hidden" name="action" value="guestbook_moderate"><input type="hidden" name="comment_id" value="{{ item.id }}"><input type="hidden" name="operation" value="MARK">
+                    <label><span>处理标记</span><select name="flag"><option value=""{% if not item.flag %} selected{% endif %}>无标记</option><option value="READ"{% if item.flag == "READ" %} selected{% endif %}>阅</option><option value="NO"{% if item.flag == "NO" %} selected{% endif %}>否</option><option value="DONE"{% if item.flag == "DONE" %} selected{% endif %}>毕</option></select></label>
+                    <button class="button button--secondary" type="submit">保存标记</button>
+                  </form>
+                  <a class="button button--danger" id="guestbook-delete-{{ item.id }}" href="?confirm={{ item.id }}#guestbook-list" data-dialog-trigger data-dialog-return-hash="guestbook-list" aria-controls="guestbook-delete-dialog">删除</a>
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% elif page_error %}
+        <div class="admin-guestbook__empty" role="status"><h2>留言暂时无法加载</h2><p>请稍后重新打开此页面。</p></div>
+      {% else %}
+        <div class="admin-guestbook__empty"><h2>暂无留言</h2><p>注册用户发布留言后会显示在这里。</p></div>
+      {% endif %}
+      {% if guestbook_page %}
+        <div class="admin-guestbook__pagination">
+          {% include "components/navigation/pagination.html" with index_page=guestbook_page pagination_query="" pagination_no_hx=True pagination_label="留言板分页" %}
+        </div>
+      {% endif %}
+    </section>
+  </section>
+
+  {% if delete_form %}
+    {% include "components/feedback/confirm_dialog.html" with dialog_id="guestbook-delete-dialog" dialog_open=True dialog_title="确认删除这条留言？" dialog_description="删除后留言正文会清空并从公开留言板移除，删除事实仍会保留。" dialog_details="删除不可恢复。" dialog_return_focus_id="guestbook-delete-"|add:delete_detail.id dialog_return_url=delete_return_url action_value="guestbook_delete" confirmation_form=delete_form dialog_field=delete_form.reason confirm_label="确认删除" %}
+  {% endif %}
+{% endblock %}

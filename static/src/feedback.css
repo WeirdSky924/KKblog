@@ -1,6 +1,6 @@
 .global-feedback {
   position: fixed;
-  z-index: 80;
+  z-index: 25;
   inset-block-start: calc(var(--site-header-height, 5rem) + 1rem);
   inset-inline-end: 1rem;
   display: grid;
@@ -149,6 +149,88 @@
   margin-block-start: 0.5rem;
 }
 
+dialog.confirm-dialog-panel {
+  width: min(32rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+dialog.confirm-dialog-panel::backdrop {
+  background: rgb(13 14 16 / 56%);
+  backdrop-filter: blur(2px);
+}
+
+dialog.confirm-dialog-panel > .confirm-dialog-panel__content {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-block-start: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface-panel);
+  box-shadow: 0 1.25rem 3rem color-mix(in srgb, var(--text-primary) 20%, transparent);
+}
+
+.confirm-dialog-panel__header {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem 0.875rem 1.25rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.confirm-dialog-panel__header > div {
+  min-width: 0;
+}
+
+.confirm-dialog-panel__header p,
+.confirm-dialog-panel__header h2 {
+  margin: 0;
+}
+
+.confirm-dialog-panel__header p {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.confirm-dialog-panel__header h2 {
+  margin-block-start: 0.15rem;
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+
+.confirm-dialog-panel__header .icon-button {
+  flex: 0 0 2.75rem;
+  color: var(--text-secondary);
+}
+
+.confirm-dialog-panel__header .icon-button:hover,
+.confirm-dialog-panel__header .icon-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.confirm-dialog-panel__header .icon-button .lucide {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.confirm-dialog-panel__form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.confirm-dialog-panel__actions {
+  margin-block-start: 0;
+}
+
 @media (max-width: 30rem) {
   .global-feedback {
     inset-block-start: calc(var(--site-header-height, 5rem) + 0.5rem);
@@ -163,5 +245,9 @@
 
   .confirm-dialog__actions .button {
     width: 100%;
+  }
+
+  .confirm-dialog-panel__form {
+    padding: 1rem;
   }
 }

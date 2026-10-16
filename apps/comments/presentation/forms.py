@@ -1,5 +1,8 @@
 from django import forms
 
+from ..errors import CommentPostingError
+from ..validation import normalize_guestbook_body
+
 
 class TopLevelCommentForm(forms.Form):
     body = forms.CharField(
@@ -56,6 +59,38 @@ class TopLevelCommentForm(forms.Form):
         if not self.is_valid():
             return ()
         return self.cleaned_data["image_refs"]
+
+
+class GuestbookCommentForm(forms.Form):
+    body = forms.CharField(
+        min_length=1,
+        max_length=100,
+        strip=True,
+        label="留言内容",
+        error_messages={
+            "required": "请输入留言内容。",
+            "min_length": "请输入留言内容。",
+            "max_length": "留言不能超过 100 个字符。",
+        },
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "maxlength": 100,
+                "placeholder": "写下留言（中文最多 50 字）",
+                "aria-describedby": "guestbook-body-help",
+            }
+        ),
+    )
+
+    def clean_body(self):
+        try:
+            return normalize_guestbook_body(self.cleaned_data.get("body", ""))
+        except CommentPostingError as exc:
+            raise forms.ValidationError(str(exc)) from None
+
+    @property
+    def image_refs(self) -> tuple[str, ...]:
+        return ()
 
 
 class ReplyCommentForm(forms.Form):

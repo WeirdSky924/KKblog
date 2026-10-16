@@ -1,10 +1,16 @@
+from dataclasses import replace
+
 from django.conf import settings
 from django.urls import reverse
 
-from ..queries import comment_thread_panel
+from ..queries import (
+    comment_thread_panel,
+    guestbook_board_page,
+    guestbook_comment_access,
+)
 from ..receipts import decode_comment_receipts
 from ..targets import GUESTBOOK_TARGET_ID, DiscussionTargetType
-from .forms import TopLevelCommentForm
+from .forms import GuestbookCommentForm, TopLevelCommentForm
 
 
 def _comment_context(
@@ -23,6 +29,7 @@ def _comment_context(
     receipt_ids: tuple[str, ...] | None,
     sort,
     cursor: str | None,
+    form_factory=TopLevelCommentForm,
 ) -> dict[str, object]:
     active_receipts = (
         receipt_ids
@@ -40,7 +47,9 @@ def _comment_context(
             sort=sort,
             cursor=cursor,
         ),
-        "comment_form": form or TopLevelCommentForm(noun=noun),
+        "comment_form": form or form_factory(noun=noun)
+        if form_factory is TopLevelCommentForm
+        else form or form_factory(),
         "comment_feedback": feedback,
         "comment_post_url": post_url,
         "comment_page_url": page_url,
@@ -111,7 +120,41 @@ def guestbook_comment_context(
         receipt_ids=receipt_ids,
         sort=sort,
         cursor=cursor,
+        form_factory=TopLevelCommentForm,
     )
+
+
+def guestbook_board_context(
+    *,
+    request,
+    form: GuestbookCommentForm | None = None,
+    feedback: str = "",
+    dialog_open: bool = False,
+    cursor: str | None = None,
+) -> dict[str, object]:
+    access = guestbook_comment_access(actor_id=getattr(request, "account_id", None))
+    access = replace(
+        access,
+        can_post=access.comments_enabled and access.is_active_actor,
+        post_login_required=access.comments_enabled,
+    )
+    return {
+        "guestbook_board_access": access,
+        "guestbook_board_daily_limit": access.guestbook_daily_limit,
+        "guestbook_account_daily_limit": access.guestbook_account_daily_limit,
+        "guestbook_board_page": guestbook_board_page(
+            thread_id=access.thread_id,
+            cursor=cursor,
+        ),
+        "guestbook_form": form or GuestbookCommentForm(),
+        "guestbook_feedback": feedback,
+        "guestbook_dialog_open": bool(dialog_open or (form and form.errors)),
+        "guestbook_post_url": reverse("public:guestbook-board-comment-create"),
+        "guestbook_board_page_url": reverse("public:guestbook-board-page"),
+        "guestbook_login_url": (
+            f"{reverse('accounts:login')}?next={reverse('public:home')}"
+        ),
+    }
 
 
 def comment_context_for_target(

@@ -5,17 +5,28 @@ from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from apps.accounts.public import (
+    AuthorPermissionRequestError,
+    author_permission_request_submitted,
+    is_active_account,
+    submit_author_permission_request,
+)
 from apps.authoring.forms import ArticleDeleteForm, ArticleRestoreForm
 from apps.authoring.presenters import article_workspace
 from apps.content.public import (
     ArticleDeletionError,
     ArticleNotFound,
+    authoring_access,
     delete_article,
     restore_deleted_article,
 )
 from apps.core.http import is_htmx_fragment_request
 
-from .access import author_id_or_response, private_response
+from .access import (
+    authenticated_account_id_or_response,
+    author_id_or_response,
+    private_response,
+)
 
 _DELETE_ERRORS = {
     "invalid": "删除确认已失效，请刷新页面后重试。",
@@ -80,9 +91,47 @@ def _workspace_response(
 
 
 def articles(request):
-    actor_id, response = author_id_or_response(request)
+    actor_id, response = authenticated_account_id_or_response(request)
     if response is not None:
         return response
+    if request.method not in {"GET", "POST"}:
+        return private_response(HttpResponseNotAllowed(("GET", "POST")))
+    is_author = authoring_access(actor_id)
+    if not is_author:
+        if not is_active_account(actor_id):
+            raise PermissionDenied
+        if request.method == "POST":
+            if request.POST.get("action") != "request_author_permission":
+                return private_response(
+                    render(
+                        request,
+                        "authoring/permission_request.html",
+                        {
+                            "request_error": "操作无效，请刷新页面后重试。",
+                            "request_submitted": author_permission_request_submitted(
+                                actor_id
+                            ),
+                        },
+                        status=422,
+                    )
+                )
+            try:
+                submit_author_permission_request(
+                    account_id=actor_id,
+                    trace_code=getattr(request, "trace_code", ""),
+                )
+            except AuthorPermissionRequestError:
+                raise PermissionDenied from None
+            return private_response(redirect(reverse("authoring:articles")))
+        return private_response(
+            render(
+                request,
+                "authoring/permission_request.html",
+                {"request_submitted": author_permission_request_submitted(actor_id)},
+            )
+        )
+    if request.method != "GET":
+        return private_response(HttpResponseNotAllowed(("GET",)))
     try:
         workspace = article_workspace(
             actor_id=actor_id,
@@ -93,8 +142,6 @@ def articles(request):
         raise PermissionDenied from None
     except ValueError:
         raise Http404 from None
-    if request.method != "GET":
-        return private_response(HttpResponseNotAllowed(("GET",)))
     template = (
         "authoring/partials/article_workspace.html"
         if is_htmx_fragment_request(request)
