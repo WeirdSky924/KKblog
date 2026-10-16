@@ -296,7 +296,7 @@
 - 正式维护窗口创建 DB/media/Compose 备份并校验；应用四项 migration，切换 Web/Worker/Beat，公网 live/ready/home 和岗位入口读回通过。
 - 生产状态修正由恢复 owner 完成：终态父运行下孤儿来源从 `RUNNING` 收敛为 `FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；空 dispatcher 复核无派发。
 - 收尾停止 Labs Web/Worker/Beat、Outbox service/timer 和临时测试容器，保留失败诊断与数据卷；生产机会浏览器服务未停止。
-- 当前下一步是提交本次发布记录/handoff 收口，删除已集成远端任务分支，并保留外部 P0、认证态验收、知识审核、题库公开状态和 Outbox 独立调查待办。
+- 当前交付记录和 handoff 已提交；下一步仅清理已集成远端任务分支并保留外部 P0、认证态验收、知识审核、题库公开状态和 Outbox 独立调查待办。
 
 ## Work Log Guidelines
 

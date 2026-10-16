@@ -8,8 +8,7 @@
 - Current objective: 完成本轮 Labs 代码交付、正式增量更新、状态修正和 Labs 测试服务收尾。
 - Current status: 源码提交 `2c78cddf92acf6adf7f33f3c57affa32cada522e` 已推送并 fast-forward 到 `origin/main`；生产已应用四项 migration、切换候选镜像并通过公网读回；终态招聘孤儿来源已由恢复 owner 收敛；Labs Web/Worker/Beat/Outbox 已停止。
 - Immediate next actions:
-  - 提交并推送本轮执行记录与 handoff 收口文档，随后删除已集成的远端任务分支；保留 Labs worktree 中未提交测试文件，按项目规则不进入交付提交。
-  - 外部 P0 只读复测、知识审核 capability check、题库 `security_review` 可见性和 Labs Outbox 历史失败仍按独立 backlog 处理。
+  - 保留 Labs worktree 中未提交测试文件，按项目规则不进入交付提交；外部 P0 只读复测、知识审核 capability check、题库 `security_review` 可见性和 Labs Outbox 历史失败仍按独立 backlog 处理。
 - Active files:
   - `docs/releases/2026-10-17-production-increment/announcement.md`
   - `docs/releases/2026-10-17-production-increment/deployment-record.md`
