@@ -2,6 +2,13 @@
 
 | Date | Command/Check | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-17 | Labs shutdown readback | passed, exit `0` | `kaj-labs.service`/Worker `inactive/dead`; Beat/Outbox `failed` with `MainPID=0`; Outbox timer `inactive/dead`; no Labs worktree process; Labs public health `502`. Temporary test containers stopped; production opportunity browser remained running. |
+| 2026-10-17 | Production final health and affected routes | passed, exit `0` | Candidate Web/Worker `healthy`, Beat `running`, restart count `0`; local/public live and ready `200`, home `200`, public opportunities `302`; maintenance marker removed only after these reads. |
+| 2026-10-17 | Production migration/schema readback | passed, exit `0` | Applied `accounts.0010/0011` and `comments.0006/0007`; candidate plan/drift empty after migration; fields, reset table, guestbook indexes and quota constraints present. |
+| 2026-10-17 | Production orphan-state repair readback | passed, exit `0` | Parent `PARTIAL` failed count changed `30→31`; source `RUNNING→FAILED` with `opportunities.check_run_orphaned.v1`; active run/source and opportunity running TaskRun counts `0`; no Provider/AGENT/collection. |
+| 2026-10-17 | Production backup and candidate gates | passed, exit `0` | DB dump `291139437` bytes/TOC `1043`, media archive `7552953` bytes/`437` paths, Compose snapshot; all `0600`; candidate check/deploy, migration drift, collectstatic and Compose config passed. |
+| 2026-10-17 | Isolated recovery regression | passed, exit `0` | Temporary loopback PostgreSQL/Redis/Mailpit group: `11 passed in 120.87s`; containers stopped after the run. |
+| 2026-10-17 | Git delivery readback | passed, exit `0` | Commit `2c78cddf92acf6adf7f33f3c57affa32cada522e` pushed to task branch and fast-forwarded to `origin/main`; test-only files excluded from the commit. |
 | 2026-10-17 | Shared quota dialog CSS build/check | passed, exit `0` | `npm run build:css` succeeded; `manage.py check --settings=config.settings.test` reported `0 issues`; `git diff --check` passed. |
 | 2026-10-17 | Labs quota dialog style readback | passed/partial | Service `active/running`, `/health/live=200`, public HTML references `quota-dialog-panel-20261017`. Real Labs page with temporary account quota dialog DOM read back desktop `512px` wide, `4px` top border, `72px` header, `20px` form padding; at 390px width `358px`, `16px` padding, single-column quota fields, body scroll width `375 <= 390`. No authenticated admin flow or data write. |
 | 2026-10-16 | Global feedback/header layer CSS build | passed, exit `0` | `npm run build:css` succeeded; generated `static/dist/styles.css` contains `.global-feedback{z-index:25`; `git diff --check` passed. |

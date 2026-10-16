@@ -47,10 +47,10 @@
 ## Worktree Map
 
 - `/home/code/personal-blog`: 开发主工作区，local `main` HEAD 为 `631253f`；有未提交 handoff 修改及未跟踪 `docs/operations/performance-testing/p0-production-canary/`，必须保留并与 Labs 发布分开处理。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree，当前分支 `codex/labs-next-20261013`，基线 `origin/main=9a0a6c8`；Web、Worker、Beat active/running，P12 PostgreSQL/Redis/Mailpit 已启动并保留既有数据卷，Outbox service/timer 因启动超时暂未运行。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree，当前提交 `2c78cddf92acf6adf7f33f3c57affa32cada522e`；本轮 Web/Worker/Beat/Outbox service/timer 已停止，测试专用临时容器已清理，测试文件仍保留未提交。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
-- `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；Web/Worker/Beat 已增量切换为 `kaj-blog-web:d06af75a9c31`，Caddy 保持 `kaj-blog-caddy:2cbead0`。目录含凭据、数据库、媒体和备份，禁止整体复制或清理。
+- `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；Web/Worker/Beat 已增量切换为 `kaj-blog-web:2c78cddf92ac`，Caddy 保持 `kaj-blog-caddy:2cbead0`。目录含凭据、数据库、媒体和备份，禁止整体复制或清理。
 
 ## Durable Project Context
 

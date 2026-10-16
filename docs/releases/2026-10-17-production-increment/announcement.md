@@ -1,12 +1,12 @@
 # Kajspace 正式增量更新公告（2026-10-17）
 
-状态：准备发布。本公告只记录本轮 `codex/labs-next-20261013` 工作区最终提交、推送和正式增量更新，不合并以前迭代公告的内容。
+状态：已完成（2026-10-17，Asia/Shanghai）。本公告只记录本轮 `codex/labs-next-20261013` 工作区最终提交、推送和正式增量更新，不合并以前迭代公告的内容。
 
 ## 提交与基线
 
 - 正式运行基线：`kaj-blog-web:d06af75a9c31`，源码基线 `d06af75a9c315a9966d612a34a9ba27211629583`。
 - 本轮任务分支：`codex/labs-next-20261013`；远端默认分支为 `origin/main`。
-- 本轮最终源码提交、任务分支推送、`origin/main` fast-forward 和候选镜像摘要在同目录 `deployment-record.md` 中以实际读回为准。
+- 本轮源码提交：`2c78cddf92acf6adf7f33f3c57affa32cada522e`；任务分支已推送，`origin/main` 已 fast-forward 到同一提交。候选镜像和生产读回见同目录 `deployment-record.md`。
 
 ## 本轮变更
 
@@ -19,7 +19,7 @@
 
 ## 数据与运行变更
 
-- 生产待执行迁移仅以候选镜像 `showmigrations --plan` 的新鲜读回为准；本轮预期包含 `accounts.0010`、`accounts.0011`、`comments.0006`、`comments.0007`，不执行无计划迁移。
+- 本轮生产已应用 `accounts.0010`、`accounts.0011`、`comments.0006`、`comments.0007`，候选迁移计划没有其他项。
 - 迁移前创建 PostgreSQL、媒体和 Compose 快照，并在维护窗口内执行；失败时保留旧应用和维护页，禁止反向迁移。
 - 状态修正只调用既有招聘恢复 service，范围限定为已终态父运行的孤儿来源明细；Provider、AGENT、招聘采集和真实外部邮件均不调用。
 
@@ -27,4 +27,4 @@
 
 - 聚焦招聘恢复回归：隔离 PostgreSQL/Redis/Mailpit 下 `11 passed in 120.87s`。
 - 前端回归：`5 passed`；完整前端构建、Ruff、Django check、migration drift 和 `git diff --check` 记录在 `deployment-record.md`。
-- 正式备份、迁移、候选切换、健康读回、状态修正和 Labs 关闭结果只在同目录 `deployment-record.md` 更新后视为最终事实。
+- 正式备份、迁移、候选切换、健康读回、状态修正和 Labs 关闭结果已写入同目录 `deployment-record.md`。

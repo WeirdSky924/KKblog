@@ -288,6 +288,16 @@
 - Result: 生产只读读回显示知识审核 profile 需要 `knowledge-review.v1`；当前 Endpoint row version 为 8，但匹配的严格检查只有其他 schema，旧审核检查对应旧 row version。失败发生在 AGENT 外呼之前。
 - Next action: 管理员对当前 Endpoint 选择知识文档审核 profile 执行严格 capability check，成功后重试审核。
 
+## 2026-10-17（本轮正式增量更新收口）
+
+- 用户授权本轮 Labs 全量提交推送、正式增量更新、生产 migration/备份/状态修正和关闭 Labs 测试服务。
+- 代码与文档提交 `2c78cddf92acf6adf7f33f3c57affa32cada522e` 已推送任务分支并 fast-forward 到远端 `main`；测试文件按规则保留在 Labs worktree 未提交。
+- 候选 `kaj-blog-web:2c78cddf92ac` 基于 `d06af75a9c31` 构建，增量 Dockerfile 已纳入 `config/`；候选 check/deploy、drift、migration plan、collectstatic 和 Compose config 通过。
+- 正式维护窗口创建 DB/media/Compose 备份并校验；应用四项 migration，切换 Web/Worker/Beat，公网 live/ready/home 和岗位入口读回通过。
+- 生产状态修正由恢复 owner 完成：终态父运行下孤儿来源从 `RUNNING` 收敛为 `FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；空 dispatcher 复核无派发。
+- 收尾停止 Labs Web/Worker/Beat、Outbox service/timer 和临时测试容器，保留失败诊断与数据卷；生产机会浏览器服务未停止。
+- 当前下一步是提交本次发布记录/handoff 收口，删除已集成远端任务分支，并保留外部 P0、认证态验收、知识审核、题库公开状态和 Outbox 独立调查待办。
+
 ## Work Log Guidelines
 
 - Keep only recent, still-operationally-useful work here.

@@ -5,29 +5,26 @@
 - Last updated: 2026-10-17
 - Last agent: Codex
 - Workspace root: `/home/code/.codex-worktrees/personal-blog/labs-test-environment`
-- Current objective: 将用户配额覆盖弹窗统一为留言输入窗口的完整样式。
-- Current status: 已抽取共享 `confirm-dialog-panel` 外壳，留言输入弹窗和账户配额覆盖弹窗共用顶端强调线、标题区、关闭按钮、表单间距、操作区和窄屏规则；CSS 已构建，Labs 公网 HTML 已引用 `quota-dialog-panel-20261017`，health 为 `200`。
-- Validation gaps: Labs 真实页面加载 CSS 后通过临时 DOM 读回账户配额弹窗桌面/390px 几何和字段单列布局；没有可授权管理员 session，因此未点击真实“配额覆盖”入口或提交账户配额。
+- Current objective: 完成本轮 Labs 代码交付、正式增量更新、状态修正和 Labs 测试服务收尾。
+- Current status: 源码提交 `2c78cddf92acf6adf7f33f3c57affa32cada522e` 已推送并 fast-forward 到 `origin/main`；生产已应用四项 migration、切换候选镜像并通过公网读回；终态招聘孤儿来源已由恢复 owner 收敛；Labs Web/Worker/Beat/Outbox 已停止。
 - Immediate next actions:
-  - 有可授权管理员 session 后验证真实用户管理入口到配额覆盖弹窗的打开、关闭和保存；不创建或借用账户。
-  - 获得专用隔离 PostgreSQL/Redis/Mailpit 后运行密码重置聚焦回归，保持与本 UI 修复分离。
-  - 按 backlog `B-027` 的独立任务继续处理两条历史 weekly backup Outbox 失败，不改写事件状态。
+  - 提交并推送本轮执行记录与 handoff 收口文档，随后删除已集成的远端任务分支；保留 Labs worktree 中未提交测试文件，按项目规则不进入交付提交。
+  - 外部 P0 只读复测、知识审核 capability check、题库 `security_review` 可见性和 Labs Outbox 历史失败仍按独立 backlog 处理。
 - Active files:
-  - `static/src/feedback.css`
-  - `static/src/discovery-home.css`
-  - `apps/discovery/templates/discovery/partials/home_guestbook.html`
-  - `apps/administration/templates/administration/learning_question_banks.html`
-  - `static/src/learning-admin.css`
-  - `templates/base.html`
-  - `static/dist/styles.css`
-  - `docs/releases/2026-10-13-next-iteration/quota-dialog-panel-20261017.md`
-- Blockers: 缺少隔离测试环境变量和可授权管理员/普通用户 session。真实邮件、生产操作和 Git 写操作均未执行。
+  - `docs/releases/2026-10-17-production-increment/announcement.md`
+  - `docs/releases/2026-10-17-production-increment/deployment-record.md`
+  - `.agent-handoff/snapshot.md`
+  - `.agent-handoff/validation.md`
+- Blockers: 本轮交付无发布阻塞；未完成项是外部 P0、认证态功能验收、知识审核 capability check、题库公开状态和 Labs Outbox 独立调查。
 - Open questions:
-  - UNKNOWN: 是否可提供获授权的 Labs 管理员登录态，以验证真实用户管理入口和保存配额覆盖。
+  - UNKNOWN: 是否以及何时提供可授权管理员/普通用户 session，完成留言板、作者申请、通知中心和密码重置真实认证流。
+  - UNKNOWN: 外部 P0 测试机是否可取得所需只读指标和快照。
 
 ## Recovery Summary
 
-- Labs 服务直接读取本 worktree；共享弹窗 CSS 构建产物已更新并由 Labs 公网页面引用。密码重置 migration/CSRF 记录仍保留在本轮 handoff，认证态邮件流未验收。
-- 本轮弹窗复用和验证见 `docs/releases/2026-10-13-next-iteration/quota-dialog-panel-20261017.md`；下一步如需进一步确认，先取得获授权管理员登录态。
-- 前序作者权限申请、留言板、答题和首页相关改动仍在脏 worktree；按路径增量维护，不做整体复制、回退或清理。
-- 生产运行代码基线仍以 `d06af75a9c315a9966d612a34a9ba27211629583` 为准；生产 DB 和服务未触碰。
+- Git：任务提交 `2c78cdd`、任务分支和 `origin/main` 已读回一致；发布记录后续文档提交尚待本次收口。
+- Production：旧基线 `d06af75a9c31` 已切换为 `kaj-blog-web:2c78cddf92ac`；Web/Worker healthy、Beat running、restart count 0；公网 live/ready/home 为 `200`，公开岗位入口为 `302`。
+- Production schema：`accounts.0010`、`accounts.0011`、`comments.0006`、`comments.0007` 已应用，候选无待执行 migration。
+- State repair：此前 `PARTIAL` 父运行下的一条 `RUNNING` 来源明细已变为 `FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；当前活动运行、活动来源明细和机会相关 running TaskRun 均为 `0`。未调用 Provider/AGENT/招聘采集。
+- Labs：`kaj-labs.service`、Worker、Beat 为 `inactive/dead`；Beat/Outbox service 保持 `failed` 但 `MainPID=0`；Outbox timer `inactive/dead`；无 Labs worktree 残留进程，公网 health 在关闭后为 `502`。生产机会浏览器服务未停止。
+- Test-only files remain uncommitted in the Labs worktree: modified `apps/accounts/tests/test_acc004.py` and four new feature test files. They are preserved and excluded from Git delivery by project rule.

@@ -42,6 +42,11 @@
 - [x] `B-040` 修复管理员重置页因 `Referrer-Policy: no-referrer` 导致 `Origin: null` 的 CSRF 403；改为 `same-origin`，保留 CSRF 校验，并完成响应头/同站协议对比。修复后的浏览器复测受 Labs 504 阻断，待稳定后补一次真实页面读回。
 - [x] `B-041` 修复全局右上角通知遮挡顶部栏悬浮菜单：`.global-feedback` 从 `z-index: 80` 降为 `25`，低于 `.site-header: 30`；CSS 构建、公网版本和真实层级读回通过。认证态通知中心仍待有授权 session 后验收。
 - [x] `B-042` 账户配额覆盖弹窗复用留言输入窗口的 `confirm-dialog-panel` 样式；共享标题栏、遮罩、内容间距、关闭按钮和窄屏单列规则已构建并在 Labs 读回。真实管理员入口和保存操作仍待授权 session。
+- [x] `B-043` 本轮源码以 `2c78cddf92acf6adf7f33f3c57affa32cada522e` 提交并推送，远端 `main` 已 fast-forward；独立正式公告位于 `docs/releases/2026-10-17-production-increment/announcement.md`。
+- [x] `B-044` 正式生产已应用 `accounts.0010/0011`、`comments.0006/0007`，候选 Web/Worker/Beat `2c78cddf92ac` health 读回通过，公网 live/ready/home 读回通过。
+- [x] `B-045` 通过招聘恢复 owner 修正终态父运行下的孤儿来源明细，`RUNNING→FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；未调用 Provider/AGENT/招聘采集。
+- [x] `B-046` 本轮收尾关闭 Labs Web、Worker、Beat、Outbox service/timer 和临时测试容器；数据卷、媒体、备份和生产机会浏览器服务保留。
+- [ ] `B-047` 删除已集成的远端 `codex/labs-next-20261013` 任务分支，并在不丢失 Labs 未提交测试文件的前提下收口本地 worktree 分支状态。
 
 ## Backlog Guidelines
 

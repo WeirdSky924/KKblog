@@ -2,6 +2,9 @@
 
 | Date | Decision | Reason | Evidence |
 | --- | --- | --- | --- |
+| 2026-10-17 | 增量镜像复制 `config/`，并在同一维护窗口应用四项 migration；候选失败只允许应用回退，不反向迁移。 | 本轮 `config/outbox_transport.py` 包含账户通知路由，旧 Dockerfile 若只复制 apps/templates/static 会漏发；数据库向前 schema 是新账户、密码重置和留言板功能的前置事实。 | `Dockerfile.incremental` 已包含 `config/`；候选 `check --deploy`、migration plan/drift 通过；生产 `accounts.0010/0011`、`comments.0006/0007` 应用成功，公网 health 200。 |
+| 2026-10-17 | 终态父运行下仍为 `PENDING/RUNNING` 的招聘来源明细由 `recover_expired_check_runs` 收敛为 `FAILED/opportunities.check_run_orphaned.v1`，并重算父汇总；恢复调用注入空 dispatcher。 | 生产只读证据显示父运行已 `PARTIAL`、TaskRun 已 `succeeded`，但来源明细仍 `RUNNING`；直接 SQL 改写或重新采集都会丢失事实或产生外部副作用。 | 候选 Beat 自动修正后来源/父汇总读回 `FAILED/31`，活动运行与活动来源为 `0`；手动空 dispatcher 复核 `0/0/0/0`，未派发采集。 |
+| 2026-10-17 | 正式更新完成后停止 Labs Web、Worker、Beat、Outbox service/timer 和临时测试容器；保留失败诊断、数据卷、媒体、备份及生产机会浏览器服务。 | 用户要求关闭 Labs 测试服务；Outbox 失败状态仍是独立事实，reset-failed 会掩盖诊断，生产机会浏览器不属于 Labs。 | systemd 读回 Labs Web/Worker inactive/dead，Beat/Outbox MainPID 0，timer inactive/dead；worktree 无 Labs 进程，生产容器和机会浏览器未停止。 |
 | 2026-10-17 | 将留言输入和账户配额覆盖弹窗的共同外壳归为 `confirm-dialog-panel`，由 `feedback.css` 统一负责；业务页面只组合共享类和自身字段布局。 | 两个弹窗都需要同一套标题栏、顶端强调线、关闭按钮、遮罩、表单间距和窄屏规则；共享 owner 避免后续两个窗口再次出现样式漂移。 | Labs CSS build、Django check 通过；真实 Labs 页面临时配额弹窗读回 desktop/mobile 几何和单列字段布局；无认证数据副作用。 |
 | 2026-10-16 | 全局反馈层使用 `z-index: 25`，保持低于 `site-header: 30`；不提高 header 或单独为每个菜单复制层级。 | 顶部栏是稳定的 stacking context，所有其内悬浮菜单应整体高于全局通知；降低通知只改变遮挡关系，不改变通知位置、内容或交互，并保留其他页面浮层的既有层级。 | Labs 浏览器 computed style 读回 header `30` / feedback `25`；重叠点由顶部栏浮窗命中；CSS build 与 health 通过。 |
 | 2026-10-16 | 管理员重置页将 Referrer-Policy 从 `no-referrer` 调整为 `same-origin`，继续使用 Django CSRF；不使用 `csrf_exempt`。 | `no-referrer` 在当前浏览器造成 POST `Origin: null`，Django 在 View 前拒绝；同站来源或 Referer 已足以通过 CSRF 后进入令牌校验。URL fragment 不进入 Referer，`same-origin` 保留跨站隐私边界。 | Labs 日志记录 null-origin 403；同一 cookie/token 的同站 Origin 与 Referer 请求均为应用层 422；响应头和模板读回为 `same-origin`。 |
