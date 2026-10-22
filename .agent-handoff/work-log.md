@@ -366,15 +366,16 @@
 - Boundary: 没有生产操作、服务重启、数据库写入或 Git 写入。
 - Documentation: 更新 `focus-mode-ui-20261021.md`、本轮 announcement 和 P12 任务说明，准确记录左下计时区布局及截图限制。
 
-## 2026-10-22（正式增量交付准备与生产状态审计）
+## 2026-10-22（正式增量发布与收口）
 
-- Request: 提交推送全部 Labs 改动，构建本轮正式候选，修复可证实的错误状态数据，执行 production increment，并在成功后关闭 Labs 测试服务。
-- Git: 从 fresh `origin/main=d0407d6` 创建 `codex/production-increment-20261022`；尚未提交或推送。
-- Validation: `npm run build` 通过；frontend `5 passed`；隔离 PostgreSQL/Redis/Mailpit 回归 `29 passed in 200.71s`；Ruff check/format、focus/reader JS syntax、`git diff --check` 通过。两个历史测试断言更新为现有 `same-origin` 和共享弹窗类契约。
-- Data: 生产岗位状态只读审计终态父运行活动来源 `0`、活动父运行 `0`、活动来源 `0`、running opportunity TaskRun `0`；没有调用 recovery service、adapter 或招聘采集。
-- Build preflight: 发现 `.dockerignore` 排除 `static/dist/` 与 incremental Dockerfile 冲突，已精准放行该目录；尚待实际候选 build 证明。
-- Release docs: 新建 `docs/releases/2026-10-22-production-increment/`，用于独立正式公告、计划、checklist 和部署读回，不混用 Labs 历史台账。
-- Boundary: 除 remote main 读回和独立任务分支创建外，未修改生产文件/数据库/容器/服务；所有 production backup/migration/switch 和 Labs shutdown 尚待执行。
+- Request: 提交推送本轮 Labs 改动，发布专注模式与手机版阅读模式，按证据处理岗位异常状态，并在发布后关闭 Labs 测试服务。
+- Git: 运行时代码提交 `e179693d48157aea613f5604bf10058de6849f16` 已推送，远端 `main` 已 fast-forward；当前完成本轮发布文档与 handoff 的独立收口提交。
+- Production: 候选镜像 `kaj-blog-web:e179693d4815`（image `sha256:d9701c9517cd24869fcc94d7cb693c1e54405e35245791b4c79a698fc1f0432c`）；应用 `navigation.0009_focus_mode_settings`，配置读回 idle `3` 分钟/手动暂停 `3` 次。Web/Worker healthy、Beat running、restart count `0`；公网 live/ready/home/article 与 CSS/JS 均 `200`。
+- Data: migration 前后岗位状态审计均为 `0/0/0/0`，本轮无可修正异常；未调用恢复 service、dispatcher、adapter、招聘采集、Provider 或 AGENT。
+- Backups: DB dump、媒体归档及 Compose 快照均为 `0600`，大小、SHA-256、restore listing/归档成员已在 `deployment-record.md` 记录并校验。
+- Labs: Web inactive、Worker/Beat/Outbox 无 PID、Outbox timer inactive；P12 PostgreSQL/Redis/Mailpit 为 `Exited (0)`，数据卷保留，未执行 `reset-failed`。
+- Validation: 前端构建、5 项前端测试、隔离 PostgreSQL/Redis/Mailpit 回归 29 项、Ruff、JS syntax、候选 `check --deploy`/migration/Compose/collectstatic、静态资源和公网 smoke 均通过。
+- User acceptance: 按用户要求未启动浏览器；手机版分页、浮层视觉、专注全屏和真实手势留给用户实机验收。公告仅列本轮运行时代码提交，历史发布记录保持独立。
 
 ## 2026-10-22（手机版阅读模式分页设置浮层）
 

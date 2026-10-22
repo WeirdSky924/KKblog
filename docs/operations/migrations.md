@@ -1,14 +1,14 @@
 # Migration 验证与兼容记录
 
-本页记录 P12 `QA-001` 及后续能力变更对当前 migration graph 的空库、锁、兼容、备份和回滚限制审计。它是部署输入，不代表生产 migration 已获授权或已经执行。
+本页记录 P12 `QA-001` 及后续能力变更对当前 migration graph 的空库、锁、兼容、备份和回滚限制审计。当前生产 migration leaf 已于 2026-10-22 前进至 `navigation.0009_focus_mode_settings`；执行与读回证据见本轮[正式部署记录](../releases/2026-10-22-production-increment/deployment-record.md)。
 
-当前源码可作为部署候选，但没有生产域名、管理员邮箱、Resend 身份或密钥，也没有生产数据库的规模与锁窗口读回。P12 未连接或迁移生产数据库，未创建生产迁移前备份，未执行生产部署或服务重启。
+当前 models/migration graph 与生产 leaf 一致，候选 `makemigrations --check` 无漂移，正式 migration plan 为空。生产表的总行数仍需按具体 migration 风险评估；本轮 `navigation.0009` 只修改单例 `site_configuration`，未回填业务历史数据。生产备份、migration 和服务切换事实只以本轮部署记录为准。
 
 ## 当前结构与目标结构
 
 - 当前代码的 migration leaf 已由发布门禁完整应用到隔离 PostgreSQL 16；`makemigrations --check --dry-run` 无漂移。相对上一正式版本，本次新增评论置顶、阅读书签、文章点赞与文章发布历史表；前三者不回填既有数据，发布历史从既有发布事件和当前发布指针定向回填。
 - 目标结构就是仓库当前 models 与 migration graph；本次增加账户附件能力、修订附件引用、分区默认封面绑定与可空站点 Hero 引用，并扩展媒体用途、目标、大小与可空尺寸约束，不回填既有分区、站点或媒体数据。
-- 空库读回覆盖 58 条 migration；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
+- 空库读回覆盖当前 migration graph；P12 已有的 `pg_trgm`、核心表、命名约束、部分唯一索引、查询索引、延迟触发器和关键外键删除动作验证口径保持不变。
 - 生产表量级未知。任何锁时长、索引耗时和备份体积必须在获授权部署前从生产只读统计重新估算。
 
 ## expand/migrate/contract
@@ -107,6 +107,8 @@
 | `navigation.0005_navigation_default_expanded` | 导航节点增加非空、应用默认关闭的默认展开布尔字段；既有行初始化为 false | M/C0 | B/R1 |
 | `navigation.0006_site_hero_media` | 站点单例增加可空 Hero 媒体 ID；不回填既有站点 | M/C0 | B/R1 |
 | `navigation.0007_retire_friend_link_logos` | 解除历史友链 Logo 绑定，将无其他引用资产标记待清理，并清空旧兼容列；migration 不删除文件 | M+D/C2 | B/R2 |
+| `navigation.0008_article_explanation_settings` | 站点单例增加解析额度/字号段落/历史上限四个整数配置字段与范围约束 | M/C0 | B/R1 |
+| `navigation.0009_focus_mode_settings` | 站点单例增加专注空闲阈值 `3`（范围 1–15 分钟）、手动暂停上限 `3`（范围 1–10 次）及数据库检查约束 | M/C0 | B/R1 |
 | `notifications.0001_notification_foundation` | 通知/receipt、dedupe 与未读索引 | N/C0 | B/R1 |
 | `operations.0001_task_run` | TaskRun、幂等、租约和重试索引 | N/C0 | B/R1 |
 | `operations.0002_audit_entry` | 永久审计表与检索索引 | N/C0 | B/R1 |
@@ -146,6 +148,8 @@
 `navigation.0006` 应与读写 `hero_asset_id` 的新应用同窗口上线，且必须在开放站点 Hero 保存前完成。新列可空且不回填，旧站点仍显示仓库默认图；应用回滚时数据库保持向前并暂停 Hero 配置写入，不自动反向删列。
 
 `navigation.0007` 先由兼容应用停止友链 Logo 新写入和公开读取，再解除历史 `friend_link` Binding、把无其他引用的资产标为 `DELETE_PENDING` 并清空兼容列。迁移事务不访问媒体文件；提交后由既有媒体清理任务删除文件。反向 migration 不恢复绑定、资产状态或旧引用，数据库保持向前；执行前后需统计友链、旧绑定、待删资产与清理失败任务。
+
+`navigation.0009_focus_mode_settings` 为既有站点单例增加 `focus_idle_timeout_minutes=3`（1–15）和 `focus_manual_pause_limit=3`（1–10），并建立数据库范围约束；无历史事实回填或后台副作用。旧应用忽略新列，可在 migration 后回退应用镜像，但数据库保持向前；如果新配置已保存，反向删除字段会丢失管理员设置，不作为自动回滚方式。该 migration 已于 2026-10-22 在正式环境应用，字段默认值、约束和 migration 记录均读回通过。
 
 `agents.0001` 必须先于任何 AGENT 管理、审核或生成入口开放。它只创建新表并 seed `5,000,000` 的全站默认 policy，不保存密钥、不发网络请求、不回填既有业务数据；旧应用会忽略新表。隔离 PostgreSQL 已验证向前、默认 policy/约束读回、反向到 zero 后 `agent_%` 表为 0、再向前成功。Labs 已于 `2026-08-17` 在明确授权后执行并读回默认 policy `5,000,000/row_version 1`；生产数据库 migration 仍需当次明确授权。应用回滚时数据库保持向前并关闭尚未部署的 AGENT 入口。
 

@@ -58,7 +58,7 @@
 - [x] `B-056` 实现手机版文章阅读模式：右侧移动操作 dock 入口、连续/左右/上下三种模式、目录/进度/字号/站点三主题、本地偏好和退出位置恢复。CSS/JS build、文章页/health/hash 读回通过；未启动浏览器，真实手机视觉交互待用户验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-mode-20261021.md`。
 - [x] `B-057` 按用户反馈修正阅读器翻页操作：左右三分区点击和设置显隐、底部仅留页码、内层裁切相邻页、上下手势固定一屏且不跟手滚动。CSS/JS build 与 Labs article/health/hash 读回通过；未启动浏览器，等待用户手机验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-controls-20261022.md`。
 - [x] `B-058` 左右和上下分页的设置改为正文上方浮层；上下模式单击切换设置、滑动保持单页翻动。JS/CSS build 与 Labs article/health/hash 读回通过，待用户手机视觉验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-controls-overlay-20261022.md`。
-- [ ] `B-059` 用户授权对 Labs 全量修改提交推送并正式增量更新；前端构建、`5` 项前端测试、`29` 项隔离 Python 聚焦回归、Ruff 和 JS 语法已通过。生产岗位状态审计为 `0` 个已知异常，不执行无对象的数据修复；候选构建、`navigation.0009`、备份、服务切换及 Labs 测试服务关闭待完成。正式公告见 `docs/releases/2026-10-22-production-increment/announcement.md`。
+- [x] `B-059` Labs 运行时提交 `e179693d48157aea613f5604bf10058de6849f16` 已推送并 fast-forward 到远端 `main`；生产候选构建、前向应用 `navigation.0009`、DB/媒体/Compose 备份、Web/Worker/Beat 切换及公网读回完成，岗位状态审计为 `0/0/0/0`，无状态写修复；Labs Web/Worker/Beat/Outbox/P12 测试服务已停止且数据卷保留。独立公告与部署记录见 `docs/releases/2026-10-22-production-increment/`。手机视觉和真实手势仍待用户自行验收。
 
 ## Backlog Guidelines
 

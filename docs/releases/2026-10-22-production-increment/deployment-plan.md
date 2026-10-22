@@ -1,6 +1,6 @@
 # 2026-10-22 正式增量更新计划
 
-状态：执行中。仅覆盖本次专注模式、手机版阅读模式、对应缺陷修正和必要的 `navigation.0009_focus_mode_settings` migration。
+状态：已执行完成；实际结果见同目录 `deployment-record.md`。本次只覆盖专注模式、手机版文章阅读模式、对应缺陷修正和 `navigation.0009_focus_mode_settings` migration。
 
 ## 基线与候选
 
