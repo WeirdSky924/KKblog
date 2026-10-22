@@ -10,6 +10,8 @@ from apps.accounts.services.registration import (
     request_registration_code,
 )
 from apps.accounts.services.verification import VerificationStore
+from apps.core.events.models import OutboxEvent
+from apps.core.observability.trace import new_trace_code
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -75,7 +77,7 @@ def test_closed_direct_registration_still_accepts_invite(
         remember=False,
         policy=closed,
         client_ip="203.0.113.10",
-        trace_code="KJ-REG-DONE",
+        trace_code=new_trace_code(),
         store=store,
     )
     assert result.account.email == "invited@kaj.test"
@@ -100,7 +102,7 @@ def test_open_direct_registration_creates_remembered_session(store, mailpit) -> 
         remember=True,
         policy=open_policy,
         client_ip="203.0.113.11",
-        trace_code="KJ-REG-DIRECT",
+        trace_code=new_trace_code(),
         store=store,
     )
     result.account.refresh_from_db()
@@ -108,6 +110,12 @@ def test_open_direct_registration_creates_remembered_session(store, mailpit) -> 
     assert result.account.normalized_nickname == "kaj_01!"
     assert result.session.kind == LoginSession.Kind.REMEMBER_30D
     assert result.raw_session_token not in result.session.token_digest
+    registration_event = OutboxEvent.objects.get(
+        event_type="account.registered.v1",
+        aggregate_id=str(result.account.id),
+    )
+    assert registration_event.actor_id == result.account.id
+    assert registration_event.payload == {}
 
 
 def test_registration_rejects_invalid_nickname_before_creating_account(

@@ -5,6 +5,12 @@ from django.db import transaction
 from apps.operations.public import record_audit_entry
 
 from ..models import SiteConfiguration
+from ..site_contracts import (
+    MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MAX_FOCUS_MANUAL_PAUSE_LIMIT,
+    MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MIN_FOCUS_MANUAL_PAUSE_LIMIT,
+)
 from .site_common import SiteContentCommandError, require_administrator, require_version
 
 _LIMITS = {
@@ -12,6 +18,16 @@ _LIMITS = {
     "minute_limit": (1, 60, "每分钟解释次数"),
     "selection_limit": (1, 10_000, "单次选区字符数"),
     "history_limit": (1, 100, "本地历史条数"),
+    "focus_idle_timeout_minutes": (
+        MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+        MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+        "专注模式无操作提醒时间",
+    ),
+    "focus_manual_pause_limit": (
+        MIN_FOCUS_MANUAL_PAUSE_LIMIT,
+        MAX_FOCUS_MANUAL_PAUSE_LIMIT,
+        "专注模式手动暂停次数",
+    ),
 }
 
 
@@ -41,6 +57,8 @@ def _snapshot(row: SiteConfiguration) -> dict[str, object]:
         "minute_limit": row.article_explanation_minute_limit,
         "selection_limit": row.article_explanation_selection_limit,
         "history_limit": row.article_explanation_history_limit,
+        "focus_idle_timeout_minutes": row.focus_idle_timeout_minutes,
+        "focus_manual_pause_limit": row.focus_manual_pause_limit,
         "row_version": row.row_version,
     }
 
@@ -52,6 +70,8 @@ def update_article_explanation_settings(
     minute_limit,
     selection_limit,
     history_limit,
+    focus_idle_timeout_minutes,
+    focus_manual_pause_limit,
     expected_version,
     trace_code: str,
     client_ip: str,
@@ -65,6 +85,14 @@ def update_article_explanation_settings(
         ),
         "article_explanation_history_limit": _limit(
             history_limit, field="history_limit"
+        ),
+        "focus_idle_timeout_minutes": _limit(
+            focus_idle_timeout_minutes,
+            field="focus_idle_timeout_minutes",
+        ),
+        "focus_manual_pause_limit": _limit(
+            focus_manual_pause_limit,
+            field="focus_manual_pause_limit",
         ),
     }
     version = require_version(expected_version)

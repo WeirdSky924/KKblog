@@ -12,6 +12,7 @@
 - `apps/opportunities/`: 招聘来源、岗位、适配器、检查运行和筛选查询。
 - `apps/core/`, `apps/operations/`, `config/`: ID、事件/Outbox、TaskRun、容量、错误和运行配置。
 - `static/src/`, `templates/`: 前端模块、主题、HTMX/Alpine 增强和服务端模板。
+- `static/src/article-reader-mode.js`: 手机版公开文章阅读器状态；本地保存模式/主题/字号，不持有服务端业务数据。
 - `docker/`, `scripts/`, `var/`: 运行/测试入口；`var/`、凭据、数据库、媒体和日志不得进入 Git。
 - `AGENT_HANDOFF.md`: handoff 索引和恢复顺序。
 - `.agent-handoff/`: 当前状态、决策、验证、风险和 backlog。
@@ -47,7 +48,7 @@
 ## Worktree Map
 
 - `/home/code/personal-blog`: 开发主工作区，local `main` HEAD 为 `631253f`；有未提交 handoff 修改及未跟踪 `docs/operations/performance-testing/p0-production-canary/`，必须保留并与 Labs 发布分开处理。
-- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree，当前为 detached 交付快照 `8319e9a110a35664964463dcf88816081ffa04d8`；本轮 Web/Worker/Beat/Outbox service/timer 已停止，测试专用临时容器已清理，测试文件仍保留未提交。
+- `/home/code/.codex-worktrees/personal-blog/labs-test-environment`: Labs 测试 worktree，当前分支 `codex/labs-next-20261020`，HEAD/`origin/main` 为 `d0407d6a17206296507f530fcea0537acf52ffb9`；Web/Worker/Beat 已恢复 `active/running`，测试专用文件仍保留未提交，Outbox service/timer 保持历史失败/停止状态。
 - `/home/code/.codex-worktrees/personal-blog/labs-test-environment-archive-20261009`: 旧 Labs worktree 归档，detached `a06a94f`，保留未提交代码、测试、公告和 handoff；不得整体同步进新分支。
 - `/home/code/.codex-worktrees/personal-blog/production-688c25b`: 正式版本快照，当前 detached `1f9d47c`，仅保留文档准备改动。
 - `/home/code/personal-blog/var/production`: 生产 Compose 运行目录，不是源码 worktree；Web/Worker/Beat 已增量切换为 `kaj-blog-web:2c78cddf92ac`，Caddy 保持 `kaj-blog-caddy:2cbead0`。目录含凭据、数据库、媒体和备份，禁止整体复制或清理。

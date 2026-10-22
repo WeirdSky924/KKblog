@@ -6,6 +6,12 @@ from apps.accounts.public import (
     validate_verification_email_template,
 )
 from apps.navigation.public import (
+    DEFAULT_FOCUS_IDLE_TIMEOUT_MINUTES,
+    DEFAULT_FOCUS_MANUAL_PAUSE_LIMIT,
+    MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MAX_FOCUS_MANUAL_PAUSE_LIMIT,
+    MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MIN_FOCUS_MANUAL_PAUSE_LIMIT,
     SITE_MAX_ARTICLE_BODY_BYTES,
     SITE_MIN_ARTICLE_BODY_BYTES,
     STATIC_PAGE_FORMAT_CHOICES,
@@ -179,6 +185,20 @@ class ArticleExplanationSettingsForm(forms.Form):
         min_value=1,
         max_value=100,
         help_text="只影响浏览器 localStorage，超过后从最早记录开始挤出。",
+    )
+    focus_idle_timeout_minutes = forms.IntegerField(
+        label="专注模式无操作提醒时间（分钟）",
+        initial=DEFAULT_FOCUS_IDLE_TIMEOUT_MINUTES,
+        min_value=MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+        max_value=MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+        help_text="达到该时间后暂停专注计时并提醒；键盘、滚动和触屏操作也会重置计时。",
+    )
+    focus_manual_pause_limit = forms.IntegerField(
+        label="每次专注允许的手动暂停次数",
+        initial=DEFAULT_FOCUS_MANUAL_PAUSE_LIMIT,
+        min_value=MIN_FOCUS_MANUAL_PAUSE_LIMIT,
+        max_value=MAX_FOCUS_MANUAL_PAUSE_LIMIT,
+        help_text="达到上限后结束本次专注；失焦和无操作触发的自动暂停不计入。",
     )
     expected_version = forms.IntegerField(widget=forms.HiddenInput)
 

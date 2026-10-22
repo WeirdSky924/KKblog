@@ -67,6 +67,8 @@ def register_navigation_audit_schemas() -> None:
                     "minute_limit",
                     "selection_limit",
                     "history_limit",
+                    "focus_idle_timeout_minutes",
+                    "focus_manual_pause_limit",
                     "row_version",
                 }
             ),

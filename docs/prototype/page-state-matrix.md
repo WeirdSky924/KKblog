@@ -31,7 +31,7 @@
 | `public:section` | discovery | 全部 | S0,S1,S2,S4,S5；未知/删除分区 | home |
 | `public:tag` | discovery | 全部 | S0,S1,S2,S4,S5；0/1/5 标签 OR | home |
 | `public:search` | discovery | 全部 | S0,S1,S2,S3,S4,S5；文章/作者、空查询/分页；即时建议仅登录可用且最多五条 | home |
-| `article:detail` | discovery | 全部 | S0,S1,S2,S4,S5；登录提醒/404/目录、右侧点赞、置顶评论 | article |
+| `article:detail` | discovery | 全部 | S0,S1,S2,S4,S5；登录提醒/404/目录、右侧点赞、置顶评论；手机右侧 dock 进入本地阅读模式，支持连续滚动、左右三分区点击（左右翻页/中间设置显隐）、上下单手势翻一屏、主题/字号/目录和退出位置恢复；登录公开文章可用专注模式 | article |
 | `article:bookmark` | discovery | 用户/作者/管理员 | S0,S1,S3,S4,S5；重复点击 | account |
 | `article:like` | discovery | 用户/作者/管理员 | S0,S1,S3,S4,S5；匿名跳登录、重复点击、计数同步 | article |
 | `article:comment-pin` | comments | 文章作者/管理员 | S0,S1,S4,S5,S6；替换/取消、首屏重排、游标去重 | article |
@@ -88,7 +88,7 @@
 | `admin:notifications` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；群发/回执/隐藏/删除 | notifications |
 | `admin:navigation` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；三层拖拽/键盘替代/冲突 | settings |
 | `admin:site-settings` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；品牌/法律页/可信来源/留言 | settings |
-| `admin:article-explanation-settings` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；用户级解释限制/版本冲突/不可用 | settings |
+| `admin:article-explanation-settings` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6；解释限制、专注模式范围校验、版本冲突/不可用、保存后读回 | settings |
 | `admin:exchange` | administration | 管理员 | S0,S1,S2,S3,S4,S5,S6,S7；导出/取消/过期/下载 | exchange |
 | `admin:audit` | administration | 管理员 | S0,S1,S2,S3,S4,S5；关键字/类型/目标/时间 | operations |
 | `admin:errors` | administration | 管理员 | S0,S1,S2,S3,S4,S5；trace/脱敏/未找到 | operations |

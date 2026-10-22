@@ -13,6 +13,7 @@ import {
   Bold,
   Bookmark,
   BookmarkCheck,
+  BookOpen,
   BriefcaseBusiness,
   CalendarDays,
   CalendarX2,
@@ -162,6 +163,14 @@ import { initializeQuiz } from "./quiz.js";
 import { initializeRecords } from "./records.js";
 import { initializeArticleExplanations } from "./article-explanation.js";
 import {
+  disposeArticleFocus,
+  initializeArticleFocus,
+} from "./article-focus.js";
+import {
+  disposeArticleReaderMode,
+  initializeArticleReaderMode,
+} from "./article-reader-mode.js";
+import {
   MediaUploadRequestError,
   uploadMediaFile,
 } from "./media-upload.js";
@@ -183,6 +192,7 @@ const availableIcons = {
   Bold,
   Bookmark,
   BookmarkCheck,
+  BookOpen,
   BriefcaseBusiness,
   CalendarDays,
   CalendarX2,
@@ -1415,6 +1425,8 @@ document.addEventListener("htmx:afterSwap", (event) => {
   initializeNotificationDialogs();
   initializeConfirmDialogs(root);
   initializeArticleActions(root);
+  initializeArticleReaderMode(root);
+  initializeArticleFocus(root);
   initializeReadableCodeBlocks(root);
   initializeLatexRenderer(root);
   initializeCharacterCounts(root);
@@ -1456,6 +1468,8 @@ document.addEventListener("htmx:load", (event) => {
   initializeHomeNavigation(root);
   initializeHeaderSearch(root);
   initializeArticleActions(root);
+  initializeArticleReaderMode(root);
+  initializeArticleFocus(root);
   initializeLatexRenderer(root);
   initializePasswordReveals(root);
   initializeAdministrationOperations(root);
@@ -1488,6 +1502,8 @@ document.addEventListener("htmx:timeout", notifyAuthorCloudFailure);
 
 document.addEventListener("htmx:beforeCleanupElement", (event) => {
   disposeArticleActions(event.detail?.elt ?? event.target);
+  disposeArticleReaderMode(event.detail?.elt ?? event.target);
+  disposeArticleFocus(event.detail?.elt ?? event.target);
   destroyAuthorEditors(event.detail?.elt ?? event.target);
 });
 
@@ -1593,6 +1609,8 @@ initializeOpportunities();
 initializeQuiz();
 initializeRecords();
 initializeArticleExplanations();
+initializeArticleFocus();
+initializeArticleReaderMode();
 initializeLiveSubmitSupport();
 initializeLiveSubmitForms();
 focusInsertedError(document);

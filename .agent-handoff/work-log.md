@@ -1,5 +1,45 @@
 # Current Work Log
 
+## 2026-10-22（阅读模式翻页与设置显隐修正）
+
+- 用户要求左右模式顶部设置在开始翻页后收起、中间区点击显隐、左右区翻页、底部仅保留页码，并修正两侧露出邻页内容；随后明确上下模式每次手势只翻一页，正文不跟随拖动。
+- 阅读器左右点击采用视口三分区，键盘方向键/Enter 支持同类操作；首次侧区翻页后隐藏标题和设置，显示中央页码。设置区显隐后按相对阅读进度重新排版。
+- 横向 CSS 多列宽度和位移统一使用 `.article-reader-mode__content` 实际宽度，并由该内层容器裁切相邻页。上下模式以 `clientHeight` 为步长、上划下一页/下划上一页，禁用触屏纵向原生拖动但保留 pinch zoom。
+- 模板移除了底部前后页按钮。同步更新 discovery 架构、页面状态矩阵、ITER-004、公告台账，并新建 `article-reader-controls-20261022.md`。
+- Validation: JS syntax、diff check、CSS/JS build exit `0`；Labs article page 读回版本 `article-reader-controls-20261022a`、页码且无前后按钮；service `active/running`、health `200`；CSS/JS 本地与公网 hash 分别一致为 `8718e904…74da9c4f` / `5f22b729…b997e92610`。
+- User preference: 未启动浏览器，触控动作与分页观感交由用户实机验收。无生产操作、服务重启、migration 或 Git 写操作。
+
+## 2026-10-21（手机版文章阅读模式）
+
+- 用户指定文章右侧点赞操作栏内增加手机版专用阅读入口；阅读模式需有小说阅读器式多种阅读方式。
+- 在 `article:detail` 增加移动端 dock 按钮和原生 dialog 阅读器：连续滚动、CSS 多列左右翻页、按屏高度吸附的上下翻页、目录跳转、进度、字号和站点三主题。阅读偏好在浏览器 localStorage；打开时复用原正文 DOM，关闭时恢复节点和原窗口滚动位置。
+- 新增 `static/src/article-reader-mode.js` 并接入 app 初始化/清理；更新文章、操作栏样式与静态缓存版本。同步 post-P12 ITER-004、发现阅读模块/前端契约/页面矩阵和下一轮公告台账；无 API、迁移或服务器数据副作用。
+- Validation: `node --check` 和 `git diff --check` exit `0`；`npm run build:css`、`npm run build:js` exit `0`。Labs article page 读回入口/模式控件与最终版本 `article-reader-mode-20261021c`，`kaj-labs.service=active/running`、`/health/live=200`；本地/公网 CSS `94716682…173a4f75`、JS `ef032076…a9e2600c` hash 一致。
+- User preference: 不启动浏览器；手机触控、阅读排版和视觉体验留用户实机验收。未执行 production migration/deploy/restart、Git 写操作、真实邮件、招聘采集或 Provider/AGENT。
+
+## 2026-10-21（修正工具栏胶囊挤压按钮）
+
+- Report: 用户确认首次增加按钮 padding 后视觉没有变化。
+- Root cause: `.article-reading-tools__capsule` 的 `max-width:12rem` 小于两个完整按钮所需宽度，`overflow:hidden` 又裁切溢出内容；按钮受 flex shrink 被挤压。
+- Changed: 桌面 capsule max-width 增至 `22rem`、窄屏按 `calc(100vw - 4.5rem)` 限定；按钮设 `flex:0 0 auto`，padding 为桌面 `1.5rem`、窄屏 `0.75rem`；CSS cache key 改为 `article-reading-toolbar-fit-20261021i`。新建 correction 文档并更正前一条公告和 ITER-003 记录。
+- Validation: `npm run build:css` exit `0`；本地/公网 CSS SHA-256 均为 `72a614c68a55c316160b79a8c5bc7532d833eb18d9a05b6ee056173bee1a87e6`；Labs `active/running`，health `200`。
+- User direction/boundary: 用户明确自行测试，本次没有浏览器验收。一次启动的 browser navigation 超过 60 秒后已关闭，`blog-playwright-cli list` 确认无残留；未生成截图或测试产物。无生产、migration、服务重启、外部副作用或 Git 写操作。
+
+## 2026-10-21（专注模式光晕收窄与返回焦点自动恢复）
+
+- Report: 用户表示边缘光晕内部范围过大，且焦点回到页面后效果不消失，要求返回界面后自动恢复计时与正常效果。
+- Root cause: blur/visibility hidden/pointerout 会进入 `auto-paused`，但 focus/visible 只处理待播消息，从未开启新计时段；DOM 状态持续为 warning。CSS 上下渐变高度 `62%`、侧边 `76%`，模糊最大 `34px`、内阴影 `144px`，覆盖范围过宽。
+- Changed: 将离开类暂停标记为 return-resumable；focus/visible/pointerover 时恢复活动计时并清除边缘态。无操作、手动暂停、退出全屏仍需人工恢复。渐变收至上下 `22%`、侧边 `24%`，模糊最大 `18px`、内阴影 `56px`；模板资源版本 `article-focus-return-20261021g`。
+- Validation: JS syntax、CSS/JS build 通过；实际 Labs bundle 读回 blur/focus、pointerout/pointerover 自动恢复，手动暂停不被解除、结束态清光效；CSS geometry 读回。CSS/JS hash 与公网一致、health `200`、服务保持 `active/running`。没有截图级验证。
+- Boundary: 浏览器为匿名 Labs 页面临时 DOM 夹具，没有真实认证账户、操作系统焦点或全屏成功路径。无 migration、服务重启、生产操作、邮件、招聘采集、Provider/AGENT 或 Git 写操作。
+
+## 2026-10-21（专注模式全屏边缘灼烧光晕补强）
+
+- Report: 用户指出初版流光短暂且不明显，要求像游戏受伤画面一样由页面边缘向内扩散、柔和虚影、反复播放，避免细线绕屏。
+- Changed: `static/src/discovery.css` 改成四向和四角宽幅渐变、24/72/144px 内阴影、14–34px blur 与 2.4 秒循环脉冲；移除醒目的边框线。更新 `templates/base.html` cache version 为 `article-focus-edge-burn-20261021e`；新建独立记录并更新 announcement、P12、handoff。
+- Validation: 最终 `npm run build:css` exit `0`；Labs 首页 HTML 引用版本 `...20261021f`，本地/公网 CSS hash 均为 `521417e20bbd4b9daa5071e4e96a8a8f66edb84a33e61bc7f156649771985a3d`，health `/health/live=200`。前一版 `...21e` 在 Labs 页面成功读回暂停态 computed style；最终移除 1px 描边后没有重新打开浏览器。截图 1280×720 和 768×432 均被 5 秒字体等待限时中断，没有图像或像素级视觉证明。
+- Boundary: 浏览器会话及空截图目录已清理；没有数据库、账户或文章数据副作用。无 migration、生产部署/重启、Provider/AGENT、招聘采集、真实邮件或 Git 写操作。全屏成功路径和增强后主观光效仍待用户实测。
+
 ## 2026-10-17（账户配额覆盖弹窗统一留言输入样式）
 
 - Report: 用户管理中的“配额覆盖”弹窗沿用基础确认框，标题区、关闭按钮区和内容间距未完整呈现，与之前留言输入窗口的站内样式不一致。
@@ -297,6 +337,53 @@
 - 生产状态修正由恢复 owner 完成：终态父运行下孤儿来源从 `RUNNING` 收敛为 `FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；空 dispatcher 复核无派发。
 - 收尾停止 Labs Web/Worker/Beat、Outbox service/timer 和临时测试容器，保留失败诊断与数据卷；生产机会浏览器服务未停止。
 - 当前交付记录和 handoff 已提交；下一步仅清理已集成远端任务分支并保留外部 P0、认证态验收、知识审核、题库公开状态和 Outbox 独立调查待办。
+
+## 2026-10-20（返回 Labs 并确认正式基线）
+
+- Objective: 整理分支和 worktree，确认 Labs 从当前正式运行代码基线开始下一轮迭代，并建立新的公告台账。
+- Baseline: 正式 Web/Worker/Beat 均为 `kaj-blog-web:2c78cddf92ac`，OCI revision 为 `2c78cddf92acf6adf7f33f3c57affa32cada522e`；Labs `codex/labs-next-20261020` 与 `origin/main=d0407d6` 对齐，生产 revision 是主线祖先，运行时代码目录无差异。
+- Runtime: Labs Web、Worker、Beat 已恢复 `active/running`；公网 live/ready `200`；P12 PostgreSQL、Redis、Mailpit 分别通过 accepting/PONG/healthy+API 读回。Beat 仅清除自身历史 failed lock 后启动；Outbox 保持 failed/inactive，不做重置或数据改写。
+- Worktree: 主工作区、留言板历史 worktree、旧 Labs 归档和正式快照均保留；Labs 的一个修改测试文件和四个新增测试文件未暂存。
+- Documentation: 新建 `docs/releases/2026-10-20-next-iteration/announcement.md`，后续每个切片另建独立记录并追加本台账。
+- Boundary: 未执行产品测试/build、生产 migration/deploy/restart、招聘采集、Provider/AGENT、真实邮件或 Git 提交/推送；下一项产品目标待用户指定。
+
+## 2026-10-21（ITER-003 登录用户文章专注模式）
+
+- Objective: 在现有登录用户公开文章阅读工具栏内实现专注模式，并按本轮规则写独立 Labs 记录。
+- Changed/confirmed: `discovery` 拥有文章入口和页面状态，`navigation` 拥有 SiteConfiguration 规则，`administration` 提供管理配置；新增迁移 `navigation.0009_focus_mode_settings` 已在 Labs `kaj_test_production_clone` 应用。本次只读读回确认 migration 记录、列、3/3 默认值及 1–15 分钟/1–10 次约束。
+- Validation: `.venv/bin/pytest --reuse-db -q apps/navigation/tests/test_nav005_focus_mode_settings.py apps/discovery/tests/test_article_focus_toolbar.py` 使用 `KAJ_TEST_DATABASE_URL=postgresql://kaj_test_runner@127.0.0.1:57432/kaj_test_focus_mode_e2e`，`11 passed in 199.74s`；目标 Ruff check/format 13 文件、`node --check static/src/article-focus.js`、`npm run build:css`、`npm run build:js` 均退出 `0`。本地隔离 runserver 的 Django system check 为 `0 issues`。
+- Browser: 固定 CLI 通过隔离管理员状态打开阅读设置页和公开文章，页面 GET 均 `200`。实际 3 分钟无操作后读回自动暂停和 `03:00`；三次手动暂停状态序列经 DOM 事件验证。390/768/1440 视口 document 均无横向溢出。CLI 的导航/定位/填入存在等待超时；`requestFullscreen` 在 headless 会话因缺用户手势被拒绝，真实浏览器全屏成功路径与管理员页浏览器保存未验证；配置保存由 Django 客户端回归覆盖。
+- Labs: service 仍是正确 worktree 的 `active/running`，live/ready 均 `200`；CSS/JS 本地与公网 SHA-256 分别匹配 `615b20fc91c5405d08fe8c89b85fbab90036aeae87f8bf97f69e092d458df2ca`、`8e17c4e03a08df89b60ae0e7eabfafb5b25fe9dc1fba0d930900d1a37c081634`。
+- Cleanup/boundary: 关闭 `focus-mode` 浏览器和本地 8766 服务；核对 owner/连接数后删除仅用于本切片的 `test_kaj_test_focus_mode_e2e`、`kaj_test_focus_mode_e2e` 与 `/tmp` 状态/seed 文件，保留 `kaj_test_production_clone`。未执行生产 migration/deploy/restart、真实邮件、招聘采集、Provider/AGENT 或 Git 写入。
+- Documentation: 新建 `docs/releases/2026-10-20-next-iteration/focus-mode-20261021.md` 并更新本轮 announcement、P12 后任务状态和 handoff。
+
+## 2026-10-21（专注模式左下计时区与边缘状态流光）
+
+- Request: 工具栏只留专注开始/结束入口；计时、圆形暂停/继续图标和纯文本次数位于左下计时区并排；手动暂停黄边流光、自动警告红边流光、正常状态无流光。
+- Changed: 将计时区 DOM 移出工具栏；小屏展开工具栏靠右避开左下区域；保留 SVG 图标属性显隐和按 `manual-paused`/`auto-paused` 切换边缘效果，active/off 清除效果。
+- Validation: 真实 Labs bundle/CSS 和临时 DOM fixture 读回状态、键盘焦点样式、三主题颜色及 390/768/1440 几何；三种尺寸均无横溢/控件重叠。Django template compile/system check、JS syntax、CSS/JS build、`git diff --check` 通过。Labs service `active/running`、live `200`；本地/公网 CSS/JS hash 一致。
+- Limitation: 两次全视口截图均被 CLI 5 秒门限终止，未完成像素级截图检查；未使用认证态或真实鼠标操作，全屏成功路径仍待用户正常登录浏览器确认。
+- Boundary: 没有生产操作、服务重启、数据库写入或 Git 写入。
+- Documentation: 更新 `focus-mode-ui-20261021.md`、本轮 announcement 和 P12 任务说明，准确记录左下计时区布局及截图限制。
+
+## 2026-10-22（正式增量交付准备与生产状态审计）
+
+- Request: 提交推送全部 Labs 改动，构建本轮正式候选，修复可证实的错误状态数据，执行 production increment，并在成功后关闭 Labs 测试服务。
+- Git: 从 fresh `origin/main=d0407d6` 创建 `codex/production-increment-20261022`；尚未提交或推送。
+- Validation: `npm run build` 通过；frontend `5 passed`；隔离 PostgreSQL/Redis/Mailpit 回归 `29 passed in 200.71s`；Ruff check/format、focus/reader JS syntax、`git diff --check` 通过。两个历史测试断言更新为现有 `same-origin` 和共享弹窗类契约。
+- Data: 生产岗位状态只读审计终态父运行活动来源 `0`、活动父运行 `0`、活动来源 `0`、running opportunity TaskRun `0`；没有调用 recovery service、adapter 或招聘采集。
+- Build preflight: 发现 `.dockerignore` 排除 `static/dist/` 与 incremental Dockerfile 冲突，已精准放行该目录；尚待实际候选 build 证明。
+- Release docs: 新建 `docs/releases/2026-10-22-production-increment/`，用于独立正式公告、计划、checklist 和部署读回，不混用 Labs 历史台账。
+- Boundary: 除 remote main 读回和独立任务分支创建外，未修改生产文件/数据库/容器/服务；所有 production backup/migration/switch 和 Labs shutdown 尚待执行。
+
+## 2026-10-22（手机版阅读模式分页设置浮层）
+
+- Request: 左右和上下分页中，设置显示时浮在正文上层，不压缩正文；上下模式单击切换设置，滑动仍单次翻页。
+- Root cause/fix: 控件原为 surface 的 flex 子项。新增控件 wrapper 并仅在两种分页模式绝对定位；JS 扩展上下模式点击显隐，任一分页手势后隐藏设置。连续滚动仍沿用纵向布局。
+- Files: `apps/discovery/templates/discovery/article_detail.html`、`static/src/discovery.css`、`static/src/article-reader-mode.js`、阅读架构/ITER-004、`templates/base.html` 及新 Labs slice record/announcement。
+- Validation: JS syntax、CSS/JS build、`git diff --check` 通过；Labs article `200` 读回控件层与版本 `article-reader-overlay-20261022c`，health `200`，service 正确 workdir 且 `active/running`，CSS/JS 公网哈希与本地产物匹配。用户要求自行验收，因此未启动浏览器。
+- Resource gate: yellow；CSS 与 app bundle 分别串行构建，available 约 `595–624 MiB`、swap free `1.75–1.85 GiB`、持续但变化的 `si/so`，每个阶段均有进展且系统响应正常。
+- Boundary: 无服务重启、生产写入、migration、Git 写入或外部副作用；待用户手机观感确认。
 
 ## Work Log Guidelines
 

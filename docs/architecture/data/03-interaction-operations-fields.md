@@ -122,7 +122,7 @@
 
 站点配置不要放入一个无约束 JSON 大桶：
 
-- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值、Logo 与可空 Hero 资产 ID，以及可空的验证码 HTML 模板；Hero ID 必须与 `SITE_BRAND/site/hero` 单槽绑定同事务更新，模板为空表示使用代码内默认模板，SMTP 地址与密钥仍只属于部署配置。
+- `SiteConfiguration` 单例保存站名、描述、版权、图片/正文限制、注册开关、主题默认值、Logo 与可空 Hero 资产 ID、可空的验证码 HTML 模板，以及文章解释限额/历史上限和专注模式策略。专注模式字段 `focus_idle_timeout_minutes` 默认 3、约束 1..15；`focus_manual_pause_limit` 默认 3、约束 1..10。Hero ID 必须与 `SITE_BRAND/site/hero` 单槽绑定同事务更新，模板为空表示使用代码内默认模板，SMTP 地址与密钥仍只属于部署配置。
 - `StaticPage` 保存 ABOUT/PRIVACY/TERMS 的格式、正文和发布状态。
 - `TrustedEmbedSource` 保存来源名、主机规则和启用状态，初始仅 Bilibili。
 - `FriendLink` 保存名称、HTTPS URL、描述和连续排序；兼容列 `logo_asset_id` 固定为空，不再是读取或写入契约。

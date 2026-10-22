@@ -2,28 +2,38 @@
 
 ## Current State
 
-- Last updated: 2026-10-17
+- Last updated: 2026-10-22
 - Last agent: Codex
 - Workspace root: `/home/code/.codex-worktrees/personal-blog/labs-test-environment`
-- Current objective: 完成本轮 Labs 代码交付、正式增量更新、状态修正和 Labs 测试服务收尾。
-- Current status: 源码提交 `2c78cddf92acf6adf7f33f3c57affa32cada522e` 已推送并 fast-forward 到 `origin/main`；生产已应用四项 migration、切换候选镜像并通过公网读回；终态招聘孤儿来源已由恢复 owner 收敛；Labs Web/Worker/Beat/Outbox 已停止。
+- Current objective: 完成交付分支中全部 Labs 改动的提交推送、生产增量更新和测试服务关闭，并建立本轮独立正式公告。
+- Current status: 任务分支 `codex/production-increment-20261022` 已从远端 `main=d0407d6` 建立。生产仍运行 `kaj-blog-web:2c78cddf92ac`，live/ready `200`，维护标记关闭。只读状态审计显示终态岗位运行活动来源 `0`、活动父运行 `0`、活动来源 `0`、运行中岗位 TaskRun `0`，当前没有需修复的错误状态。前端完整构建、前端测试 `5 passed`、聚焦 Python 回归 `29 passed`、Ruff、JS 语法和差异检查已通过。候选构建前发现并修复 `.dockerignore` 排除 `static/dist/` 的冲突。尚未提交、构建候选、备份、应用生产 migration、切换生产服务或关闭 Labs 测试服务。
 - Immediate next actions:
-  - 保留 Labs worktree 中未提交测试文件，按项目规则不进入交付提交；外部 P0 只读复测、知识审核 capability check、题库 `security_review` 可见性和 Labs Outbox 历史失败仍按独立 backlog 处理。
+  - 检查并选择性暂存所有本轮 Labs 代码、测试和文档，提交并推送任务分支，按 fast-forward 集成 `main`。
+  - 从本轮完整源码提交构建候选镜像，执行候选 `check --deploy`、migration drift/plan、Compose 和 `collectstatic` 验证。
+  - 维护窗口前创建并校验新鲜生产 DB/媒体/Compose 备份；只应用 `navigation.0009_focus_mode_settings`，完成候选切换和健康读回。
+  - 正式读回通过后停止本项目 Labs Web/Worker/Beat/Outbox 和 P12 PostgreSQL/Redis/Mailpit；补全公告与 handoff 并完成文档提交推送。
 - Active files:
-  - `docs/releases/2026-10-17-production-increment/announcement.md`
-  - `docs/releases/2026-10-17-production-increment/deployment-record.md`
-  - `.agent-handoff/snapshot.md`
-  - `.agent-handoff/validation.md`
-- Blockers: 本轮交付无发布阻塞；未完成项是外部 P0、认证态功能验收、知识审核 capability check、题库公开状态和 Labs Outbox 独立调查。
+  - `.dockerignore`
+  - `apps/navigation/migrations/0009_focus_mode_settings.py`
+  - `apps/discovery/templates/discovery/article_detail.html`
+  - `static/src/article-focus.js`
+  - `static/src/article-reader-mode.js`
+  - `static/src/discovery.css`
+  - `docs/releases/2026-10-22-production-increment/announcement.md`
+  - `docs/releases/2026-10-22-production-increment/deployment-plan.md`
+  - `docs/releases/2026-10-22-production-increment/deployment-record.md`
+  - `docs/releases/2026-10-22-production-increment/pre-deployment-checklist.md`
+  - `docs/releases/2026-10-20-next-iteration/announcement.md`
+  - `.agent-handoff/` 当前状态、验证和收口记录
+- Blockers: 候选镜像、生产备份、migration 和切换尚未执行。手机版分页浮层和全屏专注的真实视觉/手势验收仍由用户完成；当前任务遵循其此前要求不启动浏览器。
 - Open questions:
-  - UNKNOWN: 是否以及何时提供可授权管理员/普通用户 session，完成留言板、作者申请、通知中心和密码重置真实认证流。
-  - UNKNOWN: 外部 P0 测试机是否可取得所需只读指标和快照。
+  - UNKNOWN: 候选镜像的生产网络 migration plan 和 loopback health 是否与预期一致，需在维护前验证。
+  - UNKNOWN: 正式手机用户是否确认设置浮层遮挡范围、阅读翻页及全屏专注视觉体验。
 
 ## Recovery Summary
 
-- Git：任务提交 `2c78cdd`、任务分支和 `origin/main` 已读回一致；发布记录后续文档提交尚待本次收口。
-- Production：旧基线 `d06af75a9c31` 已切换为 `kaj-blog-web:2c78cddf92ac`；Web/Worker healthy、Beat running、restart count 0；公网 live/ready/home 为 `200`，公开岗位入口为 `302`。
-- Production schema：`accounts.0010`、`accounts.0011`、`comments.0006`、`comments.0007` 已应用，候选无待执行 migration。
-- State repair：此前 `PARTIAL` 父运行下的一条 `RUNNING` 来源明细已变为 `FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；当前活动运行、活动来源明细和机会相关 running TaskRun 均为 `0`。未调用 Provider/AGENT/招聘采集。
-- Labs：`kaj-labs.service`、Worker、Beat 为 `inactive/dead`；Beat/Outbox service 保持 `failed` 但 `MainPID=0`；Outbox timer `inactive/dead`；无 Labs worktree 残留进程，公网 health 在关闭后为 `502`。生产机会浏览器服务未停止。
-- Test-only files remain uncommitted in the Labs worktree: modified `apps/accounts/tests/test_acc004.py` and four new feature test files. They are preserved and excluded from Git delivery by project rule.
+- Git：Labs worktree 位于任务分支 `codex/production-increment-20261022`，从新鲜 `origin/main=d0407d6` 建立；所有 Labs 当前修改仍在工作区，尚未暂存或提交。主工作区与其他 worktree 未修改。
+- Runtime：`kaj-labs.service` 的工作目录仍是本 worktree，服务 `active/running`，公网 `/health/live=200`。Worker/Beat 和 P12 资源在本轮前置恢复记录中为运行状态；Outbox service/timer 的历史失败/停止状态未改写。
+- Production：旧镜像与 10 月 17 日既有状态修正见 `docs/releases/2026-10-17-production-increment/deployment-record.md`；当前旧镜像/health 已读回，迁移与候选切换待本轮授权操作。
+- Release record：本轮独立公告与计划在 `docs/releases/2026-10-22-production-increment/`；不复用 Labs 多切片公告作为正式公告。
+- Testing: 本轮前端 5 项、Python 聚焦 29 项通过；前端最新手机视觉行为由用户验收，未启动浏览器。

@@ -11,7 +11,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `public:tag` | `discovery/tag.html` | `articles_for_tags` | 列表/筛选 | 列表作者 ID/公开主页、删除标签为空、恢复后读回 |
 | `public:search` | `discovery/search.html` | `search_visible_titles`, `search_public_author_page` | 文章/作者结果与页码 | 文章列表作者 ID/公开主页、作者公开主页、模糊、相关度+时间、权限过滤 |
 | `public:search-suggestions` | Header JSON | `search_visible_titles`, `search_public_authors` | 登录用户即时建议 | 未登录固定空结果、文章分区/标签、作者头像、最多五条、无缓存 |
-| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count` | 评论区、收藏、点赞与阅读书签状态 | 作者头像/ID/公开主页、登录提醒、私人/草稿 404、TipTap JSON projection/Markdown 兼容目录 H2、恢复阅读位置 |
+| `article:detail` | `discovery/article_detail.html` | `article_for_reader`, `record_view`, `reading_bookmark_progress`, `article_like_count`, `article_explanation_settings` | 评论、收藏、点赞、阅读书签、登录用户专注模式、手机版本地阅读模式 | 专注模式只在登录公开文章显示；手机版阅读入口只在 `48rem` 及以下视口出现，支持滚动/左右三分区点击翻页/上下单页手势、目录、站内三主题与字号设置；翻页时顶部设置可收起，页码居中；偏好只写浏览器 localStorage，关闭恢复文章 DOM/滚动位置；私人/草稿仍 404 |
 | `article:explanation-create` / `article:explanation-status` | 文章阅读页划词解释面板 | `prepare_article_explanation_context`, `create_article_explanation_request`, `article_explanation_request` | JSON 任务状态与安全 Markdown HTML；前端 localStorage 历史 | 仅登录且文章公开可读；选区清理/长度截断；授权、限额、PENDING、SUCCEEDED、FAILED、CANCELLED；非 JSON/HTML 响应显示安全中文错误 |
 | `article:bookmark` | partial action | `toggle_bookmark` | 收藏按钮 | 登录要求、重复点击幂等 |
 | `article:like` | `discovery/partials/like_control.html` | `set_article_like` | 右侧浮动点赞按钮、详情/列表计数 | 登录要求、固定尺寸、重复点击幂等 |
@@ -100,7 +100,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `admin:notifications` | 群发 | notifications | 全体用户、读回、隐藏/恢复/删除 |
 | `admin:navigation` | 三层拖拽树 | navigation | 站内页/分区/外链统一排版；父级切换自动建议位置；插入后移、删除补位 |
 | `admin:site-settings` | 分组设置 | navigation/core/media | 品牌、注册、Logo、Hero 图片/视频、正文限制、可信来源、法律页 |
-| `admin:article-explanation-settings` | 文章解释设置 | navigation/agents/operations | 用户每日/每分钟解释次数、选区上限、本地历史条数；与 Endpoint/AGENT token 配置分离 |
+| `admin:article-explanation-settings` | 文章阅读设置 | navigation/agents/operations | 用户每日/每分钟解释次数、选区上限、本地历史条数、专注模式无操作分钟数与手动暂停上限；版本冲突和 AuditEntry；与 Endpoint/AGENT token 配置分离 |
 | `admin:exchange` | 导出任务 | exchange | 单全局任务、取消、下载、三天到期 |
 | `admin:audit` | 审计检索 | operations | 关键字、类型、目标、时间、前后值 |
 | `admin:errors` | 错误检索 | operations | 错误码、trace、脱敏详情 |
@@ -139,6 +139,7 @@ URL 是建议的命名空间契约，实施时以 Django `reverse()` 名称为�
 | `pagination` / `cursor_loader` | `templates/components/navigation/` | 传统分页/无限加载分别复用 |
 | `admin_table_shell` | `administration/partials/` | 管理列表，不承载领域规则 |
 | `article_explanation_tools` | `static/src/article-explanation.js` + `discovery.css`/文章模板 | 登录文章页 | 账户命名空间 localStorage、选区按钮、授权 dialog、可拖动面板、内部滚动和停止/重试状态；不拥有 AGENT、限流或 Markdown 业务规则 |
+| `article_reader_mode` | `static/src/article-reader-mode.js` + `discovery.css`/`bookmarks.css`/文章模板 | 手机公开文章页 | 移动端文章操作 dock 入口、原正文节点复用、三种阅读方式、目录、局部主题/字号和位置恢复；不请求后端、不保存正文或服务端偏好 |
 
 共享组件只接受展示 DTO 和 capability flags，不查询 ORM、不自行判断角色、不发起未知领域命令。
 

@@ -13,6 +13,8 @@ class ArticleExplanationSettingsItem:
     minute_limit: int
     selection_limit: int
     history_limit: int
+    focus_idle_timeout_minutes: int
+    focus_manual_pause_limit: int
     row_version: int
 
 
@@ -23,6 +25,8 @@ def article_explanation_settings() -> ArticleExplanationSettingsItem:
             "article_explanation_minute_limit",
             "article_explanation_selection_limit",
             "article_explanation_history_limit",
+            "focus_idle_timeout_minutes",
+            "focus_manual_pause_limit",
             "row_version",
         ).get(pk=1)
     except SiteConfiguration.DoesNotExist:
@@ -34,6 +38,8 @@ def article_explanation_settings() -> ArticleExplanationSettingsItem:
         minute_limit=row.article_explanation_minute_limit,
         selection_limit=row.article_explanation_selection_limit,
         history_limit=row.article_explanation_history_limit,
+        focus_idle_timeout_minutes=row.focus_idle_timeout_minutes,
+        focus_manual_pause_limit=row.focus_manual_pause_limit,
         row_version=row.row_version,
     )
 

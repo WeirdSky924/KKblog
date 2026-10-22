@@ -1,14 +1,14 @@
 {% extends "administration/layout.html" %}
 
-{% block title %}文章解释设置 · {{ site_presentation.site_name }}{% endblock %}
+{% block title %}文章阅读设置 · {{ site_presentation.site_name }}{% endblock %}
 
 {% block admin_content %}
   <section class="admin-queue site-settings-manager article-explanation-settings-manager" aria-labelledby="article-explanation-settings-title">
     <header class="admin-queue__header">
       <p>管理 · 内容与互动</p>
-      <h1 id="article-explanation-settings-title">文章解释设置</h1>
-      <p>配置登录用户使用文章划词解释时的用户级限制。限制在 AGENT 调用前执行，达到限制时不会调用模型、扣除 token 或发送通知。</p>
-      {% if saved == "1" %}{% include "components/feedback/trigger.html" with key="article-explanation-settings" message="文章解释设置已保存。" %}{% endif %}
+      <h1 id="article-explanation-settings-title">文章阅读设置</h1>
+      <p>配置登录用户可用的文章划词解释限制与专注模式规则。专注时长只在当前浏览器会话内计量。</p>
+      {% if saved == "1" %}{% include "components/feedback/trigger.html" with key="article-reading-settings" message="文章阅读设置已保存。" %}{% endif %}
     </header>
 
     {% if settings_unavailable %}
@@ -18,28 +18,57 @@
       </div>
     {% else %}
       {% if page_error %}<p class="admin-queue__error" role="alert">{{ page_error }}{% if trace_code %} 追踪码：<code>{{ trace_code }}</code>{% endif %}</p>{% endif %}
+      <form method="post" class="site-settings-form article-explanation-settings-form" data-submit-once>
+        {% csrf_token %}
+        {{ article_explanation_form.expected_version }}
+        {{ article_explanation_form.non_field_errors }}
+        {% if article_explanation_form.errors %}<p class="admin-queue__error" role="alert">请修正标记有错误的设置项。</p>{% endif %}
       <section class="site-settings-section" aria-labelledby="article-explanation-limits-title">
         <header>
           <div>
-            <h2 id="article-explanation-limits-title">用户级使用限制</h2>
+            <h2 id="article-explanation-limits-title">划词解释限制</h2>
             <p>当前配置版本 {{ article_explanation_settings.row_version }}。Endpoint 的模型额度仍由 AI 配置单独管理。</p>
           </div>
         </header>
-        <form method="post" class="site-settings-form article-explanation-settings-form" data-submit-once>
-          {% csrf_token %}
-          {{ article_explanation_form.expected_version }}
-          <div class="site-settings-stack">
-            {% for field in article_explanation_form.visible_fields %}
-              <div class="site-settings-field">
-                {{ field.label_tag }}{{ field.errors }}{{ field }}
-                {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
-              </div>
-            {% endfor %}
+        <div class="site-settings-stack">
+          <div class="site-settings-field">
+            {{ article_explanation_form.daily_limit.label_tag }}{{ article_explanation_form.daily_limit.errors }}{{ article_explanation_form.daily_limit }}
+            {% if article_explanation_form.daily_limit.help_text %}<p class="form-help">{{ article_explanation_form.daily_limit.help_text }}</p>{% endif %}
           </div>
-          {{ article_explanation_form.non_field_errors }}
-          <button class="button button--primary" type="submit">保存文章解释设置</button>
-        </form>
+          <div class="site-settings-field">
+            {{ article_explanation_form.minute_limit.label_tag }}{{ article_explanation_form.minute_limit.errors }}{{ article_explanation_form.minute_limit }}
+            {% if article_explanation_form.minute_limit.help_text %}<p class="form-help">{{ article_explanation_form.minute_limit.help_text }}</p>{% endif %}
+          </div>
+          <div class="site-settings-field">
+            {{ article_explanation_form.selection_limit.label_tag }}{{ article_explanation_form.selection_limit.errors }}{{ article_explanation_form.selection_limit }}
+            {% if article_explanation_form.selection_limit.help_text %}<p class="form-help">{{ article_explanation_form.selection_limit.help_text }}</p>{% endif %}
+          </div>
+          <div class="site-settings-field">
+            {{ article_explanation_form.history_limit.label_tag }}{{ article_explanation_form.history_limit.errors }}{{ article_explanation_form.history_limit }}
+            {% if article_explanation_form.history_limit.help_text %}<p class="form-help">{{ article_explanation_form.history_limit.help_text }}</p>{% endif %}
+          </div>
+        </div>
       </section>
+      <section class="site-settings-section" aria-labelledby="focus-mode-settings-title">
+        <header>
+          <div>
+            <h2 id="focus-mode-settings-title">专注模式规则</h2>
+            <p>失焦或达到无操作时间后会自动暂停；只有手动暂停计入上限。新配置在用户重新打开文章页面后生效。</p>
+          </div>
+        </header>
+        <div class="site-settings-stack">
+          <div class="site-settings-field">
+            {{ article_explanation_form.focus_idle_timeout_minutes.label_tag }}{{ article_explanation_form.focus_idle_timeout_minutes.errors }}{{ article_explanation_form.focus_idle_timeout_minutes }}
+            {% if article_explanation_form.focus_idle_timeout_minutes.help_text %}<p class="form-help">{{ article_explanation_form.focus_idle_timeout_minutes.help_text }}</p>{% endif %}
+          </div>
+          <div class="site-settings-field">
+            {{ article_explanation_form.focus_manual_pause_limit.label_tag }}{{ article_explanation_form.focus_manual_pause_limit.errors }}{{ article_explanation_form.focus_manual_pause_limit }}
+            {% if article_explanation_form.focus_manual_pause_limit.help_text %}<p class="form-help">{{ article_explanation_form.focus_manual_pause_limit.help_text }}</p>{% endif %}
+          </div>
+        </div>
+      </section>
+      <button class="button button--primary" type="submit">保存文章阅读设置</button>
+      </form>
     {% endif %}
   </section>
 {% endblock %}

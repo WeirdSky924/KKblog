@@ -38,7 +38,8 @@ apps/navigation/
 
 ## 站点与公开内容
 
-- SiteConfiguration：站名（默认 Kaj的小房间）、可空描述、版权、注册开关、正文限制、Logo/Hero 资产和可空的验证码 HTML 模板。
+- SiteConfiguration：站名（默认 Kaj的小房间）、可空描述、版权、注册开关、正文限制、Logo/Hero 资产、可空的验证码 HTML 模板，以及文章解释和专注模式的全站策略。
+- “文章阅读设置”管理用户级划词解释额度与本地历史上限，以及专注模式无操作分钟数（1..15，默认 3）和每次专注手动暂停上限（1..10，默认 3）。设置统一由 navigation service 校验管理员身份、锁定 singleton、比较 `row_version` 并写 AuditEntry；发现页只读已验证的配置 DTO。
 - Logo：默认 CSS/矢量纯色 K；管理员 PNG/ICO 覆盖并作为 favicon。
 - Hero：管理员从共享媒体 picker 选择受限图片或视频；空值使用仓库默认图。视频以默认图为 poster，只在真正播放后覆盖 poster，并提供播放/暂停控制；自动播放失败或 `prefers-reduced-motion` 时保留 poster。
 - StaticPage：About、Privacy、Terms，支持 Markdown/富文本；空内容不显示入口/同意框。

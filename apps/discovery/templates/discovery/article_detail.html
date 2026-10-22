@@ -179,6 +179,15 @@
         {% endif %}
         {% include "discovery/partials/like_control.html" %}
         <button
+          class="button button--secondary article-action-button article-action-reader-mode"
+          type="button"
+          data-article-reader-open
+          aria-label="打开阅读模式"
+          title="打开阅读模式"
+        >
+          <i data-lucide="book-open" aria-hidden="true"></i>
+        </button>
+        <button
           class="button button--secondary article-action-button"
           type="button"
           data-copy-link
@@ -239,6 +248,64 @@
       </div>
     </aside>
   </article>
+  <dialog
+    class="article-reader-mode"
+    data-article-reader-mode
+    aria-labelledby="article-reader-mode-title"
+  >
+    <div class="article-reader-mode__surface" data-reader-theme="day" data-theme="light">
+      <div class="article-reader-mode__controls">
+        <header class="article-reader-mode__header">
+          <div class="article-reader-mode__heading">
+            <p>阅读模式</p>
+            <h2 id="article-reader-mode-title">{{ article.title }}</h2>
+          </div>
+          <div class="article-reader-mode__header-actions">
+            {% if article.toc %}
+              <details class="article-reader-mode__toc">
+                <summary aria-label="打开文章目录" title="打开文章目录">
+                  <i data-lucide="list" aria-hidden="true"></i><span>目录</span>
+                </summary>
+                <nav aria-label="文章目录">
+                  <ol>
+                    {% for item in article.toc %}<li><a href="#{{ item.anchor }}">{{ item.label }}</a></li>{% endfor %}
+                  </ol>
+                </nav>
+              </details>
+            {% endif %}
+            <button class="article-reader-mode__close" type="button" data-reader-close aria-label="退出阅读模式" title="退出阅读模式">
+              <i data-lucide="x" aria-hidden="true"></i>
+            </button>
+          </div>
+        </header>
+        <div class="article-reader-mode__options">
+          <div class="article-reader-mode__mode-switch" role="group" aria-label="阅读方式">
+            <button type="button" data-reader-mode-option="scroll" aria-pressed="true">连续滚动</button>
+            <button type="button" data-reader-mode-option="horizontal" aria-pressed="false">左右翻页</button>
+            <button type="button" data-reader-mode-option="vertical" aria-pressed="false">上下翻页</button>
+          </div>
+          <div class="article-reader-mode__appearance">
+            <div class="article-reader-mode__theme-switch" role="group" aria-label="阅读主题">
+              <button type="button" data-reader-theme-option="day" aria-pressed="true">日间</button>
+              <button type="button" data-reader-theme-option="eye-care" aria-pressed="false">护眼</button>
+              <button type="button" data-reader-theme-option="dark" aria-pressed="false">深色</button>
+            </div>
+            <div class="article-reader-mode__font-size" role="group" aria-label="正文大小">
+              <button type="button" data-reader-font-step="-1" aria-label="缩小字号" title="缩小字号"><i data-lucide="minus" aria-hidden="true"></i></button>
+              <output data-reader-font-value aria-live="polite">17px</output>
+              <button type="button" data-reader-font-step="1" aria-label="放大字号" title="放大字号"><i data-lucide="plus" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="article-reader-mode__viewport" data-reader-viewport role="region" tabindex="0" aria-label="文章内容">
+        <div class="article-reader-mode__content" data-reader-content></div>
+      </div>
+      <footer class="article-reader-mode__footer">
+        <output data-reader-progress aria-live="off">阅读进度 0%</output>
+      </footer>
+    </div>
+  </dialog>
   {% if article_explanation_enabled %}
     <aside
       class="article-reading-tools"
@@ -275,8 +342,43 @@
             aria-label="打开划词解释"
             title="打开划词解释"
           ><i data-lucide="info" aria-hidden="true"></i><span>划词解释</span></button>
+          <button
+            class="button button--secondary"
+            type="button"
+            data-article-focus-toggle
+            aria-pressed="false"
+            aria-label="开启专注模式"
+            {% if article_focus_settings_available %}
+              title="开启专注模式"
+              data-focus-idle-timeout-minutes="{{ article_focus_idle_timeout_minutes }}"
+              data-focus-manual-pause-limit="{{ article_focus_manual_pause_limit }}"
+            {% else %}
+              disabled
+              title="专注模式设置暂时不可用"
+            {% endif %}
+          ><i data-lucide="timer" aria-hidden="true"></i><span data-article-focus-toggle-label>专注模式</span></button>
         </div>
       </div>
+      <span class="article-focus-controls" data-article-focus-controls hidden>
+        <span
+          class="article-focus-timer"
+          data-article-focus-timer
+          role="timer"
+          aria-label="专注时长"
+          aria-live="off"
+          hidden
+        >00:00</span>
+        <button
+          class="article-focus-pause"
+          type="button"
+          data-article-focus-pause
+          aria-label="暂停专注"
+          title="暂停专注"
+          hidden
+        ><i data-lucide="pause" data-article-focus-pause-icon="pause" aria-hidden="true"></i><i data-lucide="play" data-article-focus-pause-icon="play" aria-hidden="true" hidden></i></button>
+        <span class="article-focus-pause-count" data-article-focus-pause-count aria-label="手动暂停次数"></span>
+      </span>
+      <p class="sr-only" data-article-focus-status role="status" aria-live="polite"></p>
       <button
         class="article-explanation-selection-action"
         type="button"

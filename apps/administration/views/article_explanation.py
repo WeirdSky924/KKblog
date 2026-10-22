@@ -34,6 +34,8 @@ def _form(settings, *, data=None) -> ArticleExplanationSettingsForm:
             "minute_limit": settings.minute_limit,
             "selection_limit": settings.selection_limit,
             "history_limit": settings.history_limit,
+            "focus_idle_timeout_minutes": settings.focus_idle_timeout_minutes,
+            "focus_manual_pause_limit": settings.focus_manual_pause_limit,
             "expected_version": settings.row_version,
         },
     )
@@ -45,7 +47,7 @@ def _unavailable(request: HttpRequest) -> HttpResponse:
         "administration/article_explanation_settings.html",
         {
             "settings_unavailable": True,
-            "page_error": "文章解释设置暂时不可用，请稍后重试。",
+            "page_error": "文章阅读设置暂时不可用，请稍后重试。",
             "trace_code": getattr(request, "trace_code", ""),
         },
         status=503,
@@ -95,7 +97,7 @@ def article_explanation_settings(request: HttpRequest) -> HttpResponse:
             request,
             status=422,
             form=form,
-            page_error="请修正文章解释设置。",
+            page_error="请修正文章阅读设置。",
         )
     try:
         update_article_explanation_settings(

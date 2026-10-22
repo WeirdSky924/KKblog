@@ -513,19 +513,36 @@ def article_detail(request, article_id):
     except ArticleNotFound:
         raise Http404 from None
     view_count = record_article_view(article_id=page.article_id)
+    article_explanation_enabled = actor_id is not None and page.visibility == "PUBLIC"
+    reading_settings = None
     try:
-        explanation_history_limit = (
-            article_explanation_settings().history_limit if actor_id is not None else 30
+        reading_settings = (
+            article_explanation_settings() if actor_id is not None else None
         )
     except (ArticleExplanationSettingsQueryError, DatabaseError):
         explanation_history_limit = 30
+    else:
+        explanation_history_limit = (
+            reading_settings.history_limit if reading_settings is not None else 30
+        )
     response = render(
         request,
         "discovery/article_detail.html",
         {
             "article": page,
-            "article_explanation_enabled": (
-                actor_id is not None and page.visibility == "PUBLIC"
+            "article_explanation_enabled": article_explanation_enabled,
+            "article_focus_settings_available": (
+                article_explanation_enabled and reading_settings is not None
+            ),
+            "article_focus_idle_timeout_minutes": (
+                reading_settings.focus_idle_timeout_minutes
+                if reading_settings is not None
+                else None
+            ),
+            "article_focus_manual_pause_limit": (
+                reading_settings.focus_manual_pause_limit
+                if reading_settings is not None
+                else None
             ),
             "article_explanation_account_namespace": str(actor_id)
             if actor_id is not None

@@ -47,6 +47,18 @@
 - [x] `B-045` 通过招聘恢复 owner 修正终态父运行下的孤儿来源明细，`RUNNING→FAILED/opportunities.check_run_orphaned.v1`，父汇总失败数 `30→31`；未调用 Provider/AGENT/招聘采集。
 - [x] `B-046` 本轮收尾关闭 Labs Web、Worker、Beat、Outbox service/timer 和临时测试容器；数据卷、媒体、备份和生产机会浏览器服务保留。
 - [x] `B-047` 已删除已集成的远端 `codex/labs-next-20261013` 任务分支；本地 Labs worktree 将切到 detached 交付快照并保留未提交测试文件。
+- [x] `B-048` 已将 Labs 切换到 `codex/labs-next-20261020`，确认 `origin/main=d0407d6` 与正式 revision `2c78cddf` 的运行时代码一致，并保留其他 worktree 及 Labs 测试文件。
+- [x] `B-049` 已恢复 Labs Web/Worker/Beat 与 P12 依赖健康；Outbox 历史失败状态保持不变，并建立 `docs/releases/2026-10-20-next-iteration/announcement.md` 作为下一轮独立公告台账。
+- [x] `B-050` 用户指定 ITER-003 登录用户文章专注模式；已在 `docs/releases/2026-10-20-next-iteration/` 建立独立记录和公告台账条目。
+- [x] `B-051` 完成 Labs 专注模式：管理员配置默认/范围/审计、文章登录入口、单调计时、自动暂停提醒及第三次手动暂停结束；`11 passed`、Ruff、JS 语法、CSS/JS 构建、Labs health 和静态 hash 读回通过。headless 浏览器拒绝全屏用户手势，真实浏览器成功全屏路径留给用户实机确认；详情见 `docs/releases/2026-10-20-next-iteration/focus-mode-20261021.md`。
+- [x] `B-052` 按用户反馈调整专注模式：工具栏只保留入口，计时/圆形暂停图标/次数在页面左下角单行显示；手动暂停黄边提示、自动警告红边提示、正常状态无光效。Labs bundle、三主题和 390/768/1440 几何已读回；初版光效强度随后由 `B-053` 补强。认证态全屏成功路径仍待用户实机确认，见 `focus-mode-ui-20261021.md`。
+- [x] `B-053` 按用户反馈把专注边缘提示增强为全屏宽幅灼烧式黄/红光晕，采用多层径向渐变、内阴影和循环呼吸动画，移除所有描边；最终 CSS 构建、Labs 首页版本 `...20261021f`、本地/公网 hash 和 health `200` 读回通过。版本 `...21e` 已有 computed-style 读回；最终版本截图受 CLI 字体等待限制未完成，像素级效果待用户实测。详见 `docs/releases/2026-10-20-next-iteration/focus-mode-edge-burn-20261021.md`。
+- [x] `B-054` 按用户反馈收窄专注边缘渐变，并为 blur/visibility-hidden/pointerout 自动暂停增加返回自动续计；恢复后移除红色光效，不影响手动暂停、空闲超时和退出全屏。Labs app bundle 事件读回、CSS/JS 构建、版本/hash/health 通过；像素级光晕验收待用户实测。详见 `docs/releases/2026-10-20-next-iteration/focus-mode-return-behavior-20261021.md`。
+- [x] `B-055` 修正文章阅读工具栏按钮留白：首次 padding-only 微调无效的根因是胶囊 `max-width:12rem` 挤压按钮；现扩充胶囊、禁止按钮收缩，桌面/窄屏 padding 为 `1.5rem`/`0.75rem`。CSS 构建及 Labs hash/health 通过；按用户要求未做浏览器验收，由用户自行测试。详见 `docs/releases/2026-10-20-next-iteration/article-reading-toolbar-fit-20261021.md`。
+- [x] `B-056` 实现手机版文章阅读模式：右侧移动操作 dock 入口、连续/左右/上下三种模式、目录/进度/字号/站点三主题、本地偏好和退出位置恢复。CSS/JS build、文章页/health/hash 读回通过；未启动浏览器，真实手机视觉交互待用户验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-mode-20261021.md`。
+- [x] `B-057` 按用户反馈修正阅读器翻页操作：左右三分区点击和设置显隐、底部仅留页码、内层裁切相邻页、上下手势固定一屏且不跟手滚动。CSS/JS build 与 Labs article/health/hash 读回通过；未启动浏览器，等待用户手机验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-controls-20261022.md`。
+- [x] `B-058` 左右和上下分页的设置改为正文上方浮层；上下模式单击切换设置、滑动保持单页翻动。JS/CSS build 与 Labs article/health/hash 读回通过，待用户手机视觉验收。详见 `docs/releases/2026-10-20-next-iteration/article-reader-controls-overlay-20261022.md`。
+- [ ] `B-059` 用户授权对 Labs 全量修改提交推送并正式增量更新；前端构建、`5` 项前端测试、`29` 项隔离 Python 聚焦回归、Ruff 和 JS 语法已通过。生产岗位状态审计为 `0` 个已知异常，不执行无对象的数据修复；候选构建、`navigation.0009`、备份、服务切换及 Labs 测试服务关闭待完成。正式公告见 `docs/releases/2026-10-22-production-increment/announcement.md`。
 
 ## Backlog Guidelines
 

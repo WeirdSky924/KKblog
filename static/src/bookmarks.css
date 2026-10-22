@@ -78,6 +78,10 @@
   color: var(--accent);
 }
 
+.article-action-reader-mode {
+  display: none;
+}
+
 .article-action-button[data-article-action="copy"][data-copied="true"] svg rect {
   fill: currentColor;
 }
@@ -388,6 +392,10 @@
       opacity 160ms ease,
       transform 200ms ease,
       visibility 0s linear 200ms;
+  }
+
+  .article-action-reader-mode {
+    display: grid;
   }
 
   .article-action-dock[data-mobile-open="true"]

@@ -7,14 +7,20 @@ from ..site_contracts import (
     DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT,
     DEFAULT_ARTICLE_EXPLANATION_MINUTE_LIMIT,
     DEFAULT_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+    DEFAULT_FOCUS_IDLE_TIMEOUT_MINUTES,
+    DEFAULT_FOCUS_MANUAL_PAUSE_LIMIT,
     MAX_ARTICLE_EXPLANATION_DAILY_LIMIT,
     MAX_ARTICLE_EXPLANATION_HISTORY_LIMIT,
     MAX_ARTICLE_EXPLANATION_MINUTE_LIMIT,
     MAX_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+    MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MAX_FOCUS_MANUAL_PAUSE_LIMIT,
     MIN_ARTICLE_EXPLANATION_DAILY_LIMIT,
     MIN_ARTICLE_EXPLANATION_HISTORY_LIMIT,
     MIN_ARTICLE_EXPLANATION_MINUTE_LIMIT,
     MIN_ARTICLE_EXPLANATION_SELECTION_LIMIT,
+    MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+    MIN_FOCUS_MANUAL_PAUSE_LIMIT,
     SITE_MAX_ARTICLE_BODY_BYTES,
     SITE_MIN_ARTICLE_BODY_BYTES,
     STATIC_PAGE_FORMAT_CHOICES,
@@ -49,6 +55,12 @@ class SiteConfiguration(models.Model):
     )
     article_explanation_history_limit = models.PositiveSmallIntegerField(
         default=DEFAULT_ARTICLE_EXPLANATION_HISTORY_LIMIT
+    )
+    focus_idle_timeout_minutes = models.PositiveSmallIntegerField(
+        default=DEFAULT_FOCUS_IDLE_TIMEOUT_MINUTES
+    )
+    focus_manual_pause_limit = models.PositiveSmallIntegerField(
+        default=DEFAULT_FOCUS_MANUAL_PAUSE_LIMIT
     )
     row_version = models.PositiveBigIntegerField(default=1, editable=False)
     updated_at = models.DateTimeField(auto_now=True, editable=False)
@@ -102,6 +114,20 @@ class SiteConfiguration(models.Model):
                     article_explanation_history_limit__lte=MAX_ARTICLE_EXPLANATION_HISTORY_LIMIT,
                 ),
                 name="site_configuration_explain_history_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    focus_idle_timeout_minutes__gte=MIN_FOCUS_IDLE_TIMEOUT_MINUTES,
+                    focus_idle_timeout_minutes__lte=MAX_FOCUS_IDLE_TIMEOUT_MINUTES,
+                ),
+                name="site_configuration_focus_idle_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    focus_manual_pause_limit__gte=MIN_FOCUS_MANUAL_PAUSE_LIMIT,
+                    focus_manual_pause_limit__lte=MAX_FOCUS_MANUAL_PAUSE_LIMIT,
+                ),
+                name="site_configuration_focus_pause_range",
             ),
         ]
 

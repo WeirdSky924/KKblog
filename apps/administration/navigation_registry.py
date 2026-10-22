@@ -54,7 +54,7 @@ ADMIN_NAVIGATION = (
             AdminNavigationItem("sections", "文章分区", "admin:sections"),
             AdminNavigationItem(
                 "article-explanation",
-                "文章解释设置",
+                "文章阅读设置",
                 "admin:article-explanation-settings",
             ),
         ),
